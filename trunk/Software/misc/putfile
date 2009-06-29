@@ -1,0 +1,11 @@
+#!/bin/bash
+#usage putfile /file/location.txt computername
+#accepted computers: lyra, ucbastro
+
+if [ $2 == 'lyra' ] ; then
+	scp $1 amorgan@lyra.berkeley.edu:~/dropbox/.
+fi
+
+if [ $2 == 'ucbastro' ] ; then
+	scp $1 amorgan@lupus.berkeley.edu:~/dropbox/.
+fi

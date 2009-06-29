@@ -1,0 +1,10 @@
+#!/bin/bash
+##twiturl: making tinyurls for use in twitter (or anywhere)
+##just a wrapper around the python tinyurl interface and my twitter script
+
+##Usage: > twiturl http://url.com/ 'the rest of the message'
+
+export TWITURL="`tinyurl $1`"
+MESSAGE="${2} ${TWITURL}"
+#echo ${MESSAGE}
+twit "${MESSAGE}"

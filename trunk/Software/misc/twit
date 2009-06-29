@@ -1,0 +1,29 @@
+#!/bin/sh
+##Twittering from the command line
+##From http://www.linuxjournal.com/content/twittering-command-line
+
+##Usage: > twit "enter message here"
+##To use tinyurls as well, use twiturl
+
+user="qmorgan"
+pass="twitme0bafgkm"
+curl="/usr/bin/curl"
+
+twit="$1"
+
+LEN=$(echo ${#twit}) #Check Length of twit 
+
+echo "Twit Length: ${LEN} characters"
+
+if [ $LEN -lt 140 ]; then
+        echo "Twitting '${twit}'"
+else
+        echo "Twit is too long, you twit. Max 140 characters. Posting anyway.."
+fi
+
+$curl --basic --user "$user:$pass" --data-ascii \
+  "status=`echo $twit | tr ' ' '+'`" \
+  "http://twitter.com/statuses/update.json" \
+  >& /dev/null  #suppress output
+
+exit 0
