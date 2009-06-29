@@ -3,7 +3,11 @@
 """
 grabptelphot.py
 
+Author: Adam Morgan
+
 Given sky position and data location, grabs the photometry from ptel_astrophot.py
+Currently only works with mosaics output directly from the pipeline; will 
+fix later to deal with any directory/file
 """
 
 import ptel_astrophot
