@@ -111,25 +111,29 @@ class DataFile:
             #Change this to call an AssignName function
             print 'The file "%s" does not exist. Exiting..' % self.filename
             sys.exit(1)
-        elif os.path.isdir(self.filename):
-            print '"%s" is a directory. Exiting..' %self.filename
-            sys.exit(1)
         elif self.filetype == "NoType":
             self.AssignType()
-	print '(Initialized DataFile %s of Type %s)' % (self.filename, self.filetype)
+            # If not a MIRIAD data set, it cannot be a directory                    
+        if os.path.isdir(self.filename) and self.filetype != 'MIRIAD':
+            print '"%s" is a directory. Exiting..' %self.filename
+            sys.exit(1)
+	    print '(Initialized DataFile %s of Type %s)' % (self.filename, self.filetype)
     
     def AssignType(self):
         running = True
+        typelist = ['FITS','ASCII','MIRIAD']
         while running:
             self.filetype = raw_input("Enter File Type (FITS, ASCII, etc.): ")
             if self.filetype == "quit": 
                 print "Exiting..."
                 sys.exit(1)
-            elif self.filetype != "FITS" and self.filetype != "ASCII":
-                print "Filetype not supported.  Enter 'FITS', 'ASCII', or 'quit'"
-            else: 
-                print "%s has been labeled as type %s" % (self.filename,self.filetype)
-                running = False
+            elif self.filetype != "quit":
+                try:
+                    typelist.index(self.filetype) # Check if acceptable filetype
+                    print "%s has been labeled as type %s" % (self.filename,self.filetype)
+                    running = False
+                except ValueError:
+                    print "Filetype not supported.  Type 'quit' or acceptable filetypes:", typelist
     
 
 class Param:
