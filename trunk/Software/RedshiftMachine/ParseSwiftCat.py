@@ -4,8 +4,8 @@
 ParseSwiftCat.py
 Author: Adam Morgan
 Created: July 20, 2009
-Last Updated: July 20, 2009
-    Created
+Last Updated: July 24, 2009
+    Minor updates to arff output
     
 This program takes a tab-delimated catalog of Swift parameters from 
 http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/
@@ -25,6 +25,7 @@ Then download table as tab-delimited text file
 """
 
 import csv
+import time
 
 def sex2dec(sex_pos):
     '''
@@ -181,13 +182,13 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
         # time, then don't include it in the training set. ***
         if grbdict[entry]['v_mag_str'][0] == 'V':
             if grbdict[entry]['v_mag_str'][1] == '>':
-                v_mag_isupper = {'v_mag_isupper':1}
+                v_mag_isupper = {'v_mag_isupper':'yes'}
                 grbdict[entry].update(v_mag_isupper)
             elif grbdict[entry]['v_mag_str'][1] == '=':
-                v_mag_isupper = {'v_mag_isupper':0}
+                v_mag_isupper = {'v_mag_isupper':'no'}
                 grbdict[entry].update(v_mag_isupper)
             elif grbdict[entry]['v_mag_str'][1] == '<':
-                v_mag_isupper = {'v_mag_isupper':0}
+                v_mag_isupper = {'v_mag_isupper':'no'}
                 grbdict[entry].update(v_mag_isupper)
                 print 'We have a LOWER limit for v_mag for grb %s' % entry
             else:
@@ -205,13 +206,13 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
             # Looks like someone typoed in the catalog and put in UWM2 instead of UVM2 for 3 entries
             if uvot_ent.find('U') != -1 and uvot_ent.find('UV') == -1 and uvot_ent.find('UW') == -1:
                 if uvot_ent.find('U>') != -1:
-                    u_mag_isupper = {'u_mag_isupper':1}
+                    u_mag_isupper = {'u_mag_isupper':'yes'}
                     grbdict[entry].update(u_mag_isupper)
                 elif uvot_ent.find('U=') != -1:
-                    u_mag_isupper = {'u_mag_isupper':0}
+                    u_mag_isupper = {'u_mag_isupper':'no'}
                     grbdict[entry].update(u_mag_isupper)
                 elif uvot_ent.find('U<') != -1:
-                    u_mag_isupper = {'u_mag_isupper':0}
+                    u_mag_isupper = {'u_mag_isupper':'no'}
                     grbdict[entry].update(u_mag_isupper)
                     print 'We have a LOWER limit for u_mag for grb %s' % entry
                 else:
@@ -219,13 +220,13 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
                     
             if uvot_ent.find('B') != -1 and uvot_ent.find('TBD') == -1:
                 if uvot_ent.find('B>') != -1:
-                    b_mag_isupper = {'b_mag_isupper':1}
+                    b_mag_isupper = {'b_mag_isupper':'yes'}
                     grbdict[entry].update(b_mag_isupper)
                 elif uvot_ent.find('B=') != -1:
-                    b_mag_isupper = {'b_mag_isupper':0}
+                    b_mag_isupper = {'b_mag_isupper':'no'}
                     grbdict[entry].update(b_mag_isupper)
                 elif uvot_ent.find('B<') != -1:
-                    b_mag_isupper = {'b_mag_isupper':0}
+                    b_mag_isupper = {'b_mag_isupper':'no'}
                     grbdict[entry].update(b_mag_isupper)
                     print 'We have a LOWER limit for b_mag for grb %s' % entry
                 else:
@@ -233,13 +234,13 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
             
             if uvot_ent.find('W1') != -1:
                 if uvot_ent.find('W1>') != -1:
-                    w1_mag_isupper = {'w1_mag_isupper':1}
+                    w1_mag_isupper = {'w1_mag_isupper':'yes'}
                     grbdict[entry].update(w1_mag_isupper)
                 elif uvot_ent.find('W1=') != -1:
-                    w1_mag_isupper = {'w1_mag_isupper':0}
+                    w1_mag_isupper = {'w1_mag_isupper':'no'}
                     grbdict[entry].update(w1_mag_isupper)
                 elif uvot_ent.find('W1<') != -1:
-                    w1_mag_isupper = {'w1_mag_isupper':0}
+                    w1_mag_isupper = {'w1_mag_isupper':'no'}
                     grbdict[entry].update(w1_mag_isupper)
                     print 'We have a LOWER limit for w1_mag for grb %s' % entry
                 else:
@@ -247,13 +248,13 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
                     
             if uvot_ent.find('W2') != -1:
                 if uvot_ent.find('W2>') != -1:
-                    w2_mag_isupper = {'w2_mag_isupper':1}
+                    w2_mag_isupper = {'w2_mag_isupper':'yes'}
                     grbdict[entry].update(w2_mag_isupper)
                 elif uvot_ent.find('W2=') != -1:
-                    w2_mag_isupper = {'w2_mag_isupper':0}
+                    w2_mag_isupper = {'w2_mag_isupper':'no'}
                     grbdict[entry].update(w2_mag_isupper)
                 elif uvot_ent.find('W2<') != -1:
-                    w2_mag_isupper = {'w2_mag_isupper':0}
+                    w2_mag_isupper = {'w2_mag_isupper':'no'}
                     grbdict[entry].update(w2_mag_isupper)
                     print 'We have a LOWER limit for w2_mag for grb %s' % entry
                 else:
@@ -262,17 +263,17 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
             # Note 3 typos in catalog: UWM2 instead of UVM2.  Ignore this by just searching for M2        
             if uvot_ent.find('M2') != -1:
                 if uvot_ent.find('M2>') != -1:
-                    m2_mag_isupper = {'m2_mag_isupper':1}
+                    m2_mag_isupper = {'m2_mag_isupper':'yes'}
                     grbdict[entry].update(m2_mag_isupper)
                 elif uvot_ent.find('M2=') != -1:
-                    m2_mag_isupper = {'m2_mag_isupper':0}
+                    m2_mag_isupper = {'m2_mag_isupper':'no'}
                     grbdict[entry].update(m2_mag_isupper)
                 # One instance of typo: 'UVM2 =' instead of 'UVM2='
                 elif uvot_ent.find('M2 =') != -1:
-                    m2_mag_isupper = {'m2_mag_isupper':0}
+                    m2_mag_isupper = {'m2_mag_isupper':'no'}
                     grbdict[entry].update(m2_mag_isupper)
                 elif uvot_ent.find('M2<') != -1:
-                    m2_mag_isupper = {'m2_mag_isupper':0}
+                    m2_mag_isupper = {'m2_mag_isupper':'no'}
                     grbdict[entry].update(m2_mag_isupper)
                     print 'We have a LOWER limit for m2_mag for grb %s' % entry
                 else:
@@ -280,17 +281,17 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
                     
             if uvot_ent.find('White') != -1:
                 if uvot_ent.find('White>') != -1:
-                    wh_mag_isupper = {'wh_mag_isupper':1}
+                    wh_mag_isupper = {'wh_mag_isupper':'yes'}
                     grbdict[entry].update(wh_mag_isupper)
                 elif uvot_ent.find('White=') != -1:
-                    wh_mag_isupper = {'wh_mag_isupper':0}
+                    wh_mag_isupper = {'wh_mag_isupper':'no'}
                     grbdict[entry].update(wh_mag_isupper)
                 # There was one instance of typo: + instead of =
                 elif uvot_ent.find('White+') != -1:
-                    wh_mag_isupper = {'wh_mag_isupper':0}
+                    wh_mag_isupper = {'wh_mag_isupper':'no'}
                     grbdict[entry].update(wh_mag_isupper)
                 elif uvot_ent.find('White<') != -1:
-                    wh_mag_isupper = {'wh_mag_isupper':0}
+                    wh_mag_isupper = {'wh_mag_isupper':'no'}
                     grbdict[entry].update(wh_mag_isupper)
                     print 'We have a LOWER limit for wh_mag for grb %s' % entry
                 else:
@@ -315,11 +316,11 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
                         grbdict[entry].update(z)
                         # If the redshift is photometric, mark it as such.
                         if z_ent.find('photometric') == -1:
-                            z_isphot = {'z_isphot':0}
+                            z_isphot = {'z_isupper':'no'}
                         else:
-                            z_isphot = {'z_isphot':1}
+                            z_isphot = {'z_isupper':'yes'}
                         grbdict[entry].update(z_isphot)
-                        z_isupper = {'z_isupper':0}
+                        z_isupper = {'z_isupper':'no'}
                         grbdict[entry].update(z_isupper)
                     except:
                         pass
@@ -332,18 +333,18 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
                         iii = 1
                     if z_ent_ent[iii] == '~':
                         print 'CONVERTING APPROXIMATE redshift TO ABSOLUTE for %s' % entry
-                        z_isupper = {'z_isupper':0}
+                        z_isupper = {'z_isupper':'no'}
                     if z_ent_ent[iii] == '<':
                         print 'CONVERTING UPPER LIMIT redshift TO ABSOLUTE for %s' % entry
-                        z_isupper = {'z_isupper':1}
+                        z_isupper = {'z_isupper':'yes'}
                     if z_ent_ent[iii] == '>':
                         print 'CONVERTING LOWER LIMIT redshift TO ABSOLUTE for %s' % entry
-                        z_isupper = {'z_isupper':-1}
+                        z_isupper = {'z_isupper':'islower'}
                     # If the redshift is photometric, mark it as such
                     if z_ent.find('photometric') == -1:
-                        z_isphot = {'z_isphot':0}
+                        z_isphot = {'z_isupper':'no'}
                     else:
-                        z_isphot = {'z_isphot':1}
+                        z_isphot = {'z_isupper':'yes'}
                     try:
                         iii += 1 
                         z = {'z':float(z_ent_ent[iii:])}
@@ -391,14 +392,23 @@ def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_
     f.write('% 2. Sources:\n')
     f.write('%     (a) Creator: Adam N. Morgan\n')
     f.write('%     (b) Data From: http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/\n')
-    f.write('%     (c) Date: July 21, 2009\n')
+    f.write('%     (c) Date: '+time.asctime()+'\n')
+    f.write('% \n')
+    f.write('% 3. This file was created automatically. \n')
+    f.write('%    CHECK THE ATTRIBUTES before running Weka. \n')
     f.write('% \n')
     f.write('@RELATION swift_redshift\n')
     f.write('\n')
     
     # Create .arff attributes section 
     for keyitem in keylist:
-        keystring = ('@ATTRIBUTE %s NUMERIC\n') % keyitem
+        # If the key for the first item in the dictonary is not a string, assume it is a numeric quantity
+        if type(outdict[outdict.keys()[0]][keyitem]).__name__ != 'str':
+            keystring = ('@ATTRIBUTE %s NUMERIC\n') % keyitem
+        else:
+            # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
+            f.write('% !CHECK ME:\n')
+            keystring = ('@ATTRIBUTE %s {yes, no}\n') % keyitem
         f.write(keystring)
     classsubstr = ''
     for classitem in classlist:
