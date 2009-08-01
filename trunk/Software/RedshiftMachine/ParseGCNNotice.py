@@ -77,6 +77,10 @@ class GCNNotice:
         # for gcn_type in gcn_type_list:
         for gcn_type in gcn_type_list:
             typecount = gcn_type_list.count(gcn_type)
+            # Clearing out strings and sub dictionarys
+            partialdict={}
+            subdict={}
+            commentstring=''
             if where(type_already_found,gcn_type) == []:
                 # Use my defined 'where' function to return a list of indices
                 gcn_wherelist = where(gcn_type_list,gcn_type)
@@ -102,16 +106,51 @@ class GCNNotice:
                             partialdict.update(subdict)
                         if linelist[0] == 'COMMENTS':
                             commentstring += linelist[1].strip() + ';'
-                subdict = {'COMMENTS':commentstring}
-                partialdict.update(subdict)
+                            subdict = {'COMMENTS':commentstring}
+                            partialdict.update(subdict)
                 subdict = {gcn_type:partialdict}
                 self.dict.update(subdict)
         print "Finished populating dictionary for trigger %s" % self.triggerid
     
-    def create_region_files(self):
+
+    def parse_positions(self, notice_type):
+        '''Given the desired GCN Notice type, parses to find the positions 
+        contained therein.  Returns a tuple of the RA, Dec, and positional
+        error.  All units are in decimal degrees.
+        '''
         if hasattr(self,'dict') == False:
             self.createdict(self.gcn_notices)
-
+        if self.dict.has_key(notice_type):
+            decstr = self.dict[notice_type]['GRB_DEC']
+            rastr = self.dict[notice_type]['GRB_RA']
+            errstr = self.dict[notice_type]['GRB_ERROR']
+            dec = float(decstr.split('d ')[0])
+            ra = float(rastr.split('d ')[0])
+            err = float(errstr.split(' [')[0])
+            if errstr.find('arcsec') != -1:
+                err = err/3600
+            elif errstr.find('arcmin') != -1:
+                err = err/60
+            else:
+                sys.exit('Cannot understand positional error type')
+            pos_tuple = (ra,dec,err)
+            print "Parsed Positions from %s: %s" % (notice_type, str(pos_tuple))
+            return pos_tuple
+        else:
+            pass
+            #print "Dictionary does not have GCN Notice Type %s" % notice_type
+    
+    def get_positions(self):
+        if hasattr(self,'dict') == False:
+            self.createdict(self.gcn_notices)
+        self.bat_pos = self.parse_positions('Swift-BAT GRB Position')
+        self.xrt_pos = self.parse_positions('Swift-XRT Position')
+        self.uvot_pos = self.parse_positions('Swift-UVOT Position')
+        # Overwrite xrt position if update exists? Make into new position?
+        self.xrt_pos = self.parse_positions('Swift-XRT Position UPDATE')
+        self.bat_pos = self.parse_positions('Swift-BAT GRB Position UPDATE')
+        
+    
     
 
 def where(a,val,wherenot=False):
