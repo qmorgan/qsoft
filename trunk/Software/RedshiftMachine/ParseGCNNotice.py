@@ -87,27 +87,6 @@ def grabwebgcn(triggerid):
     # Split up the text file by GCN Notice - make it a list of strings
     gcn_notices = gcnstring.split(thedelimiter)
     num_of_gcns = len(gcn_notices)
-    # Only keep the GCN notices we care about
-    # First search for which GCN notices have a certain string, 
-    # THEN parse the latest one using the "where" function defined above
-    # This avoids having to parse each case where it's true and avoids
-    # parsing each item found in the for loop
-    # BATPositionilist=[]
-    # BATPositionstring='Swift-BAT GRB Position'
-    # FOMWillObserveilist=[]
-    # FOMWillObservestring='Swift-FOM Will_Observe'
-    # BATLightcurveilist=[]
-    # BATLightcurvestring='Swift-BAT GRB Lightcurve'
-    # 
-    # for gcn in gcn_notices:
-    # 	# Go through the list and Pick out only the most recent
-    # 	# GRB Parameters from GCN Notices of the same type.
-    # 	# Get a list of all GCNs that have the search string:
-    # 	BATPositionilist.append(gcn.find(BATPositionstring))
-    # 	FOMWillObserveilist.append(gcn.find(FOMWillObservestring))
-    # 	BATLightcurveilist.append(gcn.find(BATLightcurvestring))
-    # # Grab only the latest notice for a particular type - this assumes 
-    # # the last index is the most recent
 
     # SEARCH THROUGH EACH NOTICE
     # Find out what all the gcn types are in the long list - 4th line
@@ -118,14 +97,13 @@ def grabwebgcn(triggerid):
         # Make sure not a empty string
     	if len(gcn) > 3:
             gcnsplit = gcn.splitlines()
-            # Find what the notice type is
+            # Find what the notice type is  - 4th line
             typeline = gcnsplit[3]
             typesplit = typeline.split(':     ')
             if typesplit[0] != 'NOTICE_TYPE':
                 print 'THIRD LINE IS NOT NOTICE_TYPE'  
                 sys.exit()
             gcn_type_list.append(typesplit[1])
-    print gcn_type_list
     # DETERMINE WHAT THE LATEST OF THAT TYPE IS
     # for gcn_type in gcn_type_list:
     for gcn_type in gcn_type_list:
@@ -145,6 +123,11 @@ def grabwebgcn(triggerid):
             gcndict.update(subdict)
     
     return gcndict
+
+def make_xrt_reg(triggerid):
+    '''Makes a ds9 region file based on the XRT Error circle in GCN Notices'''
+    # Use xrt-position-update when available
+    
 
 def test():
     a = grabwebgcn(357512)
