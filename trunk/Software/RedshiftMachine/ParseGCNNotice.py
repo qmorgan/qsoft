@@ -140,17 +140,47 @@ class GCNNotice:
             pass
             #print "Dictionary does not have GCN Notice Type %s" % notice_type
     
-    def get_positions(self):
+    def get_positions(self, create_reg_file=False):
         if hasattr(self,'dict') == False:
             self.createdict(self.gcn_notices)
-        self.bat_pos = self.parse_positions('Swift-BAT GRB Position')
-        self.xrt_pos = self.parse_positions('Swift-XRT Position')
-        self.uvot_pos = self.parse_positions('Swift-UVOT Position')
-        # Overwrite xrt position if update exists? Make into new position?
-        self.xrt_pos = self.parse_positions('Swift-XRT Position UPDATE')
-        self.bat_pos = self.parse_positions('Swift-BAT GRB Position UPDATE')
+        # Maybe put these all in a big position dictionary instead?
+        # if there is an update, overwrite 
+        pos_list = ['Swift-BAT GRB Position','Swift-XRT Position', \
+            'Swift-UVOT Position','Swift-XRT Position UPDATE', \
+            'Swift-BAT GRB Position UPDATE', 'Swift-UVOT Position UPDATE']
+        for item in pos_list:
+            if self.dict.has_key(item):
+                if item.find('BAT') != -1:
+                    self.bat_pos = self.parse_positions(item)
+                elif item.find('XRT') != -1:
+                    self.xrt_pos = self.parse_positions(item)
+                elif item.find('UVOT') != -1:
+                    self.uvot_pos = self.parse_positions(item)
         
-    
+        if create_reg_file == True:
+            # Creates a ds9 region file
+            reg_name = str(self.triggerid) + '.reg'
+            f=open(reg_name,'w')
+            f.write('# Region file format: DS9 version 4.1\n')
+            secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
+                 '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
+                 'delete=1 include=1 source=1\n'
+            f.write(secondstr)
+            f.write('fk5\n')
+            if hasattr(self,'uvot_pos'):
+                tmp_str = 'circle('+str(self.uvot_pos[0])+','+str(self.uvot_pos[1])\
+                    +','+str(self.uvot_pos[2]*3600)+'") # color=blue text={UVOT}\n' 
+                f.write(tmp_str)
+            if hasattr(self,'xrt_pos'):
+                tmp_str = 'circle('+str(self.xrt_pos[0])+','+str(self.xrt_pos[1])\
+                    +','+str(self.xrt_pos[2]*3600)+'") # color=yellow text={XRT}\n' 
+                f.write(tmp_str)
+            if hasattr(self,'bat_pos'):
+                tmp_str = 'circle('+str(self.bat_pos[0])+','+str(self.bat_pos[1])\
+                    +','+str(self.bat_pos[2]*3600)+'") # color=red text={BAT}\n' 
+                f.write(tmp_str)
+            f.close
+            print 'Created region file %s' % reg_name
     
 
 def where(a,val,wherenot=False):
