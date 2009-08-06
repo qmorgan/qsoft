@@ -42,11 +42,12 @@ def loadGCN(triggerid, clobber=False):
     else:
         ### Create a pickle file if it doesn't exist, or if clobber is set
         loadedgcn = GCNNotice(triggerid)
-        storefile = open(pklpath,'w')
-        pickle.dump(loadedgcn,storefile)
-        storefile.close
-        if clobber == False:
-            print "No Pickle file existed, so one was created"
-        else:
-            print "Overwrote Pickle file"
+        if loadedgcn.successful_load==True:
+            storefile = open(pklpath,'w')
+            pickle.dump(loadedgcn,storefile)
+            storefile.close
+            if clobber == False:
+                print "No Pickle file existed, so one was created"
+            else:
+                print "Overwrote Pickle file"
     return loadedgcn

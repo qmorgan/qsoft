@@ -34,9 +34,14 @@ class GCNNotice:
         self.dict = {}
         # Be sure to update if the web version has changed!
         # If not already saved on disk, grab the gcn from web
-        self.grabgcnfromweb()
-        # Once grabbed from web, create the dictionary
-        self.createdict()
+        try:
+            self.grabgcnfromweb()
+            # Once grabbed from web, create the dictionary
+            self.createdict()
+            self.successful_load = True
+        except: 
+            print "Cannot Load GCN Notice."
+            self.successful_load = False
     
     def grabgcnfromweb(self):
         """
@@ -55,6 +60,7 @@ class GCNNotice:
         self.gcn_notices = gcn_notices
         self.num_of_gcns = num_of_gcns
         print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
+        print "Cannot load GCN Notice from web."
     
     def createdict(self):
         # If we don't already have the gcn list loaded, grab it from the web
