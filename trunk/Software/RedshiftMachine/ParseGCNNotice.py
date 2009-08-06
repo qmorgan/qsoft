@@ -16,6 +16,12 @@ for an example list of GCN notices for a particular trigger.
 import sys
 import os
 
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+
 class GCNNotice:
     '''Initializes a list of GCN Notices and populates a dictionary
     with the first set of keys being the title of the Notice and the 
@@ -26,8 +32,8 @@ class GCNNotice:
         self.filetype = filetype
         self.triggerid = triggerid
         self.dict = {}
-        # If not already saved on disk, grab the gcn from web
         # Be sure to update if the web version has changed!
+        # If not already saved on disk, grab the gcn from web
         self.grabgcnfromweb()
         # Once grabbed from web, create the dictionary
         self.createdict()
@@ -159,7 +165,7 @@ class GCNNotice:
         
         if create_reg_file == True:
             # Creates a ds9 region file
-            reg_name = str(self.triggerid) + '.reg'
+            reg_name = storepath +'sw'+ str(self.triggerid) + '.reg'
             f=open(reg_name,'w')
             f.write('# Region file format: DS9 version 4.1\n')
             secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
