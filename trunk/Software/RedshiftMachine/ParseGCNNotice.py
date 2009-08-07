@@ -31,7 +31,6 @@ class GCNNotice:
     def __init__(self,triggerid,filetype="NoType"):
         self.filetype = filetype
         self.triggerid = triggerid
-        self.dict = {}
         # Be sure to update if the web version has changed!
         # If not already saved on disk, grab the gcn from web
         try:
@@ -70,6 +69,7 @@ class GCNNotice:
         # for gcn in gcn_list:
         # 	# Search through each notice to determine type
         # 	gcnsplitlist = gcn.splitlines()
+        self.dict={}
         gcn_type_list = []
         type_already_found = []
         gcndict = {}
@@ -124,7 +124,6 @@ class GCNNotice:
                 self.dict.update(subdict)
         print "Finished populating dictionary for trigger %s" % self.triggerid
     
-
     def parse_positions(self, notice_type):
         '''Given the desired GCN Notice type, parses to find the positions 
         contained therein.  Returns a tuple of the RA, Dec, and positional
@@ -193,6 +192,71 @@ class GCNNotice:
                 f.write(tmp_str)
             f.close
             print 'Created region file %s' % reg_name
+    
+    def extract_values(self):
+        if hasattr(self,'dict') == False:
+            self.createdict(self.gcn_notices)
+            subdict={}
+        self.pdict={} # Parsed Dictionary    
+        for noticetype in self.dict.keys():
+            if noticetype == 'Swift-BAT GRB Position':
+                comment_string = self.dict[noticetype]['COMMENTS']
+                # Set up easyparselist for each notice type
+                # [key_to_parse,[new_key_name,val_type,split_str,split_ind,lstrip_str,rstrip_str]]
+                # easyparselist should allow for the extraction of floats from most key items
+                # by allowing you to split, and then strip, to leave just the number behind.
+                # val_type is 'f','i', or 's' for float, integer, string
+                
+                # >>>>> START EDIT
+                easyparselist=\
+                    [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
+                     ['GRB_RA', ['bat_ra' ,'f','d ',0,'',''] ],\
+                     ['GRB_INTEN',['bat_inten','f','[cnts]    Image_Peak=',0,'',''],\
+                                  ['bat_img_peak','f','[cnts]    Image_Peak=',1,'','[image_cnts]']],\
+                     ['TRIGGER_DUR',['bat_trigger_dur','f','[sec]',0,'','']],\
+                     ['TRIGGER_INDEX',['bat_trig_ind','f','E_range:',0,'',''],\
+                                      ['bat_trig_ind_range','s','E_range:',1,'','']],\
+                     ['BKG_INTEN',['bat_bkg_inten','f','[cnts]',0,'','']]\
+                      ]
+                # Now parse the not so trivial to extract values:   
+                if comment_string.find('a rate trigger') != -1:
+                    sub_dict = {'bat_is_rate_trig','yes'}
+                elif comment_string.find('an image trigger') != -1:
+                    sub_dict = {'bat_is_rate_trig','no'}         
+                #<<<<< STOP EDIT      
+                
+                self.ext_do_easy_parse(noticetype,easyparselist)
+                print "Parsed %s" % noticetype
+            else:
+                print "**Cannot yet parse %s" % noticetype
+    
+    def ext_do_easy_parse(self,noticetype,easyparselist):
+        '''ONLY CALL AS A FUNCTION OF self.extract_values()!!!!
+        This does the "simple" parsing based on the easyparselist for each
+        notice type.
+        '''
+        for parse_vals in easyparselist:
+            key_to_parse=parse_vals[0]
+            for sub_parse_vals in parse_vals[1:]:
+                new_key_name=sub_parse_vals[0]
+                val_type=sub_parse_vals[1]
+                split_str=sub_parse_vals[2]
+                split_ind=sub_parse_vals[3]
+                lstrip_str=sub_parse_vals[4]
+                rstrip_str=sub_parse_vals[5]
+                value_str = self.dict[noticetype][key_to_parse]
+                almost_parsed_value = value_str.split(split_str)[split_ind]
+                parsed_value=almost_parsed_value.lstrip(lstrip_str).rstrip(rstrip_str)
+                if val_type=='f':
+                    converted_value=float(parsed_value)
+                elif val_type=='i':
+                    converted_value=int(parsed_value)
+                elif val_type=='s':
+                    converted_value=parsed_value
+                else:
+                    print 'NOT A VALID val_type'
+                sub_dict = {new_key_name:converted_value}
+                self.pdict.update(sub_dict)
     
 
 def where(a,val,wherenot=False):
