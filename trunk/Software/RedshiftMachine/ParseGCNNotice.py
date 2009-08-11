@@ -48,18 +48,19 @@ class GCNNotice:
         the GCN information and puts it in a list of strings.
         """
         import urllib2
-        
-        gcnaddress = 'http://gcn.gsfc.nasa.gov/gcn/other/%s.swift' % str(self.triggerid)
-        gcnwebsite = urllib2.urlopen(gcnaddress)
-        gcnstring = gcnwebsite.read()
-        thedelimiter = '//////////////////////////////////////////////////////////////////////'
-        # Split up the text file by GCN Notice - make it a list of strings
-        gcn_notices = gcnstring.split(thedelimiter)
-        num_of_gcns = len(gcn_notices)
-        self.gcn_notices = gcn_notices
-        self.num_of_gcns = num_of_gcns
-        print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
-        print "Cannot load GCN Notice from web."
+        try:
+            gcnaddress = 'http://gcn.gsfc.nasa.gov/gcn/other/%s.swift' % str(self.triggerid)
+            gcnwebsite = urllib2.urlopen(gcnaddress)
+            gcnstring = gcnwebsite.read()
+            thedelimiter = '//////////////////////////////////////////////////////////////////////'
+            # Split up the text file by GCN Notice - make it a list of strings
+            gcn_notices = gcnstring.split(thedelimiter)
+            num_of_gcns = len(gcn_notices)
+            self.gcn_notices = gcn_notices
+            self.num_of_gcns = num_of_gcns
+            print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
+        except:
+            print "Cannot load GCN Notice from web."
     
     def createdict(self):
         # If we don't already have the gcn list loaded, grab it from the web
@@ -197,42 +198,72 @@ class GCNNotice:
         if hasattr(self,'dict') == False:
             self.createdict(self.gcn_notices)
             subdict={}
-        self.pdict={} # Parsed Dictionary    
+        self.pdict={} # Parsed Dictionary  
+        self.parseable_types = {"Swift-BAT GRB Position":"e_bat_pos",\
+            "Swift-XRT Position":"e_xrt_pos"}  
         for noticetype,noticedict in self.dict.iteritems():
-            if noticetype == 'Swift-BAT GRB Position':
-                comment_string = noticedict['COMMENTS']
-                # Set up easyparselist for each notice type
-                # [key_to_parse,[new_key_name,val_type,split_str,split_ind,lstrip_str,rstrip_str]]
-                # easyparselist should allow for the extraction of floats from most key items
-                # by allowing you to split, and then strip, to leave just the number behind.
-                # val_type is 'f','i', or 's' for float, integer, string
-                # >>>>> START EDIT
-                easyparselist=\
-                    [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
-                     ['GRB_RA', ['bat_ra' ,'f','d ',0,'',''] ],\
-                     ['GRB_INTEN',['bat_inten','f','[cnts]    Image_Peak=',0,'',''],\
-                                  ['bat_img_peak','f','[cnts]    Image_Peak=',1,'','[image_cnts]']],\
-                     ['TRIGGER_DUR',['bat_trigger_dur','f','[sec]',0,'','']],\
-                     ['TRIGGER_INDEX',['bat_trig_ind','f','E_range:',0,'',''],\
-                                      ['bat_trig_ind_range','s','E_range:',1,'','']],\
-                     ['BKG_INTEN',['bat_bkg_inten','f','[cnts]',0,'','']],\
-                     ['BKG_DUR',['bat_bkg_dur','f','[sec]',0,'','']],\
-                     ['GRB_ERROR',['bat_pos_err','f',' [arcmin',0,'','']]
-                      ]
-                # Now parse the not so trivial to extract values:   
-                if comment_string.find('a rate trigger') != -1:
-                    sub_dict = {'bat_is_rate_trig':'yes'}
-                    self.pdict.update(sub_dict)
-                elif comment_string.find('an image trigger') != -1:
-                    sub_dict = {'bat_is_rate_trig':'no'}   
-                    self.pdict.update(sub_dict)
-                          
-                #<<<<< STOP EDIT      
-                
+            if self.parseable_types.has_key(noticetype):
+                self.current_comment_string = noticedict['COMMENTS']   
+                easyparselist = eval("self."+self.parseable_types[noticetype]+"()")
                 self.ext_do_easy_parse(noticetype,noticedict,easyparselist)
                 print "Parsed %s" % noticetype
             else:
                 print "**Cannot yet parse %s" % noticetype
+    
+    def e_bat_pos(self):
+        # Set up easyparselist for each notice type
+        # [key_to_parse,[new_key_name,val_type,split_str,split_ind,lstrip_str,rstrip_str]]
+        # easyparselist should allow for the extraction of floats from most key items
+        # by allowing you to split, and then strip, to leave just the number behind.
+        # val_type is 'f','i', or 's' for float, integer, string
+        easyparselist=\
+            [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
+             ['GRB_RA', ['bat_ra' ,'f','d ',0,'',''] ],\
+             ['GRB_INTEN',['bat_inten','f','[cnts]    Image_Peak=',0,'',''],\
+                          ['bat_img_peak','f','[cnts]    Image_Peak=',1,'','[image_cnts]']],\
+             ['TRIGGER_DUR',['bat_trigger_dur','f','[sec]',0,'','']],\
+             ['TRIGGER_INDEX',['bat_trig_ind','f','E_range:',0,'',''],\
+                              ['bat_trig_ind_range','s','E_range:',1,'','']],\
+             ['BKG_INTEN',['bat_bkg_inten','f','[cnts]',0,'','']],\
+             ['BKG_DUR',['bat_bkg_dur','f','[sec]',0,'','']],\
+             ['GRB_ERROR',['bat_pos_err','f',' [arcmin',0,'','']]
+              ]
+        # Now parse the not so trivial to extract values:   
+        if self.current_comment_string.find('a rate trigger') != -1:
+            sub_dict = {'bat_is_rate_trig':'yes'}
+            self.pdict.update(sub_dict)
+        elif self.current_comment_string.find('an image trigger') != -1:
+            sub_dict = {'bat_is_rate_trig':'no'}   
+            self.pdict.update(sub_dict)
+        return easyparselist
+    
+    def e_xrt_pos(self):
+        easyparselist=\
+            [['GRB_DEC',['xrt_dec','f','d ',0,'',''] ],\
+             ['GRB_RA', ['xrt_ra' ,'f','d ',0,'',''] ],\
+             ['GRB_INTEN',['xrt_inten','f','[erg/cm2/sec]',0,'',''] ],\
+             ['GRB_ERROR',['xrt_pos_err','f',' [arcsec',0,'','']],\
+             ['GRB_SIGNIF',['xrt_signif','f',' [sigma]',0,'','']],\
+             ['TAM[0-3]',['xrt_tam0','f',' ',0,'',''],\
+                          ['xrt_tam1','f',' ',1,'',''],
+                          ['xrt_tam2','f',' ',2,'',''],
+                          ['xrt_tam3','f',' ',3,'','']
+                          ],\
+             ['AMPLIFIER',['xrt_amplifier','i','',0,'','']],\
+             ['WAVEFORM',['xrt_waveform','i','',0,'','']],\
+             ['SUN_DIST',['sun_dist','f','[deg]',0,'','']],\
+             ['MOON_DIST',['moon_dist','f','[deg]',0,'','']],\
+             ['MOON_ILLUM',['moon_illum','f',' [%]',0,'','']]\
+              ]
+        # Now parse the not so trivial to extract values:   
+        if self.current_comment_string.find('a rate trigger') != -1:
+            sub_dict = {'bat_is_rate_trig':'yes'}
+            self.pdict.update(sub_dict)
+        elif self.current_comment_string.find('an image trigger') != -1:
+            sub_dict = {'bat_is_rate_trig':'no'}   
+            self.pdict.update(sub_dict)
+        return easyparselist
+    
     
     def ext_do_easy_parse(self,noticetype,noticedict,easyparselist):
         '''ONLY CALL AS A FUNCTION OF self.extract_values()!!!!
@@ -250,7 +281,10 @@ class GCNNotice:
                 rstrip_str=sub_parse_vals[5]
                 try:
                     value_str = noticedict[key_to_parse]
-                    almost_parsed_value = value_str.split(split_str)[split_ind]
+                    if split_str != '':
+                        almost_parsed_value = value_str.split(split_str)[split_ind]
+                    else:
+                        almost_parsed_value = value_str
                     parsed_value=almost_parsed_value.lstrip(lstrip_str).rstrip(rstrip_str)
                     if val_type=='f':
                         converted_value=float(parsed_value)
