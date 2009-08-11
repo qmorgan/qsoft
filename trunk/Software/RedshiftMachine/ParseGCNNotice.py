@@ -293,20 +293,55 @@ def where(a,val,wherenot=False):
 
 
 def grabtriggeridfromrss():
+    
+    # To keep checking this feed, put in infinite while loop with a set delay time
+    # 
+    # while(True):
+    #     grabtriggeridfromrss()
+    #     time.sleep(60)
+    
+    from time import strftime
+    import sqlite3
+    import LoadGCN
     try:
         import feedparser
     except: 
         print "feedparser module not installed"
         print "visit http://www.feedparser.org/"
         sys.exit(1)
+    
+    # Database management code stolen from http://www.halotis.com/2009/07/01/rss-twitter-bot-in-python/
+    DATABASE = storepath + 'gcn_rss_feed.sqlite'
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Create the table if it doesn't exist
+    c.execute('CREATE TABLE IF NOT EXISTS RSSContent (`url`, `title`, `dateAdded`, `content`, `xml_location`)')
+    
     rssinst = feedparser.parse("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
     for entry in rssinst['entries']:
         if entry.title.find('SWIFT') != -1 and entry.title.count('-') == 1:
-            splitentry = entry.title.split('_')
-            splitsplitentry = splitentry[-1].split('-')
-            xml_file_str = entry.title.split('#')[-1]
-            xml_file = 'http://www.estar.org.uk/voevent/GCN/nasa.gsfc.gcn/SWIFT/' \
-                + xml_file_str + '.xml'
-            print xml_file
-            print splitsplitentry[0]
+            
+            # check for duplicates
+            c.execute('select * from RSSContent where url=?', (entry.link,))
+            if not c.fetchall():
+                splitentry = entry.title.split('_')
+                splitsplitentry = splitentry[-1].split('-')
+                triggerid = splitsplitentry[0]
+#                xml_file_str = entry.title.split('#')[-1]
+#                xml_file = 'http://www.estar.org.uk/voevent/GCN/nasa.gsfc.gcn/SWIFT/' \
+#                    + xml_file_str + '.xml'
+                xml_file = entry.link  # apparently the entry.link is the address I wanted
+                print xml_file
+                print triggerid
+                # If a new item exists, load the GCN and overwrite any pickle file
+                # That may already exist.
+                
+                LoadGCN.LoadGCN(triggerid, clobber=True)
+                shortened_link = xml_file
 
+                t = (entry.link, entry.title, strftime("%Y-%m-%d %H:%M:%S", entry.updated_parsed), entry.summary, shortened_link)
+                c.execute('insert into RSSContent (`url`, `title`,`dateAdded`, `content`, `xml_location`) values (?,?,?,?,?)', t)
+                
+            conn.commit()
+            
