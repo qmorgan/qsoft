@@ -30,7 +30,7 @@ storepath = os.environ.get("Q_DIR") + '/store/'
 
 # May want to set clobber = True if, e.g., new notices have been added since
 # we last checked.
-def loadGCN(triggerid, clobber=False):
+def LoadGCN(triggerid, clobber=False):
     ### LOAD or CREATE PICKLE STORAGE FILE 
     pklpath = storepath+'sw'+str(triggerid)+'GCN.pkl'
     if os.path.exists(pklpath) and clobber==False:
