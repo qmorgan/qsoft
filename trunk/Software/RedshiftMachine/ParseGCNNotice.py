@@ -198,15 +198,14 @@ class GCNNotice:
             self.createdict(self.gcn_notices)
             subdict={}
         self.pdict={} # Parsed Dictionary    
-        for noticetype in self.dict.keys():
+        for noticetype,noticedict in self.dict.iteritems():
             if noticetype == 'Swift-BAT GRB Position':
-                comment_string = self.dict[noticetype]['COMMENTS']
+                comment_string = noticedict['COMMENTS']
                 # Set up easyparselist for each notice type
                 # [key_to_parse,[new_key_name,val_type,split_str,split_ind,lstrip_str,rstrip_str]]
                 # easyparselist should allow for the extraction of floats from most key items
                 # by allowing you to split, and then strip, to leave just the number behind.
                 # val_type is 'f','i', or 's' for float, integer, string
-                
                 # >>>>> START EDIT
                 easyparselist=\
                     [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
@@ -216,21 +215,26 @@ class GCNNotice:
                      ['TRIGGER_DUR',['bat_trigger_dur','f','[sec]',0,'','']],\
                      ['TRIGGER_INDEX',['bat_trig_ind','f','E_range:',0,'',''],\
                                       ['bat_trig_ind_range','s','E_range:',1,'','']],\
-                     ['BKG_INTEN',['bat_bkg_inten','f','[cnts]',0,'','']]\
+                     ['BKG_INTEN',['bat_bkg_inten','f','[cnts]',0,'','']],\
+                     ['BKG_DUR',['bat_bkg_dur','f','[sec]',0,'','']],\
+                     ['GRB_ERROR',['bat_pos_err','f',' [arcmin',0,'','']]
                       ]
                 # Now parse the not so trivial to extract values:   
                 if comment_string.find('a rate trigger') != -1:
-                    sub_dict = {'bat_is_rate_trig','yes'}
+                    sub_dict = {'bat_is_rate_trig':'yes'}
+                    self.pdict.update(sub_dict)
                 elif comment_string.find('an image trigger') != -1:
-                    sub_dict = {'bat_is_rate_trig','no'}         
+                    sub_dict = {'bat_is_rate_trig':'no'}   
+                    self.pdict.update(sub_dict)
+                          
                 #<<<<< STOP EDIT      
                 
-                self.ext_do_easy_parse(noticetype,easyparselist)
+                self.ext_do_easy_parse(noticetype,noticedict,easyparselist)
                 print "Parsed %s" % noticetype
             else:
                 print "**Cannot yet parse %s" % noticetype
     
-    def ext_do_easy_parse(self,noticetype,easyparselist):
+    def ext_do_easy_parse(self,noticetype,noticedict,easyparselist):
         '''ONLY CALL AS A FUNCTION OF self.extract_values()!!!!
         This does the "simple" parsing based on the easyparselist for each
         notice type.
@@ -244,20 +248,24 @@ class GCNNotice:
                 split_ind=sub_parse_vals[3]
                 lstrip_str=sub_parse_vals[4]
                 rstrip_str=sub_parse_vals[5]
-                value_str = self.dict[noticetype][key_to_parse]
-                almost_parsed_value = value_str.split(split_str)[split_ind]
-                parsed_value=almost_parsed_value.lstrip(lstrip_str).rstrip(rstrip_str)
-                if val_type=='f':
-                    converted_value=float(parsed_value)
-                elif val_type=='i':
-                    converted_value=int(parsed_value)
-                elif val_type=='s':
-                    converted_value=parsed_value
-                else:
-                    print 'NOT A VALID val_type'
-                sub_dict = {new_key_name:converted_value}
-                self.pdict.update(sub_dict)
-    
+                try:
+                    value_str = noticedict[key_to_parse]
+                    almost_parsed_value = value_str.split(split_str)[split_ind]
+                    parsed_value=almost_parsed_value.lstrip(lstrip_str).rstrip(rstrip_str)
+                    if val_type=='f':
+                        converted_value=float(parsed_value)
+                    elif val_type=='i':
+                        converted_value=int(parsed_value)
+                    elif val_type=='s':
+                        converted_value=parsed_value
+                    else:
+                        print 'NOT A VALID val_type'
+                    sub_dict = {new_key_name:converted_value}
+                    self.pdict.update(sub_dict)
+                except:
+                    print "Cannot parse key '%s' in notice type '%s' for trigger %s"\
+                           % (key_to_parse,noticetype,self.triggerid)
+                    print "Check your definition of easyparselist for this notice type."
 
 def where(a,val,wherenot=False):
     """
@@ -284,4 +292,21 @@ def where(a,val,wherenot=False):
     	return [i for i in xrange(len(a)) if a[i]!=val]
 
 
+def grabtriggeridfromrss():
+    try:
+        import feedparser
+    except: 
+        print "feedparser module not installed"
+        print "visit http://www.feedparser.org/"
+        sys.exit(1)
+    rssinst = feedparser.parse("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
+    for entry in rssinst['entries']:
+        if entry.title.find('SWIFT') != -1 and entry.title.count('-') == 1:
+            splitentry = entry.title.split('_')
+            splitsplitentry = splitentry[-1].split('-')
+            xml_file_str = entry.title.split('#')[-1]
+            xml_file = 'http://www.estar.org.uk/voevent/GCN/nasa.gsfc.gcn/SWIFT/' \
+                + xml_file_str + '.xml'
+            print xml_file
+            print splitsplitentry[0]
 
