@@ -200,7 +200,7 @@ class GCNNotice:
             subdict={}
         self.pdict={} # Parsed Dictionary  
         self.parseable_types = {"Swift-BAT GRB Position":"e_bat_pos",\
-            "Swift-XRT Position":"e_xrt_pos"}  
+            "Swift-XRT Position":"e_xrt_pos","Swift-UVOT Position":"e_uvot_pos"}  
         for noticetype,noticedict in self.dict.iteritems():
             if self.parseable_types.has_key(noticetype):
                 self.current_comment_string = noticedict['COMMENTS']   
@@ -264,6 +264,23 @@ class GCNNotice:
             self.pdict.update(sub_dict)
         return easyparselist
     
+    def e_uvot_pos(self):
+        easyparselist=\
+            [['GRB_DEC',['uvot_dec','f','d ',0,'',''] ],\
+             ['GRB_RA', ['uvot_ra' ,'f','d ',0,'',''] ],\
+             ['GRB_ERROR',['uvot_pos_err','f',' [arcsec',0,'','']],\
+             ['SUN_DIST',['sun_dist','f','[deg]',0,'','']],\
+             ['MOON_DIST',['moon_dist','f','[deg]',0,'','']],\
+             ['MOON_ILLUM',['moon_illum','f',' [%]',0,'','']]\
+              ]
+        # Now parse the not so trivial to extract values:   
+        if self.current_comment_string.find('a rate trigger') != -1:
+            sub_dict = {'bat_is_rate_trig':'yes'}
+            self.pdict.update(sub_dict)
+        elif self.current_comment_string.find('an image trigger') != -1:
+            sub_dict = {'bat_is_rate_trig':'no'}   
+            self.pdict.update(sub_dict)
+        return easyparselist
     
     def ext_do_easy_parse(self,noticetype,noticedict,easyparselist):
         '''ONLY CALL AS A FUNCTION OF self.extract_values()!!!!
