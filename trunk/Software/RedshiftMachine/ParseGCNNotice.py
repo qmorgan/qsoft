@@ -193,6 +193,7 @@ class GCNNotice:
                 f.write(tmp_str)
             f.close
             print 'Created region file %s' % reg_name
+            return reg_name
     
     def extract_values(self):
         if hasattr(self,'dict') == False:
@@ -343,12 +344,12 @@ def where(a,val,wherenot=False):
     	return [i for i in xrange(len(a)) if a[i]!=val]
 
 
-def grabtriggeridfromrss():
+def grabtriggeridfromrss(mail_reg=False):
     
     # To keep checking this feed, put in infinite while loop with a set delay time
     # 
     # while(True):
-    #     grabtriggeridfromrss()
+    #     grabtriggeridfromrss(mail_reg=True)
     #     time.sleep(60)
     
     from time import strftime
@@ -368,6 +369,7 @@ def grabtriggeridfromrss():
     c = conn.cursor()
     # Create the table if it doesn't exist
     c.execute('CREATE TABLE IF NOT EXISTS RSSContent (`url`, `title`, `dateAdded`, `content`, `xml_location`)')
+    gcndict = {}
     
     rssinst = feedparser.parse("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
     for entry in rssinst['entries']:
@@ -388,7 +390,35 @@ def grabtriggeridfromrss():
                 # If a new item exists, load the GCN and overwrite any pickle file
                 # That may already exist.
                 
-                LoadGCN.LoadGCN(triggerid, clobber=True)
+                # There's got to be a better way to check whether a new position was found..
+                # For now, just use this hack
+                gcn_had_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
+                gcn_had_xrt_pos = gcndict.has_key('Swift-XRT Position')
+                gcn_had_uvot_pos = gcndict.has_key('Swift-UVOT Position')
+                
+                gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
+                
+                gcndict = gcn.dict
+                gcn_has_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
+                gcn_has_xrt_pos = gcndict.has_key('Swift-XRT Position')
+                gcn_has_uvot_pos = gcndict.has_key('Swift-UVOT Position')
+                
+                if (gcn_had_bat_pos == False and gcn_has_bat_pos == True) or\
+                   (gcn_had_xrt_pos == False and gcn_has_xrt_pos == True) or\
+                   (gcn_had_uvot_pos == False and gcn_has_uvot_pos == True):
+                
+                    if mail_reg == True:
+                        regpath = storepath +'sw'+ str(triggerid) + '.reg'
+                                        
+                        from AutoRedux import send_gmail
+                
+                        email_to = 'amorgan@berkeley.edu'
+                        email_subject = 'Region files for Swift Trigger %i' % int(triggerid)
+                        email_body = 'Please find the latest region file for this burst Below\n'
+                        reg_file_path = gcn.get_positions(create_reg_file = True)
+                
+                        send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
+                
                 shortened_link = xml_file
 
                 t = (entry.link, entry.title, strftime("%Y-%m-%d %H:%M:%S", entry.updated_parsed), entry.summary, shortened_link)
