@@ -63,6 +63,10 @@ class GCNNotice:
             print "Cannot load GCN Notice from web."
     
     def createdict(self):
+        '''Creates the dictionary From the web-based GCN notices; this function
+        grabs the keys and string values from that GCN notice and puts them
+        into a dictionary self.dict  
+        '''
         # If we don't already have the gcn list loaded, grab it from the web
         if hasattr(self,'gcn_notices') == False:
             self.grabgcnfromweb()
@@ -153,6 +157,11 @@ class GCNNotice:
             #print "Dictionary does not have GCN Notice Type %s" % notice_type
     
     def get_positions(self, create_reg_file=False):
+        '''This function gets all available positions (BAT, UVOT, XRT) for a 
+        particular burst trigger and creates object attributes for each.  If 
+        desired, it will create a DS9 region file for this particular trigger
+        and put it in the storage directory.
+        '''
         if hasattr(self,'dict') == False:
             self.createdict(self.gcn_notices)
         # Maybe put these all in a big position dictionary instead?
@@ -202,6 +211,21 @@ class GCNNotice:
             return reg_name
     
     def extract_values(self):
+        '''The mother function to call all programmed parsing functions for 
+        each notice type.  Each notice type will have its own "easyparselist" 
+        which says how to extract the numerical values from the dictionary 
+        created by createdict(), as well as how to extract any other attributes
+        (e.g., from the comments) for that particular trigger.  
+        
+        The parseable_types attribute ocntains the list of programmed notice 
+        types, and the command to call to parse them.
+        
+        Set up easyparselist for each notice type:
+        [key_to_parse,[new_key_name,val_type,split_str,split_ind,lstrip_str,rstrip_str]]
+        easyparselist should allow for the extraction of floats from most key items
+        by allowing you to split, and then strip, to leave just the number behind.
+        val_type is 'f','i', or 's' for float, integer, string
+        '''
         if hasattr(self,'dict') == False:
             self.createdict(self.gcn_notices)
             subdict={}
@@ -218,11 +242,6 @@ class GCNNotice:
                 print "**Cannot yet parse %s" % noticetype
     
     def e_bat_pos(self):
-        # Set up easyparselist for each notice type
-        # [key_to_parse,[new_key_name,val_type,split_str,split_ind,lstrip_str,rstrip_str]]
-        # easyparselist should allow for the extraction of floats from most key items
-        # by allowing you to split, and then strip, to leave just the number behind.
-        # val_type is 'f','i', or 's' for float, integer, string
         easyparselist=\
             [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
              ['GRB_RA', ['bat_ra' ,'f','d ',0,'',''] ],\
@@ -351,13 +370,25 @@ def where(a,val,wherenot=False):
 
 
 def grabtriggeridfromrss(mail_reg=False):
+    '''Initial attempt to monitor for VOEvents, specifically for Swift GRBs,
+    by checking an RSS feed for updates.  If a suitable RSS entry is found 
+    (One indicating a Swift GRB Notice, for example), grab it and extract 
+    information from it.  By just getting the triggerid, one can call the 
+    functions in ParseGCNNotice to extract useful information about the event; 
+    Eventually will want to parse the VOEvent xml file itself.
+    
+    It checks to see if a particular RSS entry has already been loaded by
+    entering it in a sqlite database.
+    
+    This code can also email a region file to you containing the latest BAT,
+    XRT, UVOT Positions.  
     
     # To keep checking this feed, put in infinite while loop with a set delay time
     # 
     # while(True):
     #     grabtriggeridfromrss(mail_reg=True)
     #     time.sleep(60)
-    
+    '''
     from time import strftime
     import sqlite3
     import LoadGCN
@@ -415,6 +446,7 @@ def grabtriggeridfromrss(mail_reg=False):
                     #                    (gcn_had_xrt_pos == False and gcn_has_xrt_pos == True) or\
                     #                    (gcn_had_uvot_pos == False and gcn_has_uvot_pos == True):
                         if mail_reg == True:
+                            
                             regpath = storepath +'sw'+ str(triggerid) + '.reg'
                                         
                             from AutoRedux import send_gmail
@@ -430,7 +462,9 @@ def grabtriggeridfromrss(mail_reg=False):
                             if gcn.dict.has_key('Swift-UVOT Position'): reg_contents += ', UVOT Position'
                         
                             email_body += reg_contents
-                        
+                            
+                            # check to see if the new region file is actually different from the previous one
+                            # denoted with a ~.  If it is, then assume the position has been updated, and email it.
                             reg_file_path = gcn.get_positions(create_reg_file = True)
                             reg_check_path = reg_file_path+'~'
                             if not os.path.exists(reg_check_path) or \
