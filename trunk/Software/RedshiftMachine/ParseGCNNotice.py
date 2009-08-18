@@ -369,7 +369,7 @@ def where(a,val,wherenot=False):
     	return [i for i in xrange(len(a)) if a[i]!=val]
 
 
-def grabtriggeridfromrss(mail_reg=False):
+def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
     '''Initial attempt to monitor for VOEvents, specifically for Swift GRBs,
     by checking an RSS feed for updates.  If a suitable RSS entry is found 
     (One indicating a Swift GRB Notice, for example), grab it and extract 
@@ -452,6 +452,7 @@ def grabtriggeridfromrss(mail_reg=False):
                             from AutoRedux import send_gmail
                 
                             email_to = 'amorgan@berkeley.edu'
+                            if mail_toosci == True: email_to += ' toosci@googlegroups.com'
                             email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
                             email_body = 'Please find the latest region file for this burst below\n\n'
                         
