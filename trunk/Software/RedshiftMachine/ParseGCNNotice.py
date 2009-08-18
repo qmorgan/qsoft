@@ -164,8 +164,10 @@ class GCNNotice:
             if self.dict.has_key(item):
                 if item.find('BAT') != -1:
                     self.bat_pos = self.parse_positions(item)
-                elif item.find('XRT') != -1:
+                elif item.find('XRT') != -1 and item.find('n UPDATE') == -1:
                     self.xrt_pos = self.parse_positions(item)
+                elif item.find('XRT Position UPDATE') != -1:
+                    self.xrt_pos_update = self.parse_positions(item)
                 elif item.find('UVOT') != -1:
                     self.uvot_pos = self.parse_positions(item)
         
@@ -186,6 +188,10 @@ class GCNNotice:
             if hasattr(self,'xrt_pos'):
                 tmp_str = 'circle('+str(self.xrt_pos[0])+','+str(self.xrt_pos[1])\
                     +','+str(self.xrt_pos[2]*3600)+'") # color=yellow text={XRT}\n' 
+                f.write(tmp_str)
+            if hasattr(self,'xrt_pos_update'):
+                tmp_str = 'circle('+str(self.xrt_pos_update[0])+','+str(self.xrt_pos_update[1])\
+                    +','+str(self.xrt_pos_update[2]*3600)+'") # color=green text={XRT Update}\n' 
                 f.write(tmp_str)
             if hasattr(self,'bat_pos'):
                 tmp_str = 'circle('+str(self.bat_pos[0])+','+str(self.bat_pos[1])\
@@ -381,48 +387,64 @@ def grabtriggeridfromrss(mail_reg=False):
                 splitentry = entry.title.split('_')
                 splitsplitentry = splitentry[-1].split('-')
                 triggerid = splitsplitentry[0]
-#                xml_file_str = entry.title.split('#')[-1]
-#                xml_file = 'http://www.estar.org.uk/voevent/GCN/nasa.gsfc.gcn/SWIFT/' \
-#                    + xml_file_str + '.xml'
-                xml_file = entry.link  # apparently the entry.link is the address I wanted
-                print xml_file
-                print triggerid
-                # If a new item exists, load the GCN and overwrite any pickle file
-                # That may already exist.
+                # If the length of the triggerid is six, know its a grb and not a ToO
+                if len(str(triggerid)) == 6:
+    #                xml_file_str = entry.title.split('#')[-1]
+    #                xml_file = 'http://www.estar.org.uk/voevent/GCN/nasa.gsfc.gcn/SWIFT/' \
+    #                    + xml_file_str + '.xml'
+                    xml_file = entry.link  # apparently the entry.link is the address I wanted
+                    print xml_file
+                    print triggerid
+                    # If a new item exists, load the GCN and overwrite any pickle file
+                    # That may already exist.
                 
-                # There's got to be a better way to check whether a new position was found..
-                # For now, just use this hack
-                gcn_had_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
-                gcn_had_xrt_pos = gcndict.has_key('Swift-XRT Position')
-                gcn_had_uvot_pos = gcndict.has_key('Swift-UVOT Position')
+                    # There's got to be a better way to check whether a new position was found..
+                    # For now, just use this hack
+                    # gcn_had_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
+                    #         gcn_had_xrt_pos = gcndict.has_key('Swift-XRT Position')
+                    #         gcn_had_uvot_pos = gcndict.has_key('Swift-UVOT Position')
+                    #         
+                    gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
                 
-                gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
-                
-                gcndict = gcn.dict
-                gcn_has_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
-                gcn_has_xrt_pos = gcndict.has_key('Swift-XRT Position')
-                gcn_has_uvot_pos = gcndict.has_key('Swift-UVOT Position')
-                
-                if (gcn_had_bat_pos == False and gcn_has_bat_pos == True) or\
-                   (gcn_had_xrt_pos == False and gcn_has_xrt_pos == True) or\
-                   (gcn_had_uvot_pos == False and gcn_has_uvot_pos == True):
-                
-                    if mail_reg == True:
-                        regpath = storepath +'sw'+ str(triggerid) + '.reg'
+                    gcndict = gcn.dict
+                    # gcn_has_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
+                    #                 gcn_has_xrt_pos = gcndict.has_key('Swift-XRT Position')
+                    #                 gcn_has_uvot_pos = gcndict.has_key('Swift-UVOT Position')
+                    #                 
+                    if (True): # (gcn_had_bat_pos == False and gcn_has_bat_pos == True) or\
+                    #                    (gcn_had_xrt_pos == False and gcn_has_xrt_pos == True) or\
+                    #                    (gcn_had_uvot_pos == False and gcn_has_uvot_pos == True):
+                        if mail_reg == True:
+                            regpath = storepath +'sw'+ str(triggerid) + '.reg'
                                         
-                        from AutoRedux import send_gmail
+                            from AutoRedux import send_gmail
                 
-                        email_to = 'amorgan@berkeley.edu'
-                        email_subject = 'Region files for Swift Trigger %i' % int(triggerid)
-                        email_body = 'Please find the latest region file for this burst Below\n'
-                        reg_file_path = gcn.get_positions(create_reg_file = True)
+                            email_to = 'amorgan@berkeley.edu'
+                            email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
+                            email_body = 'Please find the latest region file for this burst below\n\n'
+                        
+                            reg_contents = 'Contains: '
+                            if gcn.dict.has_key('Swift-BAT GRB Position'): reg_contents += 'BAT Position'
+                            if gcn.dict.has_key('Swift-XRT Position'): reg_contents += ', XRT Position'
+                            if gcn.dict.has_key('Swift-XRT Position UPDATE'): reg_contents += ', XRT Position UPDATE'
+                            if gcn.dict.has_key('Swift-UVOT Position'): reg_contents += ', UVOT Position'
+                        
+                            email_body += reg_contents
+                        
+                            reg_file_path = gcn.get_positions(create_reg_file = True)
+                            reg_check_path = reg_file_path+'~'
+                            if not os.path.exists(reg_check_path) or \
+                                  (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
+                            
+                                send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
+                        
+                            os.system('cp ' + reg_file_path + ' ' + reg_check_path)
                 
-                        send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
-                
-                shortened_link = xml_file
-
-                t = (entry.link, entry.title, strftime("%Y-%m-%d %H:%M:%S", entry.updated_parsed), entry.summary, shortened_link)
-                c.execute('insert into RSSContent (`url`, `title`,`dateAdded`, `content`, `xml_location`) values (?,?,?,?,?)', t)
-                
+                    shortened_link = xml_file
+                    try:
+                        t = (entry.link, entry.title, strftime("%Y-%m-%d %H:%M:%S", entry.updated_parsed), entry.summary, shortened_link)
+                        c.execute('insert into RSSContent (`url`, `title`,`dateAdded`, `content`, `xml_location`) values (?,?,?,?,?)', t)
+                    except:
+                        print "Could not update database for trigger %i" % int(triggerid)
             conn.commit()
             
