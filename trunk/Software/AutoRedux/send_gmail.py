@@ -18,8 +18,8 @@ import threading, time, traceback
 os.umask(0)
 userpath = os.environ.get("HOME")
 
-gmail_username = "ptelsci"
-gmail_password = "ilove2mass"
+gmail_username = "q.mailbot"
+gmail_password = "RoboB00gie"
 undisclosed = False # Suppress recipient list?
 from_address = gmail_username+'@gmail.com'
 
@@ -109,6 +109,7 @@ def intdomail(mailto, mailsub, mailbody, attach_files=[], undisclosed=False, fro
     msg['From'] = fromaddr
     msg['To'] = tolist
     msg['Subject'] = mailsub
+    mailbody += '\n\n----\nThis message was sent automatically.  If you feel you received this message in error, please contact Adam Morgan at qmorgan@gmail.com'
     msg.attach( MIMEText(mailbody) )
     for attachpath in attach_files:
         # Re-write if you want to attach the files with a different file name
