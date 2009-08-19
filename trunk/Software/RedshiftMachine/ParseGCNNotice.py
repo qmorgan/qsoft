@@ -466,10 +466,12 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             
                             # check to see if the new region file is actually different from the previous one
                             # denoted with a ~.  If it is, then assume the position has been updated, and email it.
+                            # Make sure a position exists before sending (reg_contents != blank)
                             reg_file_path = gcn.get_positions(create_reg_file = True)
                             reg_check_path = reg_file_path+'~'
                             if not os.path.exists(reg_check_path) or \
-                                  (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
+                                  (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path) \
+                                  or reg_contents != 'Contains: '):
                             
                                 send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
                         
