@@ -472,7 +472,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             if os.path.exists(reg_check_path):
                                 email_subject = "UPDATED " + email_subject
                             # Make sure position already exists before sending email!!!
-                            if (reg_contents != 'Contains: ') and hasattr('gcn','bat_pos')
+                            if (reg_contents != 'Contains: ') and hasattr('gcn','bat_pos'):
                                 if not os.path.exists(reg_check_path) or \
                                       (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
                             
