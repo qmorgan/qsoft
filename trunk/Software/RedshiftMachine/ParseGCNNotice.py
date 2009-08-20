@@ -4,8 +4,7 @@
 ParseGCNNotice.py
 Author: Adam Morgan
 Created: July 29, 2009
-Last Updated: July 29, 2009
-	Created
+Last Updated: Aug 19, 2009
 	
 This Program parses the online version of the GCN Notices 
 posted online (http://gcn.gsfc.nasa.gov/gcn/swift_grbs.html
@@ -448,7 +447,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                         if mail_reg == True:
                             
                             regpath = storepath +'sw'+ str(triggerid) + '.reg'
-                                        
+                            
                             from AutoRedux import send_gmail
                 
                             email_to = 'amorgan@berkeley.edu'
@@ -469,13 +468,17 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             # Make sure a position exists before sending (reg_contents != blank)
                             reg_file_path = gcn.get_positions(create_reg_file = True)
                             reg_check_path = reg_file_path+'~'
-                            if not os.path.exists(reg_check_path) or \
-                                  (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path) \
-                                  or reg_contents != 'Contains: '):
+                            # If the region files already exist, add the word "updated" to subject line
+                            if os.path.exists(reg_check_path):
+                                email_subject = "UPDATED " + email_subject
+                            # Make sure position already exists before sending email!!!
+                            if (reg_contents != 'Contains: ') and hasattr('gcn','bat_pos')
+                                if not os.path.exists(reg_check_path) or \
+                                      (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
                             
-                                send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
-                        
-                            os.system('cp ' + reg_file_path + ' ' + reg_check_path)
+                                    send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
+                                # Only make copy of region file if it is not blank
+                                os.system('cp ' + reg_file_path + ' ' + reg_check_path)
                 
                     shortened_link = xml_file
                     try:
