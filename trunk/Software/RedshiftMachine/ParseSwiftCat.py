@@ -4,7 +4,7 @@
 ParseSwiftCat.py
 Author: Adam Morgan
 Created: July 20, 2009
-Last Updated: July 24, 2009
+Last Updated: Aug 24, 2009
     Minor updates to arff output
     
 This program takes a tab-delimated catalog of Swift parameters from 
@@ -61,6 +61,15 @@ Then download table as tab-delimited text file
 
 import csv
 import time
+import sys
+import os
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+
 
 def sex2dec(sex_pos):
     '''
@@ -78,11 +87,13 @@ def sex2dec(sex_pos):
         return
     elif len(sex_pos[0]) < 8 or len(sex_pos[1]) < 8:
         print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print sex_pos
         return
     # TODO: Also Check declination    
     elif (sex_pos[0][2] != ':' or sex_pos[0][5] != ':'): 
         if (sex_pos[0][2] != ' ' or sex_pos[0][5] != ' '):
             print "Positions not formatted correctly: ('12:34:56.7','-65:43:21.0')"
+            print sex_pos
             return
     # print 'yay it is formatted correctly'
     
@@ -105,8 +116,9 @@ def sex2dec(sex_pos):
     ddeg_pos = (ra_ddeg,dec_ddeg)
     return ddeg_pos
 
-def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
+def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
     # Read a tab delimited file
+    print "Opening %s" % swiftcat
     bork=csv.reader(open(swiftcat),delimiter='\t')
     borklist=[]
     for row in bork:
@@ -127,19 +139,20 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
     # Now go through the list of objects read in and put them into a dictionary
 
     for grbs in borklist:
-        subdict={grbs[0]:{'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
+        subdict={grbs[0]:{'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
                  'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_column_str':grbs[21], \
                  'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
         grbdict.update(subdict)
     
-    z_str = grbdict[entry]['z_str']
-    
     # Update the dictonary to parse the crap and make it better
     for entry in grbdict.keys():
+        
+        z_str = grbdict[entry]['z_str']
+        
         # Make XRT RA, Dec into decimal degree tuple.  This will create a tuple
         # keyword called 'xrt_pos' which is in decimal degrees.
         sex_pos_tup = (grbdict[entry]['xrt_ra_str'],grbdict[entry]['xrt_dec_str'])
-        if sex_pos_tup[0] != 'TBD':
+        if sex_pos_tup[0] != 'TBD' and sex_pos_tup[0] != 'n/a':
             xrt_pos = {'xrt_pos':sex2dec(sex_pos_tup)}
             grbdict[entry].update(xrt_pos)
         else:
@@ -423,7 +436,8 @@ def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_
     # UVOT Specific: V Magnitude, Other Filter Magnitudes
     
     # Open file
-    f=open('redshiftmachine.arff','w')
+    arffpath = storepath+'redshiftmachine.arff'
+    f=open(arffpath,'w')
     
     # Create .arff header
     f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
