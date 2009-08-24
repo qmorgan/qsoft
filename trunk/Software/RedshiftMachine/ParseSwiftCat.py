@@ -85,25 +85,33 @@ def sex2dec(sex_pos):
     elif type(sex_pos[0]).__name__ != 'str' and type(sex_pos[1]).__name__ != 'str':
         print 'Sexagesimal entries need to be of type string'
         return
-    elif len(sex_pos[0]) < 8 or len(sex_pos[1]) < 8:
+    
+    if sex_pos[0].find(':') != -1:
+        ra_list = sex_pos[0].split(':')
+        dec_list = sex_pos[1].split(':')
+    elif sex_pos[0].find(' ') != -1:
+        ra_list = sex_pos[0].split(' ')
+        dec_list = sex_pos[1].split(' ')
+    else:
         print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print "Cannot split based on ':' or ' '"
         print sex_pos
         return
-    # TODO: Also Check declination    
-    elif (sex_pos[0][2] != ':' or sex_pos[0][5] != ':'): 
-        if (sex_pos[0][2] != ' ' or sex_pos[0][5] != ' '):
-            print "Positions not formatted correctly: ('12:34:56.7','-65:43:21.0')"
-            print sex_pos
-            return
-    # print 'yay it is formatted correctly'
-    
-    # Split up string into a list
-    if sex_pos[0][2] == ':':
-        ra_list=sex_pos[0].split(':')
-        dec_list=sex_pos[1].split(':')
-    if sex_pos[0][2] == ' ':
-        ra_list=sex_pos[0].split(' ')
-        dec_list=sex_pos[1].split(' ')
+        
+    try:
+        print ra_list, dec_list
+        float(ra_list[2]), int(ra_list[1]), int(ra_list[0])
+        float(dec_list[2]), int(dec_list[1]), int(dec_list[0])
+    except IndexError:
+        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print "Cannot split into 3 positions"
+        print sex_pos
+        return
+    except ValueError:
+        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print "Cannot convert 3 split positions into ints and floats"
+        print sex_pos
+        return
     
     # TODO: Add more error checking to make sure positions are in the right range.
     
