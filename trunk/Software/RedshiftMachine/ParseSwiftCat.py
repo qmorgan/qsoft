@@ -21,6 +21,41 @@ Options on GRB Table lookup:
     XRT Specific: Location, Column Density (NH)
     UVOT Specific: V Magnitude, Other Filter Magnitudes
     
+    0	GRB 	
+    1	Time [UT] 	
+    2	Trigger Number
+    3	BAT RA (J2000)
+    4 	BAT Dec (J2000)
+    5	BAT 90% Error Radius [arcmin]
+    6 	BAT T90 [sec]
+    7 	BAT Fluence (15-150 keV) [10-7 erg/cm2]
+    8 	BAT Fluence 90% Error (15-150 keV) [10-7 erg/cm2]
+    9 	BAT 1-sec Peak Photon Flux (15-150 keV) [ph/cm2/sec]
+    10 	BAT 1-sec Peak Photon Flux 90% Error (15-150 keV) [ph/cm2/sec]
+    11 	BAT Photon Index (15-150 keV) (PL = simple power-law, CPL = cutoff power-law)
+    12 	BAT Photon Index 90% Error (15-150 keV)
+    13 	XRT RA (J2000)
+    14 	XRT Dec (J2000)
+    15 	XRT 90% Error Radius [arcsec]
+    16 	XRT Time to First Observation [sec]
+    17 	XRT Early Flux (0.3-10 keV) [10-11 erg/cm2/s]
+    18 	XRT 24 Hour Flux (0.3-10 keV) [10-11 erg/cm2/s]
+    19 	XRT Initial Temporal Decay Index
+    20 	XRT Spectral Index (Gamma)
+    21	XRT Column Density (NH) [1021 cm-2]
+    22 	UVOT RA (J2000)
+    23 	UVOT Dec (J2000)
+    24 	UVOT 90% Error Radius [arcsec]
+    25 	UVOT Time to First Observation [sec]
+    26 	UVOT Magnitude
+    27 	UVOT Other Filter Magnitudes
+    28 	Other Observatory Detections
+    29 	Redshift
+    30 	Host Galaxy
+    31 	Comments
+    32 	References
+    33 	Burst Advocate    
+
 Then download table as tab-delimited text file
 """
 
@@ -92,11 +127,13 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
     # Now go through the list of objects read in and put them into a dictionary
 
     for grbs in borklist:
-        subdict={grbs[0]:{'t90_str':grbs[1],'fluence_str':grbs[2], 'peakflux_str':grbs[3], \
-                 'xrt_ra_str':grbs[4], 'xrt_dec_str':grbs[5], 'xrt_column_str':grbs[6], \
-                 'v_mag_str':grbs[7], 'uvot_list':grbs[8], 'z_str':grbs[9]}}
+        subdict={grbs[0]:{'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
+                 'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_column_str':grbs[21], \
+                 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
         grbdict.update(subdict)
-
+    
+    z_str = grbdict[entry]['z_str']
+    
     # Update the dictonary to parse the crap and make it better
     for entry in grbdict.keys():
         # Make XRT RA, Dec into decimal degree tuple.  This will create a tuple
@@ -301,78 +338,80 @@ def parseswiftcat(swiftcat='grb_table_1248114367.txt'):
         # First we see if there's an absolute redshift available that's not 
         # upper limit or approximate. Preferentially use abs or emis over photo.
         # First split up via the | parser that the table gives for different z entries
-        z_split = grbdict[entry]['z_str'].split('|')
-        for z_ent in z_split:
-            # if it's a photometric redshift and there's already a redshift, don't update
-            if z_ent.find('photometric') != -1 and grbdict[entry].has_key('z'):
-                continue
-            else:
-                # Split further into a list
-                z_split_split = z_ent.split(' ')
-                for z_ent_ent in z_split_split:
-                    # If there is a number in the sub string, assume it is the z
-                    try:
-                        z={'z':float(z_ent_ent)}
-                        grbdict[entry].update(z)
-                        # If the redshift is photometric, mark it as such.
+        # Make sure not a blank z_str
+        if z_str != '':
+            z_split = z_str.split('|')
+            for z_ent in z_split:
+                # if it's a photometric redshift and there's already a redshift, don't update
+                if z_ent.find('photometric') != -1 and grbdict[entry].has_key('z'):
+                    continue
+                else:
+                    # Split further into a list
+                    z_split_split = z_ent.split(' ')
+                    for z_ent_ent in z_split_split:
+                        # If there is a number in the sub string, assume it is the z
+                        try:
+                            z={'z':float(z_ent_ent)}
+                            grbdict[entry].update(z)
+                            # If the redshift is photometric, mark it as such.
+                            if z_ent.find('photometric') == -1:
+                                z_isphot = {'z_isupper':'no'}
+                            else:
+                                z_isphot = {'z_isupper':'yes'}
+                            grbdict[entry].update(z_isphot)
+                            z_isupper = {'z_isupper':'no'}
+                            grbdict[entry].update(z_isupper)
+                        except:
+                            pass
+                # If that didn't find us a redshift, try again accepting ~,>,<
+                if not grbdict[entry].has_key('z'):
+                    z_split_split = z_ent.split(' ')
+                    for z_ent_ent in z_split_split:
+                        iii = 0
+                        if z_ent_ent[0] == 'Z' or z_ent_ent[0] == 'z':
+                            iii = 1
+                        if z_ent_ent[iii] == '~':
+                            print 'CONVERTING APPROXIMATE redshift TO ABSOLUTE for %s' % entry
+                            z_isupper = {'z_isupper':'no'}
+                        if z_ent_ent[iii] == '<':
+                            print 'CONVERTING UPPER LIMIT redshift TO ABSOLUTE for %s' % entry
+                            z_isupper = {'z_isupper':'yes'}
+                        if z_ent_ent[iii] == '>':
+                            print 'CONVERTING LOWER LIMIT redshift TO ABSOLUTE for %s' % entry
+                            z_isupper = {'z_isupper':'islower'}
+                        # If the redshift is photometric, mark it as such
                         if z_ent.find('photometric') == -1:
                             z_isphot = {'z_isupper':'no'}
                         else:
                             z_isphot = {'z_isupper':'yes'}
-                        grbdict[entry].update(z_isphot)
-                        z_isupper = {'z_isupper':'no'}
-                        grbdict[entry].update(z_isupper)
-                    except:
-                        pass
-            # If that didn't find us a redshift, try again accepting ~,>,<
-            if not grbdict[entry].has_key('z'):
-                z_split_split = z_ent.split(' ')
-                for z_ent_ent in z_split_split:
-                    iii = 0
-                    if z_ent_ent[0] == 'Z' or z_ent_ent[0] == 'z':
-                        iii = 1
-                    if z_ent_ent[iii] == '~':
-                        print 'CONVERTING APPROXIMATE redshift TO ABSOLUTE for %s' % entry
-                        z_isupper = {'z_isupper':'no'}
-                    if z_ent_ent[iii] == '<':
-                        print 'CONVERTING UPPER LIMIT redshift TO ABSOLUTE for %s' % entry
-                        z_isupper = {'z_isupper':'yes'}
-                    if z_ent_ent[iii] == '>':
-                        print 'CONVERTING LOWER LIMIT redshift TO ABSOLUTE for %s' % entry
-                        z_isupper = {'z_isupper':'islower'}
-                    # If the redshift is photometric, mark it as such
-                    if z_ent.find('photometric') == -1:
-                        z_isphot = {'z_isupper':'no'}
-                    else:
-                        z_isphot = {'z_isupper':'yes'}
-                    try:
-                        iii += 1 
-                        z = {'z':float(z_ent_ent[iii:])}
-                        grbdict[entry].update(z)
-                        grbdict[entry].update(z_isphot)
-                        grbdict[entry].update(z_isupper)
-                    except:
-                        # cannot do anything..
-                        pass 
+                        try:
+                            iii += 1 
+                            z = {'z':float(z_ent_ent[iii:])}
+                            grbdict[entry].update(z)
+                            grbdict[entry].update(z_isphot)
+                            grbdict[entry].update(z_isupper)
+                        except:
+                            # cannot do anything..
+                            pass 
 
-        # Manually insert for the ultra-high-z 090423
-        if entry == '090423':
-            grbdict[entry]['z'] = 8.2
-            grbdict[entry]['z_isphot'] = 0
-            grbdict[entry]['z_isupper'] = 0
+            # Manually insert for the ultra-high-z 090423
+            if entry == '090423':
+                grbdict[entry]['z'] = 8.2
+                grbdict[entry]['z_isphot'] = 0
+                grbdict[entry]['z_isupper'] = 0
 
-        # Now assign the appropriate z_class
-        if grbdict[entry].has_key('z'):
-            if grbdict[entry]['z'] > 0:
-                z_class = {'z_class':'low_z'}
-            if grbdict[entry]['z'] > 2:
-                z_class = {'z_class':'medium_z'}
-            if grbdict[entry]['z'] > 4:
-                z_class = {'z_class':'high_z'}
-            grbdict[entry].update(z_class)
-        else:
-            if not grbdict[entry].has_key('z_class'):
-                print '**COULD NOT PARSE REDSHIFT for entry %s** This is bad' % entry
+            # Now assign the appropriate z_class
+            if grbdict[entry].has_key('z'):
+                if grbdict[entry]['z'] > 0:
+                    z_class = {'z_class':'low_z'}
+                if grbdict[entry]['z'] > 2:
+                    z_class = {'z_class':'medium_z'}
+                if grbdict[entry]['z'] > 4:
+                    z_class = {'z_class':'high_z'}
+                grbdict[entry].update(z_class)
+            else:
+                if not grbdict[entry].has_key('z_class'):
+                    print '**COULD NOT PARSE REDSHIFT for entry %s** This is bad' % entry
 
     print '**Finished reading in Swift Catalog**'
     return grbdict
