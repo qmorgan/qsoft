@@ -99,7 +99,6 @@ def sex2dec(sex_pos):
         return
         
     try:
-        print ra_list, dec_list
         float(ra_list[2]), int(ra_list[1]), int(ra_list[0])
         float(dec_list[2]), int(dec_list[1]), int(dec_list[0])
     except IndexError:
