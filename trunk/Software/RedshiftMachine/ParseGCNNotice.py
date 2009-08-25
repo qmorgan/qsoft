@@ -37,7 +37,7 @@ class GCNNotice:
             # Once grabbed from web, create the dictionary
             self.createdict()
             self.successful_load = True
-        except: 
+        except ValueError: 
             print "Cannot Load GCN Notice."
             self.successful_load = False
     
@@ -77,18 +77,26 @@ class GCNNotice:
         gcn_type_list = []
         type_already_found = []
         gcndict = {}
+        add_to_where = 0
         for gcn in self.gcn_notices:
             partialdict = {}
-            # Make sure not a empty string
-            if len(gcn) > 3:
-                gcnsplit = gcn.splitlines()
+            # Make sure not a empty string and check to make sure it is long enough
+            # Q Edits 8/24/09
+            gcnsplit = gcn.splitlines()
+            if len(gcnsplit) > 3:
                 # Find what the notice type is  - 4th line
                 typeline = gcnsplit[3]
                 typesplit = typeline.split(':     ')
                 if typesplit[0] != 'NOTICE_TYPE':
-                    print 'THIRD LINE IS NOT NOTICE_TYPE'  
-                    sys.exit()
-                gcn_type_list.append(typesplit[1])
+                    print 'THIRD LINE IS NOT NOTICE_TYPE!' 
+                    print gcnsplit[2:5]
+                    add_to_where += 1
+                    # sys.exit()
+                else:
+                    gcn_type_list.append(typesplit[1])
+            else: 
+                print "This line is not long enough."
+                add_to_where += 1 
         # DETERMINE WHAT THE LATEST OF THAT TYPE IS
         # for gcn_type in gcn_type_list:
         for gcn_type in gcn_type_list:
@@ -100,8 +108,8 @@ class GCNNotice:
             if where(type_already_found,gcn_type) == []:
                 # Use my defined 'where' function to return a list of indices
                 gcn_wherelist = where(gcn_type_list,gcn_type)
-                # Grab the latest index from the list; +1 because first is ''
-                gcn_index = gcn_wherelist[-1] + 1
+                # Grab the latest index from the list; + add_to_where because first is ''
+                gcn_index = gcn_wherelist[-1] + add_to_where
                 if typecount > 1:
                     print "%s instances of %s found; choosing the latest" % (typecount, gcn_type)
                     type_already_found.append(gcn_type)
