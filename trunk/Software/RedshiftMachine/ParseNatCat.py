@@ -27,11 +27,25 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
+default_catlist = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
+
 def read_nat_bat_cat(fitsname):
     hdulist = pyfits.open(fitsname)
     tbdata = hdulist[1].data
     cols = hdulist[1].columns
-    
+    colnames = cols.names
+    grblist = tbdata.field('GRB')
+    nat_dict = {}
+    for i in range(len(tbdata)):
+        subdict = dict(zip(colnames,tbdata[i]))
+        grbname = subdict.pop('GRB') # remove GRBname from dictionary
+        nat_dict.update({grbname:subdict})
+    return nat_dict
 
-read_nat_bat_cat(storepath+'bat_catalog_07061275.fits')
-read_nat_bat_cat(storepath+'bat_catalog_current.fits')
+def combine_natcats(natcatlist=default_catlist):
+    comb_nat_dict = {}
+    for natcat in natcatlist:
+        sub_nat_dict = read_nat_bat_cat(natcat)
+        comb_nat_dict.update(sub_nat_dict)
+    return comb_nat_dict
+
