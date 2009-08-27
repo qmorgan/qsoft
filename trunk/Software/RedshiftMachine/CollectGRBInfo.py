@@ -15,6 +15,7 @@ import sys
 import os
 import time
 from RedshiftMachine import ParseSwiftCat
+from RedshiftMachine import ParseNatCat
 from RedshiftMachine import LoadGCN
 
 if not os.environ.has_key("Q_DIR"):
@@ -24,28 +25,52 @@ if not os.environ.has_key("Q_DIR"):
 storepath = os.environ.get("Q_DIR") + '/store/'
 
 def collect():
+    print '\nNow loading Swift Online Catalog Entries'
     swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_1250801097.txt')
+    print "Now loading Nat's Catalog"
+    natcatdict = ParseNatCat.combine_natcats()
     collected_dict = {}
+    failed_gcn_grbs = []
+    failed_nat_grbs = []
     for grb_str,catdict in swiftcatdict.iteritems():
         # If the swiftcat has a Redshift associated with it, grab the trigger id
         # For now, only collect if it has an associated redshift
         if 'z' in catdict:
             trigid_str = catdict['triggerid_str']
-            print '\nNow loading ', trigid_str
+            print '\nNow collecting GCN entries for trigger %s, GRB %s' % (trigid_str, grb_str)
             try:
                 triggerid=int(trigid_str)
                 loaded_gcn = LoadGCN.LoadGCN(triggerid)
                 loaded_gcn.extract_values()
             except:
-                print "Cannot load trigger %s for GRB %s" % (trigid_str,grb_str)
+                print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,grb_str)
+                failed_gcn_grbs.append('GRB'+grb_str+' ('+trigid_str+')')
             catdict.update(loaded_gcn.pdict)
+            
+            print "Now collecting Nat's Catalog entries for GRB %s" % (grb_str)
+            GRBgrb_str = 'GRB'+grb_str
+            try:
+                catdict.update(natcatdict[GRBgrb_str])
+            except:
+                try:
+                    # Try stripping the trailing A off the name and see if its in nat's cat
+                    catdict.update(natcatdict[GRBgrb_str.strip('A')])
+                except:
+                    try:
+                        # Try ADDING the trailing A onto the name and see if it's in natcat
+                        catdict.update(natcatdict[GRBgrb_str+'A'])
+                    except:
+                        print "Cannot load Nat's entries for GRB %s" % (grb_str)
+                        failed_nat_grbs.append(GRBgrb_str)
             
             subdict = {grb_str:catdict}
             collected_dict.update(subdict)
-    
-    print len(collected_dict), ' entries in the collected dictionary'        
-    return collected_dict
         
+    print ''
+    print len(collected_dict), ' entries in the collected dictionary'
+    print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
+    print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs             
+    return collected_dict
 
 def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_isupper','v_mag_isupper'],\
                     attributeclass='z_class',classlist=['high_z','medium_z','low_z']):
