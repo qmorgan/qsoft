@@ -20,11 +20,20 @@ class LCModel:
         self.model = model
         print "Initialized model class"
     
-    def integrate(self,tstart,tstop):
+    def integrate(self,tstart,tstop,approx=False):
         '''Integrate the model lightcurve'''
-        print "Integral of Model from t=%f to t=%f" % (tstart,tstop)
-        print scipy.integrate.quad(self.model,tstart,tstop)
-        return scipy.integrate.quad(self.model,tstart,tstop)
+        statement = "Integral of Model from t=%f to t=%f" % (tstart,tstop)
+        if approx:
+            statement = 'Approximate ' + statement
+            texp = tstop - tstart
+            tmid = tstart + texp
+            # Model evaulated at the midpoint of the exposure times integration time
+            integrated_model = self.model(tmid) * texp
+        else:
+            integrated_model = scipy.integrate.quad(self.model,tstart,tstop)
+        print statement
+        print integrated_model
+        return integrated_model
     
     def simdata(self,tstart=1.21e6,tstop=2.42e6,exptime=1200,cadence=1.21e6, skynoise=0.05*10**-26):  
         # All times in seconds, flux in cgs
