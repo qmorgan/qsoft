@@ -24,11 +24,13 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
+def_natcats = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
+
 def collect():
     print '\nNow loading Swift Online Catalog Entries'
-    swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_1250801097.txt')
+    swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_1251400549.txt')
     print "Now loading Nat's Catalog"
-    natcatdict = ParseNatCat.combine_natcats()
+    natcatdict = ParseNatCat.combine_natcats(natcatlist=def_natcats,remove_zeros=True)
     collected_dict = {}
     failed_gcn_grbs = []
     failed_nat_grbs = []
@@ -71,6 +73,13 @@ def collect():
     print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
     print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs             
     return collected_dict
+
+def compare_z(mydict):
+    for i in iter(mydict):
+        try:
+            print '\nGRB',i,'sw:',mydict[i]['z'],'nat:',mydict[i]['Z']
+        except:
+            pass
 
 def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_isupper','v_mag_isupper'],\
                     attributeclass='z_class',classlist=['high_z','medium_z','low_z']):
