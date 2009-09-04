@@ -376,6 +376,33 @@ def where(a,val,wherenot=False):
     	return [i for i in xrange(len(a)) if a[i]!=val]
 
 
+def create_finding_chart(ra,dec,uncertianty,img_size,name='unknown source', pos_label='unknown (J2000)',cont_str='amorgan@astro'):
+    '''
+    Given a position and uncertainty, create a finding chart from the DSS
+    (Move this to another module)
+    
+    Requires PIL
+    http://pythonmac.org/packages/py25-fat/index.html
+    http://www.p16blog.com/p16/2008/05/appengine-installing-pil-on-os-x-1053.html
+    '''
+    # SDSS - later http://casjobs.sdss.org/ImgCutoutDR5/getjpeg.aspx?ra=264.191&dec=-25.212&scale=0.8&width=750&height=750
+    
+    # survey = 'poss2ukstu_red'  # 'poss2ukstu_ir', 'poss2ukstu_blue', 'poss1_red', 
+    # url_str =  'http://stdatu.stsci.edu/cgi-bin/dss_search?v=poss2' + survey + '&r=' + str(ra) + '&d=' + str(dec) +'&e=J2000&h=' + str(size) +'&w=' + str(size) +'&f=gif&c=none&fov=NONE&v3='
+    if survey = 'poss2ukstu_red': 
+        survey_str = 'Image from: DSS2 (red)'
+    elif survey = 'poss1_red':
+        survey_str = 'Image from: DSS1 (red)'
+    else: 
+        print 'Unknown survey: %s' % survey
+        sys.exit(1)
+    ra_str = 'RA = ' + str(ra)
+    dec_str = 'Dec = ' + str(dec)
+    uncertainty_str = 'Uncertainty: ' + str(uncertainty) + '"'
+    
+
+
+
 def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
     '''Initial attempt to monitor for VOEvents, specifically for Swift GRBs,
     by checking an RSS feed for updates.  If a suitable RSS entry is found 
