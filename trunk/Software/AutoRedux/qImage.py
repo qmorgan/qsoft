@@ -78,9 +78,9 @@ class qImage:
         scale_line_length = int(60/self.pixel_scale) #1 arcmin
         scale_line_start = head_buffer + self.img_size/2 - scale_line_length/2
         scale_line_stop = head_buffer + self.img_size/2 + scale_line_length/2
-        scale_line_label_pos_y = scale_line_start - 5
+        scale_line_label_pos_y = scale_line_start - 15
         
-        pos_label_pos_y = pos_pos_y - uncertainty_circle_size - 5 
+        pos_label_pos_y = pos_pos_y - uncertainty_circle_size - 15 
         
         epoch = 'J2000'
         pos_label_full = self.pos_label + ' Pos. (%s)' % epoch        
@@ -113,15 +113,15 @@ class qImage:
              <image y="%d" x="0"   width="%d" height="%d" xlink:href="data:image/%s;base64,%s" />
         
 
-         <text x = "15" y = "35" fill = "black" font-size = "28">
-         %s: Finding Chart
+         <text x = "15" y = "10" fill = "black" font-size = "28">
+         <tspan x="15" dy="1em">%s: Finding Chart</tspan>
          </text>
-         <text x = "15" y = "680" fill = "black" font-size = "16">
-         Contact: %s
+         <text x = "15" y = "660" fill = "black" font-size = "16">
+         <tspan x="15" dy="1em">Contact: %s</tspan>
          </text>
 
          <text x ="288" y="%d" fill="blue" font-size="12">
-         %s
+         <tspan x="288" dy="1em">%s</tspan>
          </text>
          <ellipse cx="%d" cy="%d" rx="%d" ry="%d"
          style="fill:none;
@@ -139,12 +139,16 @@ class qImage:
          <tspan x="640" dy="1em">%s</tspan>
          </text>
 
-         <text x="625" y="655" fill="black" font-size ="18">E</text>
+         <text x="625" y="640" fill="black" font-size ="18">
+         <tspan x="625" dy="1em">E</tspan>
+         </text>
          <line x1="640" y1="650" x2="700" y2="650" style="stroke:Black;stroke-width:2"/>
          <line x1="640" y1="650" x2="650" y2="660" style="stroke:Black;stroke-width:2"/>
          <line x1="640" y1="650" x2="650" y2="640" style="stroke:Black;stroke-width:2"/>
 
-         <text x="694" y="585" fill="black" font-size ="18">N</text>
+         <text x="694" y="570" fill="black" font-size ="18">
+         <tspan x="694" dy="1em">N</tspan>
+         </text>
          <line x1="700" y1="650" x2="700" y2="590" style="stroke:Black;stroke-width:2"/>
          <line x1="690" y1="600" x2="700" y2="590" style="stroke:Black;stroke-width:2"/>
          <line x1="710" y1="600" x2="700" y2="590" style="stroke:Black;stroke-width:2"/>
@@ -153,7 +157,7 @@ class qImage:
          <line x1="200" y1="%d" x2="200" y2="%d"
          style="stroke:rgb(255,0,0);stroke-width:2"/>
          <text x ="177" y ="%d" fill ="red" font-size = "12">
-         1 arcmin
+         <tspan x="177" dy="1em">1 arcmin</tspan>
          </text>
         
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
@@ -202,7 +206,14 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
     fc.dss_grab(ra,dec,3.0,survey)
     fc.invert_and_resize(600)
     svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label)
-    outname = storepath+src_name+'_fc.svg'
-    f=open(outname,'w')
+    outname = storepath+src_name+'_fc'
+    outnamesvg = outname+'.svg'
+    outnamepng = outname+'.png'
+    f=open(outnamesvg,'w')
     f.write(svgout)
     f.close()
+    magickcommand = "convert %s %s" % (outnamesvg, outnamepng)
+    try:
+        os.system(magickcommand)
+    except:
+        print "Do not have Imagemagick, cannot convert svg to png"
