@@ -6,7 +6,7 @@ try:
 except:
     sys.exit('You do not have PIL.  Download it.')
 import base64, Image, string
-
+import glob
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -217,3 +217,6 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
         os.system(magickcommand)
     except:
         print "Do not have Imagemagick, cannot convert svg to png"
+    print storepath+outname+'*'
+    outlist = glob.glob(outname+'*')
+    return outlist

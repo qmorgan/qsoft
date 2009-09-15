@@ -400,6 +400,8 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
     from time import strftime
     import sqlite3
     import LoadGCN
+    import qImage
+    import glob
     try:
         import feedparser
     except: 
@@ -446,6 +448,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                     gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
                 
                     gcndict = gcn.dict
+                    gcn.extract_values()
                     # gcn_has_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
                     #                 gcn_has_xrt_pos = gcndict.has_key('Swift-XRT Position')
                     #                 gcn_has_uvot_pos = gcndict.has_key('Swift-UVOT Position')
@@ -459,19 +462,27 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             
                             from AutoRedux import send_gmail
                 
-                            email_to = 'amorgan@berkeley.edu'
+                            email_adam = 'amorgan@berkeley.edu'
+                            email_adam_sub = 'Finding Chart for Swift trigger %i' % int(triggerid)
+                            email_adam_body = 'Finding Chart for this trigger below.'
+                            
+                            email_to = email_adam
                             if mail_toosci == True: email_to += ' toosci@googlegroups.com'
                             email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
                             email_body = 'Please find the latest region file for this burst below\n\n'
                         
                             reg_contents = 'Contains: '
                             if gcn.dict.has_key('Swift-BAT GRB Position'): reg_contents += 'BAT Position'
-                            if gcn.dict.has_key('Swift-XRT Position'): reg_contents += ', XRT Position'
+                            if gcn.dict.has_key('Swift-XRT Position'): 
+                                reg_contents += ', XRT Position'
+                                source_name = 'Swift_' + str(gcn.triggerid)
+                                fc_list = qImage.MakeFindingChart(ra=gcn.pdict['xrt_ra'],dec=gcn.pdict['xrt_dec'],\
+                                    uncertainty=gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
                             if gcn.dict.has_key('Swift-XRT Position UPDATE'): reg_contents += ', XRT Position UPDATE'
                             if gcn.dict.has_key('Swift-UVOT Position'): reg_contents += ', UVOT Position'
                         
                             email_body += reg_contents
-                            
+                                                        
                             # check to see if the new region file is actually different from the previous one
                             # denoted with a ~.  If it is, then assume the position has been updated, and email it.
                             # Make sure a position exists before sending (reg_contents != blank)
@@ -486,6 +497,8 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                                       (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
                             
                                     send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
+                                    if fc_list != []:
+                                        send_gmail.domail(email_adam,email_adam_sub,email_adam_body,fc_list)
                                 # Only make copy of region file if it is not blank
                                 os.system('cp ' + reg_file_path + ' ' + reg_check_path)
                 
