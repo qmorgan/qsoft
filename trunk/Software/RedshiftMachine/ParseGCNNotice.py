@@ -400,7 +400,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
     from time import strftime
     import sqlite3
     import LoadGCN
-    import qImage
+    from AutoRedux import qImage
     import glob
     try:
         import feedparser
