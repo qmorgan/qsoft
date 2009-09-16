@@ -11,6 +11,7 @@ ParseGCNNotice.py, and ParseNatCat.py into a single place and has the option
 to output a .arff file for machine learning with Weka.
 """
 
+import qImage
 import sys
 import os
 import time
@@ -24,16 +25,18 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
+make_finding_charts=True
 def_natcats = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
 
 def collect():
     print '\nNow loading Swift Online Catalog Entries'
-    swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_1251400549.txt')
+    swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_1250801097.txt')
     print "Now loading Nat's Catalog"
     natcatdict = ParseNatCat.combine_natcats(natcatlist=def_natcats,remove_zeros=True)
     collected_dict = {}
     failed_gcn_grbs = []
     failed_nat_grbs = []
+    failed_finding_charts = []
     for grb_str,catdict in swiftcatdict.iteritems():
         # If the swiftcat has a Redshift associated with it, grab the trigger id
         # For now, only collect if it has an associated redshift
@@ -44,6 +47,12 @@ def collect():
                 triggerid=int(trigid_str)
                 loaded_gcn = LoadGCN.LoadGCN(triggerid)
                 loaded_gcn.extract_values()
+                if make_finding_charts:
+                    try:
+                        source_name = 'GRB' + grb_str
+                        qImage.MakeFindingChart(ra=loaded_gcn.pdict['xrt_ra'],dec=loaded_gcn.pdict['xrt_dec'],uncertainty=loaded_gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
+                    except: 
+                        failed_finding_charts.append('GRB'+grb_str+' ('+trigid_str+')')
             except:
                 print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,grb_str)
                 failed_gcn_grbs.append('GRB'+grb_str+' ('+trigid_str+')')
@@ -71,7 +80,8 @@ def collect():
     print ''
     print len(collected_dict), ' entries in the collected dictionary'
     print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
-    print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs             
+    print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs  
+    print "GRBs failed to obtain finding charts: ", failed_finding_charts           
     return collected_dict
 
 def compare_z(mydict):
