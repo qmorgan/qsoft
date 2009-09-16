@@ -465,6 +465,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             email_adam = 'amorgan@berkeley.edu'
                             email_adam_sub = 'Finding Chart for Swift trigger %i' % int(triggerid)
                             email_adam_body = 'Finding Chart for this trigger below.'
+                            fc_list = []
                             
                             email_to = email_adam
                             if mail_toosci == True: email_to += ' toosci@googlegroups.com'
