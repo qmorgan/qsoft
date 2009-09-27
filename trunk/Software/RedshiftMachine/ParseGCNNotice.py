@@ -14,6 +14,8 @@ for an example list of GCN notices for a particular trigger.
 """
 import sys
 import os
+from AutoRedux import send_gmail
+
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -39,6 +41,9 @@ class GCNNotice:
             self.successful_load = True
         except ValueError: 
             print "Cannot Load GCN Notice."
+            self.successful_load = False
+        except AttributeError:
+            print "ATTRIBUTE ERROR. Cannot Create dictionary?"    
             self.successful_load = False
     
     def grabgcnfromweb(self):
