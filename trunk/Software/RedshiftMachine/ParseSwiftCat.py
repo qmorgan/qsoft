@@ -63,65 +63,13 @@ import csv
 import time
 import sys
 import os
+from MiscBin.q import sex2dec
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
     print "directory where you have WCSTOOLS installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
-
-
-def sex2dec(sex_pos):
-    '''
-    Convert sexagesimal position string tuple into decimal degree tuple
-    
-    '''
-    if type(sex_pos).__name__ != 'tuple':
-        print 'Was Epecting Tuple position'
-        return
-    elif len(sex_pos) != 2:
-        print 'Was Expecting tuple of length two'
-        return
-    elif type(sex_pos[0]).__name__ != 'str' and type(sex_pos[1]).__name__ != 'str':
-        print 'Sexagesimal entries need to be of type string'
-        return
-    
-    if sex_pos[0].find(':') != -1:
-        ra_list = sex_pos[0].split(':')
-        dec_list = sex_pos[1].split(':')
-    elif sex_pos[0].find(' ') != -1:
-        ra_list = sex_pos[0].split(' ')
-        dec_list = sex_pos[1].split(' ')
-    else:
-        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
-        print "Cannot split based on ':' or ' '"
-        print sex_pos
-        return
-        
-    try:
-        float(ra_list[2]), int(ra_list[1]), int(ra_list[0])
-        float(dec_list[2]), int(dec_list[1]), int(dec_list[0])
-    except IndexError:
-        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
-        print "Cannot split into 3 positions"
-        print sex_pos
-        return
-    except ValueError:
-        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
-        print "Cannot convert 3 split positions into ints and floats"
-        print sex_pos
-        return
-    
-    # TODO: Add more error checking to make sure positions are in the right range.
-    
-    ra_ddeg = float(ra_list[0])*15 + float(ra_list[1])/60 + float(ra_list[2])/3600
-    if dec_list[0][0] == '-':  #if it is a negative number
-        dec_ddeg = float(dec_list[0]) - float(dec_list[1])/60 - float(dec_list[2])/3600
-    else:
-        dec_ddeg = float(dec_list[0]) + float(dec_list[1])/60 + float(dec_list[2])/3600
-    
-    ddeg_pos = (ra_ddeg,dec_ddeg)
-    return ddeg_pos
 
 def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
     # Read a tab delimited file

@@ -86,3 +86,179 @@ def mag2flux(mag_1=99,mag_2=99,flux_2=0):
 
 # Zeropoint: 1 count/second 
 # Frequency: 5647 Angstroms hc/lambda
+
+
+def dhms2h(d1=None,h1=None,m1=None,s1=None,d2=None,h2=None,m2=None,s2=None):
+    if d1 == None:
+        d2 = float(raw_input("GRB Day: "))
+        h2 = float(raw_input("GRB Hour: "))
+        m2 = float(raw_input("GRB Minute: "))
+        s2 = float(raw_input("GRB Second: "))
+        d1 = float(raw_input("PTEL Day: "))
+        h1 = float(raw_input("PTEL hour: "))
+        m1 = float(raw_input("PTEL minute: "))
+        s1 = float(raw_input("PTEL second: "))
+    hours1 =  d1*24.0 + float(h1) + m1/60.0 + s1/3600.0
+    hours2 =  d2*24.0 + float(h2) + m2/60.0 + s2/3600.0
+    print hours1-hours2
+    
+def dec2sex(dec_pos):
+    '''
+    Convert decimal degrees position float tuple (ra,dec) into 
+    sexagesimal string tuple
+    
+    '''
+    import math
+    
+    if type(dec_pos).__name__ != 'tuple':
+        print 'Was Epecting Tuple position'
+        return
+    elif len(dec_pos) != 2:
+        print 'Was Expecting tuple of length two'
+        return
+    # If integer values given, convert to float
+    if type(dec_pos[0]).__name__ == 'int': dec_pos = (float(dec_pos[0]), dec_pos[1])
+    if type(dec_pos[1]).__name__ == 'int': dec_pos = (dec_pos[0], float(dec_pos[1]))
+    if type(dec_pos[0]).__name__ != 'float' and type(dec_pos[1]).__name__ != 'float':
+        print 'Decimal Degrees entries need to be of type float'
+        return
+    rangeflag = 0
+    if not 0.0 <= dec_pos[0] < 360.0:
+        print 'RA out of range.  0.0 <= RA < 360.0'
+        rangeflag = 1
+    if not -90.0 <= dec_pos[1] <= 90.0:
+        print 'Dec out of range.  -90.0 <= Dec <= 90.0'
+        rangeflag = 1
+    if rangeflag == 1:
+        print 'Returning due to out of range error'
+        return
+    
+    abs_dec = abs(dec_pos[1])
+    dec = [0.,0.,0.]
+    str_dec = ['','','']
+    
+    ra_hours = dec_pos[0]/15.0
+    ra = [0.,0.,0.]
+    str_ra = ['','','']
+    
+    dec[0] = math.floor(abs_dec) ; remain = abs_dec - dec[0]
+    dec[1] = math.floor(remain * 60.0) ; remain = abs_dec - dec[0] - dec[1]/60.0
+    dec[2] = remain * 3600.0
+    if dec_pos[1] < 0.0: dec[0] *= -1
+    
+    ra[0] = math.floor(ra_hours) ; remain = ra_hours - ra[0]
+    ra[1] = math.floor(remain * 60.0) ; remain = ra_hours - ra[0] - ra[1]/60.0
+    ra[2] = remain * 3600.0
+    
+    index = 0
+    while index < 3:
+        str_dec[index] = str(dec[index]).rstrip('0').rstrip('.')
+        if len(str_dec[index]) == 1: 
+            str_dec[index] = '0' + str_dec[index]
+        index += 1
+    index = 0
+    while index < 3:
+        str_ra[index] = str(ra[index]).rstrip('0').rstrip('.')
+        if len(str_ra[index]) == 1:
+            str_ra[index] = '0' + str_ra[index]
+        index += 1
+    
+    # If the arcseconds/seconds is tiny enough, just round to zero
+    if dec[2] < 1e-10: str_dec[2] = '00'
+    if ra[2] < 1e-10: str_ra[2] = '00'
+    
+    # If a rounding error caused the seconds/arsceconds to be 60, 
+    # take care of it.  Comment out and test dex2sex((123.0,24))
+    # or (30.5, -80.5) for an example
+    if str_ra[2] == '60':
+        str_ra[1] = str(int(str_ra[1])+1) # add to minutes
+        if len(str_ra[1]) == 1: # add extra zero if too short
+            str_ra[1] = '0' + str_ra[1] 
+        str_ra[2] = '00' # subtract from seconds
+    if str_dec[2] == '60':
+        str_dec[1] = str(int(str_dec[1])+1) # add to arcmin
+        if len(str_dec[1]) == 1: # add extra zero if too short
+            str_dec[1] = '0' + str_dec[1]
+        str_dec[2] = '00' # subtract from arcseconds
+        
+    str_dec_str = "%s:%s:%s" % (str_dec[0],str_dec[1],str_dec[2])
+    str_ra_str = "%s:%s:%s" % (str_ra[0],str_ra[1],str_ra[2])
+    
+    sex_pos = (str_ra_str,str_dec_str)
+    return sex_pos
+
+def sex2dec(sex_pos):
+    '''
+    Convert sexagesimal position string tuple into decimal degree tuple
+    
+    '''
+    if type(sex_pos).__name__ != 'tuple':
+        print 'Was Epecting Tuple position'
+        return
+    elif len(sex_pos) != 2:
+        print 'Was Expecting tuple of length two'
+        return
+    elif type(sex_pos[0]).__name__ != 'str' and type(sex_pos[1]).__name__ != 'str':
+        print 'Sexagesimal entries need to be of type string'
+        return
+    
+    if sex_pos[0].find(':') != -1:
+        ra_list = sex_pos[0].split(':')
+        dec_list = sex_pos[1].split(':')
+    elif sex_pos[0].find(' ') != -1:
+        ra_list = sex_pos[0].split(' ')
+        dec_list = sex_pos[1].split(' ')
+    else:
+        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print "Cannot split based on ':' or ' '"
+        print sex_pos
+        return
+        
+    try:
+        ras = float(ra_list[2]); ram = int(ra_list[1]); rah = int(ra_list[0])
+        decs = float(dec_list[2]); decm = int(dec_list[1]); decd = int(dec_list[0])
+    except IndexError:
+        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print "Cannot split into 3 positions"
+        print sex_pos
+        return
+    except ValueError:
+        print "Positions not formatted correctly! ('12:34:56.7','-65:43:21.0')"
+        print "Cannot convert 3 split positions into ints and floats"
+        print sex_pos
+        return
+    
+    rangeflag = 0
+    if not 0 <= rah <= 24:
+        print 'RA hours out of range: 0 <= rah <= 24'
+        rangeflag = 1
+    if not 0 <= ram < 60: 
+        print 'RA minutes out of range: 0 <= ram < 60'
+        rangeflag = 1    
+    if not 0.0 <= ras < 60.0:
+        print 'RA seconds out of range: 0.0 <= ras < 60.0'
+        rangeflag = 1
+    if not -90 <= decd <= 90:
+        print 'Dec degrees out of range: -90 <= decd <= 90'
+        rangeflag = 1
+    if not 0 <= decm < 60:
+        print 'Dec arcminutes out of range: 0 <= decm < 60'
+        rangeflag = 1
+    if not 0.0 <= decs < 60.0:
+        print 'Dec arcseconds out of range: 0.0 <= decs < 60.0'
+        rangeflag = 1
+    if rangeflag == 1:
+        print 'Returning due to out of range error'
+        return
+    
+    # IS THIS MATH RIGHT???  9/25/09 - fixed math
+    
+    ra_ddeg = (float(rah) + float(ram)/60. + ras/3600.)*15.0
+    if dec_list[0][0] == '-':  #if it is a negative number
+        dec_ddeg = float(decd) - float(decm)/60. - decs/3600.
+    else:
+        dec_ddeg = float(decd) + float(decm)/60. + decs/3600.
+    
+    ddeg_pos = (ra_ddeg,dec_ddeg)
+    return ddeg_pos
+
