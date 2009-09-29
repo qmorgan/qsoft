@@ -67,7 +67,7 @@ from MiscBin.q import sex2dec
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
-    print "directory where you have WCSTOOLS installed"
+    print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
@@ -96,7 +96,7 @@ def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
     for grbs in borklist:
         subdict={grbs[0]:{'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
                  'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_column_str':grbs[21], \
-                 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
+                 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}, 'burst_time_str':grbs[1]}
         grbdict.update(subdict)
     
     # Update the dictonary to parse the crap and make it better
