@@ -94,16 +94,20 @@ def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
     # Now go through the list of objects read in and put them into a dictionary
 
     for grbs in borklist:
-        subdict={grbs[0]:{'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
+        subdict={grbs[0]:{'burst_time_str':grbs[1],'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
                  'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_column_str':grbs[21], \
-                 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}, 'burst_time_str':grbs[1]}
+                 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
         grbdict.update(subdict)
     
     # Update the dictonary to parse the crap and make it better
     for entry in grbdict.keys():
         
-        z_str = grbdict[entry]['z_str']
-        
+        print entry
+        try:
+            z_str = grbdict[entry]['z_str']
+        except:
+            print grbdict[entry]
+            sys.exit(1)
         # Make XRT RA, Dec into decimal degree tuple.  This will create a tuple
         # keyword called 'xrt_pos' which is in decimal degrees.
         sex_pos_tup = (grbdict[entry]['xrt_ra_str'],grbdict[entry]['xrt_dec_str'])

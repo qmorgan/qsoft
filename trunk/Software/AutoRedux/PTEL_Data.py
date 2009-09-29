@@ -2,6 +2,7 @@ import os, sys
 import pyfits
 import glob
 import time
+from RedshiftMachine import ParseSwiftCat
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -19,12 +20,17 @@ def RawToDatabase(raw_path,objtype='GRB'):
     with GRB string; this still may be thousands of files..
     
     '''
-    swift_cat_path = storepath+'grb_table_1250801097.txt'
+    swift_cat_path = storepath+'grb_table_1251400549.txt'
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
+    swiftcatdict = {}
+    swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+    
+    pteldict = {}
+    
     if not os.path.isdir(raw_path): sys.exit('Not a Directory. Exiting.')
     globstr = 'r20*' + objtype + '*p0-0.fits'
-    raw_list = glob.glob('r20**p0-0.fits')
+    raw_list = glob.glob(globstr)
     for filename in raw_list:
         semester = ''
         burst_time_str = ''
@@ -50,6 +56,8 @@ def RawToDatabase(raw_path,objtype='GRB'):
             triggerid = 'Unknown'
         # GRB.10000.1
         object_id = prihdr['OBJECT']
+        
+        
         # Get the time of the first (p0-0) observation for a particular ID
         # '2006-09-29 08:45:31.824422'
         ptel_time = prihdr['STRT_CPU']
@@ -61,11 +69,24 @@ def RawToDatabase(raw_path,objtype='GRB'):
         # Convert to seconds since the epoch (sse)
         ptel_time_sse = time.mktime(ptel_time_tuple)
         
+        
+        if target_id not in pteldict:
+            targdict = {target_id:{'mission':mission,'triggerid':triggerid,'obs':{object_id:{'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}}}}
+            pteldict.update(targdict)
+        else:
+            pteldict[target_id]['obs'].update({object_id:{'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
+        
+        if 'ptel_time_sse' not in pteldict[target_id]:
+            pteldict[target_id].update({'ptel_time_sse':pteldict[target_id]['obs'][object_id]['first_obs_time_sse']})
+            pteldict[target_id].update({'ptel_time':pteldict[target_id]['obs'][object_id]['first_obs_time']})
+        else: # if new object observation time is less than the old recorded first time, then subtract
+            if pteldict[target_id]['ptel_time_sse'] > pteldict[target_id]['obs'][object_id]['first_obs_time_sse']:
+                pteldict[target_id]['ptel_time_sse'] = pteldict[target_id]['obs'][object_id]['first_obs_time_sse']
+                pteldict[target_id]['ptel_time'] = pteldict[target_id]['obs'][object_id]['first_obs_time']
+        
         # If mission == swift, grab info from published Swift Catalog
-        if mission == 'swift' and os.path.exists(swift_cat_path):
+        if mission == 'swift' and swiftcatdict != {}:
             found_id = False
-            print '\nNow loading Swift Online Catalog Entries'
-            swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
             # THE FOLLOWING IS A VERY INEFFICIENT LOOP.  But it should work in the interim.
             for grb_str,catdict in swiftcatdict.iteritems():
                 # if the triggerids match, then grab the info
@@ -87,9 +108,11 @@ def RawToDatabase(raw_path,objtype='GRB'):
                     
                     # Get difference from PTEL time from Burst Time in seconds
                     time_delta = ptel_time_sse - burst_time_sse
-                    time_delta_hours_str = str(time_delta/3600.0)
+                    time_delta_hours = time_delta/3600.0
+                    time_delta_hours_str = str(time_delta_hours)
                     
-                    print object_id, target_id, ptel_time_split[0], burst_time_str, time_delta/3600.0
+                    pteldict[target_id].update({'time_delta':time_delta_hours,'grb_time_sse':burst_time_sse,'grb_time':burst_time_str})
+                    
             if found_id == False:
                 print 'COULD NOT FIND ID %s in SWIFT CATALOG' % (triggerid)
                     
@@ -103,6 +126,7 @@ def RawToDatabase(raw_path,objtype='GRB'):
         
         
         #TODO: If two object_ids have the same target_id, combine them.
+    return pteldict
 
 
 def testraw2db():
