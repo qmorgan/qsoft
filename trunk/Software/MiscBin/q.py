@@ -54,6 +54,9 @@ w2 = filt(2030e-8,valtype='wave',fluxconv=6.2e-16,  zp=17.35, comment='UVOT UVW2
 wh = filt(3471e-8,valtype='wave',fluxconv=3.7e-17,  zp=20.29, comment='UVOT UVW2 Filter')
 
 def uvotcr2flux(countrate,filt,red_corr=0.0):
+    '''Use http://wwwmacho.mcmaster.ca/JAVA/Acurve.html to find absoprtion
+    corrections.
+    '''
     uvotflux = countrate * filt.fluxconv
     print filt.comment
     uvotmag = filt.zp - 2.5*math.log10(countrate)
@@ -162,6 +165,8 @@ def dec2sex(dec_pos):
         if len(str_ra[index]) == 1:
             str_ra[index] = '0' + str_ra[index]
         index += 1
+    
+    if dec_pos[1] >= 0.0: str_dec[0] = '+' + str_dec[0]
     
     # If the arcseconds/seconds is tiny enough, just round to zero
     if dec[2] < 1e-10: str_dec[2] = '00'

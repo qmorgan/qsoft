@@ -7,6 +7,7 @@ except:
     sys.exit('You do not have PIL.  Download it.')
 import base64, Image, string
 import glob
+from MiscBin import q
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -70,6 +71,8 @@ class qImage:
         
         self.pixel_scale = self.wcs_size * 60.0 / self.img_size # arcsec/pixel
         
+        self.str_loc_pos = q.dec2sex((self.loc_ra,self.loc_dec))
+        
         head_buffer = 50
         uncertainty_circle_size = int(self.loc_uncertainty/self.pixel_scale)
         pos_pos_x = 300 #position of the error circle on the image , hard coded for now
@@ -93,8 +96,8 @@ class qImage:
             print 'Unknown survey: %s' % survey
             sys.exit(1)
 
-        ra_str = 'RA = ' + str(self.loc_ra)
-        dec_str = 'Dec = ' + str(self.loc_dec)
+        ra_str = 'RA = ' + self.str_loc_pos[0]
+        dec_str = 'Dec = ' + self.str_loc_pos[1]
         uncertainty_str = 'Uncertainty: ' + str(self.loc_uncertainty) + '"'
         
         im = Image.open(self.save_str)
@@ -162,7 +165,7 @@ class qImage:
         
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
                 self.src_name,  self.cont_str, pos_label_pos_y, self.pos_label, pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,\
-                 pos_label_full, str(self.loc_ra), str(self.loc_dec),\
+                 pos_label_full, self.str_loc_pos[0], self.str_loc_pos[1],\
                  str(self.loc_uncertainty),self.survey_str, scale_line_start,scale_line_stop,scale_line_label_pos_y)
     
 
