@@ -504,7 +504,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             
                                     send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
                                     if fc_list != []:
-                                        send_gmail.domail(email_adam,email_adam_sub,email_adam_body,fc_list)
+                                        send_gmail.domail(email_to,email_adam_sub,email_adam_body,fc_list)
                                 # Only make copy of region file if it is not blank
                                 os.system('cp ' + reg_file_path + ' ' + reg_check_path)
                 
