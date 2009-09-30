@@ -23,7 +23,7 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     swift_cat_path = storepath+'grb_table_1251400549.txt'
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
-    if swiftcatdict={}:
+    if swiftcatdict=={}:
         swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
     
 #    pteldict = {}
