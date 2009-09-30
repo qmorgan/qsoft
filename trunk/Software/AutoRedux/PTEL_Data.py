@@ -9,6 +9,8 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
+swift_cat_path = storepath+'grb_table_1251400549.txt'
+
 
 def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     '''Given a path to raw pairitel data and and object ID (could be '*'),
@@ -20,7 +22,6 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     with GRB string; this still may be thousands of files..
     
     '''
-    swift_cat_path = storepath+'grb_table_1251400549.txt'
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
     if swiftcatdict=={}:
@@ -146,16 +147,56 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
 
 def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
-    
+
 def CrawlThruLyraData():
     swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
-    rawpaths = glob.glob('/Volumes/BR2/Bloom/PAIRITEL-DATA/sem200??/Dir20??-???-??/')
+    rawpaths=[]
     ptel_dict={}
     error_paths=[]
+    
+    globstr = '/Volumes/BR2/Bloom/PAIRITEL-DATA/sem20???/Dir20??-???-??/'
+    rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
             ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
+    
+    globstr = '/Volumes/BR2/Bloom/PAIRITEL-DATA/sem20???/Dir20??-???-??/Raw/'
+    rawpaths = glob.glob(globstr)
+    for path in rawpaths:
+        try:
+            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+        except:
+            error_paths.append(path)
+    
+    globstr = '/Volumes/BR2/Bloom/PAIRITEL-DATA/sem20???/Dir20??-???-??/raw/'
+    rawpaths = glob.glob(globstr)
+    for path in rawpaths:
+        try:
+            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+        except:
+            error_paths.append(path)
+    
+    
+    print 'error paths:', error_paths
     return ptel_dict
-         
+
+def SwiftTargUnderTime(pteldict,time=24.0):
+    count = 0
+    countlist=[]
+    grblist=[]
+    badtrigger=[]
+    for target in pteldict.keys():
+        if pteldict[target]['mission'] == 'swift':
+            try:
+                if pteldict[target]['time_delta'] < time:
+                    count += 1
+                    countlist.append(target)
+                    grblist.append(pteldict[target]['grb_name'])
+            except:
+                badtrigger.append(target)
+    print '%i Swift Targets observed in under %f hours' % (count,time)
+    print 'Triggers: ', countlist
+    print 'GRB List: ', grblist
+    print 'Bad Triggers (not a GRB): ', badtrigger
