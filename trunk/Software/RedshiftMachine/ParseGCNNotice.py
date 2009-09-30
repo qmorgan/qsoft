@@ -173,6 +173,10 @@ class GCNNotice:
         particular burst trigger and creates object attributes for each.  If 
         desired, it will create a DS9 region file for this particular trigger
         and put it in the storage directory.
+        
+        Somewhat vestigial!  Might want to incorporate this and all calls to 
+        it into the pdict function.
+        
         '''
         if hasattr(self,'dict') == False:
             self.createdict(self.gcn_notices)
@@ -477,6 +481,12 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                             email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
                             email_body = 'Please find the latest region file for this burst below\n\n'
                         
+                            # check to see if the new region file is actually different from the previous one
+                            # denoted with a ~.  If it is, then assume the position has been updated, and email it.
+                            # Make sure a position exists before sending (reg_contents != blank)
+                            reg_file_path = gcn.get_positions(create_reg_file = True)
+                            reg_check_path = reg_file_path+'~'
+                        
                             reg_contents = 'Contains: '
                             if gcn.dict.has_key('Swift-BAT GRB Position'): reg_contents += 'BAT Position'
                             if gcn.dict.has_key('Swift-XRT Position'): 
@@ -484,16 +494,19 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                                 source_name = 'Swift_' + str(gcn.triggerid)
                                 fc_list = qImage.MakeFindingChart(ra=gcn.pdict['xrt_ra'],dec=gcn.pdict['xrt_dec'],\
                                     uncertainty=gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
-                            if gcn.dict.has_key('Swift-XRT Position UPDATE'): reg_contents += ', XRT Position UPDATE'
-                            if gcn.dict.has_key('Swift-UVOT Position'): reg_contents += ', UVOT Position'
-                        
+                            if gcn.dict.has_key('Swift-XRT Position UPDATE'): 
+                                reg_contents += ', XRT Position UPDATE'
+                                source_name = 'Swift_' + str(gcn.triggerid)
+                                fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
+                                    uncertainty=gcn.xrt_pos_update[2]*3600.0,src_name=source_name,pos_label='XRT update',survey='dss2red')
+                            if gcn.dict.has_key('Swift-UVOT Position'): 
+                                reg_contents += ', UVOT Position'
+                                source_name = 'Swift_' + str(gcn.triggerid)
+                                fc_list = qImage.MakeFindingChart(ra=gcn.uvot_pos[0],dec=gcn.uvot_pos[1],\
+                                    uncertainty=gcn.uvot_pos[2]*3600.0,src_name=source_name,pos_label='UVOT',survey='dss2red')
+
                             email_body += reg_contents
                                                         
-                            # check to see if the new region file is actually different from the previous one
-                            # denoted with a ~.  If it is, then assume the position has been updated, and email it.
-                            # Make sure a position exists before sending (reg_contents != blank)
-                            reg_file_path = gcn.get_positions(create_reg_file = True)
-                            reg_check_path = reg_file_path+'~'
                             # If the region files already exist, add the word "updated" to subject line
                             if os.path.exists(reg_check_path):
                                 email_subject = "UPDATED " + email_subject
