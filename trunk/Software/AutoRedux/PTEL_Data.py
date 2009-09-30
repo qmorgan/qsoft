@@ -10,7 +10,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
-def RawToDatabase(raw_path,objtype='GRB'):
+def RawToDatabase(raw_path,objtype='GRB',pteldict={}):
     '''Given a path to raw pairitel data and and object ID (could be '*'),
     load some basic information from the pairitel data and, if a swift trigger,
     attempt to load extra information about the trigger and put it in a database
@@ -26,12 +26,13 @@ def RawToDatabase(raw_path,objtype='GRB'):
     swiftcatdict = {}
     swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
     
-    pteldict = {}
+#    pteldict = {}
     
     if not os.path.isdir(raw_path): sys.exit('Not a Directory. Exiting.')
-    globstr = 'r20*' + objtype + '*p0-0.fits'
+    globstr = raw_path + 'r20*' + objtype + '*p0-0.fits'
     raw_list = glob.glob(globstr)
-    for filename in raw_list:
+    print raw_list
+    for filepath in raw_list:
         semester = ''
         burst_time_str = ''
         grb = ''
@@ -39,7 +40,7 @@ def RawToDatabase(raw_path,objtype='GRB'):
         comments = ''
         
         
-        filepath = raw_path + '/' + filename
+#        filepath = raw_path + '/' + filename
         # Open the fits file
         hdulist = pyfits.open(filepath)
         # Get the primary header.  For raw ptel data, should only be 1 header.
@@ -131,3 +132,15 @@ def RawToDatabase(raw_path,objtype='GRB'):
 
 def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
+    
+def CrawlThruLyraData():
+    rawpaths = glob.glob('/Volumes/BR2/Bloom/PAIRITEL-DATA/sem200??/Dir20??-???-??/')
+    ptel_dict={}
+    error_paths=[]
+    for path in rawpaths:
+        try:
+            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict)
+        except:
+            error_paths.append(path)
+    return ptel_dict
+         
