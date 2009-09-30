@@ -77,13 +77,13 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         else:
             pteldict[target_id]['obs'].update({object_id:{'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
         
-        if 'ptel_time_sse' not in pteldict[target_id]:
-            pteldict[target_id].update({'ptel_time_sse':pteldict[target_id]['obs'][object_id]['first_obs_time_sse']})
-            pteldict[target_id].update({'ptel_time':pteldict[target_id]['obs'][object_id]['first_obs_time']})
-        else: # if new object observation time is less than the old recorded first time, then subtract
-            if pteldict[target_id]['ptel_time_sse'] > pteldict[target_id]['obs'][object_id]['first_obs_time_sse']:
-                pteldict[target_id]['ptel_time_sse'] = pteldict[target_id]['obs'][object_id]['first_obs_time_sse']
-                pteldict[target_id]['ptel_time'] = pteldict[target_id]['obs'][object_id]['first_obs_time']
+        # if 'ptel_time_sse' not in pteldict[target_id]:
+        #     pteldict[target_id].update({'ptel_time_sse':pteldict[target_id]['obs'][object_id]['first_obs_time_sse']})
+        #     pteldict[target_id].update({'ptel_time':pteldict[target_id]['obs'][object_id]['first_obs_time']})
+        # else: # if new object observation time is less than the old recorded first time, then subtract
+        #     if pteldict[target_id]['ptel_time_sse'] > pteldict[target_id]['obs'][object_id]['first_obs_time_sse']:
+        #         pteldict[target_id]['ptel_time_sse'] = pteldict[target_id]['obs'][object_id]['first_obs_time_sse']
+        #         pteldict[target_id]['ptel_time'] = pteldict[target_id]['obs'][object_id]['first_obs_time']
         
         # If mission == swift, grab info from published Swift Catalog
         if mission == 'swift' and swiftcatdict != {}:
@@ -112,8 +112,8 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
                     time_delta_hours = time_delta/3600.0
                     time_delta_hours_str = str(time_delta_hours)
                     
-                    pteldict[target_id].update({'time_delta':time_delta_hours,'grb_time_sse':burst_time_sse,'grb_time':burst_time_str})
-                    
+                    # pteldict[target_id].update({'time_delta':time_delta_hours,'grb_time_sse':burst_time_sse,'grb_time':burst_time_str})
+                    pteldict[target_id].update({'grb_time_sse':burst_time_sse,'grb_time':burst_time_str,'grb_name':grb})
             if found_id == False:
                 print 'COULD NOT FIND ID %s in SWIFT CATALOG' % (triggerid)
                     
@@ -126,6 +126,20 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         hdulist.close()
         
         
+        # loop through observations in pteldict to find the earliest one for time purposes
+        for target,targdict in pteldict.iteritems():
+            min_ptel_time = 2.0E10  # Reset value
+            min_ptel_time_string = ''
+            time_delta = 0.0
+            for observation,obsdict in targdict['obs'].iteritems():
+                if obsdict['first_obs_time_sse'] < min_ptel_time:
+                    min_ptel_time = obsdict['first_obs_time_sse']
+                    min_ptel_time_string = obsdict['first_obs_time']
+                    # if we have the GRB time, calculate the time_delta in hours
+                    if 'grb_time_sse' in targdict:
+                        time_delta = (min_ptel_time - targdict['grb_time_sse'])/3600.0
+                        targdict.update({'time_delta':time_delta})
+                    targdict.update({'ptel_time_sse':min_ptel_time,'ptel_time':min_ptel_time_string})
         #TODO: If two object_ids have the same target_id, combine them.
     return pteldict
 
