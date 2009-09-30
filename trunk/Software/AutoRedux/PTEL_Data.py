@@ -10,7 +10,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
-def RawToDatabase(raw_path,objtype='GRB',pteldict={}):
+def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     '''Given a path to raw pairitel data and and object ID (could be '*'),
     load some basic information from the pairitel data and, if a swift trigger,
     attempt to load extra information about the trigger and put it in a database
@@ -23,8 +23,8 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={}):
     swift_cat_path = storepath+'grb_table_1251400549.txt'
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
-    swiftcatdict = {}
-    swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+    if swiftcatdict={}:
+        swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
     
 #    pteldict = {}
     
@@ -134,12 +134,13 @@ def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
     
 def CrawlThruLyraData():
+    swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
     rawpaths = glob.glob('/Volumes/BR2/Bloom/PAIRITEL-DATA/sem200??/Dir20??-???-??/')
     ptel_dict={}
     error_paths=[]
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict)
+            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     return ptel_dict
