@@ -156,13 +156,13 @@ def dec2sex(dec_pos):
     index = 0
     while index < 3:
         str_dec[index] = str(dec[index]).rstrip('0').rstrip('.')
-        if len(str_dec[index]) == 1: 
+        if len(str_dec[index].split('.')[0]) == 1: 
             str_dec[index] = '0' + str_dec[index]
         index += 1
     index = 0
     while index < 3:
         str_ra[index] = str(ra[index]).rstrip('0').rstrip('.')
-        if len(str_ra[index]) == 1:
+        if len(str_ra[index].split('.')[0]) == 1:
             str_ra[index] = '0' + str_ra[index]
         index += 1
     
