@@ -49,21 +49,31 @@ class GRBHTML:
     
     def add_header(self):
         self.html_block = '''
-        <html><head><title>Swift Trigger %i</title></head>
+        <html><head><title>Swift Trigger %s</title></head>
         <body bgcolor="#FFFFFF" text="#000066">
         <center>
-        <font size="+2">Swift Trigger %i</font><p>
+        <font size="+2">Swift Trigger %s</font><p>
         
         ''' % (self.triggerid, self.triggerid)
     
-    def add_position_info(self,bat_pos=(123.45,54.32,30),xrt_pos=None,uvot_pos=None,reg_path=None):
+    def add_timing_info(self,grb_time=None):
+        '''Requires burst time as string, t90 as float or string'''
+        if grb_time:
+            self.html_block += '''
+            <hr width="50%%">
+            <b>Temporal Information:</b><p>
+            <b>Burst Time:</b> %s
+            
+            ''' % (grb_time)
+    
+    def add_position_info(self,bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None):
         '''Requires bat_pos, xrt_pos, uvot_pos in format of (ra,dec,uncertainty), 
         where uncertainty is in arcseconds. 
         
         '''
         self.html_block += '''
-        <hr width="50%">
-        <b>Position Information:</b><p>
+        <hr width="50%%">
+        <b>Spatial Information:</b><p>
         '''
         if bat_pos: 
             bat_pos_sex = q.dec2sex((bat_pos[0],bat_pos[1]))
@@ -89,8 +99,8 @@ class GRBHTML:
             xrt_pos_sex[0],xrt_pos_sex[1])
         if uvot_pos != None:
             self.html_block += '''
-            <b>XRT</b>: RA = %s, Dec = %s, Uncertainty: %s"<br><br>
-            (RA = %s, Dec = %s)<br>
+            <b>UVOT</b>: RA = %s, Dec = %s, Uncertainty: %s"<br>
+            (RA = %s, Dec = %s)<br><br>
             ''' % (str(uvot_pos[0]).rstrip('0'),str(uvot_pos[1]).rstrip('0'),str(uvot_pos[2]).rstrip('0'),\
             uvot_pos_sex[0],uvot_pos_sex[1])
         if reg_path != None:
@@ -104,17 +114,18 @@ class GRBHTML:
                 print reg_path + ' does not exist.  Not including region file.'
     
     def add_finder_chart_info(self,fc_path):
-        if os.path.exists(fc_path):
-            fc_base = os.path.basename(fc_path)
-            self.copy_file(fc_path)
-            self.html_block += '''
-            <hr width="50%%">
-            <b>Finder Chart:</b><p>
-            <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=200, height=200></a>
+        if fc_path:
+            if os.path.exists(fc_path):
+                fc_base = os.path.basename(fc_path)
+                self.copy_file(fc_path)
+                self.html_block += '''
+                <hr width="50%%">
+                <b>Finder Chart:</b><p>
+                <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=200, height=200></a>
         
-            ''' % (fc_base,fc_base)
-        else:
-            print reg_path + ' does not exist.  Not including Finder Chart.'
+                ''' % (fc_base,fc_base)
+            else:
+                print reg_path + ' does not exist.  Not including Finder Chart.'
     
     def add_telescope_info(self):
         too_str = ''
@@ -147,11 +158,35 @@ class GRBHTML:
         f.close()
     
 
-def test():
-    inst = GRBHTML(123416,'/Users/amorgan/Public/TestDir')
-    inst.add_position_info(bat_pos=(13.45,-32.52,22),xrt_pos=(13.452,-32.622,2.5),reg_path='/Users/amorgan/Desktop/123456.reg')
+
+def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
+                bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None,\
+                grb_time=None,fc_path=None):
+    triggerid = str(triggerid)
+    inst = GRBHTML(triggerid,html_path)
+    inst.add_timing_info(grb_time)
+    inst.add_position_info(bat_pos,xrt_pos,uvot_pos,reg_path)
     inst.add_telescope_info()
-    inst.add_finder_chart_info('/Users/amorgan/Desktop/test.png')
+    inst.add_finder_chart_info(fc_path)
     inst.add_footer()
     inst.export_html()
 
+def test():
+    triggerid='543210'
+    bat_pos=(13.45,-32.52,22)
+    xrt_pos=(13.452,-32.623,2.6)
+    uvot_pos=(13.4526,-32.6234,1.1)
+    reg_path='/Users/amorgan/Desktop/123456.reg'
+    grb_time='09/09/27 10:07:16.92'
+    fc_path = '/Users/amorgan/Desktop/test.png'
+    
+    MakeGRBPage(triggerid=triggerid,bat_pos=bat_pos,xrt_pos=xrt_pos,uvot_pos=uvot_pos,
+                reg_path=reg_path, grb_time=grb_time,fc_path=fc_path)
+    # inst = GRBHTML('123416','/Users/amorgan/Public/TestDir')
+    #     inst.add_position_info(bat_pos=(13.45,-32.52,22),xrt_pos=(13.452,-32.622,2.5),reg_path='/Users/amorgan/Desktop/123456.reg')
+    #     inst.add_timing_info(grb_time='09/09/27 10:07:16.92')
+    #     inst.add_telescope_info()
+    #     inst.add_finder_chart_info('/Users/amorgan/Desktop/test.png')
+    #     inst.add_footer()
+    #     inst.export_html()
+    
