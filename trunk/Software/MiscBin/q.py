@@ -268,3 +268,27 @@ def sex2dec(sex_pos):
     ddeg_pos = (ra_ddeg,dec_ddeg)
     return ddeg_pos
 
+def where(a,val,wherenot=False):
+    """
+    Analogous to the 'where' function in IDL
+    See thread:
+    http://mail.python.org/pipermail/python-list/2007-March/431322.html
+    
+    Returns a list of indices in the list 'a' where a[i] == val
+    If wherenot=True, returns an index where a[i]!= val
+    e.g. 
+    >>> a=[0,1,2,5,42,2]
+    >>> where(a,42)
+    [4]
+    >>> where(a,2)
+    [2,5]
+    >>> where(a,2,wherenot=True)
+    [0,1,3,4]
+    >>> where(a,999)
+    []
+    """
+    if wherenot == False:
+    	return [i for i in xrange(len(a)) if a[i]==val]
+    else:
+    	return [i for i in xrange(len(a)) if a[i]!=val]
+
