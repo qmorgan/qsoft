@@ -154,6 +154,7 @@ def dec2sex(dec_pos):
     ra[2] = remain * 3600.0
     
     index = 0
+    # Added the split to deal with decimal seconds e.g. 17:51:8.568 -> 17:51:08.56
     while index < 3:
         str_dec[index] = str(dec[index]).rstrip('0').rstrip('.')
         if len(str_dec[index].split('.')[0]) == 1: 
