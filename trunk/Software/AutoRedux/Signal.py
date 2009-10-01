@@ -12,6 +12,16 @@ VOEvent feeds, etc.
 """
 import sys
 import os
+from AutoRedux import send_gmail
+from AutoRedux import GRBHTML
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have Q_DIR installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+
+
 
 
 def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
@@ -36,7 +46,7 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
     '''
     from time import strftime
     import sqlite3
-    import LoadGCN
+    import RedshiftMachine import LoadGCN
     from AutoRedux import qImage
     import glob
     try:
@@ -86,68 +96,9 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                 
                     gcndict = gcn.dict
                     gcn.extract_values()
-                    # gcn_has_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
-                    #                 gcn_has_xrt_pos = gcndict.has_key('Swift-XRT Position')
-                    #                 gcn_has_uvot_pos = gcndict.has_key('Swift-UVOT Position')
-                    #                 
-                    if (True): # (gcn_had_bat_pos == False and gcn_has_bat_pos == True) or\
-                    #                    (gcn_had_xrt_pos == False and gcn_has_xrt_pos == True) or\
-                    #                    (gcn_had_uvot_pos == False and gcn_has_uvot_pos == True):
-                        if mail_reg == True:
-                            
-                            regpath = storepath +'sw'+ str(triggerid) + '.reg'
-                            
-                            from AutoRedux import send_gmail
-                
-                            email_adam = 'amorgan@berkeley.edu'
-                            email_adam_sub = 'Finding Chart for Swift trigger %i' % int(triggerid)
-                            email_adam_body = 'Finding Chart for this trigger below.'
-                            fc_list = []
-                            
-                            email_to = email_adam
-                            if mail_toosci == True: email_to += ' toosci@googlegroups.com'
-                            email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
-                            email_body = 'Please find the latest region file for this burst below\n\n'
-                        
-                            # check to see if the new region file is actually different from the previous one
-                            # denoted with a ~.  If it is, then assume the position has been updated, and email it.
-                            # Make sure a position exists before sending (reg_contents != blank)
-                            reg_file_path = gcn.get_positions(create_reg_file = True)
-                            reg_check_path = reg_file_path+'~'
-                        
-                            reg_contents = 'Contains: '
-                            if gcn.dict.has_key('Swift-BAT GRB Position'): reg_contents += 'BAT Position'
-                            if gcn.dict.has_key('Swift-XRT Position'): 
-                                reg_contents += ', XRT Position'
-                                source_name = 'Swift_' + str(gcn.triggerid)
-                                fc_list = qImage.MakeFindingChart(ra=gcn.pdict['xrt_ra'],dec=gcn.pdict['xrt_dec'],\
-                                    uncertainty=gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
-                            if gcn.dict.has_key('Swift-XRT Position UPDATE'): 
-                                reg_contents += ', XRT Position UPDATE'
-                                source_name = 'Swift_' + str(gcn.triggerid)
-                                fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
-                                    uncertainty=gcn.xrt_pos_update[2]*3600.0,src_name=source_name,pos_label='XRT update',survey='dss2red')
-                            if gcn.dict.has_key('Swift-UVOT Position'): 
-                                reg_contents += ', UVOT Position'
-                                source_name = 'Swift_' + str(gcn.triggerid)
-                                fc_list = qImage.MakeFindingChart(ra=gcn.uvot_pos[0],dec=gcn.uvot_pos[1],\
-                                    uncertainty=gcn.uvot_pos[2]*3600.0,src_name=source_name,pos_label='UVOT',survey='dss2red')
-
-                            email_body += reg_contents
-                                                        
-                            # If the region files already exist, add the word "updated" to subject line
-                            if os.path.exists(reg_check_path):
-                                email_subject = "UPDATED " + email_subject
-                            # Make sure position already exists before sending email!!!
-                            if (reg_contents != 'Contains: ') and hasattr(gcn,'bat_pos'):
-                                if not os.path.exists(reg_check_path) or \
-                                      (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
-                            
-                                    send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
-                                    if fc_list != []:
-                                        send_gmail.domail(email_to,email_adam_sub,email_adam_body,fc_list)
-                                # Only make copy of region file if it is not blank
-                                os.system('cp ' + reg_file_path + ' ' + reg_check_path)
+                    
+                    if mail_reg == True:
+                        mail_region(mail_toosci)
                 
                     shortened_link = xml_file
                     try:
@@ -156,3 +107,60 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
                     except:
                         print "Could not update database for trigger %i" % int(triggerid)
             conn.commit()
+
+
+def mail_region(mail_toosci):
+    
+    regpath = storepath +'sw'+ str(triggerid) + '.reg'
+    
+    from AutoRedux import send_gmail
+
+    email_adam = 'amorgan@berkeley.edu'
+    email_adam_sub = 'Finding Chart for Swift trigger %i' % int(triggerid)
+    email_adam_body = 'Finding Chart for this trigger below.'
+    fc_list = []
+    
+    email_to = email_adam
+    if mail_toosci == True: email_to += ' toosci@googlegroups.com'
+    email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
+    email_body = 'Please find the latest region file for this burst below\n\n'
+
+    # check to see if the new region file is actually different from the previous one
+    # denoted with a ~.  If it is, then assume the position has been updated, and email it.
+    # Make sure a position exists before sending (reg_contents != blank)
+    reg_file_path = gcn.get_positions(create_reg_file = True)
+    reg_check_path = reg_file_path+'~'
+
+    reg_contents = 'Contains: '
+    if gcn.dict.has_key('Swift-BAT GRB Position'): reg_contents += 'BAT Position'
+    if gcn.dict.has_key('Swift-XRT Position'): 
+        reg_contents += ', XRT Position'
+        source_name = 'Swift_' + str(gcn.triggerid)
+        fc_list = qImage.MakeFindingChart(ra=gcn.pdict['xrt_ra'],dec=gcn.pdict['xrt_dec'],\
+            uncertainty=gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
+    if gcn.dict.has_key('Swift-XRT Position UPDATE'): 
+        reg_contents += ', XRT Position UPDATE'
+        source_name = 'Swift_' + str(gcn.triggerid)
+        fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
+            uncertainty=gcn.xrt_pos_update[2]*3600.0,src_name=source_name,pos_label='XRT update',survey='dss2red')
+    if gcn.dict.has_key('Swift-UVOT Position'): 
+        reg_contents += ', UVOT Position'
+        source_name = 'Swift_' + str(gcn.triggerid)
+        fc_list = qImage.MakeFindingChart(ra=gcn.uvot_pos[0],dec=gcn.uvot_pos[1],\
+            uncertainty=gcn.uvot_pos[2]*3600.0,src_name=source_name,pos_label='UVOT',survey='dss2red')
+
+    email_body += reg_contents
+                                
+    # If the region files already exist, add the word "updated" to subject line
+    if os.path.exists(reg_check_path):
+        email_subject = "UPDATED " + email_subject
+    # Make sure position already exists before sending email!!!
+    if (reg_contents != 'Contains: ') and hasattr(gcn,'bat_pos'):
+        if not os.path.exists(reg_check_path) or \
+              (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
+    
+            send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
+            if fc_list != []:
+                send_gmail.domail(email_to,email_adam_sub,email_adam_body,fc_list)
+        # Only make copy of region file if it is not blank
+        os.system('cp ' + reg_file_path + ' ' + reg_check_path)
