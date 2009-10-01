@@ -261,6 +261,11 @@ class GCNNotice:
         easyparselist=\
             [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
              ['GRB_RA', ['bat_ra' ,'f','d ',0,'',''] ],\
+             ['GRB_DATE', ['grb_date_tjd','i',';   ',0,'','TJD'],\
+                          ['grb_date_doy','i',';   ',1,'','DOY'],\
+                          ['grb_date_str','s',';   ',2,'','']],\
+             ['GRB_TIME', ['grb_time_sod','f','SOD',0,'',''],\
+                          ['grb_time_str','s','SOD',1,' {','} UT']],\
              ['GRB_INTEN',['bat_inten','f','[cnts]    Image_Peak=',0,'',''],\
                           ['bat_img_peak','f','[cnts]    Image_Peak=',1,'','[image_cnts]']],\
              ['TRIGGER_DUR',['bat_trigger_dur','f','[sec]',0,'','']],\
