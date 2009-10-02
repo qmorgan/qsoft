@@ -8,12 +8,26 @@ Created: Oct 1, 2009
 Collection of functions to watch and extract information from GCN Notices, 
 VOEvent feeds, etc.
 
-'There is only the truth of the signal.'
+Initial attempt to monitor for VOEvents, specifically for Swift GRBs,
+by checking an RSS feed for updates.  If a suitable RSS entry is found 
+(One indicating a Swift GRB Notice, for example), grab it and extract 
+information from it.  By just getting the triggerid, one can call the 
+functions in ParseGCNNotice to extract useful information about the event; 
+Eventually will want to parse the VOEvent xml file itself.
+
+This code can also email a region file to you containing the latest BAT,
+XRT, UVOT Positions
+
+'You can't stop the signal.'
 """
 import sys
 import os
 from AutoRedux import send_gmail
+from AutoRedux import qImage
 from AutoRedux import GRBHTML
+from RedshiftMachine import LoadGCN
+import glob
+import time
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -21,34 +35,20 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
-
-
-
-def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
-    '''Initial attempt to monitor for VOEvents, specifically for Swift GRBs,
-    by checking an RSS feed for updates.  If a suitable RSS entry is found 
-    (One indicating a Swift GRB Notice, for example), grab it and extract 
-    information from it.  By just getting the triggerid, one can call the 
-    functions in ParseGCNNotice to extract useful information about the event; 
-    Eventually will want to parse the VOEvent xml file itself.
+def MonitorRSS(feed_url):
+    '''
+    This function checks to see if a particular RSS entry has already been loaded by
+    entering it in a sqlite database.  
     
-    It checks to see if a particular RSS entry has already been loaded by
-    entering it in a sqlite database.
-    
-    This code can also email a region file to you containing the latest BAT,
-    XRT, UVOT Positions.  
-    
-    # To keep checking this feed, put in infinite while loop with a set delay time
+    To keep checking this feed, put in infinite while loop with a set delay time
     # 
     # while(True):
-    #     grabtriggeridfromrss(mail_reg=True)
+    #     sql_tuple_list = MonitorRSS("http://feedurl.xml")
     #     time.sleep(60)
     '''
     from time import strftime
     import sqlite3
-    import RedshiftMachine import LoadGCN
-    from AutoRedux import qImage
-    import glob
+
     try:
         import feedparser
     except: 
@@ -63,55 +63,126 @@ def grabtriggeridfromrss(mail_reg=False,mail_toosci=False):
     c = conn.cursor()
     # Create the table if it doesn't exist
     c.execute('CREATE TABLE IF NOT EXISTS RSSContent (`url`, `title`, `dateAdded`, `content`, `xml_location`)')
-    gcndict = {}
     
-    rssinst = feedparser.parse("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
+    sql_entry_list=[]
+    
+    rssinst = feedparser.parse(feed_url)
     for entry in rssinst['entries']:
-        if entry.title.find('SWIFT') != -1 and entry.title.count('-') == 1:
-            
+        if True:
             # check for duplicates
             c.execute('select * from RSSContent where url=?', (entry.link,))
             if not c.fetchall():
-                splitentry = entry.title.split('_')
-                splitsplitentry = splitentry[-1].split('-')
-                triggerid = splitsplitentry[0]
-                # If the length of the triggerid is six, know its a grb and not a ToO
-                if len(str(triggerid)) == 6:
-    #                xml_file_str = entry.title.split('#')[-1]
-    #                xml_file = 'http://www.estar.org.uk/voevent/GCN/nasa.gsfc.gcn/SWIFT/' \
-    #                    + xml_file_str + '.xml'
+                if True:
                     xml_file = entry.link  # apparently the entry.link is the address I wanted
-                    print xml_file
-                    print triggerid
-                    # If a new item exists, load the GCN and overwrite any pickle file
-                    # That may already exist.
-                
-                    # There's got to be a better way to check whether a new position was found..
-                    # For now, just use this hack
-                    # gcn_had_bat_pos = gcndict.has_key('Swift-BAT GRB Position')
-                    #         gcn_had_xrt_pos = gcndict.has_key('Swift-XRT Position')
-                    #         gcn_had_uvot_pos = gcndict.has_key('Swift-UVOT Position')
-                    #         
-                    gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
-                
-                    gcndict = gcn.dict
-                    gcn.extract_values()
-                    
-                    if mail_reg == True:
-                        mail_region(mail_toosci)
-                
+#                    print xml_file
                     shortened_link = xml_file
                     try:
-                        t = (entry.link, entry.title, strftime("%Y-%m-%d %H:%M:%S", entry.updated_parsed), entry.summary, shortened_link)
-                        c.execute('insert into RSSContent (`url`, `title`,`dateAdded`, `content`, `xml_location`) values (?,?,?,?,?)', t)
+                        sql_entry = (entry.link, entry.title, strftime("%Y-%m-%d %H:%M:%S", entry.updated_parsed), entry.summary, shortened_link)
+                        c.execute('insert into RSSContent (`url`, `title`,`dateAdded`, `content`, `xml_location`) values (?,?,?,?,?)', sql_entry)
+                        sql_entry_list.append(sql_entry)
                     except:
-                        print "Could not update database for trigger %i" % int(triggerid)
+                        print "Could not update RSS database for entry %s" % (entry.title)
             conn.commit()
+            
+    return sql_entry_list
 
 
-def mail_region(mail_toosci):
+def SwiftGRBFlow(incl_reg=True,incl_fc=True,mail_reg=True,\
+                mail_to='amorgan@berkeley.edu',make_html=True):
+    while(True):
+        sql_tuple_list = MonitorRSS("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
+        for sql_tuple in sql_tuple_list:
+            print sql_tuple[1]
+            entry_title = sql_tuple[1]
+            xml_link = sql_tuple[0]
+            if entry_title.find('SWIFT') != -1 and entry_title.count('-') == 1:
+                # Break up entry title into component parts to extract the triggerid
+                splittitle = entry_title.split('_')
+                triggerid = splittitle[-1].split('-')[0]
+                # If the length of the triggerid is 6, know it is a GRB and not ToO
+                # May want to revisit this conditionality to actually parse the VOEvent
+                if len(triggerid) == 6:
+                    gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
+                    # Eventually want to depreciate the following function
+                    # and make a generic ds9 region file creating function
+#                    reg_file_path = gcn.get_positions(create_reg_file=True)
+                    if incl_reg:
+                        reg_path = _incl_reg(gcn)
+                    if incl_fc:
+                        fc_path = _incl_fc(gcn)
+                    if mail_reg:
+                        mail_region(gcn,mail_to,reg_path)
+                    if make_html:
+                        make_grb_html(gcn, reg_path=reg_path, fc_path=fc_path)
+                        
+        time.sleep(60)
+
+def _incl_reg(gcn):
+    searchpath = storepath + '*%s.reg' % str(gcn.triggerid)
+    reg_list = glob.glob(searchpath)
+    # If a region is found and the latest Notice is not a position, 
+    # return the path of the already created region file
+    if len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') == -1:
+        return reg_list[0]
+    # if the latest gcn was a Position type, or if there is no region found,
+    # create a new region and return the path
+    elif (len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') != -1)\
+          or (len(reg_list) == 0):
+        reg_path = gcn.get_positions(create_reg_file=True)
+        return reg_path
     
-    regpath = storepath +'sw'+ str(triggerid) + '.reg'
+def _incl_fc(gcn):
+    searchpath = storepath + '*_%s_fc.png' % str(gcn.triggerid)
+    reg_list = glob.glob(searchpath)
+    # If a fc is found and the latest Notice is not a position, 
+    # return the path of the already created region file
+    if len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') == -1:
+        return reg_list[0]
+    # if the latest gcn was a Position type, or if there is no region found,
+    # create a new region and return the path. This function utilizes the
+    # self.best_position attribute for GCNNotice.  
+    elif (len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') != -1)\
+          or (len(reg_list) == 0):
+        source_name = 'Swift_' + str(gcn.triggerid)
+        fc_list = qImage.MakeFindingChart(ra=gcn.best_pos[0],dec=gcn.best_pos[1],\
+              uncertainty=gcn.best_pos[2],src_name=source_name,pos_label=gcn.best_pos_type,\
+              survey='dss2red')
+        for path in fc_list:
+            if path.find('fc.png') != -1:
+                fc_path = path
+        return fc_path
+    
+def make_grb_html(gcn,reg_path=None,fc_path=None):
+    triggerid = gcn.triggerid
+    
+    # If gcn doesn't have correct position attributes, set missing attr to None
+    pos_list = ['bat_pos','xrt_pos','uvot_pos']
+    for pos_type in pos_list:
+        if not hasattr(gcn,pos_type): setattr(gcn,pos_type,None)
+    
+    # Attempt to create grb_time string
+    try:
+        grb_time = gcn.pdict['grb_date_str'] + ' ' + \
+                   gcn.pdict['grb_time_str'],
+    except:
+        grb_time = None
+        
+    GRBHTML.MakeGRBPage(triggerid=triggerid,bat_pos=gcn.bat_pos,\
+    xrt_pos=gcn.xrt_pos,uvot_pos=gcn.uvot_pos,reg_path=reg_path,\
+    fc_path=fc_path, grb_time=grb_time)
+    
+def mail_grb_region(gcn,mail_to,reg_file_path):
+    
+    triggerid = gcn.triggerid 
+    
+    # Eventually want to depreciate the following - don't want get_positions()
+    # to have to be run each time.  I created this function before I did the 
+    # more general extract_values(), so it's somewhat vestigial... though maybe keep it
+    if not os.path.exists(reg_file_path):
+        reg_file_path = gcn.get_positions(create_reg_file=True)
+    if not hasattr(gcn,'bat_pos'):
+        gcn.get_positions()
+    
     
     from AutoRedux import send_gmail
 
@@ -120,15 +191,15 @@ def mail_region(mail_toosci):
     email_adam_body = 'Finding Chart for this trigger below.'
     fc_list = []
     
-    email_to = email_adam
-    if mail_toosci == True: email_to += ' toosci@googlegroups.com'
+    email_to = mail_to #email_adam
+#    if mail_toosci == True: email_to += ' toosci@googlegroups.com'
     email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
     email_body = 'Please find the latest region file for this burst below\n\n'
 
     # check to see if the new region file is actually different from the previous one
     # denoted with a ~.  If it is, then assume the position has been updated, and email it.
     # Make sure a position exists before sending (reg_contents != blank)
-    reg_file_path = gcn.get_positions(create_reg_file = True)
+#    reg_file_path = gcn.get_positions(create_reg_file = True)
     reg_check_path = reg_file_path+'~'
 
     reg_contents = 'Contains: '
@@ -142,7 +213,7 @@ def mail_region(mail_toosci):
         reg_contents += ', XRT Position UPDATE'
         source_name = 'Swift_' + str(gcn.triggerid)
         fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
-            uncertainty=gcn.xrt_pos_update[2]*3600.0,src_name=source_name,pos_label='XRT update',survey='dss2red')
+            uncertainty=gcn.xrt_pos_update[2]*3600.0,src_name=source_name,pos_label='XRT upd.',survey='dss2red')
     if gcn.dict.has_key('Swift-UVOT Position'): 
         reg_contents += ', UVOT Position'
         source_name = 'Swift_' + str(gcn.triggerid)
