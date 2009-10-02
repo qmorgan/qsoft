@@ -28,7 +28,7 @@ class GRBHTML:
     def __init__(self,triggerid,base_dir):
         self.base_dir = base_dir
         if not os.path.exists(base_dir):
-            print "Output Directory does not exist. Exiting"
+            print "Output Directory %s does not exist. Exiting" % (base_dir)
             sys.exit(1)
         self.triggerid = triggerid
         self.create_folder()
