@@ -42,6 +42,11 @@ def LoadGCN(triggerid, clobber=False):
     else:
         ### Create a pickle file if it doesn't exist, or if clobber is set
         loadedgcn = GCNNotice(triggerid)
+        try:
+            loadedgcn.extract_values()
+        except:
+            print "Could not Extract Values for GCN."
+        
         if loadedgcn.successful_load==True:
             storefile = open(pklpath,'w')
             pickle.dump(loadedgcn,storefile)
