@@ -44,6 +44,7 @@ def LoadGCN(triggerid, clobber=False):
         loadedgcn = GCNNotice(triggerid)
         try:
             loadedgcn.extract_values()
+            loadedgcn.get_positions()
         except:
             print "Could not Extract Values for GCN."
         
