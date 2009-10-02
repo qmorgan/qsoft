@@ -11,7 +11,7 @@ ParseGCNNotice.py, and ParseNatCat.py into a single place and has the option
 to output a .arff file for machine learning with Weka.
 """
 
-import qImage
+from AutoRedux import qImage
 import sys
 import os
 import time
