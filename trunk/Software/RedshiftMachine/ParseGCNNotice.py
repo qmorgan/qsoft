@@ -139,6 +139,7 @@ class GCNNotice:
                             partialdict.update(subdict)
                 subdict = {gcn_type:partialdict}
                 self.dict.update(subdict)
+                self.last_notice_loaded = gcn_type
         print "Finished populating dictionary for trigger %s" % self.triggerid
     
     def parse_positions(self, notice_type):
@@ -189,13 +190,21 @@ class GCNNotice:
             if self.dict.has_key(item):
                 if item.find('BAT') != -1:
                     self.bat_pos = self.parse_positions(item)
+                    self.best_pos = self.bat_pos
+                    self.best_pos_type = 'BAT'
                 elif item.find('XRT') != -1 and item.find('n UPDATE') == -1:
                     self.xrt_pos = self.parse_positions(item)
+                    self.best_pos = self.xrt_pos
+                    self.best_pos_type = 'XRT'
                 elif item.find('XRT Position UPDATE') != -1:
                     self.xrt_pos_update = self.parse_positions(item)
+                    self.best_pos = self.xrt_pos_update
+                    self.best_pos_type = 'XRT Upd.'
                 elif item.find('UVOT') != -1:
                     self.uvot_pos = self.parse_positions(item)
-        
+                    self.best_pos = self.uvot_pos
+                    self.best_pos_type = 'UVOT'
+                    
         if create_reg_file == True:
             # Creates a ds9 region file
             reg_name = storepath +'sw'+ str(self.triggerid) + '.reg'
