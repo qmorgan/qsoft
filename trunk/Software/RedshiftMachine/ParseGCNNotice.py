@@ -156,9 +156,9 @@ class GCNNotice:
             ra = float(rastr.split('d ')[0])
             err = float(errstr.split(' [')[0])
             if errstr.find('arcsec') != -1:
-                err = err/3600
+                err = err#/3600
             elif errstr.find('arcmin') != -1:
-                err = err/60
+                err = err*60#/60
             else:
                 sys.exit('Cannot understand positional error type')
             pos_tuple = (ra,dec,err)
