@@ -100,7 +100,7 @@ class GCNNotice:
                 else:
                     gcn_type_list.append(typesplit[1])
             else: 
-                print "This line is not long enough."
+                print "Split Line in GCN web Page is not long enough."
                 add_to_where += 1 
         # DETERMINE WHAT THE LATEST OF THAT TYPE IS
         # for gcn_type in gcn_type_list:
