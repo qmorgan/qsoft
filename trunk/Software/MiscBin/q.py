@@ -292,3 +292,24 @@ def where(a,val,wherenot=False):
     else:
     	return [i for i in xrange(len(a)) if a[i]!=val]
 
+def object2dict(obj,include=[],force=True):
+    '''Given an object with attributes, return a dictionary with the attribute
+    names as keys and attribute values as values.  Default to include all 
+    attributes; specify a list of strings of attributes to include.
+    
+    If force=True, an exception will not be raised if an item in include is 
+    not an attribute of obj.
+    
+    Usage:
+    objdict = object2dict(obj,include=['attr1','attr2'])
+    '''
+    objdict = {}
+    if not include:
+        include = dir(obj)
+    for attr in include:
+        if force:
+            try: objdict.update({attr:getattr(obj,attr)})
+            except: pass
+        else: objdict.update({attr:getattr(obj,attr)})
+            
+    return objdict
