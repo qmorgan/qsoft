@@ -131,8 +131,9 @@ def _incl_reg(gcn):
         reg_path = gcn.get_positions(create_reg_file=True)
         return reg_path
     
-def _incl_fc(gcn):
-    searchpath = storepath + '*_%s_fc.png' % str(gcn.triggerid)
+def _incl_fc(gcn,src_name=None):
+    if not src_name: src_name = 'Swift_' + str(gcn.triggerid)
+    searchpath = storepath + '%s_fc.png' % (src_name)
     reg_list = glob.glob(searchpath)
     # If a fc is found and the latest Notice is not a position, 
     # return the path of the already created region file
@@ -143,16 +144,17 @@ def _incl_fc(gcn):
     # self.best_position attribute for GCNNotice.  
     elif (len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') != -1)\
           or (len(reg_list) == 0):
-        source_name = 'Swift_' + str(gcn.triggerid)
         fc_list = qImage.MakeFindingChart(ra=gcn.best_pos[0],dec=gcn.best_pos[1],\
-              uncertainty=gcn.best_pos[2],src_name=source_name,pos_label=gcn.best_pos_type,\
+              uncertainty=gcn.best_pos[2],src_name=src_name,pos_label=gcn.best_pos_type,\
               survey='dss2red')
         for path in fc_list:
             if path.find('fc.png') != -1:
                 fc_path = path
         return fc_path
     
-def make_grb_html(gcn,reg_path=None,fc_path=None):
+def make_grb_html(gcn,html_path='/Users/amorgan/Public/TestDir',reg_path=None,fc_path=None):
+    '''Create a GRB Page and Return the Path of the created GRB Webpage'''
+    
     triggerid = gcn.triggerid
     
     # If gcn doesn't have correct position attributes, set missing attr to None
@@ -167,9 +169,11 @@ def make_grb_html(gcn,reg_path=None,fc_path=None):
     except:
         grb_time = None
         
-    GRBHTML.MakeGRBPage(triggerid=triggerid,bat_pos=gcn.bat_pos,\
+    grbhtml_inst = GRBHTML.MakeGRBPage(triggerid=triggerid,bat_pos=gcn.bat_pos,\
     xrt_pos=gcn.xrt_pos,uvot_pos=gcn.uvot_pos,reg_path=reg_path,\
-    fc_path=fc_path, grb_time=grb_time)
+    fc_path=fc_path, grb_time=grb_time, html_path=html_path)
+    
+    return grbhtml_inst
     
 def mail_grb_region(gcn,mail_to,reg_file_path):
     

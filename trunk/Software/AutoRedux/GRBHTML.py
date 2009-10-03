@@ -36,6 +36,7 @@ class GRBHTML:
     
     def create_folder(self):
         self.out_dir = self.base_dir + '/' + str(self.triggerid)
+        self.out_dir_name = os.path.basename(self.out_dir)
         if not os.path.exists(self.out_dir):
             os.mkdir(self.out_dir)
     
@@ -43,6 +44,8 @@ class GRBHTML:
 
         if os.path.exists(file_path):
             shutil.copy(file_path,self.out_dir)
+            newpath = self.out_dir + '/' + os.path.basename(file_path)
+            return newpath
         else:
             print "File %s does not exist" % (file_path)
                 
@@ -112,6 +115,8 @@ class GRBHTML:
                 ''' % (os.path.basename(reg_path))
             else:
                 print reg_path + ' does not exist.  Not including region file.'
+            self.reg_path = reg_path
+            self.reg_name = os.path.basename(reg_path)
     
     def add_finder_chart_info(self,fc_path):
         if fc_path:
@@ -126,6 +131,8 @@ class GRBHTML:
                 ''' % (fc_base,fc_base)
             else:
                 print reg_path + ' does not exist.  Not including Finder Chart.'
+            self.fc_path = fc_path
+            self.fc_name = os.path.basename(fc_path)
     
     def add_telescope_info(self):
         too_str = ''
@@ -162,6 +169,7 @@ class GRBHTML:
 def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
                 bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None,\
                 grb_time=None,fc_path=None):
+    '''Make a GRB page given inputs and return the instance of the html.'''
     triggerid = str(triggerid)
     inst = GRBHTML(triggerid,html_path)
     inst.add_timing_info(grb_time)
@@ -170,6 +178,46 @@ def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
     inst.add_finder_chart_info(fc_path)
     inst.add_footer()
     inst.export_html()
+    return inst
+
+def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
+    '''Takes a collected dictionary from CollectGRBInfo and creates an index
+    html page for all the GRBs
+    '''
+    failed_grbs = []
+    incl_keys = ['triggerid_str','z']
+    
+    html_block = '''
+    <html><head><title>List of GRB Pages</title></head>
+    <body bgcolor="#FFFFFF" text="#000066">
+    <font size="+2">List of GRB Pages</font><p>
+    BETA!<p>
+    
+    ''' 
+    
+    for grb, grbdict in collected_grb_dict.iteritems():
+        # Grab the folder name of the succesful Web Page creations
+        try:
+            grbfolder = os.path.basename(grbdict['out_dir'])
+            html_block += "<a href='./%s'>%s</a><br>" % (grbfolder,grb)
+        except:
+            failed_grbs.append(grb)
+    
+    update_time = time.ctime(time.time())
+    
+    html_block += '''
+    <HR WIDTH="50%%">
+    This page is updated automatically as more information arrives.<br>
+    Last Updated: %s <P>
+    <ADDRESS> Adam N. Morgan (qmorgan@gmail.com)</ADDRESS>
+    </center>
+    </html>
+    ''' % (update_time)
+
+    filename = html_path + '/index.html'
+    f = open(filename,'w')
+    f.write(html_block)
+    f.close()
 
 def test():
     triggerid='543210'
