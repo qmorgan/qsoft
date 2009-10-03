@@ -14,6 +14,7 @@ for an example list of GCN notices for a particular trigger.
 """
 import sys
 import os
+import time
 from AutoRedux import send_gmail
 from MiscBin.q import where
 
@@ -210,6 +211,11 @@ class GCNNotice:
             reg_name = storepath +'sw'+ str(self.triggerid) + '.reg'
             f=open(reg_name,'w')
             f.write('# Region file format: DS9 version 4.1\n')
+            update_time = time.ctime(time.time())
+            commentstr1 = '# Created Automaticall from Swift GCN Notices on %s\n' % (update_time)
+            commentstr2 = '# Contact Adam N. Morgan at qmorgan@gmail.com with problems/comments/suggestions'
+            f.write(commentstr1)
+            f.write(commentstr2) 
             secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
                  '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
                  'delete=1 include=1 source=1\n'

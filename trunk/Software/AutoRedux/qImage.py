@@ -1,4 +1,5 @@
 import sys
+import time
 import os
 try:
     from PIL import Image
@@ -60,7 +61,9 @@ class qImage:
         im1.save(self.save_str)
 
             
-    def overlay_finding_chart(self,ra,dec,uncertainty,src_name='unknown source',pos_label='UVOT',cont_str='Adam N. Morgan (qmorgan@gmail.com, 510-229-7683)'):
+    def overlay_finding_chart(self,ra,dec,uncertainty,src_name='unknown source',pos_label='UVOT',cont_str=''):
+        
+        # cont_str='Contact: Adam N. Morgan (qmorgan@gmail.com, 510-229-7683)'
         
         self.loc_ra = ra
         self.loc_dec = dec
@@ -72,6 +75,8 @@ class qImage:
         self.pixel_scale = self.wcs_size * 60.0 / self.img_size # arcsec/pixel
         
         self.str_loc_pos = q.dec2sex((self.loc_ra,self.loc_dec))
+        
+        update_time = time.strftime('%Y %h %d')
         
         head_buffer = 50
         uncertainty_circle_size = int(self.loc_uncertainty/self.pixel_scale)
@@ -120,7 +125,10 @@ class qImage:
          <tspan x="15" dy="1em">%s: Finding Chart</tspan>
          </text>
          <text x = "15" y = "660" fill = "black" font-size = "16">
-         <tspan x="15" dy="1em">Contact: %s</tspan>
+         <tspan x="15" dy="1em">%s</tspan>
+         </text>
+         <text x = "15" y = "630" fill = "#222222" font-size = "11">
+         <tspan x="15" dy="1em">Created automatically from Swift GCN Notices on %s.  Contact: Adam N. Morgan (qmorgan@gmail.com).</tspan>
          </text>
 
          <text x ="288" y="%d" fill="blue" font-size="12">
@@ -164,7 +172,7 @@ class qImage:
          </text>
         
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
-                self.src_name,  self.cont_str, pos_label_pos_y, self.pos_label, pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,\
+                self.src_name,  self.cont_str, update_time, pos_label_pos_y, self.pos_label, pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,\
                  pos_label_full, self.str_loc_pos[0], self.str_loc_pos[1],\
                  str(self.loc_uncertainty),self.survey_str, scale_line_start,scale_line_stop,scale_line_label_pos_y)
     
