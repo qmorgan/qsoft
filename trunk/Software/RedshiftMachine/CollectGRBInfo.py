@@ -29,7 +29,8 @@ def_natcats = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_curr
 
 
 
-def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True):
+def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
+            html_path='/Users/amorgan/Public/TestDir/'):
     print '\nNow loading Swift Online Catalog Entries'
     swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_current.txt')
     if incl_nat:
@@ -66,7 +67,7 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True):
                         failed_finding_charts.append(source_name)
                 if make_html:
                     try:
-                        html_inst = Signal.make_grb_html(loaded_gcn, html_path='/o/amorgan/public_html/Swift/', reg_path=reg_path, fc_path=fc_path)
+                        html_inst = Signal.make_grb_html(loaded_gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                     except:
                         print 'cannot make html'
                 web_dict =  object2dict(html_inst,include=['out_dir','fc_path','reg_path'])

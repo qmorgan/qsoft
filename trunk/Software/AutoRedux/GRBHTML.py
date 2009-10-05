@@ -185,27 +185,69 @@ def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
     html page for all the GRBs
     '''
     failed_grbs = []
+    incl_files = ['reg_path','fc_path']
     incl_keys = ['triggerid_str','z']
-    
     html_block = '''
     <html><head><title>List of GRB Pages</title></head>
     <body bgcolor="#FFFFFF" text="#000066">
     <font size="+2">List of GRB Pages</font><p>
     BETA!<p>
     
+    <table border="1">
     ''' 
+    table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift')
+    table_label = '<tr>'
+    for column_name in table_columns:
+        table_label += '<td align=center><b>%s</b></td>' % column_name
+    table_label += '<tr>'
     
-    for grb, grbdict in collected_grb_dict.iteritems():
+    html_block += table_label
+    
+    sortedkeys=collected_grb_dict.keys()
+    sortedkeys.sort()
+    
+    table_entry_count=0
+    
+    for grb in reversed(sortedkeys):
         # Grab the folder name of the succesful Web Page creations
+        grbdict = collected_grb_dict[grb]
         try:
-            grbfolder = os.path.basename(grbdict['out_dir'])
-            html_block += "<a href='./%s'>%s</a><br>" % (grbfolder,grb)
+            html_block += "<tr>"
+            try:
+                grbfolder = os.path.basename(grbdict['out_dir'])
+                html_block += "<td><a href='./%s'>%s</a><br></td>" % (grbfolder,grb)
+            except:
+                grbfolder = None
+                html_block += "<td>%s</td>" % (grb)
+            for incl_file in incl_files:
+                try:
+                    file_path = grbfolder + '/' + os.path.basename(grbdict[incl_file])
+                    html_block += "<td align=center><a href='./%s'>Link</td>" % file_path
+                except:
+                    file_path = None
+                    html_block += "<td></td>"
+            for incl_item in incl_keys:
+                try:
+                    html_block += "<td>%s</td>" % str(grbdict[incl_item])
+                except:
+                    pass
+#            html_block += "<td>%s</td>" % (grbdict['triggerid_str'])
+#            html_block += "<td>%f</td>" % (grbdict['z'])
+            html_block += "</tr>"
+            if table_entry_count == 20:
+                html_block += table_label
+                table_entry_count = 0
+            table_entry_count += 1
         except:
             failed_grbs.append(grb)
     
     update_time = time.ctime(time.time())
     
+    print failed_grbs
+    
     html_block += '''
+    </table>
+    
     <HR WIDTH="50%%">
     This page is updated automatically as more information arrives.<br>
     Last Updated: %s <P>
@@ -218,6 +260,13 @@ def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
     f = open(filename,'w')
     f.write(html_block)
     f.close()
+
+def SortGRBDict(collected_grb_dict):
+    keys = collected_grb_dict.keys()
+    keys.sort()
+    sorted_vals = map(collected_grb_dict.get,keys)
+    sorted_tuple = (keys,sorted_vals)
+    return sorted_tuple
 
 def test():
     triggerid='543210'
