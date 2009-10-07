@@ -38,11 +38,14 @@ def LoadGCN(triggerid, clobber=False):
     loadedgcn = qPickle.load(pklpath)
     # If couldn't load, or clobber == True, create a new instance of the class
     if clobber or not loadedgcn:
+        # Create new instance of GCN Notice
         loadedgcn = GCNNotice(triggerid)
         try:
+            # Extract values from GCN Notice
             loadedgcn.extract_values()
             loadedgcn.get_positions()
             if loadedgcn.successful_load:
+                # Save new Pickle file
                 qPickle.save(loadedgcn,pklpath,clobber=True)
             else:
                 print 'Could not succesfully load GCN.'
@@ -50,23 +53,3 @@ def LoadGCN(triggerid, clobber=False):
         except:
             print "Could not Extract Values for GCN."
     return loadedgcn
-        
-    # pklpath = storepath+'sw'+str(triggerid)+'GCN.pkl'
-    # if os.path.exists(pklpath) and clobber==False:
-    #     loadedgcn = qPickle.load(pklpath)
-    #     print "GCNs for trigger %s already downloaded;" % triggerid
-    #     print "Loaded pickle file for this trigger."
-    # else:
-    #     ### Create a pickle file if it doesn't exist, or if clobber is set
-    #     loadedgcn = GCNNotice(triggerid)
-    #     try:
-    #         loadedgcn.extract_values()
-    #         loadedgcn.get_positions()
-    #     except:
-    #         print "Could not Extract Values for GCN."
-    #     
-    #     if loadedgcn.successful_load==True:
-    #         qPickle.save(loadedgcn,pklpath,clobber=True)
-    #     else:
-    #         print 'Could not succesfully load the GCN!!'
-    # return loadedgcn
