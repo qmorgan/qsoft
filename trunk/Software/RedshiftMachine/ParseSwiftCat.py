@@ -64,12 +64,28 @@ import time
 import sys
 import os
 from MiscBin.q import sex2dec
+import urllib2
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
+
+def GetNewCatFromWeb():
+    swift_cat_web_address = "http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/grb_table.php?obs_swift=1&obs_ipn=1&obs_integral=1&obs_hete=1&obs_agile=1&obs_fermi=1&restrict=none&grb_time=1&grb_trigger=1&burst_advocate=1&other_obs=1&redshift=1&host=1&comments=1&references=1&bat_location=1&bat_err_radius=1&bat_t90=1&bat_fluence=1&bat_err_fluence=1&bat_1s_peak_flux=1&bat_err_1s_peak_flux=1&bat_photon_index=1&bat_err_photon_index=1&xrt_location=1&xrt_err_radius=1&xrt_first_obs=1&xrt_early_flux=1&xrt_24hr_flux=1&xrt_lc_index=1&xrt_gamma=1&xrt_nh=1&uvot_location=1&uvot_err_radius=1&uvot_first_obs=1&uvot_vmag=1&uvot_filters=1"
+    try:
+        swift_cat_web_open = urllib2.urlopen(swift_cat_web_address)
+        swift_cat_web_string=swift_cat_web_open.read()
+        left_split = first_half=swift_cat_web_string.split('tab-delimited text file: <a href="tmp/')
+        ascii_cat_id = left_split[1].split('">grb_table_')[0]
+        cat_base_url'http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/tmp/' 
+        stealStuff(ascii_cat_id,'b',cat_base_url)
+        # Change stealstuff to accept an output directory too.  And maybe modify qImage
+        # I'm not sure why qImage works the way it does with the current way 
+        # stealStuff works...
+    except:
+        pass
 
 def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
     # Read a tab delimited file
