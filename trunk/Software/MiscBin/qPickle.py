@@ -18,7 +18,7 @@ def load(pklpath):
         storefile=open(pklpath)
         loadedpkl = pickle.load(storefile)
         storefile.close()
-        print "Loaded pickle file for this trigger."
+        print "Loaded pickle file for this object."
         return loadedpkl
     else:
         print "Pickle file %s does not exist" % pklpath

@@ -21,10 +21,11 @@ import cPickle as pickle
 import os
 import sys
 from ParseGCNNotice import GCNNotice
+from MiscBin import qPickle
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
-    print "directory where you have WCSTOOLS installed"
+    print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
@@ -32,28 +33,40 @@ storepath = os.environ.get("Q_DIR") + '/store/'
 # we last checked.
 def LoadGCN(triggerid, clobber=False):
     ### LOAD or CREATE PICKLE STORAGE FILE 
+    # Attempt to load pickle file
     pklpath = storepath+'sw'+str(triggerid)+'GCN.pkl'
-    if os.path.exists(pklpath) and clobber==False:
-        storefile=open(pklpath)
-        loadedgcn = pickle.load(storefile)
-        storefile.close()
-        print "GCNs for trigger %s already downloaded;" % triggerid
-        print "Loaded pickle file for this trigger."
-    else:
-        ### Create a pickle file if it doesn't exist, or if clobber is set
+    loadedgcn = qPickle.load(pklpath)
+    # If couldn't load, or clobber == True, create a new instance of the class
+    if clobber or not loadedgcn:
         loadedgcn = GCNNotice(triggerid)
         try:
             loadedgcn.extract_values()
             loadedgcn.get_positions()
+            if loadedgcn.successful_load:
+                qPickle.save(loadedgcn,pklpath,clobber=True)
+            else:
+                print 'Could not succesfully load GCN.'
+                return
         except:
             print "Could not Extract Values for GCN."
-        
-        if loadedgcn.successful_load==True:
-            storefile = open(pklpath,'w')
-            pickle.dump(loadedgcn,storefile)
-            storefile.close
-            if clobber == False:
-                print "No Pickle file existed, so one was created"
-            else:
-                print "Overwrote Pickle file"
     return loadedgcn
+        
+    # pklpath = storepath+'sw'+str(triggerid)+'GCN.pkl'
+    # if os.path.exists(pklpath) and clobber==False:
+    #     loadedgcn = qPickle.load(pklpath)
+    #     print "GCNs for trigger %s already downloaded;" % triggerid
+    #     print "Loaded pickle file for this trigger."
+    # else:
+    #     ### Create a pickle file if it doesn't exist, or if clobber is set
+    #     loadedgcn = GCNNotice(triggerid)
+    #     try:
+    #         loadedgcn.extract_values()
+    #         loadedgcn.get_positions()
+    #     except:
+    #         print "Could not Extract Values for GCN."
+    #     
+    #     if loadedgcn.successful_load==True:
+    #         qPickle.save(loadedgcn,pklpath,clobber=True)
+    #     else:
+    #         print 'Could not succesfully load the GCN!!'
+    # return loadedgcn
