@@ -23,7 +23,6 @@ XRT, UVOT Positions
 import sys
 import os
 from AutoRedux import send_gmail
-from AutoRedux import qImage
 from AutoRedux import GRBHTML
 from RedshiftMachine import LoadGCN
 import glob
@@ -117,7 +116,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,mail_reg=True,\
                         
         time.sleep(60)
 
-def _incl_reg(gcn):
+def _incl_reg(gcn,clobber=False):
     searchpath = storepath + '*%s.reg' % str(gcn.triggerid)
     reg_list = glob.glob(searchpath)
     # If a region is found and the latest Notice is not a position, 
@@ -131,7 +130,8 @@ def _incl_reg(gcn):
         reg_path = gcn.get_positions(create_reg_file=True)
         return reg_path
     
-def _incl_fc(gcn,src_name=None):
+def _incl_fc(gcn,src_name='',clobber=False):
+    from AutoRedux import qImage
     if not src_name: src_name = 'Swift_' + str(gcn.triggerid)
     searchpath = storepath + '%s_fc.png' % (src_name)
     reg_list = glob.glob(searchpath)
@@ -150,8 +150,36 @@ def _incl_fc(gcn,src_name=None):
         for path in fc_list:
             if path.find('fc.png') != -1:
                 fc_path = path
+            else: 
+                fc_path = None
         return fc_path
     
+
+def DownloadFile(base_url,file_name,out_path):
+    from urllib2 import Request, urlopen, URLError, HTTPError
+    
+    #create the url and the request
+    url = base_url + file_name
+    req = Request(url)
+    file_mode = 'b'
+    
+    # Open the url
+    try:
+        f = urlopen(req)
+        print "downloading " + url
+        
+        # Open our local file for writing
+        local_file = open(out_path, "w" + file_mode)
+        #Write to our local file
+        local_file.write(f.read())
+        local_file.close()
+
+    #handle errors
+    except HTTPError, e:
+        print "HTTP Error:",e.code , url
+    except URLError, e:
+        print "URL Error:",e.reason , url
+        
 def make_grb_html(gcn,html_path='/Users/amorgan/Public/TestDir',reg_path=None,fc_path=None):
     '''Create a GRB Page and Return the Path of the created GRB Webpage'''
     
@@ -176,6 +204,7 @@ def make_grb_html(gcn,html_path='/Users/amorgan/Public/TestDir',reg_path=None,fc
     return grbhtml_inst
     
 def mail_grb_region(gcn,mail_to,reg_file_path):
+    from AutoRedux import qImage
     
     triggerid = gcn.triggerid 
     

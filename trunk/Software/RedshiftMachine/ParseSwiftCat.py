@@ -65,6 +65,8 @@ import sys
 import os
 from MiscBin.q import sex2dec
 import urllib2
+from AutoRedux.Signal import DownloadFile
+
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -79,11 +81,9 @@ def GetNewCatFromWeb():
         swift_cat_web_string=swift_cat_web_open.read()
         left_split = first_half=swift_cat_web_string.split('tab-delimited text file: <a href="tmp/')
         ascii_cat_id = left_split[1].split('">grb_table_')[0]
-        cat_base_url'http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/tmp/' 
-        stealStuff(ascii_cat_id,'b',cat_base_url)
-        # Change stealstuff to accept an output directory too.  And maybe modify qImage
-        # I'm not sure why qImage works the way it does with the current way 
-        # stealStuff works...
+        cat_base_url = 'http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/tmp/' 
+        out_path = storepath + 'grb_table_current.txt'
+        DownloadFile(cat_base_url,ascii_cat_id,out_path)
     except:
         pass
 
