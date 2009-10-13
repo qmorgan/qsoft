@@ -72,6 +72,7 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
                         print 'cannot make html'
                 web_dict =  object2dict(html_inst,include=['out_dir','fc_path','reg_path'])
                 catdict.update(web_dict)
+                catdict.update(loaded_gcn.pdict)
                 
                 
                 # if make_finding_charts:
@@ -84,7 +85,6 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
             except:
                 print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,grb_str)
                 failed_gcn_grbs.append('GRB'+grb_str+' ('+trigid_str+')')
-            catdict.update(loaded_gcn.pdict)
             
             print "Now collecting Nat's Catalog entries for GRB %s" % (grb_str)
             GRBgrb_str = 'GRB'+grb_str
