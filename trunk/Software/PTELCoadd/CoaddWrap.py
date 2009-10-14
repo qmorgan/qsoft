@@ -12,14 +12,18 @@ PROJ.OBJ.OBS-reduction_output folder, e.g. GRB.388.1-reduction_output.
 This string, "PROJ.OBJ.OBS" ("GRB.388.1") is the "obsid" as defined by this 
 program.
 
+The parameter numcoadd specifies how many total observations to coadd in a 
+given epoch (say you only want to coadd the first 40 of a 90 observation 
+epoch, set numcoadd=40).  By default, numcoadd=None coadds all of them.  
+
 Start python, then do the following:
 >>> import CoaddWrap
 >>> CoaddWrap.prep("GRB.388.1")
 >>> # 3 files (?_long_triplestacks_full.txt) should have been created
->>> CoaddWrap.coadd("GRB.388.1",max_num=4,dowcs=False)
->>> # This will loop through mosaic_maker, coadding every max_num images
+>>> CoaddWrap.coadd("GRB.388.1",max_sum=4,dowcs=False)
+>>> # This will loop through mosaic_maker, coadding every max_sum images
 >>> # They will be renamed ?_long_GRB.388.1_coadd_N-M.fits where N is the 
->>> # First coadded image and M is the last; and M-N = max_num - 1 (except for
+>>> # First coadded image and M is the last; and M-N = max_sum - 1 (except for
 >>> # the last image, which will just be the coaddition of all remaining)
 >>> CoaddWrap.cleanup("GRB.388.1")
 >>> # Will remove all resultant images and move them to a folder with optional
@@ -68,8 +72,8 @@ def cleanup(obsid,opt_str=''):
     print "Files moved to %s" % dirout
         
     
-def coadd(obsid,max_num=4,dowcs=False):
-    coadd_num=max_num
+def coadd(obsid,max_sum=4,dowcs=False,numcoadd=None):
+    coadd_num=max_sum
 
     j_filename_new = "j_long_triplestacks.txt"
     j_filename_old = "j_long_triplestacks_full.txt"
@@ -88,7 +92,12 @@ def coadd(obsid,max_num=4,dowcs=False):
     if len(k_list) != len(j_list) or len(k_list) != len(h_list):
         print "WARNING - list lengths not identical"
     
-    numiter = len(j_list)
+    # If the number of observations to coadd is not specified, just coadd 
+    # all of them by default.
+    if not numcoadd: 
+        numiter = len(j_list)
+    else:
+        numiter = numcoadd
     
     ii = 0
     kk = 0
