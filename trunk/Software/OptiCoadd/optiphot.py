@@ -74,10 +74,34 @@ class GRB(LCModel):
         self.t_1 = t_1
         self.alpha = alpha
         self.name = name
-        self.model = lambda tt: R_1*(tt/t_1)**alpha
+        self.model = lambda tt: R_1*(tt)**alpha
         print '(Initialized GRB Model: %s)' % self.name
-    
+        
 
+class GRB2(LCModel):
+    '''Represents a GRB model via Beuermann (1999)
+    
+    Two Power-law function
+    
+    F(t) = (F_1^-n + F_2^-n)^(-1/n)
+    where F_i = k_i*t^(-\alpha_i), n > 0
+    
+    F_1 = F_2 at the transition time t=t_*
+    
+    5 free parameters (k_1,a_1,k_2,a_2,n)
+    '''
+    def __init__(self,k_1,a_1,k_2,a_2,n,name="noName"):
+        self.k_1 = k_1
+        self.k_2 = k_2
+        self.a_1 = a_1
+        self.a_2 = a_2
+        self.n = n
+        self.name = name
+        F_1 = lambda tt: (self.k_1*tt**(-1*a_1))
+        F_2 = lambda tt: (self.k_2*tt**(-1*a_2))
+        self.model = lambda tt: ((F_1(tt)**(-1*self.n) + (F_2(tt)**(-1*self.n)))**(-1/self.n))
+        print '(Initialized GRB Model: %s)' % self.name
+        
 class SN(LCModel):
     '''Represents a SN Model Lightcurve'''
     def __init__(self,k_1,k_2,freq,alpha,beta,delta,name="NoName"):
@@ -108,7 +132,7 @@ class SNcgs(LCModel):
         self.model = lambda tt: (k_1*((freq/5)**alpha)*(tt/86400)**beta)* \
                                 numpy.e**-(k_2*((freq/5)**(-2.1))*\
                                 (tt/86400)**delta)
-        print '(Initialized DataFile %s of Type %s)' % (self.filename, self.filetype)
+        print '(Initialized SN Model: %s)' % self.name
     
 
 class DataFile:
@@ -126,7 +150,7 @@ class DataFile:
         if os.path.isdir(self.filename) and self.filetype != 'MIRIAD':
             print '"%s" is a directory. Exiting..' %self.filename
             sys.exit(1)
-	    print '(Initialized DataFile %s of Type %s)' % (self.filename, self.filetype)
+        print '(Initialized DataFile %s of Type %s)' % (self.filename, self.filetype)
     
     def AssignType(self):
         running = True
@@ -250,13 +274,14 @@ def models2n(sumto,model_input,images_input):
     the_model = model_input
     
     for i in range(0,sumto):   # have to use forloop because integrating
-    tstart = s2narray[i,0]
-    tstop = s2narray[i,1]
+        tstart = s2narray[i,0]
+        tstop = s2narray[i,1]
     
-    c_model_i = LCModel.integrate(the_model,tstart,tstop)
+        c_model_i = LCModel.integrate(the_model,tstart,tstop)
     
-    # Now put c_model_i in an array 
-    s2narray[i,2] = c_model_i[0]
+        # Now put c_model_i in an array 
+        s2narray[i,2] = c_model_i[0]
+        
     sum_c_model = sum(s2narray[0:sumto,2])
     
     # Calculate P_i
@@ -330,10 +355,10 @@ def getheaderinfo(images_input):
     if images_input == '050525a':  
         print "THIS IS A GRB"
         
-    	numexp = 19
-    	met = 138672172.8  # MET of burst
-    	sky_area=113.094  # square arcseconds
-    	
+        numexp = 19
+        met = 138672172.8  # MET of burst
+        sky_area=113.094  # square arcseconds
+        
         #[met_tstart, met_tstop, R_sky/arcsec^2]        
         sarray = numpy.array([[138672251.042, 138672350.824, 0.016],\
                         [138672426.146, 138672435.911, 0.012],\
@@ -356,9 +381,9 @@ def getheaderinfo(images_input):
                         [138758451.217, 138759350.996, 0.013]])
         
         tstart = sarray[:,0] - met
-    	tstop = sarray[:,1] - met
-    	exptime = tstop - tstart
-    	skycounts = (sarray[:,2]*sky_area)*exptime   #c_sky_i
+        tstop = sarray[:,1] - met
+        exptime = tstop - tstart
+        skycounts = (sarray[:,2]*sky_area)*exptime   #c_sky_i
     elif images_input == 'testsn':
         print "TEST SN"
         tstart = tstart - 70
