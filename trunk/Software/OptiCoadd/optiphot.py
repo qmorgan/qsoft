@@ -74,7 +74,7 @@ class GRB(LCModel):
         self.t_1 = t_1
         self.alpha = alpha
         self.name = name
-        self.model = lambda tt: R_1*(tt)**alpha
+        self.model = lambda tt: R_1*(tt/t_1)**alpha
         print '(Initialized GRB Model: %s)' % self.name
         
 
