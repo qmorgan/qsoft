@@ -86,8 +86,9 @@ def MonitorRSS(feed_url):
     return sql_entry_list
 
 
-def SwiftGRBFlow(incl_reg=True,incl_fc=True,mail_reg=True,\
-                mail_to='amorgan@berkeley.edu',make_html=True):
+def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
+                mail_reg=True, mail_to='amorgan@berkeley.edu',\
+                make_html=True, html_path='/o/amorgan/public_html/Swift/'):
     while(True):
         sql_tuple_list = MonitorRSS("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
         for sql_tuple in sql_tuple_list:
@@ -112,7 +113,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,mail_reg=True,\
                     if mail_reg:
                         mail_region(gcn,mail_to,reg_path)
                     if make_html:
-                        make_grb_html(gcn, reg_path=reg_path, fc_path=fc_path)
+                        make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                         
         time.sleep(60)
 
