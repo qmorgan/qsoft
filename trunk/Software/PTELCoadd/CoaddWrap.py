@@ -122,10 +122,10 @@ def coadd(obsid,max_sum=4,dowcs=False,numcoadd=None):
             k_file_new.close()
             
             print 'Now Coadding triplestacks ' + start_seg + '-' + end_seg + ".."
-            
+           
+            coaddstr = pypath + " mosaic_maker.py -o " + obsid           
             if dowcs:
                 coaddstr += ' -w'
-            coaddstr = pypath + " mosaic_maker.py -o " + obsid
             os.system(coaddstr)
             
             j_file_new = file(j_filename_new,"w")
