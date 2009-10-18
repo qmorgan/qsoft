@@ -138,11 +138,13 @@ class GRBHTML:
         too_str = ''
         if hasattr(self, 'best_pos'):
             too_str = '?ra=%f&dec=%f' % (self.best_pos[0],self.best_pos[1])
+            datascope_str = '?position=%f+%f&size=0.05' % (self.best_pos[0],self.best_pos[1])
         self.html_block += '''
             <hr width="50%%">
-            <b>Telescope ToO Information:</b><p>
-            <a href='http://lyra.berkeley.edu/GRB/too/too.php%s'>GRAASP ToO Page</a>
-        ''' % (too_str)
+            <b>Useful Links:</b><p>
+            <a href='http://lyra.berkeley.edu/GRB/too/too.php%s'>GRAASP ToO Page</a><br>
+            <a href='http://heasarc.gsfc.nasa.gov/cgi-bin/vo/datascope/jds.pl%s'>NVO DataScope Query</a>
+        ''' % (too_str,datascope_str)
     
     def add_footer(self):
         update_time = time.ctime(time.time())
