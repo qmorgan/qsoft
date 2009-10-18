@@ -111,7 +111,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                     if incl_fc:
                         fc_path = _incl_fc(gcn)
                     if mail_reg:
-                        mail_region(gcn,mail_to,reg_path)
+                        mail_grb_region(gcn,mail_to,reg_path)
                     if make_html:
                         make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                         
@@ -138,12 +138,17 @@ def _incl_fc(gcn,src_name='',clobber=False):
     reg_list = glob.glob(searchpath)
     # If a fc is found and the latest Notice is not a position, 
     # return the path of the already created region file
-    if len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') == -1:
+    print '*******'
+    print reg_list
+    print gcn.last_notice_loaded
+    print len(reg_list)
+    print ' '
+    if len(reg_list) != 0 and gcn.last_notice_loaded.find('Position') == -1:
         return reg_list[0]
     # if the latest gcn was a Position type, or if there is no region found,
     # create a new region and return the path. This function utilizes the
     # self.best_position attribute for GCNNotice.  
-    elif (len(reg_list) == 1 and gcn.last_notice_loaded.find('Position') != -1)\
+    elif (len(reg_list) != 0 and gcn.last_notice_loaded.find('Position') != -1)\
           or (len(reg_list) == 0):
         fc_list = qImage.MakeFindingChart(ra=gcn.best_pos[0],dec=gcn.best_pos[1],\
               uncertainty=gcn.best_pos[2],src_name=src_name,pos_label=gcn.best_pos_type,\
@@ -247,12 +252,12 @@ def mail_grb_region(gcn,mail_to,reg_file_path):
         reg_contents += ', XRT Position UPDATE'
         source_name = 'Swift_' + str(gcn.triggerid)
         fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
-            uncertainty=gcn.xrt_pos_update[2]*3600.0,src_name=source_name,pos_label='XRT upd.',survey='dss2red')
+            uncertainty=gcn.xrt_pos_update[2],src_name=source_name,pos_label='XRT upd.',survey='dss2red')
     if gcn.dict.has_key('Swift-UVOT Position'): 
         reg_contents += ', UVOT Position'
         source_name = 'Swift_' + str(gcn.triggerid)
         fc_list = qImage.MakeFindingChart(ra=gcn.uvot_pos[0],dec=gcn.uvot_pos[1],\
-            uncertainty=gcn.uvot_pos[2]*3600.0,src_name=source_name,pos_label='UVOT',survey='dss2red')
+            uncertainty=gcn.uvot_pos[2],src_name=source_name,pos_label='UVOT',survey='dss2red')
 
     email_body += reg_contents
                                 
