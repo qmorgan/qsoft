@@ -72,9 +72,8 @@ def cleanup(obsid,opt_str=''):
     print "Files moved to %s" % dirout
         
     
-def coadd(obsid,max_sum=4,dowcs=False,numcoadd=None):
-    coadd_num=max_sum
-
+def coadd(obsid,max_sum=4,dowcs=False,coadd_range=None):
+    
     j_filename_new = "j_long_triplestacks.txt"
     j_filename_old = "j_long_triplestacks_full.txt"
     h_filename_new = "h_long_triplestacks.txt"
@@ -83,21 +82,33 @@ def coadd(obsid,max_sum=4,dowcs=False,numcoadd=None):
     k_filename_old = "k_long_triplestacks_full.txt"
 
     j_file = file(j_filename_old,"r")
-    j_list = j_file.readlines()
+    j_list_full = j_file.readlines()
     h_file = file(h_filename_old,"r")
-    h_list = h_file.readlines()
+    h_list_full = h_file.readlines()
     k_file = file(k_filename_old,"r")
-    k_list = k_file.readlines()
+    k_list_full = k_file.readlines()
 
-    if len(k_list) != len(j_list) or len(k_list) != len(h_list):
+    if len(k_list_full) != len(j_list_full) or len(k_list_full) != len(h_list_full):
         print "WARNING - list lengths not identical"
     
-    # If the number of observations to coadd is not specified, just coadd 
+    # If the range of observations to coadd is not specified, just coadd 
     # all of them by default.
-    if not numcoadd: 
-        numiter = len(j_list)
+    if not coadd_range: 
+        numiter = len(j_list_full)
+        j_list = j_list_full
+        k_list = k_list_full
+        h_list = h_list_full
     else:
-        numiter = numcoadd
+        if not isinstance(coadd_range,tuple) or not len(coadd_range) == 2:
+            sys.exit('coadd_range needs to be a tuple of length 2 ')
+        i_start = coadd_range[0] - 1
+        i_stop = coadd_range[1]
+        numiter = i_stop - i_start
+        if not isinstance(i_start,int) or not isinstance(i_stop,int):
+            sys.exist('coadd_range values need to be of type integer')
+        j_list = j_list_full[i_start:i_stop]
+        h_list = h_list_full[i_start:i_stop]
+        k_list = k_list_full[i_start:i_stop]
     
     ii = 0
     kk = 0
@@ -115,7 +126,7 @@ def coadd(obsid,max_sum=4,dowcs=False,numcoadd=None):
         k_file_new.write(k_list[ind])
         ii += 1 
         kk += 1
-        if kk == coadd_num or ii == numiter:
+        if kk == max_sum or ii == numiter:
             end_seg = item.split("-p")[-1].split('.fits')[0]
             j_file_new.close()
             h_file_new.close()
