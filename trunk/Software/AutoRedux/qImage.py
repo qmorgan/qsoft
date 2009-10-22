@@ -163,12 +163,18 @@ class qImage:
          <tspan x="615" dy="1em">%s</tspan>
          <tspan x="615" dy="1em">RA = %s</tspan>
          <tspan x="615" dy="1em">Dec = %s</tspan>
-         <tspan x="615" dy="1em">Uncertainty = %s"</tspan>
+         <tspan x="615" dy="1em">Uncertainty = %s</tspan>
+         <tspan x="615" dy="1em">(arcseconds)</tspan>
          </text>
 
          <text x="640" y="325" fill="black" font-size="18">
          <tspan x="640" dy="1em">Image from:</tspan>
          <tspan x="640" dy="1em">%s</tspan>
+         </text>
+
+         <text x="640" y="500" fill="black" font-size="18">
+         <tspan x="640" dy="1em">Image is %s</tspan>
+         <tspan x="640" dy="1em">arcmin/side</tspan>
          </text>
 
          <text x="625" y="640" fill="black" font-size ="18">
@@ -195,7 +201,7 @@ class qImage:
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
                 self.src_name,  self.cont_str, update_time, pos_label_pos_y, self.pos_label, pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,\
                  pos_label_full, self.str_loc_pos[0], self.str_loc_pos[1],\
-                 str(self.loc_uncertainty),self.survey_str, scale_line_start,scale_line_stop,scale_line_label_pos_y)
+                 str(self.loc_uncertainty),self.survey_str, str(self.wcs_size), scale_line_start,scale_line_stop,scale_line_label_pos_y)
     
 
 
@@ -232,14 +238,20 @@ def downloadImage(img_url,out_name='qImage.jpg'):
 	# for the second param ala stealStuff(file_name,'',base_url)
 	stealStuff(out_name,"b",img_url)
 
-def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test'):
+def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0):
     fc = qImage()
+    # define pixel scale from side size
+    side_size_arcmin = size #arcmin
+    side_size = side_size_arcmin * 60.0 # arcseconds
+    img_size = 600 #pixels
+    pixel_scale = side_size/img_size #arcsec/pixel
+    
     if survey != 'sdss':
-        fc.dss_grab(ra,dec,3.0,survey)
-        fc.invert_and_resize(600)
+        fc.dss_grab(ra,dec,side_size_arcmin,survey)
+        fc.invert_and_resize(img_size)
     else:
-        fc.sdss_grab(ra,dec,0.3,600)
-        fc.invert_and_resize(600)
+        fc.sdss_grab(ra,dec,pixel_scale,img_size)
+        fc.invert_and_resize(img_size)
     svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str)
     outname = storepath+src_name+'_fc'
     outnamesvg = outname+'.svg'
