@@ -20,7 +20,7 @@ try:
     import pyfits
 except:
     'Unable to load pyfits module'
-    sys.exit['Cannot Import PyFITS Module']
+    sys.exit('Cannot Import PyFITS Module')
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
