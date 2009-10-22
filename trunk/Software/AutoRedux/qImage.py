@@ -8,7 +8,7 @@ except:
     sys.exit('You do not have PIL.  Download it.')
 import base64, Image, string
 import glob
-from MiscBin import q
+from MiscBin.q import dec2sex
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -29,12 +29,31 @@ class qImage:
         url_str =  'http://stdatu.stsci.edu/cgi-bin/dss_search?v=' + self.survey + '&r=' + str(ra) + '&d=' + str(dec) +'&e=J2000&h=' + str(size) +'&w=' + str(size) +'&f=gif&c=none&fov=NONE&v3='
         self.img_ra = ra
         self.img_dec= dec
-        self.wcs_size=size
+        self.wcs_size=size #in arcmin
         
         self.image_path=storepath+'dss_grab.gif'
         
         downloadImage(url_str,self.image_path)
+    
+    def sdss_grab(self,ra,dec,scale,width):
+        url_str = 'http://casjobs.sdss.org/ImgCutoutDR7/getjpeg.aspx?ra=' + str(ra) + '&dec=' + str(dec) + '&scale=' + str(scale) + '&width=' + str(width) + '&height=' + str(width) + '&opt=L'
+        self.img_ra = ra
+        self.img_dec = dec
+        self.wcs_size= scale * width / 60.0 # arcminutes 
+        self.survey = 'sdss'
+
+        image_path=storepath+'sdss_grab.jpeg'
+        downloadImage(url_str,image_path)      
         
+        # PIL sometimes can't handle jpeg.  conver to png.
+        newpath = storepath + 'sdss_grab.png'
+        magickcommand = "convert %s %s" % (image_path, newpath)
+        try:
+            os.system(magickcommand)
+            self.image_path = newpath
+        except:
+            print "Do not have Imagemagick, cannot convert svg to png"
+    
     def invert_and_resize(self,newsize=600):
         '''
         Given a position and uncertainty, create a finding chart from the DSS
@@ -57,7 +76,7 @@ class qImage:
         # Resize with a cubic spline - it looks nice.
         # Other options are NEAREST, BILINEAR, ANTIALIAS
         im1 = im1.resize((newsize,newsize),Image.BICUBIC)
-        self.save_str = storepath+'FCBase.jpg'
+        self.save_str = storepath+'FCBase.png'
         im1.save(self.save_str)
 
             
@@ -74,7 +93,7 @@ class qImage:
         
         self.pixel_scale = self.wcs_size * 60.0 / self.img_size # arcsec/pixel
         
-        self.str_loc_pos = q.dec2sex((self.loc_ra,self.loc_dec))
+        self.str_loc_pos = dec2sex((self.loc_ra,self.loc_dec))
         
         update_time = time.strftime('%Y %h %d')
         
@@ -95,8 +114,10 @@ class qImage:
                
         if self.survey == 'poss2ukstu_red': 
             self.survey_str = 'DSS2 (red)'
-        elif survey == 'poss1_red':
+        elif self.survey == 'poss1_red':
             self.survey_str = 'DSS1 (red)'
+        elif self.survey == 'sdss':
+            self.survey_str = 'SDSS'
         else: 
             print 'Unknown survey: %s' % survey
             sys.exit(1)
@@ -211,12 +232,15 @@ def downloadImage(img_url,out_name='qImage.jpg'):
 	# for the second param ala stealStuff(file_name,'',base_url)
 	stealStuff(out_name,"b",img_url)
 
-
-def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red'):
+def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test'):
     fc = qImage()
-    fc.dss_grab(ra,dec,3.0,survey)
-    fc.invert_and_resize(600)
-    svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label)
+    if survey != 'sdss':
+        fc.dss_grab(ra,dec,3.0,survey)
+        fc.invert_and_resize(600)
+    else:
+        fc.sdss_grab(ra,dec,0.3,600)
+        fc.invert_and_resize(600)
+    svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str)
     outname = storepath+src_name+'_fc'
     outnamesvg = outname+'.svg'
     outnamepng = outname+'.png'
