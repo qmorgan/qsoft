@@ -102,7 +102,15 @@ class qImage:
         pos_pos_x = 300 #position of the error circle on the image , hard coded for now
         pos_pos_y = 350
         
-        scale_line_length = int(60/self.pixel_scale) #1 arcmin
+        # Define scale line physical length based on how large the image is
+        # Divide by two so that line is never more than 50% of image
+        if not self.wcs_size < 2.0:
+            scale_line_physical_length = int(self.wcs_size/2) #arcmin
+        elif not self.wcs_size < 1.0:
+            scale_line_physical_length = 0.5
+        else:
+            scale_line_physical_length = 0.25
+        scale_line_length = int(60*scale_line_physical_length/self.pixel_scale) 
         scale_line_start = head_buffer + self.img_size/2 - scale_line_length/2
         scale_line_stop = head_buffer + self.img_size/2 + scale_line_length/2
         scale_line_label_pos_y = scale_line_start - 15
@@ -195,13 +203,13 @@ class qImage:
          <line x1="200" y1="%d" x2="200" y2="%d"
          style="stroke:rgb(255,0,0);stroke-width:2"/>
          <text x ="177" y ="%d" fill ="red" font-size = "12">
-         <tspan x="177" dy="1em">1 arcmin</tspan>
+         <tspan x="177" dy="1em">%s arcmin</tspan>
          </text>
         
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
                 self.src_name,  self.cont_str, update_time, pos_label_pos_y, self.pos_label, pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,\
                  pos_label_full, self.str_loc_pos[0], self.str_loc_pos[1],\
-                 str(self.loc_uncertainty),self.survey_str, str(self.wcs_size), scale_line_start,scale_line_stop,scale_line_label_pos_y)
+                 str(self.loc_uncertainty),self.survey_str, str(self.wcs_size), scale_line_start,scale_line_stop,scale_line_label_pos_y, str(scale_line_physical_length))
     
 
 
@@ -241,7 +249,23 @@ def downloadImage(img_url,out_name='qImage.jpg'):
 def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0):
     fc = qImage()
     # define pixel scale from side size
-    side_size_arcmin = size #arcmin
+    if size:
+        try:
+            if size.upper() == 'AUTO' and uncertainty > 0:
+                # Auto sets error circle size to ~10 pixels
+                if not uncertainty < 1.0: 
+                    side_size_arcmin = round(uncertainty/10.0/60.0*600.0)
+                else:
+                    side_size_arcmin = 1.0
+            else:
+                print 'Invalid string for size; defaulting to 3 arcmin.'
+                side_size_arcmin = 3.0
+        except(AttributeError):
+            try:
+                side_size_arcmin = float(size)
+            except:
+                print 'Invalid entry for size; defaulting to 3 arcmin'
+                side_size_arcmin = 3.0
     side_size = side_size_arcmin * 60.0 # arcseconds
     img_size = 600 #pixels
     pixel_scale = side_size/img_size #arcsec/pixel
