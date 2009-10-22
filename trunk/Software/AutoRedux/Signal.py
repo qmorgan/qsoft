@@ -131,25 +131,29 @@ def _incl_reg(gcn,clobber=False):
         reg_path = gcn.get_positions(create_reg_file=True)
         return reg_path
     
-def _incl_fc(gcn,src_name='',clobber=False):
+def _incl_fc(gcn,src_name='',clobber=False, last_pos_check=False):
     from AutoRedux import qImage
     if not src_name: src_name = 'Swift_' + str(gcn.triggerid)
     searchpath = storepath + '%s_fc.png' % (src_name)
     reg_list = glob.glob(searchpath)
+    
+    if last_pos_check == True:
+        if gcn.last_notice_loaded.find('Position') != -1:
+            clobber = True
+            
     # If a fc is found and the latest Notice is not a position, 
     # return the path of the already created region file
-    print '*******'
-    print reg_list
-    print gcn.last_notice_loaded
-    print len(reg_list)
-    print ' '
-    if len(reg_list) != 0 and gcn.last_notice_loaded.find('Position') == -1:
+    # print '*******'
+    # print reg_list
+    # print gcn.last_notice_loaded
+    # print len(reg_list)
+    # print ' '
+    if len(reg_list) != 0 and clobber == False:
         return reg_list[0]
     # if the latest gcn was a Position type, or if there is no region found,
     # create a new region and return the path. This function utilizes the
     # self.best_position attribute for GCNNotice.  
-    elif (len(reg_list) != 0 and gcn.last_notice_loaded.find('Position') != -1)\
-          or (len(reg_list) == 0):
+    else:
         fc_list = qImage.MakeFindingChart(ra=gcn.best_pos[0],dec=gcn.best_pos[1],\
               uncertainty=gcn.best_pos[2],src_name=src_name,pos_label=gcn.best_pos_type,\
               survey='dss2red')
