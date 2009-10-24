@@ -60,6 +60,8 @@ def prep(obsid):
             new_item = item.replace('stacks.txt','stacks_full.txt')
             syscmd = 'cat %s >> %s' % (item,new_item)
             os.system(syscmd)
+            syscmd = 'rm %s' % (item)
+            os.system(syscmd)
 #            shutil.move(item,new_item)
 
 def cleanup(obsid,opt_str=''):
@@ -108,6 +110,8 @@ def coadd(obsid,max_sum=4,dowcs=False,coadd_range=None):
         j_list = j_list_full
         k_list = k_list_full
         h_list = h_list_full
+    if not max_sum:
+        max_sum = len(j_list_full)
     else:
         if not isinstance(coadd_range,tuple) or not len(coadd_range) == 2:
             sys.exit('coadd_range needs to be a tuple of length 2 ')
