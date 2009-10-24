@@ -128,7 +128,8 @@ class GCNNotice:
                     line = line.strip()
                     linelist = line.split(':  ')
                     if len(linelist) > 2:
-                        print 'SOMETHINGS WRONG'
+                        print 'SOMETHINGS WRONG - we have two instances of ":  " in this line on the gcn'
+                        print line
                     if len(linelist) == 2:
                         # Add to dictionary
                         if linelist[0] != 'COMMENTS':
