@@ -10,7 +10,10 @@ pairitel_redux.swarp into the folder containing the
 PROJ.OBJ.OBS-reduction_output folder, e.g. GRB.388.1-reduction_output.
 
 This string, "PROJ.OBJ.OBS" ("GRB.388.1") is the "obsid" as defined by this 
-program.
+program.  Actually you can define a list of obsids, though note that the 
+computer might not have enough memory to swarp them all together.  It was OK
+with 1.5 hours of data, but choked on 3 hours.  I may change the program to 
+do some intermediate swarping in the future to deal with this problem.
 
 The parameter numcoadd specifies how many total observations to coadd in a 
 given epoch (say you only want to coadd the first 40 of a 90 observation 
@@ -18,7 +21,7 @@ epoch, set numcoadd=40).  By default, numcoadd=None coadds all of them.
 
 Start python, then do the following:
 >>> import CoaddWrap
->>> CoaddWrap.prep("GRB.388.1")
+>>> CoaddWrap.prep(["GRB.388.1","GRB.388.2"])
 >>> # 3 files (?_long_triplestacks_full.txt) should have been created
 >>> CoaddWrap.coadd("GRB.388.1",max_sum=4,dowcs=False)
 >>> # This will loop through mosaic_maker, coadding every max_sum images
@@ -84,7 +87,7 @@ def cleanup(obsid,opt_str=''):
     print "Files moved to %s" % dirout
         
     
-def coadd(obsid,max_sum=4,dowcs=False,coadd_range=None):
+def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
     
     j_filename_new = "j_long_triplestacks.txt"
     j_filename_old = "j_long_triplestacks_full.txt"
