@@ -37,20 +37,30 @@ import glob
 pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
 
 def prep(obsid):
-    # if obsid.__class__.strip(' ') != "<type 'str'>":
-    #     sys.exit('obsid is not of type string')
-    globstr = obsid + '-reduction_output'
-    if not glob.glob(globstr):
-        sys.exit('search directory does not exist')
-    prepstr = pypath + " mosaic_maker.py -o " + obsid + " -p"
-    os.system(prepstr)
-    globstr = '?_long_triplestacks.txt'
-    text_list = glob.glob(globstr)
-    if not text_list:
-        sys.exit('search string does not exist')
-    for item in text_list:
-        new_item = item.replace('stacks.txt','stacks_full.txt')
-        shutil.move(item,new_item)
+    '''Given a string or list of obsids, combine them into a text file
+    containing all of the observations to coadd.
+    '''
+    # if obsid is a string, convert it into a list
+    if isinstance(obsid,str):
+        obsid = [obsid]
+    # if obsid is not a list now, raise exception
+    if not isinstance(obsid,list):
+        raise TypeError('obsid is of invalid type; needs to be list or str')
+    for oid in obsid:
+        globstr = oid + '-reduction_output'
+        if not glob.glob(globstr):
+            sys.exit('search directory does not exist')
+        prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
+        os.system(prepstr)
+        globstr = '?_long_triplestacks.txt'
+        text_list = glob.glob(globstr)
+        if not text_list:
+            sys.exit('search string does not exist')
+        for item in text_list:
+            new_item = item.replace('stacks.txt','stacks_full.txt')
+            syscmd = 'cat %s >> %s' % (item,new_item)
+            os.system(syscmd)
+#            shutil.move(item,new_item)
 
 def cleanup(obsid,opt_str=''):
     dirname = obsid + opt_str + '_mosaics'
