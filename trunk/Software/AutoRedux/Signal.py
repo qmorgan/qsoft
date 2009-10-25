@@ -126,10 +126,20 @@ def _mail_html(gcn,mail_to):
         email_subject = 'New Web Page for Swift trigger %i' % int(gcn.triggerid)
         email_body = '''Please visit http://astro.berkeley.edu/~amorgan/Swift/%i/
         for information on this event, updated as more information arrives.''' % int(gcn.triggerid) 
-        gcn.mailed_web = True
-        send_gmail.domail(mail_to,email_subject,email_body)
-        LoadGCN.SaveGCN(gcn)
-    
+        
+        # Crap, the following doesn't work because of clobber=True when reloading new GCNs
+        # EVENTUALL UPDATE SO WE DON'T RELOAD THE ENTIRE GCN EACH TIME, JUST ADD THE NEW NOTICES?
+        # gcn.mailed_web = True
+        # send_gmail.domail(mail_to,email_subject,email_body)
+        # LoadGCN.SaveGCN(gcn)
+        
+        # Temporary hack
+        mailchkpath = storepath + '/.mlchk%i' % int(gcn.triggerid)
+        if not os.path.exists(mailchkpath):
+            cmd = "echo y > %s" % mailchkpath 
+            os.system(cmd)
+            send_gmail.domail(mail_to,email_subject,email_body)
+        
 def _incl_reg(gcn,clobber=False):
     searchpath = storepath + '*%s.reg' % str(gcn.triggerid)
     reg_list = glob.glob(searchpath)
