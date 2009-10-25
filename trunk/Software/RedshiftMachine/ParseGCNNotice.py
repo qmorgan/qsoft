@@ -192,21 +192,25 @@ class GCNNotice:
             if self.dict.has_key(item):
                 if item.find('BAT') != -1:
                     self.bat_pos = self.parse_positions(item)
-                    self.best_pos = self.bat_pos
-                    self.best_pos_type = 'BAT'
+                    if not hasattr(self,'best_pos') or (self.bat_pos[2] < self.best_pos[2]):
+                        self.best_pos = self.bat_pos
+                        self.best_pos_type = 'BAT'     
                 elif item.find('XRT') != -1 and item.find('n UPDATE') == -1:
                     self.xrt_pos = self.parse_positions(item)
-                    self.best_pos = self.xrt_pos
-                    self.best_pos_type = 'XRT'
+                    if not hasattr(self,'best_pos') or (self.xrt_pos[2] < self.best_pos[2]):
+                        self.best_pos = self.xrt_pos
+                        self.best_pos_type = 'XRT'
                 elif item.find('XRT Position UPDATE') != -1:
                     self.xrt_pos_update = self.parse_positions(item)
-                    self.best_pos = self.xrt_pos_update
-                    self.best_pos_type = 'XRT Upd.'
+                    if not hasattr(self,'best_pos') or (self.xrt_pos_update[2] < self.best_pos[2]):
+                        self.best_pos = self.xrt_pos_update
+                        self.best_pos_type = 'XRT Upd.'
                 elif item.find('UVOT') != -1:
                     self.uvot_pos = self.parse_positions(item)
-                    self.best_pos = self.uvot_pos
-                    self.best_pos_type = 'UVOT'
-                    
+                    if not hasattr(self,'best_pos') or (self.uvot_pos[2] < self.best_pos[2]):
+                        self.best_pos = self.uvot_pos
+                        self.best_pos_type = 'UVOT'    
+            
         if create_reg_file == True:
             # Creates a ds9 region file
             reg_name = storepath +'sw'+ str(self.triggerid) + '.reg'
