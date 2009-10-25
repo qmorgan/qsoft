@@ -68,7 +68,12 @@ class qImage:
     
         self.img_size = newsize # in pixels
 
-        im1 = Image.open(self.image_path)
+        try:
+            im1 = Image.open(self.image_path)
+        except:
+            errstring = 'Could not open %s; image may be malformed.' % (self.image_path)
+            raise IOError(errstring)
+
         # Invert Colors
         im1 = ImageOps.invert(im1)
         # Convert to color mode
