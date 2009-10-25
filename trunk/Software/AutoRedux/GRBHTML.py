@@ -33,6 +33,7 @@ class GRBHTML:
         self.triggerid = triggerid
         self.create_folder()
         self.add_header()
+        self.successful_export = False
     
     def create_folder(self):
         self.out_dir = self.base_dir + '/' + str(self.triggerid)
@@ -163,10 +164,14 @@ class GRBHTML:
         '''
         Export the html_block string into the created folder.
         '''
-        filename = self.out_dir + '/index.html'
-        f = open(filename,'w')
-        f.write(self.html_block)
-        f.close()
+        try:
+            filename = self.out_dir + '/index.html'
+            f = open(filename,'w')
+            f.write(self.html_block)
+            f.close()
+            self.successful_export = True
+        except:
+            self.successful_export = False
     
 
 
