@@ -271,6 +271,9 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
             except:
                 print 'Invalid entry for size; defaulting to 3 arcmin'
                 side_size_arcmin = 3.0
+    # There's a limit to how big an image you can request; set it here to 20'
+    if side_size_arcmin > 20.0:
+        side_size_arcmin = 20.0
     side_size = side_size_arcmin * 60.0 # arcseconds
     img_size = 600 #pixels
     pixel_scale = side_size/img_size #arcsec/pixel
