@@ -53,3 +53,10 @@ def LoadGCN(triggerid, clobber=False):
         except:
             print "Could not Extract Values for GCN."
     return loadedgcn
+
+def SaveGCN(loadedgcn):
+    # If the attributes of the loaded GCN have changed since loading, use 
+    # this to save the new version of the GCN.
+    pklpath = storepath+'sw'+str(loadedgcn.triggerid)+'GCN.pkl'
+    qPickle.save(loadedgcn,pklpath,clobber=True)
+    
