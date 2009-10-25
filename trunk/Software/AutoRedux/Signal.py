@@ -87,8 +87,9 @@ def MonitorRSS(feed_url):
 
 
 def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
-                mail_reg=True, mail_to='amorgan@berkeley.edu',\
-                make_html=True, html_path='/o/amorgan/public_html/Swift/'):
+                mail_reg=False, mail_to='amorgan@berkeley.edu',\
+                make_html=True, html_path='/o/amorgan/public_html/Swift/',\
+                mail_html=True):
     while(True):
         sql_tuple_list = MonitorRSS("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
         for sql_tuple in sql_tuple_list:
@@ -109,14 +110,26 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                     if incl_reg:
                         reg_path = _incl_reg(gcn)
                     if incl_fc:
-                        fc_path = _incl_fc(gcn)
+                        fc_path = _incl_fc(gcn,last_pos_check=True)
                     if mail_reg:
                         mail_grb_region(gcn,mail_to,reg_path)
                     if make_html:
-                        make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
-                        
+                        grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
+                        if mail_html and grbhtml.successful_export:
+                            _mail_html(gcn,mail_to)
         time.sleep(60)
 
+def _mail_html(gcn,mail_to):
+    if not hasattr(gcn,'mailed_web'):
+        gcn.mailed_web = False
+    if not gcn.mailed_web:
+        email_subject = 'New Web Page for Swift trigger %i' % int(gcn.triggerid)
+        email_body = '''Please visit http://astro.berkeley.edu/~amorgan/Swift/%i/
+        for information on this event, updated as more information arrives.''' % int(gcn.triggerid) 
+        gcn.mailed_web = True
+        send_gmail.domail(mail_to,email_subject,email_body)
+        LoadGCN.SaveGCN(gcn)
+    
 def _incl_reg(gcn,clobber=False):
     searchpath = storepath + '*%s.reg' % str(gcn.triggerid)
     reg_list = glob.glob(searchpath)
@@ -135,34 +148,31 @@ def _incl_fc(gcn,src_name='',clobber=False, last_pos_check=False):
     from AutoRedux import qImage
     if not src_name: src_name = 'Swift_' + str(gcn.triggerid)
     searchpath = storepath + '%s_fc.png' % (src_name)
-    reg_list = glob.glob(searchpath)
+    fc_list = glob.glob(searchpath)
     
     if last_pos_check == True:
         if gcn.last_notice_loaded.find('Position') != -1:
             clobber = True
             
     # If a fc is found and the latest Notice is not a position, 
-    # return the path of the already created region file
-    # print '*******'
-    # print reg_list
-    # print gcn.last_notice_loaded
-    # print len(reg_list)
-    # print ' '
-    if len(reg_list) != 0 and clobber == False:
-        return reg_list[0]
-    # if the latest gcn was a Position type, or if there is no region found,
-    # create a new region and return the path. This function utilizes the
-    # self.best_position attribute for GCNNotice.  
-    else:
+    # return the path of the already created finding chart file
+    if len(fc_list) != 0 and clobber == False:
+        return fc_list[0]
+    # if the latest gcn was a Position type, or if there is no f. chart found,
+    # create a new f. chart and return the path. This function utilizes the
+    # self.best_pos attribute for GCNNotice, if it exists.  
+    elif hasattr(gcn,'best_pos'):
         fc_list = qImage.MakeFindingChart(ra=gcn.best_pos[0],dec=gcn.best_pos[1],\
               uncertainty=gcn.best_pos[2],src_name=src_name,pos_label=gcn.best_pos_type,\
-              survey='dss2red')
+              survey='dss2red',cont_str='',size="AUTO")
         for path in fc_list:
             if path.find('fc.png') != -1:
                 fc_path = path
             else: 
                 fc_path = None
         return fc_path
+    else:
+        return None
     
 
 def DownloadFile(base_url,file_name,out_path):
@@ -226,15 +236,14 @@ def mail_grb_region(gcn,mail_to,reg_file_path):
     if not hasattr(gcn,'bat_pos'):
         gcn.get_positions()
     
-    
     from AutoRedux import send_gmail
-
-    email_adam = 'amorgan@berkeley.edu'
-    email_adam_sub = 'Finding Chart for Swift trigger %i' % int(triggerid)
-    email_adam_body = 'Finding Chart for this trigger below.'
+    
+    email_fc = 'amorgan@berkeley.edu'
+    email_fc_sub = 'Finding Chart for Swift trigger %i' % int(triggerid)
+    email_fc_body = 'Finding Chart for this trigger below.'
     fc_list = []
     
-    email_to = mail_to #email_adam
+    email_to = mail_to #email_fc
 #    if mail_toosci == True: email_to += ' toosci@googlegroups.com'
     email_subject = 'DS9 region files for Swift trigger %i' % int(triggerid)
     email_body = 'Please find the latest region file for this burst below\n\n'
@@ -250,21 +259,24 @@ def mail_grb_region(gcn,mail_to,reg_file_path):
     if gcn.dict.has_key('Swift-XRT Position'): 
         reg_contents += ', XRT Position'
         source_name = 'Swift_' + str(gcn.triggerid)
-        fc_list = qImage.MakeFindingChart(ra=gcn.pdict['xrt_ra'],dec=gcn.pdict['xrt_dec'],\
-            uncertainty=gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
+        # fc_list = qImage.MakeFindingChart(ra=gcn.pdict['xrt_ra'],dec=gcn.pdict['xrt_dec'],\
+        #     uncertainty=gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
     if gcn.dict.has_key('Swift-XRT Position UPDATE'): 
         reg_contents += ', XRT Position UPDATE'
         source_name = 'Swift_' + str(gcn.triggerid)
-        fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
-            uncertainty=gcn.xrt_pos_update[2],src_name=source_name,pos_label='XRT upd.',survey='dss2red')
+        # fc_list = qImage.MakeFindingChart(ra=gcn.xrt_pos_update[0],dec=gcn.xrt_pos_update[1],\
+        #     uncertainty=gcn.xrt_pos_update[2],src_name=source_name,pos_label='XRT upd.',survey='dss2red')
     if gcn.dict.has_key('Swift-UVOT Position'): 
         reg_contents += ', UVOT Position'
         source_name = 'Swift_' + str(gcn.triggerid)
-        fc_list = qImage.MakeFindingChart(ra=gcn.uvot_pos[0],dec=gcn.uvot_pos[1],\
-            uncertainty=gcn.uvot_pos[2],src_name=source_name,pos_label='UVOT',survey='dss2red')
+        # fc_list = qImage.MakeFindingChart(ra=gcn.uvot_pos[0],dec=gcn.uvot_pos[1],\
+        #     uncertainty=gcn.uvot_pos[2],src_name=source_name,pos_label='UVOT',survey='dss2red')
 
     email_body += reg_contents
-                                
+    
+    # check to see if there's a finding chart already created.
+    fc_path = _incl_fc(gcn)
+
     # If the region files already exist, add the word "updated" to subject line
     if os.path.exists(reg_check_path):
         email_subject = "UPDATED " + email_subject
@@ -274,7 +286,7 @@ def mail_grb_region(gcn,mail_to,reg_file_path):
               (os.path.getsize(reg_check_path) != os.path.getsize(reg_file_path)):
     
             send_gmail.domail(email_to,email_subject,email_body,[reg_file_path])
-            if fc_list != []:
-                send_gmail.domail(email_to,email_adam_sub,email_adam_body,fc_list)
+            if fc_path:
+                send_gmail.domail(email_to,email_fc_sub,email_fc_body,[fc_path])
         # Only make copy of region file if it is not blank
         os.system('cp ' + reg_file_path + ' ' + reg_check_path)
