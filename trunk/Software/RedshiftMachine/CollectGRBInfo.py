@@ -18,6 +18,7 @@ from RedshiftMachine import ParseSwiftCat
 from RedshiftMachine import LoadGCN
 from AutoRedux import Signal
 from MiscBin.q import object2dict
+import pylab
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -123,6 +124,29 @@ def compare_z(mydict):
         except:
             pass
 
+def grbplot(mydict,x,y,logx=False,logy=False):
+    xlist = []
+    ylist = []
+    for i in iter(mydict):
+        if x in mydict[i] and y in mydict[i]:
+            try:
+              x_val=float(mydict[i][x])
+              y_val=float(mydict[i][y])
+              xlist.append(x_val)
+              ylist.append(y_val)  
+            except:
+                pass
+    if not logx and not logy:
+        pylab.plot(xlist,ylist,'ro')
+    if logx and not logy:
+        pylab.semilogx(xlist,ylist,'ro')
+    if logy and not logx:
+        pylab.semilogy(xlist,ylist,'ro')
+    if logy and logx:
+        pylab.loglog(xlist,ylist,'ro')
+    pylab.ylabel(y)
+    pylab.xlabel(x)
+        
 def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_isupper','v_mag_isupper'],\
                     attributeclass='z_class',classlist=['high_z','medium_z','low_z']):
     # BAT Specific: T90 Duration, Fluence, 1-sec Peak Photon Flux
