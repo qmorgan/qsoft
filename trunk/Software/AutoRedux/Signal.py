@@ -103,20 +103,34 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 # If the length of the triggerid is 6, know it is a GRB and not ToO
                 # May want to revisit this conditionality to actually parse the VOEvent
                 if len(triggerid) == 6:
+                    triggerid = triggerid.lstrip('0')
+                    print 'Loading GCN for trigger %s' % (triggerid)
                     gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
                     # Eventually want to depreciate the following function
                     # and make a generic ds9 region file creating function
 #                    reg_file_path = gcn.get_positions(create_reg_file=True)
                     if incl_reg:
-                        reg_path = _incl_reg(gcn)
+                        try:
+                            reg_path = _incl_reg(gcn)
+                        except:
+                            print 'Could not include region file'
                     if incl_fc:
-                        fc_path = _incl_fc(gcn,last_pos_check=True)
+                        try:
+                            fc_path = _incl_fc(gcn,last_pos_check=True)
+                        except:
+                            print 'Could not include finding chart'
                     if mail_reg:
-                        mail_grb_region(gcn,mail_to,reg_path)
+                        try:
+                            mail_grb_region(gcn,mail_to,reg_path)
+                        except:
+                            print 'Could not mail Region file'
                     if make_html:
-                        grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
-                        if mail_html and grbhtml.successful_export:
-                            _mail_html(gcn,mail_to)
+                        try:
+                            grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
+                            if mail_html and grbhtml.successful_export:
+                                _mail_html(gcn,mail_to)
+                        except:
+                            print 'Could not create GRB HTML Page'
         time.sleep(60)
 
 def _mail_html(gcn,mail_to):
@@ -138,7 +152,10 @@ def _mail_html(gcn,mail_to):
         if not os.path.exists(mailchkpath):
             cmd = "echo y > %s" % mailchkpath 
             os.system(cmd)
+            print 'Email with web link has not been sent yet; doing that now...'
             send_gmail.domail(mail_to,email_subject,email_body)
+        else:
+            print 'Email has already been sent for this trigger.'
         
 def _incl_reg(gcn,clobber=False):
     searchpath = storepath + '*%s.reg' % str(gcn.triggerid)
