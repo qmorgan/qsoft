@@ -113,10 +113,12 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                     if incl_reg:
                         try:
                             reg_path = _incl_reg(gcn)
+                            if not reg_path: print '\nCOULDNT FIND REG PATH\n'
                         except: qErr()
                     if incl_fc:
                         try:
                             fc_path = _incl_fc(gcn,last_pos_check=True)
+                            if not fc_path: print '\nCOULDNT FIND FC PATH\n'
                         except: qErr()
                     if mail_reg:
                         try:
@@ -176,6 +178,7 @@ def _incl_fc(gcn,src_name='',clobber=False, last_pos_check=False):
     
     if last_pos_check == True:
         if gcn.last_notice_loaded.find('Position') != -1:
+            print 'Last notice was of Position type: %s' % gcn.last_notice_loaded
             clobber = True
             
     # If a fc is found and the latest Notice is not a position, 
@@ -189,11 +192,10 @@ def _incl_fc(gcn,src_name='',clobber=False, last_pos_check=False):
         fc_list = qImage.MakeFindingChart(ra=gcn.best_pos[0],dec=gcn.best_pos[1],\
               uncertainty=gcn.best_pos[2],src_name=src_name,pos_label=gcn.best_pos_type,\
               survey='dss2red',cont_str='',size="AUTO")
+        fc_path = None
         for path in fc_list:
             if path.find('fc.png') != -1:
                 fc_path = path
-            else: 
-                fc_path = None
         return fc_path
     else:
         return None
