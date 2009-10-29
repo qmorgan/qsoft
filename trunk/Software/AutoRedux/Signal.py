@@ -25,6 +25,7 @@ import os
 from AutoRedux import send_gmail
 from AutoRedux import GRBHTML
 from RedshiftMachine import LoadGCN
+from MiscBin import qErr
 import glob
 import time
 
@@ -112,25 +113,21 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                     if incl_reg:
                         try:
                             reg_path = _incl_reg(gcn)
-                        except:
-                            print 'Could not include region file'
+                        except: qErr()
                     if incl_fc:
                         try:
                             fc_path = _incl_fc(gcn,last_pos_check=True)
-                        except:
-                            print 'Could not include finding chart'
+                        except: qErr()
                     if mail_reg:
                         try:
                             mail_grb_region(gcn,mail_to,reg_path)
-                        except:
-                            print 'Could not mail Region file'
+                        except: qErr()
                     if make_html:
                         try:
                             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                             if mail_html and grbhtml.successful_export:
                                 _mail_html(gcn,mail_to)
-                        except:
-                            print 'Could not create GRB HTML Page'
+                        except: qErr()
         time.sleep(60)
 
 def _mail_html(gcn,mail_to):
