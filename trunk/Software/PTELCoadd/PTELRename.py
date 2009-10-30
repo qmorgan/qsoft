@@ -41,8 +41,10 @@ def pl3mos2pl2mos(path='./',outpath=None, weightpath='./',weightoutpath=None, mo
     
     if path and not outpath:
         outpath = path
+    else: outpath = outpath + '/'
     if weightpath and not weightoutpath:
         weightoutpath = weightpath 
+    else: weightoutpath = weightoutpath + '/'
     
     for pl3path in globlist:
         if pl3path.find('weight') == -1:
@@ -73,10 +75,9 @@ def pl3mos2pl2mos(path='./',outpath=None, weightpath='./',weightoutpath=None, mo
         pl2path = pl2path.replace('j_long_','mosj')
         pl2path = pl2path.replace('h_long_','mosh')
         pl2path = pl2path.replace('k_long_','mosk')
-        # mosjGRB.11081.1_coadd.fits
-        dashdatestr = '-' + datestr + '_w'
-        pl2path = pl2path.replace('_coadd.weight',dashdatestr)
-        # mosjGRB.11081.1-2999Jan01.fits
+        dashdatestr = '-' + datestr
+        pl2path = pl2path.replace('_coadd',dashdatestr)
+        pl2path = pl2path.replace('.weight','_w')
         pl2path = weightoutpath + pl2path
         if move: 
             cmd = 'mv %s %s' % (pl3path,pl2path)
