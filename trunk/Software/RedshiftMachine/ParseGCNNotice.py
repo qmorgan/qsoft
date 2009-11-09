@@ -228,19 +228,19 @@ class GCNNotice:
             f.write('fk5\n')
             if hasattr(self,'uvot_pos'):
                 tmp_str = 'circle('+str(self.uvot_pos[0])+','+str(self.uvot_pos[1])\
-                    +','+str(self.uvot_pos[2]*3600)+'") # color=blue text={UVOT}\n' 
+                    +','+str(self.uvot_pos[2])+'") # color=blue text={UVOT}\n' 
                 f.write(tmp_str)
             if hasattr(self,'xrt_pos'):
                 tmp_str = 'circle('+str(self.xrt_pos[0])+','+str(self.xrt_pos[1])\
-                    +','+str(self.xrt_pos[2]*3600)+'") # color=yellow text={XRT}\n' 
+                    +','+str(self.xrt_pos[2])+'") # color=yellow text={XRT}\n' 
                 f.write(tmp_str)
             if hasattr(self,'xrt_pos_update'):
                 tmp_str = 'circle('+str(self.xrt_pos_update[0])+','+str(self.xrt_pos_update[1])\
-                    +','+str(self.xrt_pos_update[2]*3600)+'") # color=green text={XRT Update}\n' 
+                    +','+str(self.xrt_pos_update[2])+'") # color=green text={XRT Update}\n' 
                 f.write(tmp_str)
             if hasattr(self,'bat_pos'):
                 tmp_str = 'circle('+str(self.bat_pos[0])+','+str(self.bat_pos[1])\
-                    +','+str(self.bat_pos[2]*3600)+'") # color=red text={BAT}\n' 
+                    +','+str(self.bat_pos[2])+'") # color=red text={BAT}\n' 
                 f.write(tmp_str)
             f.close
             print 'Created region file %s' % reg_name
