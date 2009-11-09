@@ -114,22 +114,22 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                         try:
                             reg_path = _incl_reg(gcn)
                             if not reg_path: print '\nCOULDNT FIND REG PATH\n'
-                        except: qErr()
+                        except: qErr.qErr()
                     if incl_fc:
                         try:
                             fc_path = _incl_fc(gcn,last_pos_check=True)
                             if not fc_path: print '\nCOULDNT FIND FC PATH\n'
-                        except: qErr()
+                        except: qErr.qErr()
                     if mail_reg:
                         try:
                             mail_grb_region(gcn,mail_to,reg_path)
-                        except: qErr()
+                        except: qErr.qErr()
                     if make_html:
                         try:
                             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                             if mail_html and grbhtml.successful_export:
                                 _mail_html(gcn,mail_to)
-                        except: qErr()
+                        except: qErr.qErr()
         time.sleep(60)
 
 def _mail_html(gcn,mail_to):
