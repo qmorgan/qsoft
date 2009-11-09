@@ -141,13 +141,16 @@ class GRBHTML:
             too_str = '?ra=%f&dec=%f' % (self.best_pos[0],self.best_pos[1])
             react_str = 'http://www.srl.caltech.edu/~react/Swift%s.html' % (self.triggerid)
             datascope_str = '?position=%f+%f&size=0.05' % (self.best_pos[0],self.best_pos[1])
+            self.html_block += '''
+                <hr width="50%%">
+                <b>Useful Links:</b><p>
+                <a href='http://lyra.berkeley.edu/GRB/too/too.php%s'>GRAASP ToO Page</a><br>
+                <a href='%s'>Caltech React Page</a><br>
+                <a href='http://heasarc.gsfc.nasa.gov/cgi-bin/vo/datascope/jds.pl%s'>NVO DataScope Query</a><br>
+                ''' % (too_str,react_str,datascope_str)
         self.html_block += '''
-            <hr width="50%%">
-            <b>Useful Links:</b><p>
-            <a href='http://lyra.berkeley.edu/GRB/too/too.php%s'>GRAASP ToO Page</a><br>
-            <a href='%s'>Caltech React Page</a><br>
-            <a href='http://heasarc.gsfc.nasa.gov/cgi-bin/vo/datascope/jds.pl%s'>NVO DataScope Query</a>
-        ''' % (too_str,react_str,datascope_str)
+        <a href='http://gcn.gsfc.nasa.gov/other/%s.swift'>GCN Notices for this Trigger</a><br>
+        ''' % (str(self.triggerid))
     
     def add_footer(self):
         update_time = time.ctime(time.time())
