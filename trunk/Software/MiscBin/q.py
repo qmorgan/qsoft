@@ -90,6 +90,25 @@ def mag2flux(mag_1=99,mag_2=99,flux_2=0):
 # Zeropoint: 1 count/second 
 # Frequency: 5647 Angstroms hc/lambda
 
+def mag2alpha(mag_1=None,mag_2=None,t_1=None,t_2=None):
+    """Given a magnitude and a flux """
+    if not mag_1:
+        mag_1 = raw_input('Please enter mag_1: ')
+    if not mag_2:
+        mag_2 = raw_input('Please enter mag_2: ')
+    if not t_1:
+        t_1 = raw_input('Please enter t_1: ')
+    if not t_2:
+        t_2 = raw_input('Please enter t_2: ')
+    try: 
+        mag_1=float(mag_1) 
+        mag_2=float(mag_2) 
+        t_1=float(t_1)
+        t_2=float(t_2) 
+    except:
+        return None           
+    alpha = 0.4 * (mag_1 - mag_2)/(math.log10(t_1/t_2))
+    return alpha
 
 def dhms2h(d1=None,h1=None,m1=None,s1=None,d2=None,h2=None,m2=None,s2=None):
     if d1 == None:
