@@ -182,7 +182,7 @@ def CrawlThruLyraData():
     print 'error paths:', error_paths
     return ptel_dict
 
-def SwiftTargUnderTime(pteldict,time=24.0):
+def SwiftTargUnderTime(pteldict,range=(0.0,24.0)):
     count = 0
     countlist=[]
     grblist=[]
@@ -190,13 +190,48 @@ def SwiftTargUnderTime(pteldict,time=24.0):
     for target in pteldict.keys():
         if pteldict[target]['mission'] == 'swift':
             try:
-                if pteldict[target]['time_delta'] < time:
+                if range[0] <= pteldict[target]['time_delta'] < range[1]:
                     count += 1
                     countlist.append(target)
                     grblist.append(pteldict[target]['grb_name'])
             except:
                 badtrigger.append(target)
-    print '%i Swift Targets observed in under %f hours' % (count,time)
+    print '%i Swift Targets observed between %f and %f hours' % (count,range[0],range[1])
     print 'Triggers: ', countlist
     print 'GRB List: ', grblist
     print 'Bad Triggers (not a GRB): ', badtrigger
+    return count
+
+def PlotHist(pteldict):
+    '''Plot a histogram of the response times of all available data.'''
+    import pylab
+    timedeltas=[]
+    # Load all the timedeltas into a list
+    for target in pteldict.keys():
+        if pteldict[target]['mission'] == 'swift':
+            try:
+                timedeltas.append(pteldict[target]['time_delta'])
+            except:
+                pass
+    pylab.subplot(311)
+    pylab.title('PAIRITEL Response Times to Swift Triggers')
+    pylab.ylabel('# of Events')
+    pylab.hist(timedeltas,bins=[0,1,2,3,4,5,6,7,8,9,10])
+    pylab.hist(timedeltas,bins=[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0])
+    pylab.xlim(0,10)
+    pylab.subplot(312)
+    pylab.ylabel('# of Events')
+    pylab.hist(timedeltas,bins=[0,1,2,3,4,5,6,7,8,9,10])
+    pylab.hist(timedeltas,bins=[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0])
+    pylab.hist(timedeltas,bins=[0,.01,.02,.03,.04,.05,.06,.07,.08,.09,.10])
+    pylab.xlim(0,1)
+    pylab.ylim(0,25)
+    pylab.subplot(313)
+    pylab.hist(timedeltas,bins=[0,1,2,3,4,5,6,7,8,9,10])
+    pylab.hist(timedeltas,bins=[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0])
+    pylab.hist(timedeltas,bins=[0,.01,.02,.03,.04,.05,.06,.07,.08,.09,.10])
+    pylab.ylim(0,8)
+    pylab.xlim(0,0.1)
+    pylab.ylabel('# of Events')
+    pylab.xlabel('Hours Post-Trigger to First Observation')
+    pylab.show()
