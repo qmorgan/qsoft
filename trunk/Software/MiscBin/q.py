@@ -6,7 +6,7 @@ Author: Adam Morgan
 Created: Aug 2, 2009
 Last Updated: Aug 2, 2009
 	Created
-	
+	Adding comment
 A conglomeration of random definitions that I use!.
 """
 import sys
