@@ -23,6 +23,11 @@ class Callable:
 #  assigning a sequence.
 doseq = 1
 
+def anet(imlist):
+	a = AstrometrySolver()
+	a.get_wcs(imlist=imlist)
+	print a
+	
 global b
 class MultipartPostHandler(urllib2.BaseHandler):
     handler_order = urllib2.HTTPHandler.handler_order - 10 # needs to run first
@@ -204,7 +209,7 @@ class ImageContainer:
 		
 class AstrometrySolver:
 	
-	job_dict = {"uname": "Christopher Klein","email": "cklein@astro.berkeley.edu", "fsunit" :"arcsecperpix",\
+	job_dict = {"uname": "Adam Morgan","email": "amorgan@astro.berkeley.edu", "fsunit" :"arcsecperpix",\
 		"fstype-ul": 1, "fsu": 2.2, "fsl": 0.85, "xysrc": "img", "parity": 2, "index": "10arcmin", "tweak": 1,\
 		"tweak_order": 2, "imgfile": "","submit": "Submit"}
 
@@ -264,7 +269,9 @@ class AstrometrySolver:
 			a += "%-45s\t'%-10s'\t%-10s\t%-15s\n" % (os.path.basename(r[0]),r[1],r[2],r[3])
 		return a
 		#results.append((self.name,self.status,self.stat,self.reqid))
-		
+
+
+	
 if __name__ == "__main__":
 	
 	if len(sys.argv) <= 1:
