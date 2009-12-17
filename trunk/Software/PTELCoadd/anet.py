@@ -193,8 +193,14 @@ class ImageContainer:
 		## copy the header over
 		tmp1.close()
 		for c in tmp2.ascardlist():
-			tmp[0].header.update(c.key,c.value,c.comment)
-
+			try:
+				tmp[0].header.update(c.key,c.value,c.comment)
+			except:
+				print 'ERROR updating header for following:'
+				print 'Key: ', c.key
+				print 'Val: ', c.value
+				print 'Com: ', c.comment		
+				
 		tmp.verify("silentfix")
 		tmp.close(output_verify='warn')
 		if delnew:
