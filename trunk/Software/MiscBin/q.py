@@ -287,6 +287,15 @@ def sex2dec(sex_pos):
     ddeg_pos = (ra_ddeg,dec_ddeg)
     return ddeg_pos
 
+
+def sphere_dist(ra1,dec1,ra2,dec2):
+    cosdistance = math.cos(ra1-ra2)*math.cos(dec1)*math.cos(dec2) + \
+        math.sin(dec1)*math.sin(dec2)
+    distance_deg = math.acos(cosdistance)
+    distance_asec = distance_deg*3600.0
+    return distance_asec
+
+
 def where(a,val,wherenot=False):
     """
     Analogous to the 'where' function in IDL
