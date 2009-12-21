@@ -33,6 +33,7 @@ def _GetMostRecent():
     glist = glob.glob(gsearch)
 
     for path in glist:
+        print path, os.path.getmtime(path)
         if os.path.getmtime(path) > mostrecentitem[1]:
             mostrecentitem[0] = path
             mostrecentitem[1] = os.path.getmtime(path)
@@ -64,12 +65,18 @@ def Compare(filename):
         point_ra_s = header['RAS']
         point_dec_s = header['DECS']
     except:
-        print 'File does not contain RA and DEC (pointing) keywords.'
+        print 'File does not contain RAS and DECS (pointing) keywords.'
         return
     
     point_pos = sex2dec((point_ra_s,point_dec_s))
     point_ra = point_pos[0]
     point_dec = point_pos[1]
+    
+    try: 
+        anet_id = header['AN_JOBID']
+    except:
+        print "Astrometry.net failed to solve the field.  You're on your own."
+        return
     
     # Obtain RA and Dec of center pixel? from astrometry.net info
     # Use xy2sky from wcstools.  -d option outputs in decimal degrees.
@@ -96,11 +103,12 @@ def Compare(filename):
     print "Distance: %f arcsecs" % (dist_asec)
     print "This is %f arcmin away; half the FOV is 4.25'." % (dist_amin)
     
-def PCheck():
+def PCheck(remove=True):
     filename = _GetMostRecent()
     _FitWcs(filename)
     Compare(filename)
     
-    thishourstr = time.strftime("%Y-%b-%d-%H",time.gmtime())
-    cmd = 'rm %s/jrr%s*.fits' % (storepath,thishourstr)
-    os.system(cmd)
+    if remove:    
+        thishourstr = time.strftime("%Y-%b-%d-%H",time.gmtime())
+        cmd = 'rm %s/jrr%s*.fits' % (storepath,thishourstr)
+        os.system(cmd)
