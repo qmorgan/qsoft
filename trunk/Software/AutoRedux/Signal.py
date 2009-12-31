@@ -90,9 +90,9 @@ def MonitorRSS(feed_url):
 def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 mail_reg=False, mail_to='amorgan@berkeley.edu',\
                 make_html=True, html_path='/o/amorgan/public_html/Swift/',\
-                mail_html=True):
+                mail_html=True, feed_url="http://www.estar.org.uk/voevent/Caltech/Caltech.rdf"):
     while(True):
-        sql_tuple_list = MonitorRSS("http://www.estar.org.uk/voevent/GCN/GCN.rdf")
+        sql_tuple_list = MonitorRSS(feed_url)
         for sql_tuple in sql_tuple_list:
             print sql_tuple[1]
             entry_title = sql_tuple[1]
