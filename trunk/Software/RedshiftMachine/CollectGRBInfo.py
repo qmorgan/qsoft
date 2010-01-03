@@ -69,10 +69,11 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
                 if make_html:
                     try:
                         html_inst = Signal.make_grb_html(loaded_gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
+                        web_dict =  object2dict(html_inst,include=['out_dir','fc_path','reg_path'])
+                        catdict.update(web_dict)
                     except:
                         print 'cannot make html'
-                web_dict =  object2dict(html_inst,include=['out_dir','fc_path','reg_path'])
-                catdict.update(web_dict)
+
                 catdict.update(loaded_gcn.pdict)
                 
                 
