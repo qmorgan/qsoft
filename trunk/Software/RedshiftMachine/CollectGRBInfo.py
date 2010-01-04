@@ -26,8 +26,8 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
-def_natcats = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
-
+def_bat_natcats = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
+def_xrt_natcats = [storepath+'xrt_catalog_090831.fits']
 
 
 def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
@@ -37,7 +37,7 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
     if incl_nat:
         from RedshiftMachine import ParseNatCat
         print "Now loading Nat's Catalog"
-        natcatdict = ParseNatCat.combine_natcats(natcatlist=def_natcats,remove_zeros=True)
+        natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
     collected_dict = {}
     failed_gcn_grbs = []
     failed_nat_grbs = []
