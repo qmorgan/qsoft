@@ -28,7 +28,10 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
-default_catlist = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
+default_bat_catlist = [storepath+'bat_catalog_07061275.fits',\
+                    storepath+'bat_catalog_current.fits']
+
+default_xrt_catlist = [storepath+'xrt_catalog_090831.fits']
 
 def read_nat_bat_cat(fitsname,remove_zeros=False):
     hdulist = pyfits.open(fitsname)
@@ -42,17 +45,20 @@ def read_nat_bat_cat(fitsname,remove_zeros=False):
         grbname = subdict.pop('GRB') # remove GRBname from dictionary
         # Had iteration problems trying to remove dictionary entries while
         # iterating over them, so just populate a new dictionary with values
-        # that are NOT zero.
+        # that are NOT zero or 999.0 (which the n/a from the xrt cat are).
         if remove_zeros == True:
             subdict_zrem = {}
             for key,val in subdict.iteritems():
-                if subdict[key] != 0.0:
+                if subdict[key] != 0.0 and subdict[key] != 999.0:
                     subdict_zrem.update({key:val})
             subdict = subdict_zrem
         nat_dict.update({grbname:subdict})
     return nat_dict
 
-def combine_natcats(natcatlist=default_catlist,remove_zeros=False):
+def combine_natcats(natcatlist=default_bat_catlist,remove_zeros=False):
+    '''Use combine_netcats if one catalog goes up to a particular date and 
+    another picks up where it left off - do NOT use it to combine, e.g., the
+    XRT and the BAT catalogs.  Use to load EITHER the bat or xrt catalogs'''
     comb_nat_dict = {}
     for natcat in natcatlist:
         sub_nat_dict = read_nat_bat_cat(natcat,remove_zeros)
@@ -63,3 +69,40 @@ def combine_natcats(natcatlist=default_catlist,remove_zeros=False):
     #             if comb
     return comb_nat_dict
 
+def combine_natbatxrt(comb_bat_dict,comb_xrt_dict):
+    '''Nat was nice enough to provide one catalog of xrt properties and
+    another of the bat properties.  This function puts them both together
+    after being parsed by the functions above.'''
+    comb_nat_xrtbat_dict = {}
+    # assume bat_dict > xrt_dict
+    notxrtcount = 0
+    notbatcount = 0
+    # First grab the XRT values from the GRBs in the BAT cat, then vice versa
+    for GRBgrb_str,catdict in comb_bat_dict.iteritems():
+        try:
+            catdict.update(comb_xrt_dict[GRBgrb_str])
+        except:
+            print '%s not in Nat XRT Dict' % (GRBgrb_str)
+            notxrtcount += 1
+        subdict = {GRBgrb_str:catdict}
+        comb_nat_xrtbat_dict.update(subdict)
+    for GRBgrb_str,catdict in comb_xrt_dict.iteritems():
+        try:
+            catdict.update(comb_bat_dict[GRBgrb_str])
+        except:
+            print '%s not in Nat BAT Dict' % (GRBgrb_str)
+            notbatcount += 1
+        subdict = {GRBgrb_str:catdict}
+        comb_nat_xrtbat_dict.update(subdict)
+    print "%i GRBs in Nat BAT catalog but not XRT" % (notxrtcount)
+    print "%i GRBs in Nat XRT catalog but not BAT" % (notbatcount)
+    return comb_nat_xrtbat_dict
+    
+def load_natcats(bat_catlist,xrt_catlist):
+    '''Use to load BOTH the xrt and bat catalogs from Nat.'''
+    xrtcat = combine_natcats(xrt_catlist,remove_zeros=True)
+    print "length of xrt nat cat: ", len(xrtcat)
+    batcat = combine_natcats(bat_catlist,remove_zeros=True)
+    print "length of bat nat cat: ", len(batcat)
+    batxrtcat = combine_natbatxrt(batcat,xrtcat)
+    return batxrtcat
