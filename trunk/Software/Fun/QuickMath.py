@@ -7,6 +7,7 @@ def add(num=2,max_num=1000,do='rand'):
     if do.upper() == 'RAND': dorand = True
     elif do.upper() == 'ADD': randsign = 1
     elif do.upper() == 'SUBTRACT': randsign = 0
+    elif do.upper() == 'MULTIPLY': randsign = 2
     else: raise ValueError 
     numarr = numpy.random.random(num)*max_num
     numarr = numarr.round()
@@ -19,12 +20,17 @@ def add(num=2,max_num=1000,do='rand'):
         if randsign == 0: 
             sign = '-'
             numarr[numarr.index(item)]*=-1
+        elif randsign == 2:
+            sign = 'x'
         else: 
             sign = '+'
         pstr += '\n%s%4d' % (sign,item)
     pstr += '\n-----'
     print pstr
-    ans = sum(numarr)
+    if randsign != 2: 
+        ans = sum(numarr)
+    elif randsign == 2:
+        ans = numpy.product(numarr)
     myans = raw_input(' ')
     if myans.upper().strip(' ') == 'EXIT': return -1 
     try: myans = int(myans)
@@ -35,6 +41,7 @@ def add(num=2,max_num=1000,do='rand'):
     else: 
         print 'Wrong.  Answer is %i' % int(ans)
         return 0
+
     
 def add_loop(do='add'):
     print 'Type the answer or EXIT to quit'
