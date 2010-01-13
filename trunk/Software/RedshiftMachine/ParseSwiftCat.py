@@ -369,9 +369,9 @@ def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
                             z_isupper = {'z_isupper':'islower'}
                         # If the redshift is photometric, mark it as such
                         if z_ent.find('photometric') == -1:
-                            z_isphot = {'z_isupper':'no'}
+                            z_isphot = {'z_isphot':'no'}
                         else:
-                            z_isphot = {'z_isupper':'yes'}
+                            z_isphot = {'z_isphot':'yes'}
                         try:
                             iii += 1 
                             z = {'z':float(z_ent_ent[iii:])}
