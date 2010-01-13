@@ -87,7 +87,7 @@ def GetNewCatFromWeb():
     except:
         pass
 
-def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
+def parseswiftcat(swiftcat=storepath+'grb_table_current.txt'):
     # Read a tab delimited file
     print "Opening %s" % swiftcat
     bork=csv.reader(open(swiftcat),delimiter='\t')
@@ -343,9 +343,9 @@ def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
                             grbdict[entry].update(z)
                             # If the redshift is photometric, mark it as such.
                             if z_ent.find('photometric') == -1:
-                                z_isphot = {'z_isupper':'no'}
+                                z_isphot = {'z_isphot':'no'}
                             else:
-                                z_isphot = {'z_isupper':'yes'}
+                                z_isphot = {'z_isphot':'yes'}
                             grbdict[entry].update(z_isphot)
                             z_isupper = {'z_isupper':'no'}
                             grbdict[entry].update(z_isupper)
@@ -370,7 +370,7 @@ def parseswiftcat(swiftcat=storepath+'grb_table_1250801097.txt'):
                         # If the redshift is photometric, mark it as such
                         if z_ent.find('photometric') == -1:
                             z_isphot = {'z_isphot':'no'}
-                        else:
+                        if z_ent.find('photometric') != -1:
                             z_isphot = {'z_isphot':'yes'}
                         try:
                             iii += 1 
