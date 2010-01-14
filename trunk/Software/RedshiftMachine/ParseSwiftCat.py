@@ -391,11 +391,11 @@ def parseswiftcat(swiftcat=storepath+'grb_table_current.txt'):
             # Now assign the appropriate z_class
             if grbdict[entry].has_key('z'):
                 if grbdict[entry]['z'] > 0:
-                    z_class = {'z_class':'low_z'}
-                if grbdict[entry]['z'] > 2:
-                    z_class = {'z_class':'medium_z'}
-                if grbdict[entry]['z'] > 4:
-                    z_class = {'z_class':'high_z'}
+                    z_class = {'z_class':'unknown'}
+                # if grbdict[entry]['z'] > 2:           # commented out; moved class assignment to CollectGRBInfo
+                #     z_class = {'z_class':'medium_z'}
+                # if grbdict[entry]['z'] > 4:
+                #     z_class = {'z_class':'high_z'}
                 grbdict[entry].update(z_class)
             else:
                 if not grbdict[entry].has_key('z_class'):
