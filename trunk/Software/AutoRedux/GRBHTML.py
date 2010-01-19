@@ -82,12 +82,15 @@ class GRBHTML:
         if bat_pos: 
             bat_pos_sex = q.dec2sex((bat_pos[0],bat_pos[1]))
             self.best_pos = bat_pos
+            self.best_pos_type = 'BAT'
         if xrt_pos: 
             xrt_pos_sex = q.dec2sex((xrt_pos[0],xrt_pos[1]))
             self.best_pos = xrt_pos
+            self.best_pos_type = 'XRT'
         if uvot_pos: 
             uvot_pos_sex = q.dec2sex((uvot_pos[0],uvot_pos[1]))
             self.best_pos = uvot_pos
+            self.best_pos_type = 'UVOT'
         
         if bat_pos != None:
             self.html_block += '''
@@ -126,12 +129,15 @@ class GRBHTML:
                 self.copy_file(fc_path)
                 self.html_block += '''
                 <hr width="50%%">
-                <b>Finder Chart:</b><p>
+                <b>Finder Charts:</b><p>
+                DSS Finder Chart<br>
                 <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=200, height=200></a>
-        
-                ''' % (fc_base,fc_base)
+                <br>
+                <a href='http://lyra.berkeley.edu/~amorgan/displayfc.php?ra=%f&dec=%f&sigma=%f&size=AUTO&name=Swift_%s&label=%s&contstr=&survey=sdss'>SDSS Finding Chart</a>
+                <br>(May not be available)
+                ''' % (fc_base,fc_base,self.best_pos[0],self.best_pos[1],self.best_pos[2],self.triggerid,self.best_pos_type)
             else:
-                print reg_path + ' does not exist.  Not including Finder Chart.'
+                print fc_path + ' does not exist.  Not including Finder Chart.'
             self.fc_path = fc_path
             self.fc_name = os.path.basename(fc_path)
     
@@ -282,9 +288,9 @@ def SortGRBDict(collected_grb_dict):
 
 def test():
     triggerid='543210'
-    bat_pos=(13.45,-32.52,22)
-    xrt_pos=(13.452,-32.623,2.6)
-    uvot_pos=(13.4526,-32.6234,1.1)
+    bat_pos=(132.45,3.52,22)
+    xrt_pos=(132.452,3.623,2.6)
+    uvot_pos=(132.4526,3.6234,1.1)
     reg_path='/Users/amorgan/Desktop/123456.reg'
     grb_time='09/09/27 10:07:16.92'
     fc_path = '/Users/amorgan/Desktop/test.png'
