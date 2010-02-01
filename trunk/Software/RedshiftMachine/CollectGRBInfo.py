@@ -19,6 +19,8 @@ from RedshiftMachine import LoadGCN
 from AutoRedux import Signal
 from MiscBin.q import object2dict
 import pylab
+import scipy
+#from MiscBin.q import Standardize
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -295,6 +297,7 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
     failed_nat_grbs = failed_nat_grbs
     # WOULD BE NICE IF THE 'COLLECTED DICT' Was an OBJECT so these could be 
     # ATTRIBUTES.  and we could have the functions be attributes too.  Bah.
+            
     print ''
     print len(collected_dict), ' entries in the collected dictionary'
     print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
@@ -302,6 +305,28 @@ def collect(incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
     print "GRBs failed to obtain finding charts: ", failed_finding_charts           
     return collected_dict
 
+def update_class(mydict):
+    '''
+    Given conditions, assign and update the redshift class
+    '''
+    for key in mydict:
+        if 'z' in mydict[key]:
+            if mydict[key]['z'] > 5.0:
+                mydict[key]['z_class'] = 'high_z'
+            else:
+                mydict[key]['z_class'] = 'low_z'
+                
+        if 'RT45' in mydict[key] and 'FL' in mydict[key]:
+            flosqrtrt45 = mydict[key]['FL']*(mydict[key]['RT45']**-0.5)
+            mydict[key]['FLoverSQRTRT'] = flosqrtrt45  # this should be a measure of S/N
+        
+        if 'v_mag_isupper' in mydict[key]:
+            vmagbinarystr = mydict[key]['v_mag_isupper']
+            if vmagbinarystr == 'no':
+                mydict[key]['v_mag_isupper_binary'] = 0
+            else:
+                mydict[key]['v_mag_isupper_binary'] = 1
+                
 def compare_z(mydict):
     for i in iter(mydict):
         try:
@@ -309,18 +334,45 @@ def compare_z(mydict):
         except:
             pass
 
-def grbplot(mydict,x,y,logx=False,logy=False):
+
+def ret_list(mydict,x,y,z=[]):
+    '''Returns a list of all the values and index names for a specific key'''
     xlist = []
     ylist = []
-    for i in iter(mydict):
-        if x in mydict[i] and y in mydict[i]:
-            try:
-              x_val=float(mydict[i][x])
-              y_val=float(mydict[i][y])
-              xlist.append(x_val)
-              ylist.append(y_val)  
-            except:
-                pass
+    zlist = []
+    ilist = []
+    if z:
+        for i in iter(mydict):
+            if x in mydict[i] and y in mydict[i] and z in mydict[i]:
+                try:
+                  x_val=float(mydict[i][x])
+                  y_val=float(mydict[i][y])
+                  z_val=float(mydict[i][z])
+                  xlist.append(x_val)
+                  ylist.append(y_val)  
+                  zlist.append(z_val)
+                  ilist.append(i)
+                except:
+                    pass
+        return((xlist,ylist,ilist,zlist))
+    else:
+        for i in iter(mydict):
+            if x in mydict[i] and y in mydict[i]:
+                try:
+                  x_val=float(mydict[i][x])
+                  y_val=float(mydict[i][y])
+                  xlist.append(x_val)
+                  ylist.append(y_val)  
+                  ilist.append(i)
+                except:
+                    pass
+        return((xlist,ylist,ilist))
+    
+    
+def grbplot(mydict,x,y,logx=False,logy=False):
+    list_tup = ret_list(mydict,x,y)
+    xlist = list_tup[0]
+    ylist = list_tup[1]
     if not logx and not logy:
         pylab.plot(xlist,ylist,'ro')
     if logx and not logy:
@@ -331,9 +383,60 @@ def grbplot(mydict,x,y,logx=False,logy=False):
         pylab.loglog(xlist,ylist,'ro')
     pylab.ylabel(y)
     pylab.xlabel(x)
+
+def grbannotesubplot(mydict,y_keys=['NH_PC'],x_keys=['NH_PC_LATE'],z_keys=['Z'],logx=True,logy=True):
+    '''Bah
+    
+    '''
+    from Plotting.Annote import AnnotatedSubPlot
+    
+    if len(x_keys) != len(y_keys):
+        raise(ValueError('Len of key lists do not match'))
+    
+    ind = 0
+    xlist=[]
+    ylist=[]
+    zlist=[]
+    annotelist=[]
         
-def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_isupper','v_mag_isupper'],\
-                    attributeclass='z_class',classlist=['high_z','medium_z','low_z']):
+    while ind < len(x_keys):
+        x=x_keys[ind]
+        y=y_keys[ind]
+        if z_keys:
+            z=z_keys[ind]
+            list_tup = ret_list(mydict,x,y,z)
+        else:
+            list_tup = ret_list(mydict,x,y)
+        xlist.append(list_tup[0])
+        ylist.append(list_tup[1])
+        annotelist.append(list_tup[2])
+        if z_keys:
+            zlist.append(list_tup[3])
+        ind += 1 
+    AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,xnames=x_keys,logx=logx,logy=logy)
+
+def printall(mydict,keywordlist,suppress = True):
+    '''Print all the keywords in the keyword list in the collected dictionary
+    If suppress, then only print them out if all keywords are present for a 
+    particular GRB
+    '''
+    print keywordlist
+    for i in iter(mydict):
+        printstr = 'GRB' + i + ' '
+        doprint = True
+        for keyword in keywordlist:
+            try:
+                printstr += str(mydict[i][keyword])
+                printstr += ' '
+            except:
+                printstr += '??? '
+                if suppress: doprint = False
+        if doprint: print printstr
+    
+
+        
+def createarff(outdict,keylist=['T90','FL','peakflux','NH_PC_LATE','wh_mag_isupper','v_mag_isupper'],\
+                    attributeclass='z_class',classlist=['high_z','low_z']):
     # BAT Specific: T90 Duration, Fluence, 1-sec Peak Photon Flux
     # XRT Specific: Location, Column Density (NH)
     # UVOT Specific: V Magnitude, Other Filter Magnitudes
@@ -388,9 +491,12 @@ def createarff(outdict,keylist=['t90','fluence','peakflux','xrt_column','wh_mag_
             else:
                 datastring += '?'
             datastring += ','
-        datastring += outdict[entry][attributeclass]
-        datastring += '\n'
-        f.write(datastring)
+        
+        #only write the line if the attribute class exists!
+        if attributeclass in outdict[entry]:
+            datastring += outdict[entry][attributeclass]
+            datastring += '\n'
+            f.write(datastring)
     
     f.close()
 
