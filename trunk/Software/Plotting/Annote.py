@@ -116,11 +116,9 @@ def AnnotatedSubPlot(xlist=[range(3),[1,3],range(3)],ylist=[range(3),[1,3],range
         allButSelfAfs = afs[:i]+afs[i+1:]
         afs[i].links.extend(allButSelfAfs)
 
-    
-    
+
     if len(xlist) != len(ylist):
-        raise(ValueError('Length of lists does not match'))
-    
+        raise(ValueError('Length of lists does not match'))    
     if zlist:
         from Plotting import ColorScatter
         if len(zlist) != len(ylist):
