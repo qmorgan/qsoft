@@ -20,6 +20,7 @@ from AutoRedux import Signal
 from MiscBin.q import object2dict
 import pylab
 import scipy
+import numpy
 
 #from MiscBin.q import Standardize
 
@@ -310,24 +311,37 @@ def update_class(mydict):
     '''
     Given conditions, assign and update the redshift class
     '''
-    for key in mydict:
-        if 'z' in mydict[key]:
-            if mydict[key]['z'] > 5.0:
-                mydict[key]['z_class'] = 'high_z'
+    for grb in mydict:
+        if 'z' in mydict[grb]:
+            if mydict[grb]['z'] > 5.0:
+                mydict[grb]['z_class'] = 'high_z'
             else:
-                mydict[key]['z_class'] = 'low_z'
+                mydict[grb]['z_class'] = 'low_z'
                 
-        if 'RT45' in mydict[key] and 'FL' in mydict[key]:
-            flosqrtrt45 = mydict[key]['FL']*(mydict[key]['RT45']**-0.5)
-            mydict[key]['FLoverSQRTRT'] = flosqrtrt45  # this should be a measure of S/N
+        if 'RT45' in mydict[grb] and 'FL' in mydict[grb]:
+            flosqrtrt45 = mydict[grb]['FL']*(mydict[grb]['RT45']**-0.5)
+            mydict[grb]['FLoverSQRTRT'] = flosqrtrt45  # this should be a measure of S/N
         
-        if 'v_mag_isupper' in mydict[key]:
-            vmagbinarystr = mydict[key]['v_mag_isupper']
+        if 'v_mag_isupper' in mydict[grb]:
+            vmagbinarystr = mydict[grb]['v_mag_isupper']
             if vmagbinarystr == 'no':
-                mydict[key]['v_mag_isupper_binary'] = 0
+                mydict[grb]['v_mag_isupper_binary'] = 0
             else:
-                mydict[key]['v_mag_isupper_binary'] = 1
-                
+                mydict[grb]['v_mag_isupper_binary'] = 1
+        
+def log_update_class(mydict,keylist):
+    for grb in mydict:
+        for key in keylist:
+            if key in mydict[grb]:
+                newname = 'log_'+key
+                try:
+                    mydict[grb][newname] = numpy.log(mydict[grb][key])
+                except:
+                    print 'Cannot take the log of GRB %s %s' % (grb,key)
+                    
+    # Note that this will make potentially interesting negative numbers into NAN
+    # Some better way to deal with negative numbers before taking their log maybe? 
+      
 def compare_z(mydict):
     for i in iter(mydict):
         try:
@@ -432,7 +446,11 @@ def grbannotesubplot(mydict,y_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],x_keys=['NH
         if z_keys:
             zlist.append(list_tup[3])
         ind += 1 
-    AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
+        
+    # Maybe instead of plotting a loglog plot, create a new parameter which
+    # is the log of the value and plot a linear scatter.  This will make 
+    # the plotting faster and allow for more flexibility 
+    AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,xnames=x_keys,znames=z_keys,logx=False,logy=False)
 
 def plotallvall(mydict,keylist,zval=None,remove_redundant=True,single_save=True):
     '''Plot all listed keywords against each other.  If zval is specified, use
