@@ -20,6 +20,7 @@ from AutoRedux import Signal
 from MiscBin.q import object2dict
 import pylab
 import scipy
+
 #from MiscBin.q import Standardize
 
 if not os.environ.has_key("Q_DIR"):
@@ -54,7 +55,7 @@ def whatis(keyword):
     'DRT45': {'definition':'rT_0.45 Uncertainty (s)','type':'string','source':'NatBat Timing','sample':0.10100000000000001},
     'DT50': {'definition':'T50 Uncertainty (s)','type':'string','source':'NatBat Timing','sample':0.22600000000000001},
     'DT90': {'definition':'T90 Uncertainty (s)','type':'string','source':'NatBat Timing','sample':0.16900000000000001},
-    'DT_MAX_SNR': {'definition':'Duration of the time window containing the maximum s/n detection','type':'string','source':'NatBat','sample':11.220000000000001},
+    'DT_MAX_SNR': {'definition':'Duration of the time window containing the maximum s/n detection (s)','type':'string','source':'NatBat','sample':11.220000000000001},
     'EISO': {'definition':'Bayes Isotropic equivalent Energy [erg] (Approximate Bolometric Fluence [erg/cm^2] in the 1-10^4 keV band if no Redshift)','type':'double','source':'NatBat Spectra','sample':6.9099999999999996e+52},
     'EISO1': {'definition':'Bayes E_iso lower limit','type':'double','source':'NatBat','sample':5.6600000000000002e+52},
     'EISO2': {'definition':'Bayes E_iso upper limit','type':'double','source':'NatBat','sample':1.0900000000000001e+53},
@@ -85,7 +86,7 @@ def whatis(keyword):
     'GAM_WT': {'definition':'Gamma inferred from XRT WT Data','type':'double','source':'NatXRT','sample':2.3073999999999999},
     'GAM_WT1': {'definition':'WT Gamma lower Limit','type':'double','source':'NatXRT','sample':2.0787},
     'GAM_WT2': {'definition':'WT Gamma upper Limit','type':'double','source':'NatXRT','sample':2.5615999999999999},
-    'MAX_SNR': {'definition':'???','type':'double','source':'NatBat','sample':47.399999999999999},
+    'MAX_SNR': {'definition':'Maximum BAT S/N Ratio','type':'double','source':'NatBat','sample':47.399999999999999},
     'MODEL': {'definition':'BAT Spectral Fit Model Used for Frequentist approach: Either Simple Power Law Model (PLM), powerlaw times an exponetial cutoff (PLEXP), or smoothly connected broken powerlaw - the Band GRB Model (GRBM)','type':'string','source':'NatBat Spectra','sample':'PLEXP'},
     'NH_GAL': {'definition':'Galactic Neutral Hydrogen Column at GRB Location (cm^-2)','type':'double','source':'NatXRT','sample':0.023400000000000001},
     'NH_PC': {'definition':'Excess N_H Column inferred from XRT PC Data (10^22 cm^-2)','type':'double','source':'NatXRT','sample':0.017999999999999999},
@@ -341,17 +342,24 @@ def ret_list(mydict,x,y,z=[]):
     ylist = []
     zlist = []
     ilist = []
+    
+    remove_short = True
+    
     if z:
         for i in iter(mydict):
             if x in mydict[i] and y in mydict[i] and z in mydict[i]:
                 try:
-                  x_val=float(mydict[i][x])
-                  y_val=float(mydict[i][y])
-                  z_val=float(mydict[i][z])
-                  xlist.append(x_val)
-                  ylist.append(y_val)  
-                  zlist.append(z_val)
-                  ilist.append(i)
+                    # REMOVE SHORT BURSTS FROM LIST.  PUT THIS ELSEWHERE
+                    if remove_short and mydict[i]['T90'] < 2.0:
+                        print 'removing %s with T90 %f' % (i, mydict[i]['T90'])
+                        continue
+                    x_val=float(mydict[i][x])
+                    y_val=float(mydict[i][y])
+                    z_val=float(mydict[i][z])
+                    xlist.append(x_val)
+                    ylist.append(y_val)  
+                    zlist.append(z_val)
+                    ilist.append(i)
                 except:
                     pass
         return((xlist,ylist,ilist,zlist))
@@ -359,11 +367,15 @@ def ret_list(mydict,x,y,z=[]):
         for i in iter(mydict):
             if x in mydict[i] and y in mydict[i]:
                 try:
-                  x_val=float(mydict[i][x])
-                  y_val=float(mydict[i][y])
-                  xlist.append(x_val)
-                  ylist.append(y_val)  
-                  ilist.append(i)
+                    # REMOVE SHORT BURSTS FROM LIST.  PUT THIS ELSEWHERE
+                    if remove_short and mydict[i]['T90'] < 2.0:
+                        print 'removing %s with T90 %f' % (i, mydict[i]['T90'])
+                        continue
+                    x_val=float(mydict[i][x])
+                    y_val=float(mydict[i][y])
+                    xlist.append(x_val)
+                    ylist.append(y_val)  
+                    ilist.append(i)
                 except:
                     pass
         return((xlist,ylist,ilist))
@@ -384,11 +396,14 @@ def grbplot(mydict,x,y,logx=False,logy=False):
     pylab.ylabel(y)
     pylab.xlabel(x)
 
-def grbannotesubplot(mydict,y_keys=['NH_PC'],x_keys=['NH_PC_LATE'],z_keys=['Z'],logx=True,logy=True):
+
+def grbannotesubplot(mydict,y_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],x_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],z_keys=['Z','Z','Z','Z'],logx=True,logy=True):
     '''Bah
     
     '''
     from Plotting.Annote import AnnotatedSubPlot
+    
+    remove_short = True
     
     if len(x_keys) != len(y_keys):
         raise(ValueError('Len of key lists do not match'))
@@ -398,7 +413,7 @@ def grbannotesubplot(mydict,y_keys=['NH_PC'],x_keys=['NH_PC_LATE'],z_keys=['Z'],
     ylist=[]
     zlist=[]
     annotelist=[]
-        
+    
     while ind < len(x_keys):
         x=x_keys[ind]
         y=y_keys[ind]
@@ -407,14 +422,89 @@ def grbannotesubplot(mydict,y_keys=['NH_PC'],x_keys=['NH_PC_LATE'],z_keys=['Z'],
             list_tup = ret_list(mydict,x,y,z)
         else:
             list_tup = ret_list(mydict,x,y)
+        
+        currentgrbname = list_tup[2]
+        annotelist.append(currentgrbname)
+        
+        
         xlist.append(list_tup[0])
         ylist.append(list_tup[1])
-        annotelist.append(list_tup[2])
         if z_keys:
             zlist.append(list_tup[3])
         ind += 1 
-    AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,xnames=x_keys,logx=logx,logy=logy)
+    AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
 
+def plotallvall(mydict,keylist,zval=None,remove_redundant=True,single_save=True):
+    '''Plot all listed keywords against each other.  If zval is specified, use
+    it as the third 'color' dimension.  If remove_redundant, do not plot e.g.
+    a vs b AND b vs a (nor a vs a). Single_save makes one plot for each and 
+    saves them as a text file. 
+    
+    '''
+    xkeys=[]
+    ykeys=[]
+    zkeys=[]
+    #convert keylist [a,b,c] into xkeys = [a,b,c,a,b,c,a,b,c], ykeys = [a,a,a,b,b,b,c,c,c]
+    for key in keylist:
+        for yek in keylist:
+            ykeys.append(key)
+            xkeys.append(yek)
+            if zval:
+                zkeys.append(zval)
+    if remove_redundant:
+        # only save the plots that haven't been plotted already, or that arent X vs X.  
+        # the following loop determines which items to strike from the list of keys. 
+        # e.g. 
+        # [a,b,c,a,b,c,a,b,c]
+        # [a,a,a,b,b,b,c,c,c]
+        # loop returns 0,3,4,6,7,8 so the lists would be reduced to 
+        # [b,c,c]
+        # [a,a,b]
+        # set redundant values to -1
+        q=len(keylist)
+        i=0
+        while i < q:
+            j=0
+            while j < i+1:
+                val= j + i*q 
+                print val
+                xkeys[val] = -1
+                ykeys[val] = -1
+                if zval:
+                    zkeys[val] = -1
+                j+=1
+            i+=1
+        # remove redundant values - nice way to remove all values of a certain type from a list
+        xkeys=filter(lambda aa: aa != -1, xkeys)
+        ykeys=filter(lambda aa: aa != -1, ykeys)
+        zkeys=filter(lambda aa: aa != -1, zkeys)
+    
+    if single_save:
+        ind = 0
+        while ind < len(xkeys):
+            xkey = xkeys[ind]
+            ykey = ykeys[ind]
+            if zval:
+                zkey = zkeys[ind]
+                z_keys = [zkey]
+            else:
+                z_keys=None
+            grbannotesubplot(mydict,x_keys=[xkey],y_keys=[ykey],z_keys=z_keys)
+            figname=xkey+'_vs_'+ykey
+            if z_keys:
+                figname += '_vs_' + zkey
+            figname += '.png'
+            figoutdir = storepath + 'figures/'+figname
+            pylab.savefig(figoutdir)
+            pylab.close()
+            ind += 1 
+    else:
+        grbannotesubplot(mydict,x_keys=xkeys,y_keys=ykeys,z_keys=zkeys)
+
+def testplotall():
+    #['EP', 'EP0', 'FL', 'GAM_PC', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T50', 'T90', 'RT45', 'Z', 'MAX_SNR', 'DT_MAX_SNR'],zval='Z')
+    #['n','n','y','n','n','n','n']
+    pass
 def printall(mydict,keywordlist,suppress = True):
     '''Print all the keywords in the keyword list in the collected dictionary
     If suppress, then only print them out if all keywords are present for a 
