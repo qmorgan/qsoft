@@ -103,9 +103,9 @@ def testcolor():
     connect('button_press_event', af)
     
     
-def AnnotatedSubPlot(xlist=[range(3),[1,3],range(3)],ylist=[range(3),[1,3],range(3)], 
-            annotelist = [['a','b','c'],['a','d'],['a','b','d']],logx=False,logy=False,
-            ynames=None,xnames=None, zlist=None):
+def AnnotatedSubPlot(xlist=[range(4),[1,3],range(4),range(4)],ylist=[range(4),[1,3],range(4),range(4)], 
+            annotelist = [['a','b','c','d'],['a','d'],['a','b','d','c'],['d','b','a','x']],logx=False,logy=False,
+            ynames=None,xnames=None, zlist=None, znames=None):
 
     '''As long as the annotations are the same for each plot, then they will be 
     linked among the plots.
@@ -124,16 +124,21 @@ def AnnotatedSubPlot(xlist=[range(3),[1,3],range(3)],ylist=[range(3),[1,3],range
         if len(zlist) != len(ylist):
             raise(ValueError('Length of lists does not match'))
     
-    if len(xlist) == 1: numsubplots = '11'
-    if len(xlist) == 2: numsubplots = '21'
-    if len(xlist) == 3: numsubplots = '31'
-    if len(xlist) == 4: numsubplots = '22'
-    if len(xlist) == 5: numsubplots = '23'
-    if len(xlist) == 6: numsubplots = '23'
-    if len(xlist) > 6: numsubplots = '33'
-    if len(xlist) > 9:
+    figsize=(8,6)
+    
+    if len(xlist) == 1: numsubplots = '11'; figsize=(8,6)
+    if len(xlist) == 2: numsubplots = '21'; figsize=(8,12)
+    if len(xlist) == 3: numsubplots = '31'; figsize=(8,18)
+    if len(xlist) == 4: numsubplots = '22'; figsize=(14,12)
+    if len(xlist) == 5: numsubplots = '23'; figsize=(14,18)
+    if len(xlist) == 6: numsubplots = '23'; figsize=(14,18)
+    if len(xlist) > 6: numsubplots = '33'; figsize=(20,18)
+    if len(xlist) > 9: numsubplots = '44'; figsize=(20,18)
+    if len(xlist) > 16:
         print 'Too many plots!'
         raise(ValueError('Too Many Plots!'))
+    
+    matplotlib.pyplot.figure(figsize=figsize)
     
     ind = 0
     aflist = []
@@ -144,27 +149,44 @@ def AnnotatedSubPlot(xlist=[range(3),[1,3],range(3)],ylist=[range(3),[1,3],range
         xx = xlist[ind]
         yy = ylist[ind]            
         annotes = annotelist[ind]
+        
+        af = AnnoteFinder(xx,yy,annotes)
+        aflist.append(af)
+        connect('button_press_event',af)
+        
+        # guess the max and min ranges for log-log plotting
+        xlim_low = min(xx)-0.5*min(xx)
+        xlim_high= max(xx)+0.5*max(xx)
+        ylim_low = min(yy)-0.5*min(yy)
+        ylim_high= max(yy)+0.5*max(yy)
+        
         if zlist:
             # if z dimension is included, add as a "color" dimension
             zz = zlist[ind]
-            pl.scatter(xx,yy,c=zz,cmap='spring')
+            cl=pl.scatter(xx,yy,c=zz,cmap='spring')
+            cbar = pylab.colorbar(cl)
+            if znames: cbar.set_label(znames[ind])
         else:
             pl.scatter(xx,yy)
-        if logx:
-            pl.set_xscale('log')
-            pl.set_xlim(1e-6,1e6) # CHANGE TO GUESS AUTOMATICALLY
-        if logy:
-            pl.set_yscale('log')
-            pl.set_ylim(1e-6,1e6) # CHANGE TO GUESS AUTOMATICALLY
+        if logx and not logy:
+            matplotlib.pyplot.semilogx()
+            matplotlib.pyplot.xlim(xlim_low,xlim_high) 
+        if logy and not logx:
+            matplotlib.pyplot.semilogy()
+            matplotlib.pyplot.ylim(ylim_low,ylim_high) 
+        if logx and logy:
+            matplotlib.pyplot.loglog()
+            matplotlib.pyplot.xlim(xlim_low,xlim_high) 
+            matplotlib.pyplot.ylim(ylim_low,ylim_high) 
         if xnames: pylab.xlabel(xnames[ind])
         if ynames: pylab.ylabel(ynames[ind])
         if len(annotes) != len(xx): print 'Annotes dont match!'
         if len(xx) != len(yy): print 'xx and yy dont match!'
-        af = AnnoteFinder(xx,yy,annotes)
-        aflist.append(af)
-        connect('button_press_event',af)
         ind += 1
-        
+    
+    if logx or logy:
+        print 'WARNING: Interactivity is screwed up when using log plots.  Be Warned; axes may change.'
+    
     # subplot(121)
     # scatter(x,y)
     # af1 = AnnoteFinder(x,y, annotes)
