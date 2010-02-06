@@ -85,7 +85,8 @@ class qImage:
         im1.save(self.save_str)
 
             
-    def overlay_finding_chart(self,ra,dec,uncertainty,src_name='unknown source',pos_label='UVOT',cont_str=''):
+    def overlay_finding_chart(self,ra,dec,uncertainty,src_name='unknown source',pos_label='UVOT',cont_str='',\
+        suppress_scale=False,uncertainty_shape='cross'):
         
         # cont_str='Contact: Adam N. Morgan (qmorgan@gmail.com, 510-229-7683)'
         
@@ -118,6 +119,11 @@ class qImage:
         scale_line_length = int(60*scale_line_physical_length/self.pixel_scale) 
         scale_line_start = head_buffer + self.img_size/2 - scale_line_length/2
         scale_line_stop = head_buffer + self.img_size/2 + scale_line_length/2
+        scale_line_label = str(scale_line_physical_length) + ' arcmin'
+        # Get rid of scale bar if desired
+        if suppress_scale:
+            scale_line_stop = scale_line_start
+            scale_line_label = ''
         scale_line_label_pos_y = scale_line_start - 15
         
         pos_label_pos_y = pos_pos_y - uncertainty_circle_size - 15 
@@ -138,6 +144,25 @@ class qImage:
         ra_str = 'RA = ' + self.str_loc_pos[0]
         dec_str = 'Dec = ' + self.str_loc_pos[1]
         uncertainty_str = 'Uncertainty: ' + str(self.loc_uncertainty) + '"'
+        
+        if uncertainty_shape.lower() == 'circle':
+            uncertainty_shape_string = '''
+            <ellipse cx="%d" cy="%d" rx="%d" ry="%d"
+            style="fill:none;
+            stroke:rgb(0,0,255);stroke-width:2"/>
+            ''' % (pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size)
+        elif uncertainty_shape.lower() == 'cross': 
+            cross_left_pos = pos_pos_x-uncertainty_circle_size-15
+            cross_right_pos = pos_pos_x-uncertainty_circle_size
+            cross_down_pos = pos_pos_y+uncertainty_circle_size
+            cross_up_pos = pos_pos_y+uncertainty_circle_size+15
+            uncertainty_shape_string = '''
+            <line x1="%d" y1="%d" x2="%d" y2="%d"
+            style="stroke:rgb(0,0,255);stroke-width:2"/>
+            <line x1="%d" y1="%d" x2="%d" y2="%d"
+            style="stroke:rgb(0,0,255);stroke-width:2"/>
+            '''% (pos_pos_x, cross_down_pos, pos_pos_x, cross_up_pos,\
+            cross_right_pos, pos_pos_y, cross_left_pos, pos_pos_y)
         
         im = Image.open(self.save_str)
         assert isinstance(im, Image.Image)
@@ -168,9 +193,8 @@ class qImage:
          <text x ="288" y="%d" fill="blue" font-size="12">
          <tspan x="288" dy="1em">%s</tspan>
          </text>
-         <ellipse cx="%d" cy="%d" rx="%d" ry="%d"
-         style="fill:none;
-         stroke:rgb(0,0,255);stroke-width:2"/>
+         
+         %s
 
          <text x="615" y ="55" fill = "black" font-size = "18">
          <tspan x="615" dy="1em">%s</tspan>
@@ -205,16 +229,16 @@ class qImage:
          <line x1="710" y1="600" x2="700" y2="590" style="stroke:Black;stroke-width:2"/>
 
 
-         <line x1="200" y1="%d" x2="200" y2="%d"
+         <line x1="150" y1="%d" x2="150" y2="%d"
          style="stroke:rgb(255,0,0);stroke-width:2"/>
-         <text x ="177" y ="%d" fill ="red" font-size = "12">
-         <tspan x="177" dy="1em">%s arcmin</tspan>
+         <text x ="127" y ="%d" fill ="red" font-size = "12">
+         <tspan x="127" dy="1em">%s</tspan>
          </text>
         
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
-                self.src_name,  self.cont_str, update_time, pos_label_pos_y, self.pos_label, pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,\
+                self.src_name,  self.cont_str, update_time, pos_label_pos_y, self.pos_label, uncertainty_shape_string,\
                  pos_label_full, self.str_loc_pos[0], self.str_loc_pos[1],\
-                 str(self.loc_uncertainty),self.survey_str, str(self.wcs_size), scale_line_start,scale_line_stop,scale_line_label_pos_y, str(scale_line_physical_length))
+                 str(self.loc_uncertainty),self.survey_str, str(self.wcs_size), scale_line_start,scale_line_stop,scale_line_label_pos_y, scale_line_label)
     
 
 
