@@ -109,10 +109,10 @@ class qImage:
         pos_pos_y = 350
         
         # Define scale line physical length based on how large the image is
-        # Divide by two so that line is never more than 50% of image
-        if not self.wcs_size < 2.0:
-            scale_line_physical_length = int(self.wcs_size/2) #arcmin
-        elif not self.wcs_size < 1.0:
+        # Divide by 5 so that line is never more than ~20% of image
+        if not self.wcs_size < 5.0:
+            scale_line_physical_length = int(self.wcs_size/5) #arcmin
+        elif not self.wcs_size < 2.0:
             scale_line_physical_length = 0.5
         else:
             scale_line_physical_length = 0.25
@@ -229,10 +229,10 @@ class qImage:
          <line x1="710" y1="600" x2="700" y2="590" style="stroke:Black;stroke-width:2"/>
 
 
-         <line x1="150" y1="%d" x2="150" y2="%d"
+         <line x1="130" y1="%d" x2="130" y2="%d"
          style="stroke:rgb(255,0,0);stroke-width:2"/>
-         <text x ="127" y ="%d" fill ="red" font-size = "12">
-         <tspan x="127" dy="1em">%s</tspan>
+         <text x ="107" y ="%d" fill ="red" font-size = "12">
+         <tspan x="107" dy="1em">%s</tspan>
          </text>
         
         </svg>''' % ( fc_width, fc_height, head_buffer, im.size[0], im.size[1], im.format.lower(), imstr,\
@@ -275,7 +275,7 @@ def downloadImage(img_url,out_name='qImage.jpg'):
 	# for the second param ala stealStuff(file_name,'',base_url)
 	stealStuff(out_name,"b",img_url)
 
-def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0):
+def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,incl_scale=True,err_shape='cross'):
     fc = qImage()
     # define pixel scale from side size
     if size:
