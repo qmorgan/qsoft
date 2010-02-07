@@ -86,7 +86,7 @@ class qImage:
 
             
     def overlay_finding_chart(self,ra,dec,uncertainty,src_name='unknown source',pos_label='UVOT',cont_str='',\
-        suppress_scale=False,uncertainty_shape='cross'):
+        uncertainty_shape='cross',suppress_scale=False):
         
         # cont_str='Contact: Adam N. Morgan (qmorgan@gmail.com, 510-229-7683)'
         
@@ -275,7 +275,7 @@ def downloadImage(img_url,out_name='qImage.jpg'):
 	# for the second param ala stealStuff(file_name,'',base_url)
 	stealStuff(out_name,"b",img_url)
 
-def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,incl_scale=True,err_shape='cross'):
+def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True):
     fc = qImage()
     # define pixel scale from side size
     if size:
