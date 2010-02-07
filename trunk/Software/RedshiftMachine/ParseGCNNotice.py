@@ -291,6 +291,8 @@ class GCNNotice:
              ['TRIGGER_DUR',['bat_trigger_dur','f','[sec]',0,'','']],\
              ['TRIGGER_INDEX',['bat_trig_ind','f','E_range:',0,'',''],\
                               ['bat_trig_ind_range','s','E_range:',1,'','']],\
+             ['RATE_SIGNIF',['bat_rate_signif','f','[sigma]',0,'','']],\
+             ['IMAGE_SIGNIF',['bat_image_signif','f','[sigma]',0,'','']],\
              ['BKG_INTEN',['bat_bkg_inten','f','[cnts]',0,'','']],\
              ['BKG_DUR',['bat_bkg_dur','f','[sec]',0,'','']],\
              ['GRB_ERROR',['bat_pos_err','f',' [arcmin',0,'','']]
