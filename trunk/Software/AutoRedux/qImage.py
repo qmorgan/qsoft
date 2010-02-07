@@ -163,6 +163,22 @@ class qImage:
             style="stroke:rgb(0,0,255);stroke-width:2"/>
             '''% (pos_pos_x, cross_down_pos, pos_pos_x, cross_up_pos,\
             cross_right_pos, pos_pos_y, cross_left_pos, pos_pos_y)
+        else:
+            #default to cross + circle
+            cross_left_pos = pos_pos_x-uncertainty_circle_size-15
+            cross_right_pos = pos_pos_x-uncertainty_circle_size
+            cross_down_pos = pos_pos_y+uncertainty_circle_size
+            cross_up_pos = pos_pos_y+uncertainty_circle_size+15
+            uncertainty_shape_string = '''
+            <ellipse cx="%d" cy="%d" rx="%d" ry="%d"
+            style="fill:none;
+            stroke:rgb(0,0,255);stroke-width:2"/>
+            <line x1="%d" y1="%d" x2="%d" y2="%d"
+            style="stroke:rgb(0,0,255);stroke-width:2"/>
+            <line x1="%d" y1="%d" x2="%d" y2="%d"
+            style="stroke:rgb(0,0,255);stroke-width:2"/>
+            '''% (pos_pos_x, pos_pos_y, uncertainty_circle_size,uncertainty_circle_size,pos_pos_x, cross_down_pos, pos_pos_x, cross_up_pos,\
+            cross_right_pos, pos_pos_y, cross_left_pos, pos_pos_y)
         
         im = Image.open(self.save_str)
         assert isinstance(im, Image.Image)
@@ -308,7 +324,13 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
     else:
         fc.sdss_grab(ra,dec,pixel_scale,img_size)
         fc.invert_and_resize(img_size)
-    svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str)
+    
+    if str(incl_scale).lower()=='false' or str(incl_scale).lower()=='no':
+        suppress_scale=True
+    else:
+        suppress_scale=False
+    
+    svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
     outname = storepath+src_name+'_fc'
     outnamesvg = outname+'.svg'
     outnamepng = outname+'.png'
