@@ -392,6 +392,18 @@ class GRBdb:
         # Note that this will make potentially interesting negative numbers into NAN
         # Some better way to deal with negative numbers before taking their log maybe? 
       
+      
+    def norm_update_class(self,keylist):
+        pass
+        # 0) Get list of values only for Z?
+        # 1) Make array
+        # 2) Determine and remove outliers?
+        # 3) Normalize (see below)
+        # 4) Create new dictionary items? 
+        #
+        # arr = scipy.array(mylist)
+        # return (arr-arr.mean())/(arr.std())
+      
     def compare_z(self):
         for i in iter(self.dict):
             try:
