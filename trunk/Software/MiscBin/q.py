@@ -296,7 +296,17 @@ def sphere_dist(ra1,dec1,ra2,dec2):
     return distance_asec
 
 
-def where(a,val,wherenot=False):
+def Standardize(mylist):
+    '''Given a list or array, returns the "standardized" version of the list
+    with a mean of zero and a standard deviation of one.
+    UNTESTED
+    
+    '''
+    arr = scipy.array(mylist)
+    return (arr-arr.mean())/(arr.std())
+
+
+def where(a,val,cond='==',wherenot=False):
     """
     Analogous to the 'where' function in IDL
     See thread:
@@ -314,11 +324,36 @@ def where(a,val,wherenot=False):
     [0,1,3,4]
     >>> where(a,999)
     []
+    
+    This is similar to the numpy array np.nonzero() function
+    In [103]: a
+    Out[103]: [1, 2, 3]
+
+    In [104]: q.where(a,2,cond='<=')
+    Out[104]: [0, 1]
+
+    In [105]: npa=np.array(a)
+
+    In [106]: np.nonzero(npa<=2)
+    Out[106]: (array([0, 1]),)
+    
     """
-    if wherenot == False:
+    if wherenot == True:
+        cond='!='
+    if cond == '==':
     	return [i for i in xrange(len(a)) if a[i]==val]
-    else:
+    elif cond == '!=':
     	return [i for i in xrange(len(a)) if a[i]!=val]
+    elif cond == '>':
+        return [i for i in xrange(len(a)) if a[i]>val]
+    elif cond == '<':
+        return [i for i in xrange(len(a)) if a[i]<val]
+    elif cond == '<=':
+        return [i for i in xrange(len(a)) if a[i]<=val]
+    elif cond == '>=':
+        return [i for i in xrange(len(a)) if a[i]>=val]
+    else:
+        raise ValueError('Unsupported Condition.  Choose ==,!=,>,<,>=,<=.')    
 
 def object2dict(obj,include=[],force=True):
     '''Given an object with attributes, return a dictionary with the attribute
