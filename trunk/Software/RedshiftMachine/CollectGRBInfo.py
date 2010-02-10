@@ -394,7 +394,9 @@ class GRBdb:
       
       
     def norm_update_class(self,keylist):
-        pass
+        for key in keylist:
+            list_of_vals = map(lambda x:x[key] if key in x else "?", db.dict.itervalues())
+        return list_of_vals
         # 0) Get list of values only for Z?
         # 1) Make array
         # 2) Determine and remove outliers?
