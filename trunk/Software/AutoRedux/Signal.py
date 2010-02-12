@@ -132,7 +132,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                         except: qErr.qErr()
         time.sleep(60)
 
-def _mail_html(gcn,mail_to):
+def _mail_html(gcn,mail_to,clobber=False,tweet=True):
     if not hasattr(gcn,'mailed_web'):
         gcn.mailed_web = False
     if not gcn.mailed_web:
@@ -148,11 +148,23 @@ def _mail_html(gcn,mail_to):
         
         # Temporary hack
         mailchkpath = storepath + '/.mlchk%i' % int(gcn.triggerid)
-        if not os.path.exists(mailchkpath):
+        if not os.path.exists(mailchkpath) or clobber == True:
             cmd = "echo y > %s" % mailchkpath 
             os.system(cmd)
             print 'Email with web link has not been sent yet; doing that now...'
             send_gmail.domail(mail_to,email_subject,email_body)
+            if tweet:
+                try:
+                import twitter # requires http://code.google.com/p/python-twitter/
+                import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
+                bigurl = 'http://astro.berkeley.edu/~amorgan/Swift/%i/' % int(gcn.triggerid)
+                littleurl = tinyurl.create_one(bigurl)
+                twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
+                api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
+                status = api.PostUpdate(twittext)
+                except:
+                    print 'Cannot post Twitter Message.'
+                
         else:
             print 'Email has already been sent for this trigger.'
         
