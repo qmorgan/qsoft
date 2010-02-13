@@ -17,6 +17,7 @@ import time
 from RedshiftMachine import ParseSwiftCat
 from RedshiftMachine import LoadGCN
 from AutoRedux import Signal
+from MiscBin.q import RemoveNaN
 from MiscBin.q import object2dict
 from MiscBin import qPickle
 import pylab
@@ -380,6 +381,7 @@ class GRBdb:
                     self.dict[grb]['v_mag_isupper_binary'] = 1
         
     def log_update_class(self,keylist):
+        '''Create offset if there are negative values before taking the logarithm?'''
         for grb in self.dict:
             for key in keylist:
                 if key in self.dict[grb]:
@@ -393,10 +395,49 @@ class GRBdb:
         # Some better way to deal with negative numbers before taking their log maybe? 
       
       
-    def norm_update_class(self,keylist):
+    def CreateStructuredArray(self,keylist):
+        '''This is not working...
+        see http://docs.scipy.org/doc/numpy/user/basics.rec.html
+        
+        abandon all ye hope?
+        '''
+        nparr = numpy.zeros(len(keylist),dtype={'names':keylist,'formats':['f4','f4']})
         for key in keylist:
-            list_of_vals = map(lambda x:x[key] if key in x else "?", db.dict.itervalues())
-        return list_of_vals
+            nparr[key] = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
+        return nparr
+        
+    def MakeAttrArr(self,key,poserrkey=None,negerrkey=None):
+        '''For the key, create a numpy array of all the values
+        Good for getting the mean, std dev, etc.  And for plotting!
+        
+        Dictonary with keywords:
+            array - full array for all the entries - use for plotting!
+            poserrarr - positive error in the values of the array
+            negerrarr - negative error in the values of the array
+            subarray - only the non-NaN entries - do not use for indexing or plotting!
+            mean - calculated from subarray
+            median - calculated from subarray
+            std - calculated from subarray
+        '''
+        arr = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
+        subarr = RemoveNaN(arr)
+        mean = subarr.mean()
+        median = numpy.median(subarr)
+        std = subarr.std()
+        keydict = {'array':arr,'subarr':subarr,'mean':mean,'median':median,'std':std}
+        if poserrkey:
+            errarr = numpy.array(map(lambda x:x[poserrkey] if poserrkey in x else numpy.nan, self.dict.itervalues()))
+            keydict['poserrarr'] = errarr
+        if negerrkey:
+            errarr = numpy.array(map(lambda x:x[negerrkey] if negerrkey in x else numpy.nan, self.dict.itervalues()))
+            keydict['negerrarr'] = errarr
+        setattr(self,key,keydict)
+   
+    def RemOutliers(self,array):
+        pass
+    
+    def norm_update_class(self,keylist):
+        '''
         # 0) Get list of values only for Z?
         # 1) Make array
         # 2) Determine and remove outliers?
@@ -405,7 +446,35 @@ class GRBdb:
         #
         # arr = scipy.array(mylist)
         # return (arr-arr.mean())/(arr.std())
-      
+        
+        # In the code below I use the entire db to calc the mean/std.  Maybe only use
+        # The values for which I have a redshift?
+        
+        '''
+        for grb in self.dict:
+            for key in keylist:
+                if not hasattr(self,key):
+                    self.MakeAttrArr(key)
+                # Grab dict of value array
+                tmp_dict = getattr(self,key)
+                # Check to make sure there's the right # of entries in the temp arr
+                if len(tmp_dict['array']) == self.length:
+                    self.RemOutliers(tmp_dict) # Currently does nothing
+                    # THESE ARE IN NESTED FOR LOOPS  - Remove? - Did this.  Made function MakeAttrArr
+                    if key in self.dict[grb]:
+                        newname = 'norm_'+key
+                        try:
+                            self.dict[grb][newname] = (self.dict[grb][key]-tmp_dict['mean'])/tmp_dict['std']
+                        except:
+                            print 'Cannot normalize %s for GRB %s' % (key,grb)
+                
+                else:
+                    print 'Not enough etries in array for key %s - is this the right keyword? Did the database change?' % (key)
+        # Make an attribute array for every key we looped thru
+        for key in keylist:
+            newkey = 'norm_'+key
+            self.MakeAttrArr(newkey)
+                    
     def compare_z(self):
         for i in iter(self.dict):
             try:
@@ -460,7 +529,7 @@ class GRBdb:
     
     
     def grbplot(self,x,y,logx=False,logy=False):
-        list_tup = ret_list(self.dict,x,y)
+        list_tup = self.ret_list(x,y)
         xlist = list_tup[0]
         ylist = list_tup[1]
         if not logx and not logy:
@@ -497,9 +566,9 @@ class GRBdb:
             y=y_keys[ind]
             if z_keys:
                 z=z_keys[ind]
-                list_tup = ret_list(self.dict,x,y,z)
+                list_tup = self.ret_list(x,y,z)
             else:
-                list_tup = ret_list(self.dict,x,y)
+                list_tup = self.ret_list(x,y)
         
             currentgrbname = list_tup[2]
             annotelist.append(currentgrbname)
@@ -560,7 +629,6 @@ class GRBdb:
             xkeys=filter(lambda aa: aa != -1, xkeys)
             ykeys=filter(lambda aa: aa != -1, ykeys)
             zkeys=filter(lambda aa: aa != -1, zkeys)
-    
         if single_save:
             ind = 0
             while ind < len(xkeys):
@@ -571,7 +639,7 @@ class GRBdb:
                     z_keys = [zkey]
                 else:
                     z_keys=None
-                grbannotesubplot(self.dict,x_keys=[xkey],y_keys=[ykey],z_keys=z_keys)
+                self.grbannotesubplot(x_keys=[xkey],y_keys=[ykey],z_keys=z_keys)
                 figname = self.name
                 figname += '_'+xkey+'_vs_'+ykey
                 if z_keys:
