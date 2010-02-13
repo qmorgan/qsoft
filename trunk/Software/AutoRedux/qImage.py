@@ -86,7 +86,7 @@ class qImage:
 
             
     def overlay_finding_chart(self,ra,dec,uncertainty,src_name='unknown source',pos_label='UVOT',cont_str='',\
-        uncertainty_shape='cross',suppress_scale=False):
+        uncertainty_shape='combo',suppress_scale=False):
         
         # cont_str='Contact: Adam N. Morgan (qmorgan@gmail.com, 510-229-7683)'
         
