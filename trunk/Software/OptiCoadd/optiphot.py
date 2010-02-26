@@ -215,6 +215,7 @@ def fit(function, parameters, y, x = None, err=1):
     Your input parameters will now have the fitted values assigned to them.
     
     '''
+    # This errfunc assumes a uniform error for each datapoint!
     def errfunc(params):
         i = 0
         for p in parameters:
