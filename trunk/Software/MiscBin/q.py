@@ -12,6 +12,7 @@ A conglomeration of random definitions that I use!.
 import sys
 import os
 import math
+import numpy
 
 # Constants - all CGS
 c = 2.99792458e10 # cm/s
@@ -56,6 +57,8 @@ wh = filt(3471e-8,valtype='wave',fluxconv=3.7e-17,  zp=20.29, comment='UVOT UVW2
 def uvotcr2flux(countrate,filt,red_corr=0.0):
     '''Use http://wwwmacho.mcmaster.ca/JAVA/Acurve.html to find absoprtion
     corrections.
+    
+    Be sure to use the "Corrected Rate Information"
     '''
     uvotflux = countrate * filt.fluxconv
     print filt.comment
@@ -109,6 +112,52 @@ def mag2alpha(mag_1=None,mag_2=None,t_1=None,t_2=None):
         return None           
     alpha = 0.4 * (mag_1 - mag_2)/(math.log10(t_1/t_2))
     return alpha
+
+def tstart_exp_2_tmid_arr(burst_time=None,tstartarr=None,exparr=None,fmt='%y-%m-%d %H:%M:%S'):
+    '''Takes the t_start and exposure time and calculates the t_mid
+    
+    Input: 
+    burst_time = '09-11-27 23:25:45' 
+    array of tstarts = ['09-11-28 01:02:20']
+    array of exposure times = [123]
+    
+    BE WARY THIS ASSUMES CONSTANT EXPOSURE i.e. tstart + exp = tstop
+    
+    Retuns array in seconds since burst
+    
+    '''
+    
+    import time 
+    
+    if not burst_time:
+        burst_time = raw_input('Enter GRB Time: ')
+    if not tstartarr:
+        tstartarr = raw_input('Enter array of start times: ')
+    if not exparr:
+        exparr = raw_input('Enter array of exposure times (seconds): ')
+    if not fmt:
+        y_n = raw_input('Time Format of "%y-%m-%d %H:%M:%S" OK?  y/n: ')
+        if y_n.lower() == 'y' or y_n.lower() == 'yes':
+            fmt = "%y-%m-%d %H:%M:%S"
+        elif y_n.lower() == 'n' or y_n.lower() == 'no':
+            fmt = raw_input('Enter Desired Format: ')
+        else:
+            print 'Need y or n answer. Try again'
+            return
+    
+    burst_time_sse = time.mktime(time.strptime(burst_time,fmt))
+    if len(tstartarr) != len(exparr):
+        raise ValueError('Length of Arrays does not match')
+    
+    zippedtime = zip(tstartarr,exparr)
+    tmid_since_burst_arr = []
+    
+    for tupl in zippedtime:
+        tmid = time.mktime(time.strptime(tupl[0],fmt)) - burst_time_sse + tupl[1]
+        tmid_since_burst_arr.append(tmid)
+        print tmid
+    
+    return tmid_since_burst_arr
 
 def dhms2h(d1=None,h1=None,m1=None,s1=None,d2=None,h2=None,m2=None,s2=None):
     if d1 == None:
@@ -305,6 +354,9 @@ def Standardize(mylist):
     arr = scipy.array(mylist)
     return (arr-arr.mean())/(arr.std())
 
+def RemoveNaN(myarr):
+    '''Returns a shortened numpy array with all the NaN values removed'''
+    return(myarr[numpy.isfinite(myarr).nonzero()])
 
 def where(a,val,cond='==',wherenot=False):
     """
@@ -354,6 +406,8 @@ def where(a,val,cond='==',wherenot=False):
         return [i for i in xrange(len(a)) if a[i]>=val]
     else:
         raise ValueError('Unsupported Condition.  Choose ==,!=,>,<,>=,<=.')    
+
+
 
 def object2dict(obj,include=[],force=True):
     '''Given an object with attributes, return a dictionary with the attribute
