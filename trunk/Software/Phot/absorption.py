@@ -24,7 +24,7 @@ import sys
 def usage():
 
     print """
-usage: absorption.py <A_V> <LAMBDA> <R_V[optional]>
+usage: absorption.py <LAMBDA> <A_V> <R_V[optional]>
 
   where <A_V> is the total absorption in mags at V 
   <LAMBDA> is the wavelength in MICROMETERS (um)
