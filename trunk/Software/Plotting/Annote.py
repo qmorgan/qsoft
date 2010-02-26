@@ -163,7 +163,7 @@ def AnnotatedSubPlot(xlist=[range(4),[1,3],range(4),range(4)],ylist=[range(4),[1
         if zlist:
             # if z dimension is included, add as a "color" dimension
             zz = zlist[ind]
-            cl=pl.scatter(xx,yy,c=zz,cmap='spring')
+            cl=pl.scatter(xx,yy,c=zz,cmap='jet')
             cbar = pylab.colorbar(cl)
             if znames: cbar.set_label(znames[ind])
         else:
