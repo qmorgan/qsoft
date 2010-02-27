@@ -2,24 +2,36 @@
 
 import pyfits
 import sys
+import os
 '''
-Emulates MissFITS behaviour using pyfits.  
+Emulates MissFITS header replacement behaviour using pyfits.  
+Assumes the following configuration:
+HEADER SUFFIX	.head
+OUTFILE TYPE	SAME
+SAVE TYPE	    BACKUP
 '''
 def usage():
 
     print """
-usage: missfits.py filename.fits
+    usage: missfits.py filename.fits
 
-    requires a filename.head file output by scamp
+    Requires a filename.head file output by Scamp
+    Will move filename.fits to filename.back, and 
+    change the headers in filename.fits
   
   """
     sys.exit()
 
 def MissFITS(fname):
+    if not os.path.exists(fname):
+        print 'File %s does not exist. Exiting.' % (fname)
+        sys.exit()
+    cmd = 'cp %s %s.back' % (fname, fname)
+    
     headname = fname.rstrip('fits') + 'head'
     hdulist = pyfits.open(fname, mode='update')
     prihdr = hdulist[0].header
-
+    
     openedfile = open(headname)
     lines = openedfile.readlines()
     for line in lines:
