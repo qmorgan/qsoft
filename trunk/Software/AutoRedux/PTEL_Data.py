@@ -9,7 +9,7 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
-swift_cat_path = storepath+'grb_table_1251400549.txt'
+swift_cat_path = storepath+'grb_table_1269669883.txt'
 
 
 def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
@@ -71,13 +71,26 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         # Convert to seconds since the epoch (sse)
         ptel_time_sse = time.mktime(ptel_time_tuple)
         
+        try:
+            ra = prihdr['RA']
+            dec = prihdr['DEC']
+        except:
+            ra = 0.00
+            dec = 0.00
+        
         
         if target_id not in pteldict:
-            targdict = {target_id:{'mission':mission,'triggerid':triggerid,'obs':{object_id:{'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}}}}
+            targdict = {target_id:{'mission':mission,'triggerid':triggerid,'obs':{object_id:{'scope_ra':ra,'scope_dec':dec,'filename':filepath,'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}}}}
             pteldict.update(targdict)
         else:
-            pteldict[target_id]['obs'].update({object_id:{'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
-        
+            # Check to see if there is already an object id with that name
+            # if there is, make a new object id name
+            if object_id not in pteldict[target_id]['obs']:
+                pteldict[target_id]['obs'].update({object_id:{'scope_ra':ra,'scope_dec':dec,'filename':filepath,'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
+            else:
+                new_obj_id = object_id + '_' + ptel_time_sse
+                pteldict[target_id]['obs'].update({new_obj_id:{'scope_ra':ra,'scope_dec':dec,'filename':filepath,'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
+                
         # if 'ptel_time_sse' not in pteldict[target_id]:
         #     pteldict[target_id].update({'ptel_time_sse':pteldict[target_id]['obs'][object_id]['first_obs_time_sse']})
         #     pteldict[target_id].update({'ptel_time':pteldict[target_id]['obs'][object_id]['first_obs_time']})
@@ -201,6 +214,36 @@ def SwiftTargUnderTime(pteldict,range=(0.0,24.0)):
     print 'GRB List: ', grblist
     print 'Bad Triggers (not a GRB): ', badtrigger
     return count
+
+def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/Data/FullDB/'):
+    '''
+    Specifying either a target ID or a grb name, copy the raw data over to the
+    desired location.
+    '''
+    if not trigid and not grbname:
+        print 'No trigid or grbname specified; doing nothing'
+        return
+    if trigid and grbname:
+        print 'Please only specify either trigid or grbname. Doing nothing.'
+        return
+    if trigid:
+        for objid, objidval in pteldict[trigid]['obs'].iteritems():
+            rawpath = os.path.dirname(objidval['filename']) # directory containing raw files
+            # Determine GRB ID - above we might have added a _sse, but now we
+            # will split and make sure we are left with just the actual objid 
+            myobjid = objid.split('_')[0]
+            globstr = rawpath + '/' + myobjid
+            globlist = glob.glob(globstr)
+            for filename in globlist:
+                try: 
+                    cmd = 'scp amorgan@lyra.berkeley.edu:%s %s' % (filename, outlocation)
+                    os.system(cmd)
+                except:
+                    print 'Cannot copy file %s' % filename
+            
+            
+    if grbanme:
+        pass
 
 def PlotHist(pteldict):
     '''Plot a histogram of the response times of all available data.'''
