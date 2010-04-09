@@ -19,6 +19,7 @@ from RedshiftMachine import LoadGCN
 from AutoRedux import Signal
 from MiscBin.q import RemoveNaN
 from MiscBin.q import object2dict
+from MiscBin.q import where
 from MiscBin import qPickle
 import pylab
 import scipy
@@ -51,9 +52,9 @@ def whatis(keyword):
     'B1': {'definition':'Beta Lower limit','type':'double','source':'NatBat Spectra','sample':-2.3252999999999999},
     'B2': {'definition':'Alpha Upper limit','type':'double','source':'NatBat Spectra','sample':-1.9612000000000001},
     'CHI2': {'definition':'BAT Spectral Fit Chi-squared','type':'double','source':'NatBat Spectra','sample':36.090000000000003},
-    'CHI2_PC': {'definition':'default definition','type':'string','source':'NatBat','sample':'31.90/44'},
-    'CHI2_PC_LATE': {'definition':'default definition','type':'string','source':'NatBat','sample':'17.49/17'},
-    'CHI2_WT': {'definition':'default definition','type':'string','source':'NatBat','sample':'17.85/20'},
+    'CHI2_PC': {'definition':'XRT PC Spectral Fit Chi-squared','type':'string','source':'NatXRT','sample':'31.90/44'},
+    'CHI2_PC_LATE': {'definition':'XRT Late PC Spectral Fit Chi-squared','type':'string','source':'NatXRT','sample':'17.49/17'},
+    'CHI2_WT': {'definition':'XRT WT Spectral Fit Chi-squared','type':'string','source':'NatXRT','sample':'17.85/20'},
     'DPK_O_CTS': {'definition':'Peak Countrate over Counts Uncertainty (s^-1)','type':'string','source':'NatBat','sample':0.0084310400000000008},
     'DRT45': {'definition':'rT_0.45 Uncertainty (s)','type':'string','source':'NatBat Timing','sample':0.10100000000000001},
     'DT50': {'definition':'T50 Uncertainty (s)','type':'string','source':'NatBat Timing','sample':0.22600000000000001},
@@ -175,7 +176,7 @@ def whatis(keyword):
     'xrt_tam1': {'definition':'XRT TAM 1?','type':'double','source':'Swift-XRT Position','sample':237.21000000000001},
     'xrt_tam2': {'definition':'XRT TAM 2?','type':'double','source':'Swift-XRT Position','sample':261.25999999999999},
     'xrt_tam3': {'definition':'XRT TAM 3?','type':'double','source':'Swift-XRT Position','sample':243.41999999999999},
-    'xrt_waveform': {'definition':'XRT Waveform?','type':'integer','source':'SwiftCat','sample':134},
+    'xrt_waveform': {'definition':'XRT Waveform?','type':'integer','source':'Swift-XRT Position','sample':134},
     'z': {'definition':'Redshift','type':'double','source':'SwiftCat','sample':2.4300000000000002},
     'z_class': {'definition':'Redshift class (high_z,medium_z,low_z) derived from actual redshift value','type':'string','source':'Derived','sample':'medium_z'},
     'z_isupper': {'definition':'Was the redshift value reported an upper limit?','type':'string','source':'SwiftCat','sample':'no'},
@@ -183,6 +184,8 @@ def whatis(keyword):
 
     if keyword in helpdict:
         return helpdict[keyword]
+    elif keyword == 'all':
+        return helpdict
     else: 
         print 'Keyword unknown.  Check keyword or tell Adam to update his dictionary'
 
@@ -413,6 +416,15 @@ class GRBdb:
             nparr[key] = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
         return nparr
         
+    def MakeNomArr(self,key):
+        '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
+        we can't calculate a mean or stdev for these values.) 
+        '''
+        arr = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
+        subarr = arr[where(arr,'nan','!=')]
+        keydict = {'array':arr,'subarr':subarr,'type':'nominal'}
+        setattr(self,key,keydict)
+        
     def MakeAttrArr(self,key,poserrkey=None,negerrkey=None,DeltaErr=True):
         '''For the key, create a numpy array of all the values
         Good for getting the mean, std dev, etc.  And for plotting!
@@ -443,7 +455,7 @@ class GRBdb:
         mean = subarr.mean()
         median = numpy.median(subarr)
         std = subarr.std()
-        keydict = {'array':arr,'subarr':subarr,'mean':mean,'median':median,'std':std}
+        keydict = {'array':arr,'subarr':subarr,'mean':mean,'median':median,'std':std,'type':'numeric'}
         if poserrkey:
             errarr = numpy.array(map(lambda x:x[poserrkey] if poserrkey in x else numpy.nan, self.dict.itervalues()))
             if not DeltaErr:
@@ -689,6 +701,87 @@ class GRBdb:
             self.plotallvall(keylist=keys_to_plot,zval='Z')
         if hist:
             self.DistHist(keylist=keys_to_hist)
+    
+    def MakeAllAttr(self):
+        self.MakeAttrArr('A',negerrkey='A1',poserrkey='A2',DeltaErr=False)
+        self.MakeAttrArr('B',negerrkey='B1',poserrkey='B2',DeltaErr=False)
+        self.MakeAttrArr('CHI2')
+        self.MakeNomArr('CHI2_PC')
+        self.MakeNomArr('CHI2_PC_LATE')
+        self.MakeNomArr('CHI2_WT')
+        self.MakeAttrArr('DT_MAX_SNR')
+        self.MakeAttrArr('EISO',negerrkey='EISO1',poserrkey='EISO2',DeltaErr=False)
+        self.MakeAttrArr('EP',negerrkey='EP1',poserrkey='EP2',DeltaErr=False)
+        self.MakeAttrArr('EP0',negerrkey='EP01',poserrkey='EP02',DeltaErr=False)
+        self.MakeAttrArr('FL',negerrkey='FL1',poserrkey='FL2',DeltaErr=False)
+        self.MakeAttrArr('FLX_PC',negerrkey='FLX_PC1',poserrkey='FLX_PC2',DeltaErr=False)
+        self.MakeAttrArr('FLX_PC_LATE',negerrkey='FLX_PC_LATE1',poserrkey='FLX_PC_LATE2',DeltaErr=False)
+        self.MakeAttrArr('FLX_WT',negerrkey='FLX_WT1',poserrkey='FLX_WT2',DeltaErr=False)
+        self.MakeAttrArr('GAM_PC',negerrkey='GAM_PC1',poserrkey='GAM_PC2',DeltaErr=False)
+        self.MakeAttrArr('GAM_PC_LATE',negerrkey='GAM_PC_LATE1',poserrkey='GAM_PC_LATE2',DeltaErr=False)
+        self.MakeAttrArr('GAM_WT',negerrkey='GAM_WT1',poserrkey='GAM_WT2',DeltaErr=False)
+        self.MakeAttrArr('MAX_SNR')
+        self.MakeNomArr('MODEL')
+        self.MakeAttrArr('NH_GAL')
+        self.MakeAttrArr('NH_PC',negerrkey='NH_PC1',poserrkey='NH_PC2',DeltaErr=False)
+        self.MakeAttrArr('NH_PC_LATE',negerrkey='NH_PC_LATE1',poserrkey='NH_PC_LATE2',DeltaErr=False)
+        self.MakeAttrArr('NH_WT',negerrkey='NH_WT1',poserrkey='NH_WT2',DeltaErr=False)
+        self.MakeAttrArr('NISO',negerrkey='NISO1',poserrkey='NISO2',DeltaErr=False)
+        self.MakeAttrArr('NU')
+        self.MakeNomArr('OBS')
+        self.MakeAttrArr('PK_O_CTS',negerrkey='DPK_O_CTS',poserrkey='DPK_O_CTS',DeltaErr=True)
+        self.MakeAttrArr('RT45',negerrkey='DRT45',poserrkey='DRT45',DeltaErr=True)
+        self.MakeAttrArr('T50',negerrkey='DT50',poserrkey='DT50',DeltaErr=True)
+        self.MakeAttrArr('T90',negerrkey='DT90',poserrkey='DT90',DeltaErr=True)
+        self.MakeNomArr('T0')
+        self.MakeNomArr('T1')
+        self.MakeNomArr('UT')
+        self.MakeNomArr('T_PC')
+        self.MakeNomArr('T_PC_LATE')
+        self.MakeNomArr('T_WT')
+        self.MakeAttrArr('Z')
+        
+        # From the BAT Position GCN
+        self.MakeAttrArr('bat_bkg_dur')
+        self.MakeAttrArr('bat_bkg_inten')
+        self.MakeAttrArr('bat_img_peak')
+        self.MakeAttrArr('bat_inten')
+        self.MakeNomArr('bat_is_rate_trig')
+        self.MakeAttrArr('bat_image_signif')
+        self.MakeAttrArr('bat_rate_signif')
+        self.MakeAttrArr('bat_trig_ind')
+        self.MakeNomArr('bat_trig_ind_range')
+        self.MakeAttrArr('bat_trigger_dur')
+        
+        self.MakeAttrArr('grb_date_doy')
+        self.MakeNomArr('grb_date_str')
+        self.MakeAttrArr('grb_date_tjd')
+        self.MakeAttrArr('grb_time_sod')
+        self.MakeNomArr('grb_time_str')
+        
+        # From the XRT Position GCN
+        self.MakeAttrArr('xrt_amplifier')
+        self.MakeAttrArr('xrt_inten')
+        self.MakeAttrArr('xrt_signif')
+        self.MakeAttrArr('xrt_tam0')
+        self.MakeAttrArr('xrt_tam1')
+        self.MakeAttrArr('xrt_tam2')
+        self.MakeAttrArr('xrt_tam3')
+        self.MakeAttrArr('xrt_waveform')
+        self.MakeAttrArr('moon_dist')
+        self.MakeAttrArr('moon_illum')
+        self.MakeAttrArr('sun_dist')
+        
+        # From SwiftCAT
+        self.MakeAttrArr('fluence')
+        self.MakeAttrArr('peakflux')
+        self.MakeAttrArr('t90')
+        self.MakeNomArr('v_mag_isupper')
+        self.MakeNomArr('wh_mag_isupper')
+        self.MakeAttrArr('xrt_column')
+        self.MakeAttrArr('z')
+        self.MakeNomArr('z_isupper')
+        self.MakeNomArr('triggerid_str')
         
     def DistHist(self,keylist):
         self.MakeAttrArr('T90',negerrkey='DT90',poserrkey='DT90')
@@ -735,7 +828,164 @@ class GRBdb:
                     if suppress: doprint = False
             if doprint: print printstr
     
+    def removeShort(self):
+        '''Removes all short bursts with T90 < 2 and those without a redshift'''
+        remove_list = []
+        for i in iter(self.dict):
+            if 'T90' in self.dict[i]: 
+                t90 = self.dict[i]['T90']
+            elif 't90' in self.dict[i]:
+                t90 = self.dict[i]['t90']
+            else:
+                t90 = 'unknown'
+            if 'Z' not in self.dict[i]:
+                z = None
+            else:
+                z = self.dict[i]['Z']
+            if not z or t90 < 2.0: 
+                remove_list.append(i)
+        print len(self.dict)
+        print len(remove_list)
+        for key in remove_list:
+            self.dict.pop(key)
+        print len(self.dict)
+        #update the length
+        self.length=len(self.dict)
+                    
+                    
+    def makeArffFromArray(self,attrlist=['triggerid_str','Z','A','B','DT_MAX_SNR','EP','EP0','FL','FLX_PC','FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT','MAX_SNR','NH_PC','NH_PC_LATE','NH_WT','PK_O_CTS','RT45','T50','T90','bat_bkg_inten','bat_img_peak','bat_inten','bat_is_rate_trig','bat_rate_signif','bat_trigger_dur','xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0','xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux','t90','v_mag_isupper','wh_mag_isupper','xrt_column'],inclerr=True):
+        # Open file
+        arffpath = storepath+'redshiftmachine.arff'
+        subpath = storepath+'redshiftdata.txt'
+        
+        fmt = ''
+        
+        f=open(arffpath,'w')
 
+        # Create .arff header
+        f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
+        f.write('% \n')
+        f.write('% 2. Sources:\n')
+        f.write('%     (a) Creator: Adam N. Morgan\n')
+        f.write('%     (b) Data From: GCN Notices (http://gcn.gsfc.nasa.gov/),\n')
+        f.write('%                    http://astro.berkeley.edu/~nat/Swift/\n')
+        f.write('%                    http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/\n')
+        f.write('%     (c) Date: '+time.asctime()+'\n')
+        f.write('% \n')
+        f.write('% 3. This file was created automatically. \n')
+        f.write('%    CHECK THE ATTRIBUTES before running Weka. \n')
+        f.write('% \n')
+        f.write('@RELATION swift_redshift\n')
+        f.write('\n')
+        
+        fmt = ''
+        nomkeystring = ''
+        numkeystring = ''
+        numattrlist = []
+        nomattrlist = []
+        
+        # Create .arff attributes section 
+        for keyitem in attrlist:
+            
+            # Check to see if the attribute exists
+            if hasattr(self,keyitem):
+                attrdict = getattr(self,keyitem)
+                # Check if a numeric or nominal attribute
+                if not 'type' in attrdict:
+                    print 'type not in attribute dict.  Continuing...'
+                    continue
+                if attrdict['type'] == 'numeric':
+                    numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
+                    numattrlist.append(keyitem)
+                    fmt += ',%f'
+                    if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
+                        posname = keyitem + '_poserr'
+                        negname = keyitem + '_negerr'
+                        numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % posname
+                        numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % negname
+                        fmt += ',%f,%f'
+                elif attrdict['type'] == 'nominal':
+                    # Do nominal Stuff
+                    # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
+                    f.write('% !CHECK ME:\n')
+                    nomattrlist.append(keyitem)
+                    fmt += ',%s'
+                    nomkeystring += ('@ATTRIBUTE %s {yes, no}\n') % keyitem
+                else:
+                    print 'Attribute type is unknown (not nominal or numeric). Continuing..'
+                # Write the keystring
+            else:
+                print 'Database does not have attribute %s' % (keyitem)
+
+        f.write(numkeystring)
+        f.write(nomkeystring)
+            
+        # Create .arff data section
+        f.write('\n')
+        f.write('@DATA\n')    
+        
+            
+        firstattr = numattrlist[0]
+        numtotarr=numpy.array([getattr(self,firstattr)['array']])
+        # Populate the total array
+        for keyitem in numattrlist[1:]:
+            attrdict = getattr(self,keyitem)
+            numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['array']])),axis=0)
+            if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
+                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['poserrarr']])),axis=0)
+                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['negerrarr']])),axis=0)
+                    
+        
+        
+        firstattr = nomattrlist[0]
+        nomtotarr=numpy.array([getattr(self,firstattr)['array']])
+        # Populate the total array
+        for keyitem in nomattrlist[1:]:
+            attrdict = getattr(self,keyitem)
+            nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
+        
+        numarr2 = numtotarr
+        nomarr2 = nomtotarr
+        
+        nomsubpath = subpath + 'nom'
+        numsubpath = subpath + 'num'
+        numnomsubpath = subpath + 'numnom'
+        
+        numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt='%1.5e')
+        numpy.savetxt(nomsubpath,nomarr2,delimiter=',',fmt='%s')
+        
+        cmd = 'cat %s %s > %s' %(numsubpath,nomsubpath,numnomsubpath)
+        os.system(cmd)
+        
+        
+        fixedarray = numpy.genfromtxt(numnomsubpath,delimiter=',',dtype='str')
+        numpy.savetxt(subpath,fixedarray.T,delimiter=',',fmt='%s')
+        
+        
+        f.close()
+        
+        # Find and replace all 'nan' strings with '?' recognized by weka
+        stext = 'nan'
+        rtext = '?'
+
+        inputt = sys.stdin
+        output = sys.stdout
+
+        inputt = open(subpath)
+        subpath2 = subpath + '_'
+        output = open(subpath2, 'w')
+
+        for s in inputt:
+            output.write(s.replace(stext, rtext))
+
+        inputt.close()
+        output.close()
+        
+        # Combine the Header with the data
+        cmd = 'cat %s %s > %s2' %(arffpath,subpath2,arffpath)
+        os.system(cmd)
+        
+        
         
 def createarff(outdict,keylist=['T90','FL','peakflux','NH_PC_LATE','wh_mag_isupper','v_mag_isupper'],\
                     attributeclass='z_class',classlist=['high_z','low_z']):
