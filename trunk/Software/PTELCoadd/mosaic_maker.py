@@ -33,8 +33,8 @@ import pyfits
 from os import system
 import sys
 try:
-    from processing import Pool
-    from processing import cpuCount
+    from multiprocessing import Pool
+    from multiprocessing import cpu_count as cpuCount
     doparallel = 1
 except:
     print "Parallel processing library not installed. Not paralellizing."
@@ -53,10 +53,10 @@ start_time = time()
 # Scisoft probably won't work properly on Intel 64-bit Macs. It is strongly 
 # advised that you recompile and install SWarp from source if SWarp's coadd 
 # mosaics are null images.
-swarp_bin = "/Bloom/pipeline3/bin/swarp"
+swarp_bin = "/Applications/scisoft//i386/bin/swarp"
 # We'll also be using some WCSTools. There should be no problem with the Scisoft
 # version of thses.
-sethead_bin = "/scisoft/bin/sethead"
+sethead_bin = "/Applications/scisoft//i386/bin/sethead"
 # For parallel processing we need the number of available CPUs. You could hard-
 # code this value to something else, but it would result in non-optimal 
 # performance.
