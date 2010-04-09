@@ -88,7 +88,7 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
             if object_id not in pteldict[target_id]['obs']:
                 pteldict[target_id]['obs'].update({object_id:{'scope_ra':ra,'scope_dec':dec,'filename':filepath,'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
             else:
-                new_obj_id = object_id + '_' + ptel_time_sse
+                new_obj_id = str(object_id) + '_' + str(ptel_time_sse)
                 pteldict[target_id]['obs'].update({new_obj_id:{'scope_ra':ra,'scope_dec':dec,'filename':filepath,'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}})
                 
         # if 'ptel_time_sse' not in pteldict[target_id]:
@@ -215,11 +215,48 @@ def SwiftTargUnderTime(pteldict,range=(0.0,24.0)):
     print 'Bad Triggers (not a GRB): ', badtrigger
     return count
 
-def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/Data/FullDB/'):
+def MakeReduxScript(pteldict,trigid,pl3base='/home/ptelreducer/PyPAIRITELfullredux_distribution/',outdirbase='/home/ptelreducer/storage/amorgan/redux/'):
+    '''Designed for use on Betsy!
+    
+    To make a key script for all,
+    
+    for key in db.keys():
+        PTEL_Data.MakeReduxScript(db,key)
+    
+    copy all the resultant scripts over to betsy /home/ptelreducer/storage/amorgan/redux/scripts/
+    
+    move the desired script over to /home/ptelreducer/PyPAIRITELfullredux_distribution/
+    
+    ./script_name.txt
+    
+    when finished, move script to /home/ptelreducer/storage/amorgan/redux/scripts/finished_scripts
+    
+    '''
+    script_str = 'mkdir %s/%s\n' % (outdirbase,trigid)
+    for objid, objidval in pteldict[trigid]['obs'].iteritems():
+        myobjid = objid.split('_')[0]
+        rawpath = os.path.dirname(objidval['filename']) # directory containing raw files
+        ssestr = str(objidval['first_obs_time_sse'])
+        fulloutpath = outdirbase + '/' + trigid + '/' + ssestr + '/'
+        script_str += 'mkdir %s\n' % (fulloutpath)
+        script_str += 'python2.5 %sPyPAIRITELfullredux_local.py -r ptelreducer@lyra.berkeley.edu:%s -o %s -d %s -f >> reduxout_%s.txt\n' % (pl3base,rawpath,myobjid,fulloutpath,trigid)
+    filename = storepath + 'reduxscript_'+trigid+'.txt'
+    f = open(filename,'w')
+    f.write(script_str)
+    cmd = 'chmod +x %s' % (filename)
+    os.system(cmd)
+    f.close()
+
+def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/Data/FullDB/',clobber=False):
     '''
     Specifying either a target ID or a grb name, copy the raw data over to the
     desired location.
     '''
+    obsoutlocation = outlocation + '/%s' % (trigid)
+    
+    if os.path.exists(obsoutlocation) and clobber == False:
+        print "Already copied these files and clobber = False; not copying."
+        return
     if not trigid and not grbname:
         print 'No trigid or grbname specified; doing nothing'
         return
@@ -227,22 +264,32 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/
         print 'Please only specify either trigid or grbname. Doing nothing.'
         return
     if trigid:
+        print 'transferring.. %s' % (trigid)
         for objid, objidval in pteldict[trigid]['obs'].iteritems():
+            print objid
             rawpath = os.path.dirname(objidval['filename']) # directory containing raw files
             # Determine GRB ID - above we might have added a _sse, but now we
             # will split and make sure we are left with just the actual objid 
             myobjid = objid.split('_')[0]
-            globstr = rawpath + '/' + myobjid
-            globlist = glob.glob(globstr)
-            for filename in globlist:
-                try: 
-                    cmd = 'scp amorgan@lyra.berkeley.edu:%s %s' % (filename, outlocation)
-                    os.system(cmd)
+            globstr = rawpath + '/r20*' + myobjid + '*.fits'
+            if not os.path.exists(obsoutlocation):
+                try:
+                    os.mkdir(obsoutlocation)
                 except:
-                    print 'Cannot copy file %s' % filename
+                    print 'Cannot make the directory.  Crap.'
+            cmd = 'scp amorgan@lyra.berkeley.edu:%s %s/.' % (globstr, obsoutlocation)
+            os.system(cmd)
+            # globlist = glob.glob(globstr)
+            # print globlist
+            # for filename in globlist:
+            #     try: 
+            #         cmd = 'scp amorgan@lyra.berkeley.edu:%s %s' % (filename, outlocation)
+            #         os.system(cmd)
+            #     except:
+            #         print 'Cannot copy file %s' % filename
             
             
-    if grbanme:
+    if grbname:
         pass
 
 def PlotHist(pteldict):
@@ -278,3 +325,18 @@ def PlotHist(pteldict):
     pylab.ylabel('# of Events')
     pylab.xlabel('Hours Post-Trigger to First Observation')
     pylab.show()
+
+
+def SaveSortedDictTxt(pteldict):
+    import pprint
+    f = open('lyracrawl.txt','w')
+    keys = pteldict.keys()
+    keys.sort()
+    sorted_vals = map(pteldict.get,keys)
+    for item in keys:
+        myindex=keys.index(item)
+        mystr = '\n\n** %s **\n' % (item)
+        f.write(mystr)
+        prettydict = pprint.pformat(sorted_vals[myindex])
+        f.write(prettydict)
+    f.close
