@@ -33,7 +33,7 @@ from os import system
 from math import log
 from scipy import average, std, median, random, zeros, clip, array, append
 from scipy import histogram, optimize, sqrt, pi, exp, where, split
-from scipy import sum, std, resize, size
+from scipy import sum, std, resize, size, isnan
 from scipy import optimize, shape, indices, arange, ravel, sqrt
 from scipy.ndimage import gaussian_filter, binary_dilation
 from scipy import loadtxt, savetxt, sort
@@ -43,8 +43,10 @@ import operator
 
 # --------------------------    USER INPUT PARAMETERS   --------------------
 
-progenitor_image_name = "j_long_GRB.10928.1_coadd.fits"
-region_file = "PTEL.reg"
+# progenitor_image_name = "j_long_laptop_coadd.fits"
+# region_file = "ds9.reg"
+progenitor_image_name = "j_long_GRB.10928.1.1_coadd.fits"
+region_file = "GRB080607.reg"
 
 sextractor_bin = "/opt/local/bin/sex"
 weight_image_name = progenitor_image_name.replace("fits", "weight.fits")
@@ -234,7 +236,7 @@ system(sextractor_bin + " -c pairitel_photo.sex " + image_name +
     "-FILTER N " +
     "-CHECKIMAGE_TYPE OBJECTS " + 
     "-CHECKIMAGE_NAME check.fits " +
-    "-PHOT_APERTURES 3.6")
+    "-PHOT_APERTURES 5.8")
 
 
 objects_image = "check.fits"
@@ -253,8 +255,7 @@ for line in sex_file:
             x_index = int(round(float(line.split()[0]) - 1))
             y_index = int(round(float(line.split()[1]) - 1))
             sat_locations.append([y_index, x_index])
-sex_file.close()
-system("rm star_cat.txt")
+
 
 fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, 2.8, 0.8)
 print "Initial fwhm fit complete."
@@ -265,6 +266,9 @@ print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
 
 aperture_size = (1.5)*fwhm
 print "Aperture size: ", aperture_size
+if isnan(aperture_size):
+    print "Aperture size not found, using default 4.5."
+    aperture_size = 4.5
 
 # Read in the image and convert data to array. Also store STRT_CPU, STOP_CPU, 
 # and FILTER header keyword values for future use. If the start and stop times
@@ -524,8 +528,17 @@ for aperture in aperture_data_2:
 output_region_file.close()
 flux_array_green = array(flux_list_green)
 flux_array_yellow = array(flux_list_yellow)
+yellow = False
+if len(flux_array_yellow) > 50:
+    yellow = True
 flux_array_orange = array(flux_list_orange)
+orange = False
+if len(flux_array_orange) > 50:
+    orange = True
 flux_array_red = array(flux_list_red)
+red = False
+if len(flux_array_red) > 50:
+    red = True
 # Create a histogram from the flux_array. Convert the flux_histogram_data into a
 # list for use with the gaussian fitting. Convert the flux_histogram_bins into a
 # list of length one less with values replaced with the average value of each 
@@ -552,61 +565,64 @@ for bin in flux_histogram_bins_list_green:
         exp((-1*(bin-center_x_green)**2)/(2*x_width_green**2)))
     fit_data_list_green.append(fit_point)
 # YELLOW
-flux_histogram_data_yellow, flux_histogram_bins_yellow = histogram(
-    flux_array_yellow, int(num_apertures/160))
-bin_half_height_yellow = (flux_histogram_bins_yellow[1] - 
-    flux_histogram_bins_yellow[0])
-flux_histogram_data_list_yellow = list(flux_histogram_data_yellow)
-flux_histogram_bins_list_yellow = (list(bin_half_height_yellow + 
-    flux_histogram_bins_yellow[0:-1]))
-# Fit a gaussian curve to the histogram of the flux data.
-central_height_yellow, center_x_yellow, x_width_yellow = (fit_gaussian(
-    flux_histogram_data_list_yellow, flux_histogram_bins_list_yellow))
-# In case the fit returns a negative sigma, take the absolute value.
-x_width_yellow = abs(x_width_yellow)
-# Create data from the gaussian fit to plot on the flux histogram.
-fit_data_list_yellow = []
-for bin in flux_histogram_bins_list_yellow:
-    fit_point = ((central_height_yellow/sqrt(2*pi*x_width_yellow**2)) * 
-        exp((-1*(bin-center_x_yellow)**2)/(2*x_width_yellow**2)))
-    fit_data_list_yellow.append(fit_point)
+if yellow:
+    flux_histogram_data_yellow, flux_histogram_bins_yellow = histogram(
+        flux_array_yellow, int(num_apertures/160))
+    bin_half_height_yellow = (flux_histogram_bins_yellow[1] - 
+        flux_histogram_bins_yellow[0])
+    flux_histogram_data_list_yellow = list(flux_histogram_data_yellow)
+    flux_histogram_bins_list_yellow = (list(bin_half_height_yellow + 
+        flux_histogram_bins_yellow[0:-1]))
+    # Fit a gaussian curve to the histogram of the flux data.
+    central_height_yellow, center_x_yellow, x_width_yellow = (fit_gaussian(
+        flux_histogram_data_list_yellow, flux_histogram_bins_list_yellow))
+    # In case the fit returns a negative sigma, take the absolute value.
+    x_width_yellow = abs(x_width_yellow)
+    # Create data from the gaussian fit to plot on the flux histogram.
+    fit_data_list_yellow = []
+    for bin in flux_histogram_bins_list_yellow:
+        fit_point = ((central_height_yellow/sqrt(2*pi*x_width_yellow**2)) * 
+            exp((-1*(bin-center_x_yellow)**2)/(2*x_width_yellow**2)))
+        fit_data_list_yellow.append(fit_point)
 # ORANGE
-flux_histogram_data_orange, flux_histogram_bins_orange = histogram(
-    flux_array_orange, int(num_apertures/160))
-bin_half_height_orange = (flux_histogram_bins_orange[1] - 
-    flux_histogram_bins_orange[0])
-flux_histogram_data_list_orange = list(flux_histogram_data_orange)
-flux_histogram_bins_list_orange = (list(bin_half_height_orange + 
-    flux_histogram_bins_orange[0:-1]))
-# Fit a gaussian curve to the histogram of the flux data.
-central_height_orange, center_x_orange, x_width_orange = (fit_gaussian(
-    flux_histogram_data_list_orange, flux_histogram_bins_list_orange))
-# In case the fit returns a negative sigma, take the absolute value.
-x_width_orange = abs(x_width_orange)
-# Create data from the gaussian fit to plot on the flux histogram.
-fit_data_list_orange = []
-for bin in flux_histogram_bins_list_orange:
-    fit_point = ((central_height_orange/sqrt(2*pi*x_width_orange**2)) * 
-        exp((-1*(bin-center_x_orange)**2)/(2*x_width_orange**2)))
-    fit_data_list_orange.append(fit_point)
+if orange:
+    flux_histogram_data_orange, flux_histogram_bins_orange = histogram(
+        flux_array_orange, int(num_apertures/160))
+    bin_half_height_orange = (flux_histogram_bins_orange[1] - 
+        flux_histogram_bins_orange[0])
+    flux_histogram_data_list_orange = list(flux_histogram_data_orange)
+    flux_histogram_bins_list_orange = (list(bin_half_height_orange + 
+        flux_histogram_bins_orange[0:-1]))
+    # Fit a gaussian curve to the histogram of the flux data.
+    central_height_orange, center_x_orange, x_width_orange = (fit_gaussian(
+        flux_histogram_data_list_orange, flux_histogram_bins_list_orange))
+    # In case the fit returns a negative sigma, take the absolute value.
+    x_width_orange = abs(x_width_orange)
+    # Create data from the gaussian fit to plot on the flux histogram.
+    fit_data_list_orange = []
+    for bin in flux_histogram_bins_list_orange:
+        fit_point = ((central_height_orange/sqrt(2*pi*x_width_orange**2)) * 
+            exp((-1*(bin-center_x_orange)**2)/(2*x_width_orange**2)))
+        fit_data_list_orange.append(fit_point)
 # RED
-flux_histogram_data_red, flux_histogram_bins_red = histogram(flux_array_red, 
-    int(num_apertures/160))
-bin_half_height_red = flux_histogram_bins_red[1] - flux_histogram_bins_red[0]
-flux_histogram_data_list_red = list(flux_histogram_data_red)
-flux_histogram_bins_list_red = list(bin_half_height_red + 
-    flux_histogram_bins_red[0:-1])
-# Fit a gaussian curve to the histogram of the flux data.
-central_height_red, center_x_red, x_width_red = (fit_gaussian(
-    flux_histogram_data_list_red, flux_histogram_bins_list_red))
-# In case the fit returns a negative sigma, take the absolute value.
-x_width_red = abs(x_width_red)
-# Create data from the gaussian fit to plot on the flux histogram.
-fit_data_list_red = []
-for bin in flux_histogram_bins_list_red:
-    fit_point = ((central_height_red/sqrt(2*pi*x_width_red**2)) * 
-        exp((-1*(bin-center_x_red)**2)/(2*x_width_red**2)))
-    fit_data_list_red.append(fit_point)
+if red:
+    flux_histogram_data_red, flux_histogram_bins_red = histogram(flux_array_red, 
+        int(num_apertures/160))
+    bin_half_height_red = flux_histogram_bins_red[1] - flux_histogram_bins_red[0]
+    flux_histogram_data_list_red = list(flux_histogram_data_red)
+    flux_histogram_bins_list_red = list(bin_half_height_red + 
+        flux_histogram_bins_red[0:-1])
+    # Fit a gaussian curve to the histogram of the flux data.
+    central_height_red, center_x_red, x_width_red = (fit_gaussian(
+        flux_histogram_data_list_red, flux_histogram_bins_list_red))
+    # In case the fit returns a negative sigma, take the absolute value.
+    x_width_red = abs(x_width_red)
+    # Create data from the gaussian fit to plot on the flux histogram.
+    fit_data_list_red = []
+    for bin in flux_histogram_bins_list_red:
+        fit_point = ((central_height_red/sqrt(2*pi*x_width_red**2)) * 
+            exp((-1*(bin-center_x_red)**2)/(2*x_width_red**2)))
+        fit_data_list_red.append(fit_point)
 # Generate the flux histogram plot.
 plot_title = ("Sky Flux Histogram")
 fig = plt.figure(figsize=(6, 6))
@@ -615,18 +631,21 @@ ax1.plot(flux_histogram_bins_list_green, flux_histogram_data_list_green,
     marker = "o", color = "green", linestyle="none", label = "Flux [ADU]")
 ax1.plot(flux_histogram_bins_list_green, fit_data_list_green, marker = ".", 
     color = "green", linestyle="solid", label = "Gaussian Fit")
-ax1.plot(flux_histogram_bins_list_yellow, flux_histogram_data_list_yellow, 
-    marker = "o", color = "yellow", linestyle="none", label = "Flux [ADU]")
-ax1.plot(flux_histogram_bins_list_yellow, fit_data_list_yellow, marker = ".", 
-    color = "yellow", linestyle="solid", label = "Gaussian Fit")
-ax1.plot(flux_histogram_bins_list_orange, flux_histogram_data_list_orange, 
-    marker = "o", color = "orange", linestyle="none", label = "Flux [ADU]")
-ax1.plot(flux_histogram_bins_list_orange, fit_data_list_orange, marker = ".", 
-    color = "orange", linestyle="solid", label = "Gaussian Fit")
-ax1.plot(flux_histogram_bins_list_red, flux_histogram_data_list_red, 
-    marker = "o", color = "red", linestyle="none", label = "Flux [ADU]")
-ax1.plot(flux_histogram_bins_list_red, fit_data_list_red, marker = ".", 
-    color = "red", linestyle="solid", label = "Gaussian Fit")
+if yellow:
+    ax1.plot(flux_histogram_bins_list_yellow, flux_histogram_data_list_yellow, 
+        marker = "o", color = "yellow", linestyle="none", label = "Flux [ADU]")
+    ax1.plot(flux_histogram_bins_list_yellow, fit_data_list_yellow, marker = ".", 
+        color = "yellow", linestyle="solid", label = "Gaussian Fit")
+if orange:
+    ax1.plot(flux_histogram_bins_list_orange, flux_histogram_data_list_orange, 
+        marker = "o", color = "orange", linestyle="none", label = "Flux [ADU]")
+    ax1.plot(flux_histogram_bins_list_orange, fit_data_list_orange, marker = ".", 
+        color = "orange", linestyle="solid", label = "Gaussian Fit")
+if red:
+    ax1.plot(flux_histogram_bins_list_red, flux_histogram_data_list_red, 
+        marker = "o", color = "red", linestyle="none", label = "Flux [ADU]")
+    ax1.plot(flux_histogram_bins_list_red, fit_data_list_red, marker = ".", 
+        color = "red", linestyle="solid", label = "Gaussian Fit")
 ax1.set_ylabel("Number")
 ax1.set_xlabel("<- Fainter     Bin     Brighter ->")
 ax1.set_title(plot_title)
@@ -858,18 +877,21 @@ print ("Gaussian Fit Upper Limit green (avg weight pixel=" +
     str(average(weight_flux_list_green)/(pi*aperture_size*aperture_size/4)) + "): " + 
     str(-2.5*log(center_x_green + 3*x_width_green, 10) + zeropoint) + 
     " err " + str(zeropoint_error))
-print ("Gaussian Fit Upper Limit yellow (avg weight pixel=" + 
-    str(average(weight_flux_list_yellow)/(pi*aperture_size*aperture_size/4)) + "): " + 
-    str(-2.5*log(center_x_yellow + 3*x_width_yellow, 10) + zeropoint) + 
-    " err " + str(zeropoint_error))
-print ("Gaussian Fit Upper Limit orange (avg weight pixel=" + 
-    str(average(weight_flux_list_orange)/(pi*aperture_size*aperture_size/4)) + "): " + 
-    str(-2.5*log(center_x_orange + 3*x_width_orange, 10) + zeropoint) + 
-    " err " + str(zeropoint_error))
-print ("Gaussian Fit Upper Limit red (avg weight pixel=" + 
-    str(average(weight_flux_list_red)/(pi*aperture_size*aperture_size/4)) + "): " + 
-    str(-2.5*log(center_x_red + 3*x_width_red, 10) + zeropoint) + 
-    " err " + str(zeropoint_error))
+if yellow:
+    print ("Gaussian Fit Upper Limit yellow (avg weight pixel=" + 
+        str(average(weight_flux_list_yellow)/(pi*aperture_size*aperture_size/4)) + "): " + 
+        str(-2.5*log(center_x_yellow + 3*x_width_yellow, 10) + zeropoint) + 
+        " err " + str(zeropoint_error))
+if orange:
+    print ("Gaussian Fit Upper Limit orange (avg weight pixel=" + 
+        str(average(weight_flux_list_orange)/(pi*aperture_size*aperture_size/4)) + "): " + 
+        str(-2.5*log(center_x_orange + 3*x_width_orange, 10) + zeropoint) + 
+        " err " + str(zeropoint_error))
+if red:
+    print ("Gaussian Fit Upper Limit red (avg weight pixel=" + 
+        str(average(weight_flux_list_red)/(pi*aperture_size*aperture_size/4)) + "): " + 
+        str(-2.5*log(center_x_red + 3*x_width_red, 10) + zeropoint) + 
+        " err " + str(zeropoint_error))
 print ("SExtractor faintest detection: " + str(faintest_mag + zeropoint) + 
     " err " + str(sqrt(faintest_mag_err**2 + zeropoint_error**2)) + " at " + 
     str(faintest_ra) + ", " + str(faintest_dec))
