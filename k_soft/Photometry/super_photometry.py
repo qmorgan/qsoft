@@ -45,8 +45,8 @@ import operator
 
 # progenitor_image_name = "j_long_laptop_coadd.fits"
 # region_file = "ds9.reg"
-progenitor_image_name = "j_long_GRB.10928.1.1_coadd.fits"
-region_file = "GRB080607.reg"
+progenitor_image_name = "j_long_GRB.10928.1_coadd_1-1.fits"
+region_file = "PTEL.reg"
 
 sextractor_bin = "/opt/local/bin/sex"
 weight_image_name = progenitor_image_name.replace("fits", "weight.fits")
@@ -704,22 +704,23 @@ target_e_mag = 999
 vizcat_file = file("viz_output_cropped.txt", "r")
 vizcat_starlist = []
 for line in vizcat_file:
-    data_list = line.rstrip().lstrip().split(";")
-    ra = float(data_list[1]) # degrees
-    dec = float(data_list[2]) # degrees
-    if band == "j":
-        mag = float(data_list[3])
-        e_mag = float(data_list[4])
-        snr = float(data_list[5])
-    if band == "h":
-        mag = float(data_list[6])
-        e_mag = float(data_list[7])
-        snr = float(data_list[8])
-    if band == "k":
-        mag = float(data_list[9])
-        e_mag = float(data_list[10])
-        snr = float(data_list[11])
-    vizcat_starlist.append([ra, dec, mag, e_mag, snr])
+    if line[0] != '#':
+        data_list = line.rstrip().lstrip().split(";")
+        ra = float(data_list[1]) # degrees
+        dec = float(data_list[2]) # degrees
+        if band == "j":
+            mag = float(data_list[3])
+            e_mag = float(data_list[4])
+            snr = float(data_list[5])
+        if band == "h":
+            mag = float(data_list[6])
+            e_mag = float(data_list[7])
+            snr = float(data_list[8])
+        if band == "k":
+            mag = float(data_list[9])
+            e_mag = float(data_list[10])
+            snr = float(data_list[11])
+        vizcat_starlist.append([ra, dec, mag, e_mag, snr])
 vizcat_file.close()
 # Create the sexcat_starlist from the Source Extractor output catalog. Also fill
 # in the sex_inst_mag_list which will be used as a diagnostic check on the 
