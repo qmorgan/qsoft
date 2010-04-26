@@ -58,7 +58,7 @@ import operator
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
-    print "directory where you have WCSTOOLS installed"
+    print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
@@ -91,6 +91,7 @@ def make_sex_cat_fake_stars(fake_image, progenitor_image_name,
         "-BACK_VALUE 0.0 " +
         "-FILTER N " + 
         "-PHOT_APERTURES " + str(aperture_size) + 
+        " -WEIGHT_TYPE NONE" +
         " -WEIGHT_IMAGE " + weight_image_name + 
         " -CATALOG_NAME " + sexcat_file)
     return sexcat_file
@@ -742,8 +743,8 @@ def dophot(progenitor_image_name,region_file,ap=None):
     vizcat_file = file(storepath + "viz_output_cropped.txt", "r")
     vizcat_starlist = []
     for line in vizcat_file:
-        if line[0] != '#':
-            data_list = line.rstrip().lstrip().split(";")
+        data_list = line.rstrip().lstrip().split(";")
+        if len(data_list) == 13: # Check formatting 
             ra = float(data_list[1]) # degrees
             dec = float(data_list[2]) # degrees
             if band == "j":
@@ -998,3 +999,23 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None):
         label = photout['FileName']
         photdict.update({label:photout})
     return photdict
+
+def tmp_phot_plot(photdict):
+    '''quick write-up of getting the photometry because I am lazy '''
+    import pylab
+    timearr = []
+    timeerrarr = []
+    photarr = []
+    photerrarr = []
+    for imgresult in photdict.itervalues():
+        timearr.append(imgresult['HJD_mid'])
+        duration = imgresult['HJD_start'] - imgresult['HJD_stop']
+        timeerrarr.append(duration)
+        photarr.append(imgresult['targ_mag'][0])
+        photerrarr.append(imgresult['targ_mag'][1])
+        
+    pylab.errorbar(y=photarr,x=timearr,xerr=timeerrarr,yerr=photerrarr,fmt='ro')
+    pylab.ylim(pylab.ylim()[1],pylab.ylim()[0]) #transpose axes
+    pylab.xlabel('Time since Burst (s)')
+    pylab.ylabel('J Mag')
+    pylab.semilogx()
