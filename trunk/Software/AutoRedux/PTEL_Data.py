@@ -2,7 +2,6 @@ import os, sys
 import pyfits
 import glob
 import time
-from AutoRedux import dictdate
 from Phot import extinction
 from MiscBin import q
 from RedshiftMachine import ParseSwiftCat
@@ -14,14 +13,15 @@ if not os.environ.has_key("Q_DIR"):
 storepath = os.environ.get("Q_DIR") + '/store/'
 swift_cat_path = storepath+'grb_table_1269669883.txt'
 
-def update_dict(pteldict,burst=None):
-    '''Add Comments!'''
+def update_dict(pteldict,burst):
+    '''If a burst is specified on pteldict, this function updates pteldict by adding a formated_time key, which gives date in the form of "http://skycam.mmto.arizona.edu/skycam/YYYYMMDD/night_movie.avi, and an extinction key.'''
     # Pierre- add the snippet of code from dictdate below.  Do it on a per-
     # burst basis, and then we can use update_all_dicts to loop over everything
-    dictdate.formattime(pteldict)
-    if not burst:
-        pass
-    else:
+    if pteldict.has_key(burst):
+        time1 = pteldict[burst]['ptel_time']
+        time2 = time1[0:4]+time1[5:7]+time1[8:10]
+        formated = 'http://skycam.mmto.arizona.edu/skycam/'+time2+'/night_movie.avi'
+        pteldict[burst]['formated_time'] = formated 
         firstobs = pteldict[burst]['obs'].keys()[0]
         ra = pteldict[burst]['obs'][firstobs]['scope_ra']
         dec = pteldict[burst]['obs'][firstobs]['scope_dec']
@@ -31,6 +31,8 @@ def update_dict(pteldict,burst=None):
         # Just take the 0th entry of the returned extinction list; the rest 
         # of the info is redundant positional information.
         pteldict[burst]['extinction'] = ext[0]
+    else: print 'Cannot find specified burst in pteldict!'
+
 
 def update_all_dicts(pteldict):
     '''Update the dictionary for all keys in the pteldict.'''
