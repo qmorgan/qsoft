@@ -2,6 +2,9 @@ import os, sys
 import pyfits
 import glob
 import time
+from AutoRedux import dictdate
+from Phot import extinction
+from MiscBin import q
 from RedshiftMachine import ParseSwiftCat
 
 if not os.environ.has_key("Q_DIR"):
@@ -11,6 +14,20 @@ if not os.environ.has_key("Q_DIR"):
 storepath = os.environ.get("Q_DIR") + '/store/'
 swift_cat_path = storepath+'grb_table_1269669883.txt'
 
+def update_dict(pteldict,burst='noburst'):
+    dictdate.formattime(pteldict)
+    if burst == 'noburst':
+        pass
+    else:
+        firstobs = pteldict[burst]['obs'].keys()[0]
+        ra = pteldict[burst]['obs'][firstobs]['scope_ra']
+        dec = pteldict[burst]['obs'][firstobs]['scope_dec']
+        decpos = (ra, dec)
+        secpos = q.dec2sex(decpos)
+        ext = extinction.extinction(secpos[0], secpos[1])
+        pteldict[burst]['extinction'] = ext
+        
+        
 
 def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     '''Given a path to raw pairitel data and and object ID (could be '*'),
