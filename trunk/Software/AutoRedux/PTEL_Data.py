@@ -14,9 +14,12 @@ if not os.environ.has_key("Q_DIR"):
 storepath = os.environ.get("Q_DIR") + '/store/'
 swift_cat_path = storepath+'grb_table_1269669883.txt'
 
-def update_dict(pteldict,burst='noburst'):
+def update_dict(pteldict,burst=None):
+    '''Add Comments!'''
+    # Pierre- add the snippet of code from dictdate below.  Do it on a per-
+    # burst basis, and then we can use update_all_dicts to loop over everything
     dictdate.formattime(pteldict)
-    if burst == 'noburst':
+    if not burst:
         pass
     else:
         firstobs = pteldict[burst]['obs'].keys()[0]
@@ -25,8 +28,17 @@ def update_dict(pteldict,burst='noburst'):
         decpos = (ra, dec)
         secpos = q.dec2sex(decpos)
         ext = extinction.extinction(secpos[0], secpos[1])
-        pteldict[burst]['extinction'] = ext
-        
+        # Just take the 0th entry of the returned extinction list; the rest 
+        # of the info is redundant positional information.
+        pteldict[burst]['extinction'] = ext[0]
+
+def update_all_dicts(pteldict):
+    '''Update the dictionary for all keys in the pteldict.'''
+    for key in pteldict:
+        try:
+            update_dict(pteldict,key)
+        except:
+            print 'Cannot update dictionary for %s. Uh oh!' % (key)
         
 
 def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
@@ -56,8 +68,7 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         grb = ''
         time_delta_hours_str = ''
         comments = ''
-        
-        
+         
 #        filepath = raw_path + '/' + filename
         # Open the fits file
         hdulist = pyfits.open(filepath)
@@ -76,7 +87,6 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         # GRB.10000.1
         object_id = prihdr['OBJECT']
         
-        
         # Get the time of the first (p0-0) observation for a particular ID
         # '2006-09-29 08:45:31.824422'
         ptel_time = prihdr['STRT_CPU']
@@ -94,7 +104,6 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         except:
             ra = 0.00
             dec = 0.00
-        
         
         if target_id not in pteldict:
             targdict = {target_id:{'mission':mission,'triggerid':triggerid,'obs':{object_id:{'scope_ra':ra,'scope_dec':dec,'filename':filepath,'first_obs_time_sse':ptel_time_sse,'first_obs_time':ptel_time_split[0]}}}}
@@ -151,11 +160,9 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
         else:
             print 'Cannot yet grab extra info for %s.' % (target_id)
         
-        
         string_output = '%s,%s,%s,%s,%s,%s,%s,%s' % (semester,grb,object_id,target_id,ptel_time_split[0],burst_time_str,time_delta_hours_str,comments)
         print string_output
         hdulist.close()
-        
         
         # loop through observations in pteldict to find the earliest one for time purposes
         for target,targdict in pteldict.iteritems():
@@ -173,7 +180,6 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
                     targdict.update({'ptel_time_sse':min_ptel_time,'ptel_time':min_ptel_time_string})
         #TODO: If two object_ids have the same target_id, combine them.
     return pteldict
-
 
 def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
