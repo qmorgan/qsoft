@@ -34,7 +34,10 @@ def grab_script(filepath,rm=True):
             print 'Unrecognized line in script!'
             print line
     if rm:
-        os.system('mv ' + filepath + ' ' + finished_scripts_path + '.')
+        if not os.path.exists(finished_scripts_path):
+            os.system('mv ' + filepath + ' ' + finished_scripts_path + '.')
+        else:
+            print "**FINISHED SCRIPTS PATH ALREADY EXISTS.  Not moving."
         
 
 def queue_insert(reduction_command):
