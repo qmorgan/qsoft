@@ -15,9 +15,9 @@ computer might not have enough memory to swarp them all together.  It was OK
 with 1.5 hours of data, but choked on 3 hours.  I may change the program to 
 do some intermediate swarping in the future to deal with this problem.
 
-The parameter numcoadd specifies how many total observations to coadd in a 
-given epoch (say you only want to coadd the first 40 of a 90 observation 
-epoch, set numcoadd=40).  By default, numcoadd=None coadds all of them.  
+The parameter coadd_range specifies the range of images to coadd together. 
+Setting a coadd_range=(1,40) coadds the first to the 40th image together.
+By default, coadd_range=None coadds all of them.  
 
 Start python, then do the following:
 >>> import CoaddWrap
@@ -38,6 +38,55 @@ import os, sys
 import shutil
 import glob
 pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
+
+
+def smartStack(obsidlist):
+    prep(obsidlist)
+    firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
+    
+    j_filename_old = "j_long_triplestacks_full.txt"
+    j_file = file(j_filename_old,"r")
+    j_list_full = j_file.readlines()
+    
+    total_length = len(j_list_full)
+        
+    doubling_time = 4
+    initial_sum_length = 0
+    initial_obs_number = 1
+    
+    doubling_count=0
+    length_count=0
+    
+    sum_length = initial_sum_length
+    obs_num_i = initial_obs_number
+    obs_num_f = 0
+    
+    while obs_num_f < total_length:
+                    
+        doubling_count += 1
+        obs_num_f = obs_num_i + sum_length
+        myrange = (obs_num_i, obs_num_f)
+        
+        
+        # if we're running out of observations, tack the rest on to the end
+        if obs_num_f + sum_length > total_length:
+            obs_num_f = total_length
+            myrange = (obs_num_i, obs_num_f)
+        
+        obs_num_i = obs_num_f + 1
+        
+        if doubling_count == doubling_time: 
+            doubling_count = 0
+            if sum_length == 0:
+                sum_length = 1
+            else:
+                sum_length *= 2
+        
+        
+        print myrange 
+        coadd(firstid,coadd_range=myrange)
+
+    cleanup(firstid)
 
 def prep(obsid):
     '''Given a string or list of obsids, combine them into a text file
