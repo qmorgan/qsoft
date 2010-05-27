@@ -64,6 +64,10 @@ storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 sextractor_bin = "/opt/local/bin/sex"
 
+#############
+# NOTE: Make sure the path is set correctly in the keyword
+# PARAMETERS_NAME in $Q_DIR/load/pairitel_photo.sex
+#############
 
 # Calculate the residual for the gaussian fit.
 def gaussian_residuals(params, y, x):
