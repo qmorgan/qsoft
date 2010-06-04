@@ -217,7 +217,7 @@ class GCNNotice:
             f=open(reg_name,'w')
             f.write('# Region file format: DS9 version 4.1\n')
             update_time = time.ctime(time.time())
-            commentstr1 = '# Created Automaticall from Swift GCN Notices on %s\n' % (update_time)
+            commentstr1 = '# Created Automatically from Swift GCN Notices on %s\n' % (update_time)
             commentstr2 = '# Contact Adam N. Morgan at qmorgan@gmail.com with problems/comments/suggestions\n'
             f.write(commentstr1)
             f.write(commentstr2) 

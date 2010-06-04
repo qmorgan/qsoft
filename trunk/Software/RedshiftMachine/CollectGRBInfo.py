@@ -215,17 +215,25 @@ def LoadDB(name, clobber=False):
 def SaveDB(loadeddb):
     # If the attributes of the loaded GCN have changed since loading, use 
     # this to save the new version of the GCN.
-    pklpath = storepath+'DB_'+str(loaddeddb.name)+'.pkl'
-    qPickle.save(loaddeddb,pklpath,clobber=True)
+    pklpath = storepath+'DB_'+str(getattr(loadeddb,'name'))+'.pkl'
+    qPickle.save(loadeddb,pklpath,clobber=True)
 
 class GRBdb:
     '''Instance of a grb database'''
-    def __init__(self,name):
+    def __init__(self,name,incl_nat=True,incl_fc=False,incl_reg=True,
+                make_html=True,html_path='/Users/amorgan/Public/TestDir/'):
         
         self.date_created = time.ctime()
         try: 
-            self.dict = self.collect()
             self.name = str(name)
+            self.incl_fc = incl_fc
+            self.incl_nat = incl_nat
+            self.incl_reg = incl_reg
+            self.make_html = make_html
+            self.html_path = html_path
+        
+            self.dict = self.collect()
+        
             if len(self.name) > 20:
                 raise ValueError('Length of db name too long')
             self.successful_load = True
@@ -233,15 +241,14 @@ class GRBdb:
             self.successful_load = False
         
         
-    def collect(self,incl_nat=True,incl_fc=False,incl_reg=True,make_html=True,\
-                html_path='/Users/amorgan/Public/TestDir/'):
+    def collect(self):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  Each key 
         has several attributes, and as of 01/10/10 the GRBs with the most
         attributes (131, using incl_nat=True, incl_fc=False, incl_reg=True,
         make_html=True (at least 3 more attributes, Beta and two limits, also exist
         but may not be in the 131.  At least 134 total attributes.)) are as follows: 
-    
+        
     
         080413B
         060908 - new redshift (1.8836) from Fynbo et al- redo Nat Values!
@@ -271,6 +278,13 @@ class GRBdb:
         Rate_pk	 (Though Rate_pk/Cts is present)
         Band
         '''
+        
+        incl_fc = self.incl_fc
+        incl_nat = self.incl_nat
+        incl_reg = self.incl_reg
+        make_html = self.make_html
+        html_path = self.html_path
+        
         print '\nNow loading Swift Online Catalog Entries'
         swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_current.txt')
         if incl_nat:
