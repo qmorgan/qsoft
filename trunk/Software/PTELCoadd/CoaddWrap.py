@@ -41,6 +41,9 @@ pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
 
 
 def smartStack(obsidlist):
+    '''I need to comment this more.  This is a rough first go at doing 
+    smart coaddition  
+    '''
     prep(obsidlist)
     firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
     
@@ -121,12 +124,13 @@ def cleanup(obsid,opt_str=''):
     if not os.path.exists(dirname):
         os.mkdir(dirname)
     wdirname = dirname + '/weights'
-    if not os.path.exists(wdirname):
-        os.mkdir(wdirname)
-    wdirout = wdirname + '/.'
+    # if not os.path.exists(wdirname):
+    #     os.mkdir(wdirname)
+    # wdirout = wdirname + '/.'
     dirout = dirname + '/.'
     wglobstr = '?_long_' + obsid + '*weight.fits'
-    wcommand = 'mv %s %s' % (wglobstr, wdirout)
+    # wcommand = 'mv %s %s' % (wglobstr, wdirout)
+    wcommand = 'mv %s %s' % (wglobstr, dirout)
     os.system(wcommand)
     globstr = '?_long_' + obsid + '*.fits'
     command = 'mv %s %s' % (globstr, dirout)
