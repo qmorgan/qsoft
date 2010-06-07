@@ -37,7 +37,7 @@ Start python, then do the following:
 import os, sys
 import shutil
 import glob
-pypath = "~/Programs/epd-6.1-1-rh5-x86/bin/python"
+pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
 
 
 def smartStack(obsidlist):
@@ -123,21 +123,12 @@ def prep(obsid, exclude=False):
         pass
     else:
         for TStime in exclude:
-            syscmd = 'sed -e \'/%s/d\' j_long_triplestacks_full.txt >> j_temp.txt' % TStime
-            os.system(syscmd)
-            os.remove('j_long_triplestacks_full.txt')
-            os.rename('j_temp.txt', 'j_long_triplestacks_full.txt')
-            syscmd = 'sed -e \'/%s/d\' k_long_triplestacks_full.txt >> k_temp.txt' % TStime
-            os.system(syscmd)
-            os.remove('k_long_triplestacks_full.txt')
-            os.rename('k_temp.txt', 'k_long_triplestacks_full.txt')
-            syscmd = 'sed -e \'/%s/d\' h_long_triplestacks_full.txt >> h_temp.txt' % TStime
-            os.system(syscmd)
-            os.remove('h_long_triplestacks_full.txt')
-            os.rename('h_temp.txt', 'h_long_triplestacks_full.txt')
-        
-        
-
+            globlist = glob.glob('?_long_triplestacks_full.txt')
+            for globname in globlist:
+                syscmd = 'sed -e \'/%s/d\' %s >> j_temp.txt' % (TStime,globname)
+                os.system(syscmd)
+                os.remove(globname)
+                os.rename('j_temp.txt', globname)
 
 
 def cleanup(obsid,opt_str=''):
