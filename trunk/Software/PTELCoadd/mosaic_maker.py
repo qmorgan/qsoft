@@ -63,7 +63,7 @@ sethead_bin = "/Applications/scisoft//i386/bin/sethead"
 
 # AMORGAN ADDS for WCS FITTING  Change if your python version is different.
 # Will want to avoid having to load this in future versions.
-pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/"
+pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
 
 if doparallel == 1:
     numprocessors = cpuCount()
@@ -519,7 +519,7 @@ if do_wcs:
     # NOTE TO SELF.  Change this so that pypath will not need to be known.
     # But the simple hack should work for now.
     system(pypath + 
-        "python anet.py *_long_" + obs_string + "_coadd.fits")
+        " anet.py *_long_" + obs_string + "_coadd.fits")
     j_long_hdulist = pyfits.open("j_long_" + obs_string + "_coadd.fits", 
         "readonly")
     j_long_weights_hdulist = pyfits.open("j_long_" + obs_string + 
