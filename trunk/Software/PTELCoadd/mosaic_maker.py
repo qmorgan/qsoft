@@ -60,6 +60,11 @@ sethead_bin = "/Applications/scisoft//i386/bin/sethead"
 # For parallel processing we need the number of available CPUs. You could hard-
 # code this value to something else, but it would result in non-optimal 
 # performance.
+
+# AMORGAN ADDS for WCS FITTING  Change if your python version is different.
+# Will want to avoid having to load this in future versions.
+pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/"
+
 if doparallel == 1:
     numprocessors = cpuCount()
 else:
@@ -511,7 +516,9 @@ if do_short:
 # AMORGAN ADDS OPTION
 if do_wcs:            
     # Run the wcs fitting.
-    system("/Library/Frameworks/Python.framework/Versions/Current/bin/" + 
+    # NOTE TO SELF.  Change this so that pypath will not need to be known.
+    # But the simple hack should work for now.
+    system(pypath + 
         "python anet.py *_long_" + obs_string + "_coadd.fits")
     j_long_hdulist = pyfits.open("j_long_" + obs_string + "_coadd.fits", 
         "readonly")

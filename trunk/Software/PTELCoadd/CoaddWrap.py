@@ -38,7 +38,7 @@ import os, sys
 import shutil
 import glob
 pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
-
+# Also make sure to change your pypath in mosaic_maker.py
 
 def smartStack(obsidlist):
     '''I need to comment this more.  This is a rough first go at doing 
