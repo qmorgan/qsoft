@@ -37,7 +37,7 @@ Start python, then do the following:
 import os, sys
 import shutil
 import glob
-pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
+pypath = "~/Programs/epd-6.1-1-rh5-x86/bin/python"
 
 
 def smartStack(obsidlist):
@@ -91,9 +91,9 @@ def smartStack(obsidlist):
 
     cleanup(firstid)
 
-def prep(obsid):
+def prep(obsid, exclude=False):
     '''Given a string or list of obsids, combine them into a text file
-    containing all of the observations to coadd.
+    containing all of the observations to coadd. Exclude keyword will exclude triplestacks which times are specified (eg:['06h10m32s', '06h11m08s', '06h11m44s']).  
     '''
     # if obsid is a string, convert it into a list
     if isinstance(obsid,str):
@@ -118,6 +118,27 @@ def prep(obsid):
             syscmd = 'rm %s' % (item)
             os.system(syscmd)
 #            shutil.move(item,new_item)
+    # erasing lines that are excluded
+    if not exclude:
+        pass
+    else:
+        for TStime in exclude:
+            syscmd = 'sed -e \'/%s/d\' j_long_triplestacks_full.txt >> j_temp.txt' % TStime
+            os.system(syscmd)
+            os.remove('j_long_triplestacks_full.txt')
+            os.rename('j_temp.txt', 'j_long_triplestacks_full.txt')
+            syscmd = 'sed -e \'/%s/d\' k_long_triplestacks_full.txt >> k_temp.txt' % TStime
+            os.system(syscmd)
+            os.remove('k_long_triplestacks_full.txt')
+            os.rename('k_temp.txt', 'k_long_triplestacks_full.txt')
+            syscmd = 'sed -e \'/%s/d\' h_long_triplestacks_full.txt >> h_temp.txt' % TStime
+            os.system(syscmd)
+            os.remove('h_long_triplestacks_full.txt')
+            os.rename('h_temp.txt', 'h_long_triplestacks_full.txt')
+        
+        
+
+
 
 def cleanup(obsid,opt_str=''):
     dirname = obsid + opt_str + '_mosaics'
