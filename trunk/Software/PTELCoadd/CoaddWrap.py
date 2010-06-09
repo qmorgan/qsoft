@@ -121,7 +121,7 @@ def prep(obsid, exclude=False):
             linelist.sort()
             new_item = item.replace('stacks.txt','stacks_full.txt')
             f.close()
-            f=open(newitem,'w')
+            f=open(new_item,'w')
             for line in linelist:
                 f.write(line)
             f.close()
