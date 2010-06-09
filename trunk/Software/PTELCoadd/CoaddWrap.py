@@ -37,8 +37,8 @@ Start python, then do the following:
 import os, sys
 import shutil
 import glob
-pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
-# Also make sure to change your pypath in mosaic_maker.py
+pypath = "~/Programs/epd-6.1-1-rh5-x86/bin/python"
+
 
 def smartStack(obsidlist):
     '''I need to comment this more.  This is a rough first go at doing 
@@ -149,10 +149,16 @@ def cleanup(obsid,opt_str=''):
     os.system(command)
     command = 'rm ?_long_triplestacks*.txt'
     os.system(command)
+    moscommand = 'mv *_mosaics.txt ./' + dirname 
+    os.system(moscommand)
     print "Files moved to %s" % dirout
         
     
 def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
+    
+    fj = open('j_mosaics.txt' , 'w')
+    fh = open('h_mosaics.txt' , 'w')
+    fk = open('k_mosaics.txt' , 'w')
     
     j_filename_new = "j_long_triplestacks.txt"
     j_filename_old = "j_long_triplestacks_full.txt"
@@ -218,7 +224,6 @@ def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
             k_file_new.close()
             
             print 'Now Coadding triplestacks ' + start_seg + '-' + end_seg + ".."
-           
             coaddstr = pypath + " mosaic_maker.py -o " + obsid           
             if dowcs:
                 coaddstr += ' -w'
@@ -237,9 +242,23 @@ def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
                 sys.exit('search string does not exist')
             for item in text_list:
                 new_item = item.replace('_coadd',replace_str)
+                print new_item
+                if 'weight' in new_item:
+                    pass
+                else:
+                    if 'h_long' in new_item:
+                        strname = new_item + '\n'
+                        fh.write(strname)
+                    elif 'j_long' in new_item:
+                        strname = new_item + '\n'
+                        fj.write(strname)
+                    elif 'k_long' in new_item:
+                        strname = new_item + '\n'
+                        fk.write(strname)
                 shutil.move(item,new_item)
     j_file_new.close()
     h_file_new.close()
     k_file_new.close()
-    
-    
+    fj.close()
+    fh.close()
+    fk.close()
