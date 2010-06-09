@@ -93,7 +93,9 @@ def smartStack(obsidlist):
 
 def prep(obsid, exclude=False):
     '''Given a string or list of obsids, combine them into a text file
-    containing all of the observations to coadd. Exclude keyword will exclude triplestacks which times are specified (eg:['06h10m32s', '06h11m08s', '06h11m44s']).  
+    containing all of the observations to coadd. Exclude keyword will 
+    exclude triplestacks which times are specified 
+    (eg:['06h10m32s', '06h11m08s', '06h11m44s']).  
     '''
     # if obsid is a string, convert it into a list
     if isinstance(obsid,str):
@@ -112,9 +114,19 @@ def prep(obsid, exclude=False):
         if not text_list:
             sys.exit('search string does not exist')
         for item in text_list:
+            # First sort the text file since the new version of the pipeline
+            # Doesn't seem to have these lines sorted by default.
+            f=open(item,'r')
+            linelist=f.readlines()
+            linelist.sort()
             new_item = item.replace('stacks.txt','stacks_full.txt')
-            syscmd = 'cat %s >> %s' % (item,new_item)
-            os.system(syscmd)
+            f.close()
+            f=open(newitem,'w')
+            for line in linelist:
+                f.write(line)
+            f.close()
+            # syscmd = 'cat %s >> %s' % (item,new_item)
+            # os.system(syscmd)
             syscmd = 'rm %s' % (item)
             os.system(syscmd)
 #            shutil.move(item,new_item)
