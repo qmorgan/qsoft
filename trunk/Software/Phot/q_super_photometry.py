@@ -41,6 +41,8 @@ from scipy import loadtxt, savetxt, sort
 import pyfits
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import operator
+from MiscBin import t_mid
+from pylab import close
 
 # --------------------------    USER INPUT PARAMETERS   --------------------
 
@@ -62,7 +64,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-sextractor_bin = "/opt/local/bin/sex"
+sextractor_bin = "/usr/bin/sex"
 
 #############
 # NOTE: Make sure the path is set correctly in the keyword
@@ -985,6 +987,7 @@ def dophot(progenitor_image_name,region_file,ap=None):
     system("rm " + weight_image_name.replace(".fits", ".sex"))
     
     return photdict
+    fig.close()
 
 def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None):
     import glob
@@ -1023,3 +1026,82 @@ def tmp_phot_plot(photdict):
     pylab.xlabel('Time since Burst (s)')
     pylab.ylabel('J Mag')
     pylab.semilogx()
+
+def photloop(filename, reg, aper=None):
+    '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, running q_super_photometry on each. Output is stored in a text file with the format t_mid|t_miderror|magnitude|magnitudeerror'''
+    close()
+    f = file(filename)
+    textname = filename[0:1] + '_photometry_results.txt'
+    r = open(textname, 'w')
+    #vallist = []
+    #errlist = []
+    timlist = []
+
+    for lameline in f.readlines():
+        line = lameline.rstrip('\n')
+        print line
+        magnitude = dophot(line,reg,ap=aper)
+        if magnitude['targ_mag'][0] == 'nan':
+            pass
+        else:
+            vallist = magnitude['targ_mag'][0]
+            errlist = magnitude['targ_mag'][1]
+        time = t_mid.t_mid(line)
+        time_err = t_mid.t_mid(line, delta = True) 
+
+        result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
+        r.write(result)
+        
+    f.close()
+    r.close()
+    
+def photplot():
+    '''Plots a graph from the h/j/k_photometry_results.txt output of the photloop function (no input is necessary, it just searches for ?_photometry_results.txt. I might need to change it so it requires the GRB's name as input)'''
+    import matplotlib
+    import glob
+
+    globlist = glob.glob('?_photometry_results.txt')
+    for globname in globlist:
+
+        f = file(globname)
+
+        timlist = []
+        terlist = []
+        vallist = []
+        errlist = []
+
+
+        for lameline in f.readlines():
+            line = lameline.rstrip('\n').split('|')
+            timlist += [float(line[0])]
+            terlist += [float(line[1])]
+            vallist += [float(line[2])]
+            errlist += [float(line[3])]
+
+        timarr = array(timlist)
+        timerr = array(terlist)/2.
+        valarr = array(vallist)
+        errarr = array(errlist)
+        labelname = globname[0:1] 
+        
+        if 'h_' in globname:
+            matplotlib.pyplot.errorbar(timarr, valarr, yerr = errarr, xerr= timerr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', label = labelname)
+
+        elif 'j_' in globname:
+            matplotlib.pyplot.errorbar(timarr, valarr, yerr = errarr, xerr= timerr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', label = labelname)
+
+        elif 'k_' in globname:
+            matplotlib.pyplot.errorbar(timarr, valarr, yerr = errarr, xerr= timerr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', label = labelname)
+        ax = matplotlib.pyplot.gca()
+        ax.set_ylim(ax.get_ylim()[::-1])
+
+        f.close()
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    matplotlib.pyplot.semilogx()
+    matplotlib.pyplot.legend()
+    
+    savefig('lightcurve')
+    
+    matplotlib.pyplot.close()
