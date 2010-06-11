@@ -42,6 +42,7 @@ import pyfits
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import operator
 from MiscBin import t_mid
+from MiscBin import qPickle
 from pylab import close
 
 # --------------------------    USER INPUT PARAMETERS   --------------------
@@ -987,6 +988,7 @@ def dophot(progenitor_image_name,region_file,ap=None):
     system("rm " + weight_image_name.replace(".fits", ".sex"))
     
     return photdict
+   
     fig.close()
 
 def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None):
@@ -1055,53 +1057,94 @@ def photloop(filename, reg, aper=None):
     f.close()
     r.close()
     
-def photplot():
-    '''Plots a graph from the h/j/k_photometry_results.txt output of the photloop function (no input is necessary, it just searches for ?_photometry_results.txt. I might need to change it so it requires the GRB's name as input)'''
+def photplot(GRBname):
+    '''Plots a graph from the pickle output of the photreturn function'''
     import matplotlib
     import glob
 
-    globlist = glob.glob('?_photometry_results.txt')
-    for globname in globlist:
+    filepath = GRBname + '.data'
+    photdict = qPickle.load(filepath)
+    
+    h = False
+    j = False
+    k = False
 
-        f = file(globname)
+    timlist = []
+    terlist = []
+    vallist = []
+    errlist = []
 
-        timlist = []
-        terlist = []
-        vallist = []
-        errlist = []
+    for mosaics in photdict:
+        time = float(t_mid.t_mid(mosaics))
+        terr = float(t_mid.t_mid(mosaics, delta = True))/2.
+        valu = float(photdict[mosaics]['targ_mag'][0])
+        verr = float(photdict[mosaics]['targ_mag'][1])
 
+#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
 
-        for lameline in f.readlines():
-            line = lameline.rstrip('\n').split('|')
-            timlist += [float(line[0])]
-            terlist += [float(line[1])]
-            vallist += [float(line[2])]
-            errlist += [float(line[3])]
+        if 'h_' in mosaics:
+            if h == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                h = True
 
-        timarr = array(timlist)
-        timerr = array(terlist)/2.
-        valarr = array(vallist)
-        errarr = array(errlist)
-        labelname = globname[0:1] 
-        
-        if 'h_' in globname:
-            matplotlib.pyplot.errorbar(timarr, valarr, yerr = errarr, xerr= timerr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', label = labelname)
+        elif 'j_' in mosaics:            
+            if j == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                j = True
 
-        elif 'j_' in globname:
-            matplotlib.pyplot.errorbar(timarr, valarr, yerr = errarr, xerr= timerr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', label = labelname)
+        elif 'k_' in mosaics:
+            if k == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                k = True
 
-        elif 'k_' in globname:
-            matplotlib.pyplot.errorbar(timarr, valarr, yerr = errarr, xerr= timerr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', label = labelname)
-        ax = matplotlib.pyplot.gca()
-        ax.set_ylim(ax.get_ylim()[::-1])
-
-        f.close()
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1])
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
     matplotlib.pyplot.ylabel('Mag')
     matplotlib.pyplot.semilogx()
     matplotlib.pyplot.legend()
     
-    savefig('lightcurve')
-    
+    savefig('lightcurve')    
     matplotlib.pyplot.close()
+
+
+def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None):
+    
+    filepath = GRBname + '.data'
+    while Clobber == False:
+        if os.path.isfile(filepath) == True:
+            data = qPickle.load(filepath)
+            if filename in data:
+                return data[filename]
+            else:
+                Clobber = True
+        else:
+            Clobber = True
+
+    while Clobber == True:
+        if reg == None: 
+            print 'Need to input reg file'
+            break
+        else:
+            if os.path.isfile(filepath) == False:
+                photdict = {}  
+            else:
+                #f = file(filepath)
+                photdict = qPickle.load(filepath)
+            data = dophot(filename, reg, aper)
+            label = data['FileName']
+            photdict.update({label:data})
+            #f = file(filepath, 'w')
+            qPickle.save(photdict, filepath, clobber = True)
+            #.close()
+            return data
+            break
+
+
