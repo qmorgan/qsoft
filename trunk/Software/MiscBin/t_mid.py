@@ -3,7 +3,7 @@ import pyfits
 from RedshiftMachine import LoadGCN
 
 def t_mid(filepath, GRBid=None, delta=None):
-    '''Given a fitts file and the GRB time, this program determines the t-mid for PAIRITEL. If delta = True, t_mid will find the difference of StartCPU and StopCPU in hours'''
+    '''Given a fitts file and the GRB time, this program determines the t-mid for PAIRITEL. If delta = True, t_mid will find the difference of StartCPU and StopCPU in seconds'''
     header = pyfits.open(filepath)
     starttime = header[0].header['STRT_CPU']
     stoptime = header[0].header['STOP_CPU']
@@ -48,7 +48,7 @@ def t_mid(filepath, GRBid=None, delta=None):
         print t_mid_time_list
         t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)
         t_mid_hour = t_mid_days + t_mid_time_hour
-
+        t_mid_sec = t_mid_hour*3600.
 
 
     #original-------
@@ -60,8 +60,8 @@ def t_mid(filepath, GRBid=None, delta=None):
         #t_mid_hour = t_mid_days + t_mid_time_hour
 
 
-        print t_mid_hour
-        return t_mid_hour
+        print t_mid_sec
+        return t_mid_sec
 
     else:
         
@@ -78,7 +78,8 @@ def t_mid(filepath, GRBid=None, delta=None):
         print dur_list
         dur_time_hour = float(dur_list[0]) + float(dur_list[1])*(1/60.) + float(dur_list[2])*(1/3600.)
         dur_hour = durdays + dur_time_hour
+        dur_sec = dur_hour*3600.
 
-        print dur_hour
-        return dur_hour
+        print dur_sec
+        return dur_sec
 
