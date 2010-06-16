@@ -1063,7 +1063,7 @@ def photloop(filename, reg, aper=None):
     r.close()
     
 def photplot(photdict):
-    '''Plots a graph from the pickle output of the photreturn function'''
+    '''Plots a graph from photdict'''
     import matplotlib
     import glob
     import datetime
@@ -1178,13 +1178,10 @@ def temploop(GRBname, regfile, aper=None):
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=None)
 
-def plotzp(GRBname):
+def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
     import matplotlib
     import glob
-
-    filepath = GRBname + '.data'
-    photdict = qPickle.load(filepath)
     
     h = False
     j = False
@@ -1197,9 +1194,9 @@ def plotzp(GRBname):
 
     for mosaics in photdict:
         print 'now doing ' + str(mosaics)
-        time = float(t_mid.t_mid(mosaics))
-        terr = float(t_mid.t_mid(mosaics, delta = True))/2.
-        print 'terr is ' + str(terr)
+        time = photdict[mosaics]['t_mid'][0]
+        terr = photdict[mosaics]['t_mid'][1]
+       
         valu = float(photdict[mosaics]['zp'][0])
         verr = float(photdict[mosaics]['zp'][1])
 
@@ -1232,6 +1229,8 @@ def plotzp(GRBname):
     matplotlib.pyplot.xlabel('Time since Burst (s)')
     matplotlib.pyplot.ylabel('zero point')
     matplotlib.pyplot.legend()
-    
-    savefig('zero_point')    
+    uniquename = photdict.keys()[0].split('_')[2]
+    savepath = storepath + uniquename + '_zeropoint.png'
+    print 'zeropoint plot saved to ' + savepath
+    savefig(savepath)           
     matplotlib.pyplot.close()
