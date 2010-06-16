@@ -44,6 +44,7 @@ import operator
 from MiscBin import t_mid
 from MiscBin import qPickle
 from pylab import close
+from time import time
 
 # --------------------------    USER INPUT PARAMETERS   --------------------
 
@@ -65,7 +66,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-sextractor_bin = "/usr/bin/sex"
+sextractor_bin = "/opt/local/bin/sex"
 
 #############
 # NOTE: Make sure the path is set correctly in the keyword
@@ -234,7 +235,10 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
-def dophot(progenitor_image_name,region_file,ap=None):
+def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False):
+    # Begin timing
+    t1 = time()
+     
     # Store the original image name.
     image_name = progenitor_image_name
     hdulist = pyfits.open(image_name)
@@ -243,7 +247,6 @@ def dophot(progenitor_image_name,region_file,ap=None):
     photdict = {'FileName':image_name}
     
     weight_image_name = progenitor_image_name.replace("fits", "weight.fits")
-    
     
     # Run source extractor to find the pixel locations of stars.
     print "Running Source Extractor to find locations of stars."
@@ -280,17 +283,20 @@ def dophot(progenitor_image_name,region_file,ap=None):
                 x_index = int(round(float(line.split()[0]) - 1))
                 y_index = int(round(float(line.split()[1]) - 1))
                 sat_locations.append([y_index, x_index])
-
-
-    fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, 2.8, 0.8)
-    print "Initial fwhm fit complete."
-    print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
-    fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev)
-    print "Sigma clipping of fwhm complete."
-    print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
-    photdict.update({'FHWM':(fwhm,fwhm_stdev)})
+    
+    if find_fwhm or not ap:
+        if not ap:
+            print 'Aperture is not specified; fitting FWHM to determine'
+        fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, 2.8, 0.8)
+        print "Initial fwhm fit complete."
+        print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
+        fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev)
+        print "Sigma clipping of fwhm complete."
+        print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
+        photdict.update({'FHWM':(fwhm,fwhm_stdev)})        
     
     if not ap:
+        # If aperture is not specified, fit for ideal size based on the fwhm.
         aperture_size = (1.5)*fwhm
         print "Aperture size: ", aperture_size
         if isnan(aperture_size):
@@ -319,383 +325,352 @@ def dophot(progenitor_image_name,region_file,ap=None):
     photdict.update({'STOP_CPU':stop_cpu})
     photdict.update({'filter':band})
     
-    # Store the image's dimensions.
-    height, width = image_data.shape[0], image_data.shape[1]
-    # We will drop apertures of 3 pixel radius everywhere on the image where there
-    # exists science data. Since apertures are circular there will be gaps between
-    # adjacent apertures. Science data is determined as any pixel with a weightmap
-    # value > 0. To make sure we drop all possible apertures we need to create an 
-    # expanded weight mask. This is a mask array with value 1 where aperatures can 
-    # be centered and 0 elsewhere. It is formed by shrinking slightly the science
-    # data area from the original image (by about 4 pixels).
-    imagefile_hdulist = pyfits.open(weight_image_name)
-    imagefile_header = imagefile_hdulist[0].header
-    weight_data = imagefile_hdulist[0].data
-    imagefile_hdulist.close()
-    weight_mask = where(weight_data > 0, 0, 1)
-    weight_mask_expanded = zeros([height,width])
-    binary_dilation(weight_mask, iterations = int(aperture_size), output = weight_mask_expanded)
-    weight_mask_expanded = where(weight_mask_expanded == 0, 1, 0)
-    # SourceExtractor likes to have a non-zero background, so fill it in with 
-    # random data with a mean of 0.
-    random_background_data = (-0.5 + 
-        random.random_sample(width*height).reshape(height, width))
-    # To run SourceExtractor in two-image mode we need to first generate the fake
-    # stars image which dictates where the apertures will be dropped on the science
-    # image. We make fake stars at evenly spaced (6 pixels) intervals, blur them a 
-    # bit to make them look like stars, and then use the expanded weight mask to 
-    # enforce the boundaries.
-    peak = 1000
-    aperture_data = array([[0,0,0,0,0,0,0,0]])
-    flux_array = array([])
-    weight_aperture_data = array([[0,0,0,0,0,0,0,0]])
-    order = 3
-    spacing = aperture_size*order
-    for g in range(order):
-        for h in range(order):
-            fake_star_data = zeros([height,width])
-            for i in range(int(width/aperture_size/order)-1):
-                for j in range(int(height/aperture_size/order)-1):
-                    fake_star_data[int((j+1)*spacing+aperture_size*h)][int((i+1)*spacing+aperture_size*g)] = peak
-            blurred_fake_star_data = zeros([height,width])
-            gaussian_filter(fake_star_data*weight_mask_expanded, 0.7, 
-                output=blurred_fake_star_data)
-            output_hdu = pyfits.PrimaryHDU(blurred_fake_star_data + random_background_data)
-            output_hdulist = pyfits.HDUList([output_hdu])
-            output_hdulist.writeto(progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)))
-            # Call Source Extractor in two-image mode for both sky apertures and weight
-            # apertures.
-            make_sex_cat_fake_stars(progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)), 
-                progenitor_image_name, weight_image_name, aperture_size)
-            make_sex_cat_fake_stars_no_weight(
-                progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)), weight_image_name,
-                aperture_size)
-            # Delete the fakestars image, we don't need it anymore.
-            system("rm " + progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)))
-            # Read the SEX catalogs into data lists. The format of the sex_file is: 
-            # ra, dec, inst_mag, e_inst_mag, flags, fwhm, signal, noise
+    if do_upper:
+        # Store the image's dimensions.
+        height, width = image_data.shape[0], image_data.shape[1]
+        # We will drop apertures of 3 pixel radius everywhere on the image where there
+        # exists science data. Since apertures are circular there will be gaps between
+        # adjacent apertures. Science data is determined as any pixel with a weightmap
+        # value > 0. To make sure we drop all possible apertures we need to create an 
+        # expanded weight mask. This is a mask array with value 1 where aperatures can 
+        # be centered and 0 elsewhere. It is formed by shrinking slightly the science
+        # data area from the original image (by about 4 pixels).
+        imagefile_hdulist = pyfits.open(weight_image_name)
+        imagefile_header = imagefile_hdulist[0].header
+        weight_data = imagefile_hdulist[0].data
+        imagefile_hdulist.close()
+        weight_mask = where(weight_data > 0, 0, 1)
+        weight_mask_expanded = zeros([height,width])
+        binary_dilation(weight_mask, iterations = int(aperture_size), output = weight_mask_expanded)
+        weight_mask_expanded = where(weight_mask_expanded == 0, 1, 0)
+        # SourceExtractor likes to have a non-zero background, so fill it in with 
+        # random data with a mean of 0.
+        random_background_data = (-0.5 + 
+            random.random_sample(width*height).reshape(height, width))
+        # To run SourceExtractor in two-image mode we need to first generate the fake
+        # stars image which dictates where the apertures will be dropped on the science
+        # image. We make fake stars at evenly spaced (6 pixels) intervals, blur them a 
+        # bit to make them look like stars, and then use the expanded weight mask to 
+        # enforce the boundaries.
+        peak = 1000
+        aperture_data = array([[0,0,0,0,0,0,0,0]])
+        flux_array = array([])
+        weight_aperture_data = array([[0,0,0,0,0,0,0,0]])
+        order = 3
+        spacing = aperture_size*order
+        for g in range(order):
+            for h in range(order):
+                fake_star_data = zeros([height,width])
+                for i in range(int(width/aperture_size/order)-1):
+                    for j in range(int(height/aperture_size/order)-1):
+                        fake_star_data[int((j+1)*spacing+aperture_size*h)][int((i+1)*spacing+aperture_size*g)] = peak
+                blurred_fake_star_data = zeros([height,width])
+                gaussian_filter(fake_star_data*weight_mask_expanded, 0.7, 
+                    output=blurred_fake_star_data)
+                output_hdu = pyfits.PrimaryHDU(blurred_fake_star_data + random_background_data)
+                output_hdulist = pyfits.HDUList([output_hdu])
+                output_hdulist.writeto(progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)))
+                # Call Source Extractor in two-image mode for both sky apertures and weight
+                # apertures.
+                make_sex_cat_fake_stars(progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)), 
+                    progenitor_image_name, weight_image_name, aperture_size)
+                make_sex_cat_fake_stars_no_weight(
+                    progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)), weight_image_name,
+                    aperture_size)
+                # Delete the fakestars image, we don't need it anymore.
+                system("rm " + progenitor_image_name.replace("coadd", "fakestars1_" + str(h) + "_" + str(g)))
+                # Read the SEX catalogs into data lists. The format of the sex_file is: 
+                # ra, dec, inst_mag, e_inst_mag, flags, fwhm, signal, noise
     
-            temp_array = loadtxt(file(progenitor_image_name.replace(".fits", ".sex")))
-            aperture_data = append(aperture_data, temp_array)
-            aperture_data = split(aperture_data, len(aperture_data)/8)
+                temp_array = loadtxt(file(progenitor_image_name.replace(".fits", ".sex")))
+                aperture_data = append(aperture_data, temp_array)
+                aperture_data = split(aperture_data, len(aperture_data)/8)
 
-            flux_array = append(flux_array, (temp_array[:,6]))
+                flux_array = append(flux_array, (temp_array[:,6]))
 
-            temp_array = loadtxt(file(weight_image_name.replace(".fits", ".sex")))
-            weight_aperture_data = append(weight_aperture_data, temp_array)
-            weight_aperture_data = split(weight_aperture_data, len(weight_aperture_data)/8)
+                temp_array = loadtxt(file(weight_image_name.replace(".fits", ".sex")))
+                weight_aperture_data = append(weight_aperture_data, temp_array)
+                weight_aperture_data = split(weight_aperture_data, len(weight_aperture_data)/8)
 
-    print len(aperture_data), len(weight_aperture_data)
+        print len(aperture_data), len(weight_aperture_data)
 
-    for g in range(order):
-        for h in range(order):
-            fake_star_data = zeros([height,width])
-            for i in range(int(width/aperture_size/order)-1):
-                for j in range(int(height/aperture_size/order)-1):
-                    fake_star_data[int((j+1-1./(order*2))*spacing+aperture_size*h)][int((i+1-1./(order*2))*spacing+aperture_size*g)] = peak
-            blurred_fake_star_data = zeros([height,width])
-            gaussian_filter(fake_star_data*weight_mask_expanded, 0.7, 
-                output=blurred_fake_star_data)
-            output_hdu = pyfits.PrimaryHDU(blurred_fake_star_data + random_background_data)
-            output_hdulist = pyfits.HDUList([output_hdu])
-            output_hdulist.writeto(progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)))
-            # Call Source Extractor in two-image mode for both sky apertures and weight
-            # apertures.
-            make_sex_cat_fake_stars(progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)), 
-                progenitor_image_name, weight_image_name, aperture_size)
-            make_sex_cat_fake_stars_no_weight(
-                progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)), weight_image_name,
-                aperture_size)
-            # Delete the fakestars image, we don't need it anymore.
-            system("rm " + progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)))
-            # Read the SEX catalogs into data lists. The format of the sex_file is: 
-            # ra, dec, inst_mag, e_inst_mag, flags, fwhm, signal, noise
+        for g in range(order):
+            for h in range(order):
+                fake_star_data = zeros([height,width])
+                for i in range(int(width/aperture_size/order)-1):
+                    for j in range(int(height/aperture_size/order)-1):
+                        fake_star_data[int((j+1-1./(order*2))*spacing+aperture_size*h)][int((i+1-1./(order*2))*spacing+aperture_size*g)] = peak
+                blurred_fake_star_data = zeros([height,width])
+                gaussian_filter(fake_star_data*weight_mask_expanded, 0.7, 
+                    output=blurred_fake_star_data)
+                output_hdu = pyfits.PrimaryHDU(blurred_fake_star_data + random_background_data)
+                output_hdulist = pyfits.HDUList([output_hdu])
+                output_hdulist.writeto(progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)))
+                # Call Source Extractor in two-image mode for both sky apertures and weight
+                # apertures.
+                make_sex_cat_fake_stars(progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)), 
+                    progenitor_image_name, weight_image_name, aperture_size)
+                make_sex_cat_fake_stars_no_weight(
+                    progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)), weight_image_name,
+                    aperture_size)
+                # Delete the fakestars image, we don't need it anymore.
+                system("rm " + progenitor_image_name.replace("coadd", "fakestars2_" + str(h) + "_" + str(g)))
+                # Read the SEX catalogs into data lists. The format of the sex_file is: 
+                # ra, dec, inst_mag, e_inst_mag, flags, fwhm, signal, noise
     
-            temp_array = loadtxt(file(progenitor_image_name.replace(".fits", ".sex")))
-            aperture_data = append(aperture_data, temp_array)
-            aperture_data = split(aperture_data, len(aperture_data)/8)
+                temp_array = loadtxt(file(progenitor_image_name.replace(".fits", ".sex")))
+                aperture_data = append(aperture_data, temp_array)
+                aperture_data = split(aperture_data, len(aperture_data)/8)
         
-            flux_array = append(flux_array, (temp_array[:,6]))
+                flux_array = append(flux_array, (temp_array[:,6]))
         
-            temp_array = loadtxt(file(weight_image_name.replace(".fits", ".sex")))
-            weight_aperture_data = append(weight_aperture_data, temp_array)
-            weight_aperture_data = split(weight_aperture_data, len(weight_aperture_data)/8)
+                temp_array = loadtxt(file(weight_image_name.replace(".fits", ".sex")))
+                weight_aperture_data = append(weight_aperture_data, temp_array)
+                weight_aperture_data = split(weight_aperture_data, len(weight_aperture_data)/8)
     
-    print len(aperture_data), len(weight_aperture_data)
+        print len(aperture_data), len(weight_aperture_data)
     
-    dtype = [("ra", float), ("dec", float), ("mag", float), ("e_mag", float), 
-        ("flags", float), ("fwhm", float), ("signal", float), ("noise", float)]
-    list_o_tuples = []
-    for entry in aperture_data[1:]:
-        list_o_tuples.append((entry[0], entry[1], entry[2], entry[3], entry[4], 
-            entry[5], entry[6], entry[7]))
-    aperture_data = list_o_tuples
-    list_o_tuples = []
-    for entry in weight_aperture_data[1:]:
-        list_o_tuples.append((entry[0], entry[1], entry[2], entry[3], entry[4], 
-            entry[5], entry[6], entry[7]))
-    weight_aperture_data = list_o_tuples
+        dtype = [("ra", float), ("dec", float), ("mag", float), ("e_mag", float), 
+            ("flags", float), ("fwhm", float), ("signal", float), ("noise", float)]
+        list_o_tuples = []
+        for entry in aperture_data[1:]:
+            list_o_tuples.append((entry[0], entry[1], entry[2], entry[3], entry[4], 
+                entry[5], entry[6], entry[7]))
+        aperture_data = list_o_tuples
+        list_o_tuples = []
+        for entry in weight_aperture_data[1:]:
+            list_o_tuples.append((entry[0], entry[1], entry[2], entry[3], entry[4], 
+                entry[5], entry[6], entry[7]))
+        weight_aperture_data = list_o_tuples
 
-    aperture_data = array(aperture_data, dtype=dtype)
-    weight_aperture_data = array(weight_aperture_data, dtype=dtype)
+        aperture_data = array(aperture_data, dtype=dtype)
+        weight_aperture_data = array(weight_aperture_data, dtype=dtype)
 
-    aperture_data = sort(aperture_data, order=["ra", "dec"])
-    weight_aperture_data = sort(weight_aperture_data, order=["ra", "dec"])
+        aperture_data = sort(aperture_data, order=["ra", "dec"])
+        weight_aperture_data = sort(weight_aperture_data, order=["ra", "dec"])
 
-    # savetxt("aperture_data.txt", aperture_data)
-    # savetxt("weight_aperture_data.txt", weight_aperture_data)
+        # savetxt("aperture_data.txt", aperture_data)
+        # savetxt("weight_aperture_data.txt", weight_aperture_data)
 
-    print len(aperture_data), len(weight_aperture_data)
+        print len(aperture_data), len(weight_aperture_data)
     
 
-    combined_aperture_data = []
-    flux_list = []
-    mismatch_num = 0
+        combined_aperture_data = []
+        flux_list = []
+        mismatch_num = 0
     
-    for n in range(len(aperture_data)):
-        sky_ra = aperture_data[n][0]
-        sky_dec = aperture_data[n][1]
-        sky_signal = aperture_data[n][6]
-        weight_ra = weight_aperture_data[n][0]
-        weight_dec = weight_aperture_data[n][1]
-        weight_signal = weight_aperture_data[n][6]
-        if str(sky_ra)[:7] == str(weight_ra)[:7] and str(sky_dec)[:7] == str(weight_dec)[:7]:
-            combined_aperture_data.append([sky_ra, sky_dec, sky_signal, weight_signal])
-            flux_list.append(sky_signal)
-        else:
-            mismatch_num += 1
-    #         print (n, "WARNING: sky and weight aperture miss-match at sky location:" + 
-    #             str(sky_ra) + ", " + str(sky_dec) + " and weight location:" + 
-    #             str(weight_ra) + ", " + str(weight_dec))
-    print "Sky and Weight apperture matching resulted in ", mismatch_num, " fails."
-    photdict.update({'SkyWeightMatchFails':mismatch_num})
+        for n in range(len(aperture_data)):
+            sky_ra = aperture_data[n][0]
+            sky_dec = aperture_data[n][1]
+            sky_signal = aperture_data[n][6]
+            weight_ra = weight_aperture_data[n][0]
+            weight_dec = weight_aperture_data[n][1]
+            weight_signal = weight_aperture_data[n][6]
+            if str(sky_ra)[:7] == str(weight_ra)[:7] and str(sky_dec)[:7] == str(weight_dec)[:7]:
+                combined_aperture_data.append([sky_ra, sky_dec, sky_signal, weight_signal])
+                flux_list.append(sky_signal)
+            else:
+                mismatch_num += 1
+        #         print (n, "WARNING: sky and weight aperture miss-match at sky location:" + 
+        #             str(sky_ra) + ", " + str(sky_dec) + " and weight location:" + 
+        #             str(weight_ra) + ", " + str(weight_dec))
+        print "Sky and Weight apperture matching resulted in ", mismatch_num, " fails."
+        photdict.update({'SkyWeightMatchFails':mismatch_num})
     
-    # Convert the flux_list to flux_array and then use median absolute deviation
-    # clipping to generate a new median and sigma.
-    flux_array = array(flux_list)
-    c_array, new_medval, new_sigma = mad_clipping(flux_array, 2)
-    # Filter the entries in aperture_data with the new_medval and new_sigma. Store
-    # the surviving data in aperture_data_2 and the flux values in flux_list_2.
-    aperture_data_2 = []
-    flux_list_2 = []
-    weight_flux_list = []
-    for aperture in combined_aperture_data:
-        if ((aperture[2] > new_medval - 3.0*new_sigma) and 
-            (aperture[2] < new_medval + 1.0*new_sigma)):
-                aperture_data_2.append(aperture)
-                flux_list_2.append(aperture[2])
-                weight_flux_list.append(aperture[3])
+        # Convert the flux_list to flux_array and then use median absolute deviation
+        # clipping to generate a new median and sigma.
+        flux_array = array(flux_list)
+        c_array, new_medval, new_sigma = mad_clipping(flux_array, 2)
+        # Filter the entries in aperture_data with the new_medval and new_sigma. Store
+        # the surviving data in aperture_data_2 and the flux values in flux_list_2.
+        aperture_data_2 = []
+        flux_list_2 = []
+        weight_flux_list = []
+        for aperture in combined_aperture_data:
+            if ((aperture[2] > new_medval - 3.0*new_sigma) and 
+                (aperture[2] < new_medval + 1.0*new_sigma)):
+                    aperture_data_2.append(aperture)
+                    flux_list_2.append(aperture[2])
+                    weight_flux_list.append(aperture[3])
             
 
-    # This nested for-loop is where most of the computation time goes. We need to 
-    # match up sky apertures with weight apertures. 
-    # flux_list_2 = []
-    # weight_flux_list = []
-    # combined_aperture_data = []
-    # output_file = file("output.txt", "w")
-    # for weight_aperture in weight_aperture_data:
-    #     weight_ra_string = str(weight_aperture[0])
-    #     weight_dec_string = str(weight_aperture[1])
-    #     weight_ra_rad = weight_aperture[0] * 0.01745329252
-    #     weight_dec_rad = weight_aperture[1] * 0.01745329252
-    #     weight_signal = weight_aperture[5]
-    #     for aperture in aperture_data_2:
-    #         ra_string = str(aperture[0])
-    #         dec_string = str(aperture[1])
-    #         if weight_ra_string[:8] == ra_string[:8]:
-    #             if weight_dec_string[:8] == dec_string[:8]:
-    #                 if (206264.806247*(float(ephem.separation(
-    #                     (weight_ra_rad, weight_dec_rad), 
-    #                     (aperture[0] * 0.01745329252, 
-    #                     aperture[1] * 0.01745329252)))) < 2):
-    #                     combined_aperture_data.append([
-    #                         aperture[0], # ra
-    #                         aperture[1], # dec
-    #                         aperture[5], # sky aperture signal
-    #                         weight_aperture[5]]) # weight aperture signal
-    #                     output_file.write((str(aperture[0]) + "\t" + str(aperture[1]) + "\t" + str(aperture[5]) + "\t" + str(weight_aperture[5]) + "\n"))
-    #                     flux_list_2.append(aperture[5])
-    #                     weight_flux_list.append(weight_aperture[5])
-    # output_file.close()
-
-
-    # Replace flux_array with the new values from flux_list_2. Also, store the
-    # number of apertures.
-    flux_array = array(flux_list_2)
-    num_apertures = len(flux_array)
-    # Divide the weight flux list into quartiles. This is the basis of the 
-    # color/quality coding.
-    median_weight_flux = median(weight_flux_list)
-    high_half = []
-    low_half = []
-    for val in weight_flux_list:
-        if val >= median_weight_flux:
-            high_half.append(val)
-        else:
-            low_half.append(val)
-    high_median_weight_flux = median(high_half)
-    low_median_weight_flux = median(low_half)
-    # Use the entries in aperture_data_2 to create a region file with all the 
-    # apertures. Very useful for diagnostics.
-    flux_list_green = []
-    flux_list_yellow = []
-    flux_list_orange = []
-    flux_list_red = []
-    weight_flux_list_green = []
-    weight_flux_list_yellow = []
-    weight_flux_list_orange = []
-    weight_flux_list_red = []
-    output_region_file = file(storepath + "aperature_regions.reg", "w")
-    output_region_file.write("global color=green dashlist=8 3 width=1 " + 
-        "font='helvetica 10 normal' select=1 highlite=1 dash=0 fixed=0 edit=1 " + 
-        "move=1 delete=1 include=1 source=1\nfk5\n")
-    for aperture in aperture_data_2:
-        if aperture[3] >= high_median_weight_flux:
-            output_region_file.write('circle(' + str(aperture[0]) + ',' + 
-                str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=green\n')
-            flux_list_green.append(aperture[2])
-            weight_flux_list_green.append(aperture[3])
-        if (aperture[3] < high_median_weight_flux) and (aperture[3] >= median_weight_flux):
-            output_region_file.write('circle(' + str(aperture[0]) + ',' + 
-                str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=yellow\n')
-            flux_list_yellow.append(aperture[2])
-            weight_flux_list_yellow.append(aperture[3])
-        if (aperture[3] < median_weight_flux) and (aperture[3] >= low_median_weight_flux):
-            output_region_file.write('circle(' + str(aperture[0]) + ',' + 
-                str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=orange\n')
-            flux_list_orange.append(aperture[2])
-            weight_flux_list_orange.append(aperture[3])
-        if aperture[3] < low_median_weight_flux:
-            output_region_file.write('circle(' + str(aperture[0]) + ',' + 
-                str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=red\n')
-            flux_list_red.append(aperture[2])
-            weight_flux_list_red.append(aperture[3])
-    output_region_file.close()
-    flux_array_green = array(flux_list_green)
-    flux_array_yellow = array(flux_list_yellow)
-    yellow = False
-    if len(flux_array_yellow) > 50:
-        yellow = True
-    flux_array_orange = array(flux_list_orange)
-    orange = False
-    if len(flux_array_orange) > 50:
-        orange = True
-    flux_array_red = array(flux_list_red)
-    red = False
-    if len(flux_array_red) > 50:
-        red = True
-    # Create a histogram from the flux_array. Convert the flux_histogram_data into a
-    # list for use with the gaussian fitting. Convert the flux_histogram_bins into a
-    # list of length one less with values replaced with the average value of each 
-    # bin. This is necessary because the output bins array is actually the bin
-    # boundaries.
-    # Repeat this code block 4 times, once for each color/quality subset.
-    # GREEN
-    flux_histogram_data_green, flux_histogram_bins_green = histogram(
-        flux_array_green, int(num_apertures/160))
-    bin_half_height_green = (flux_histogram_bins_green[1] - 
-        flux_histogram_bins_green[0])
-    flux_histogram_data_list_green = list(flux_histogram_data_green)
-    flux_histogram_bins_list_green = (list(bin_half_height_green + 
-        flux_histogram_bins_green[0:-1]))
-    # Fit a gaussian curve to the histogram of the flux data.
-    central_height_green, center_x_green, x_width_green = (fit_gaussian(
-        flux_histogram_data_list_green, flux_histogram_bins_list_green))
-    # In case the fit returns a negative sigma, take the absolute value.
-    x_width_green = abs(x_width_green)
-    # Create data from the gaussian fit to plot on the flux histogram.
-    fit_data_list_green = []
-    for bin in flux_histogram_bins_list_green:
-        fit_point = ((central_height_green/sqrt(2*pi*x_width_green**2)) * 
-            exp((-1*(bin-center_x_green)**2)/(2*x_width_green**2)))
-        fit_data_list_green.append(fit_point)
-    # YELLOW
-    if yellow:
-        flux_histogram_data_yellow, flux_histogram_bins_yellow = histogram(
-            flux_array_yellow, int(num_apertures/160))
-        bin_half_height_yellow = (flux_histogram_bins_yellow[1] - 
-            flux_histogram_bins_yellow[0])
-        flux_histogram_data_list_yellow = list(flux_histogram_data_yellow)
-        flux_histogram_bins_list_yellow = (list(bin_half_height_yellow + 
-            flux_histogram_bins_yellow[0:-1]))
+        # Replace flux_array with the new values from flux_list_2. Also, store the
+        # number of apertures.
+        flux_array = array(flux_list_2)
+        num_apertures = len(flux_array)
+        # Divide the weight flux list into quartiles. This is the basis of the 
+        # color/quality coding.
+        median_weight_flux = median(weight_flux_list)
+        high_half = []
+        low_half = []
+        for val in weight_flux_list:
+            if val >= median_weight_flux:
+                high_half.append(val)
+            else:
+                low_half.append(val)
+        high_median_weight_flux = median(high_half)
+        low_median_weight_flux = median(low_half)
+        # Use the entries in aperture_data_2 to create a region file with all the 
+        # apertures. Very useful for diagnostics.
+        flux_list_green = []
+        flux_list_yellow = []
+        flux_list_orange = []
+        flux_list_red = []
+        weight_flux_list_green = []
+        weight_flux_list_yellow = []
+        weight_flux_list_orange = []
+        weight_flux_list_red = []
+        output_region_file = file(storepath + "aperature_regions.reg", "w")
+        output_region_file.write("global color=green dashlist=8 3 width=1 " + 
+            "font='helvetica 10 normal' select=1 highlite=1 dash=0 fixed=0 edit=1 " + 
+            "move=1 delete=1 include=1 source=1\nfk5\n")
+        for aperture in aperture_data_2:
+            if aperture[3] >= high_median_weight_flux:
+                output_region_file.write('circle(' + str(aperture[0]) + ',' + 
+                    str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=green\n')
+                flux_list_green.append(aperture[2])
+                weight_flux_list_green.append(aperture[3])
+            if (aperture[3] < high_median_weight_flux) and (aperture[3] >= median_weight_flux):
+                output_region_file.write('circle(' + str(aperture[0]) + ',' + 
+                    str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=yellow\n')
+                flux_list_yellow.append(aperture[2])
+                weight_flux_list_yellow.append(aperture[3])
+            if (aperture[3] < median_weight_flux) and (aperture[3] >= low_median_weight_flux):
+                output_region_file.write('circle(' + str(aperture[0]) + ',' + 
+                    str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=orange\n')
+                flux_list_orange.append(aperture[2])
+                weight_flux_list_orange.append(aperture[3])
+            if aperture[3] < low_median_weight_flux:
+                output_region_file.write('circle(' + str(aperture[0]) + ',' + 
+                    str(aperture[1]) + ',' + str(aperture_size/2) + '") # color=red\n')
+                flux_list_red.append(aperture[2])
+                weight_flux_list_red.append(aperture[3])
+        output_region_file.close()
+        flux_array_green = array(flux_list_green)
+        flux_array_yellow = array(flux_list_yellow)
+        yellow = False
+        if len(flux_array_yellow) > 50:
+            yellow = True
+        flux_array_orange = array(flux_list_orange)
+        orange = False
+        if len(flux_array_orange) > 50:
+            orange = True
+        flux_array_red = array(flux_list_red)
+        red = False
+        if len(flux_array_red) > 50:
+            red = True
+        # Create a histogram from the flux_array. Convert the flux_histogram_data into a
+        # list for use with the gaussian fitting. Convert the flux_histogram_bins into a
+        # list of length one less with values replaced with the average value of each 
+        # bin. This is necessary because the output bins array is actually the bin
+        # boundaries.
+        # Repeat this code block 4 times, once for each color/quality subset.
+        # GREEN
+        flux_histogram_data_green, flux_histogram_bins_green = histogram(
+            flux_array_green, int(num_apertures/160))
+        bin_half_height_green = (flux_histogram_bins_green[1] - 
+            flux_histogram_bins_green[0])
+        flux_histogram_data_list_green = list(flux_histogram_data_green)
+        flux_histogram_bins_list_green = (list(bin_half_height_green + 
+            flux_histogram_bins_green[0:-1]))
         # Fit a gaussian curve to the histogram of the flux data.
-        central_height_yellow, center_x_yellow, x_width_yellow = (fit_gaussian(
-            flux_histogram_data_list_yellow, flux_histogram_bins_list_yellow))
+        central_height_green, center_x_green, x_width_green = (fit_gaussian(
+            flux_histogram_data_list_green, flux_histogram_bins_list_green))
         # In case the fit returns a negative sigma, take the absolute value.
-        x_width_yellow = abs(x_width_yellow)
+        x_width_green = abs(x_width_green)
         # Create data from the gaussian fit to plot on the flux histogram.
-        fit_data_list_yellow = []
-        for bin in flux_histogram_bins_list_yellow:
-            fit_point = ((central_height_yellow/sqrt(2*pi*x_width_yellow**2)) * 
-                exp((-1*(bin-center_x_yellow)**2)/(2*x_width_yellow**2)))
-            fit_data_list_yellow.append(fit_point)
-    # ORANGE
-    if orange:
-        flux_histogram_data_orange, flux_histogram_bins_orange = histogram(
-            flux_array_orange, int(num_apertures/160))
-        bin_half_height_orange = (flux_histogram_bins_orange[1] - 
-            flux_histogram_bins_orange[0])
-        flux_histogram_data_list_orange = list(flux_histogram_data_orange)
-        flux_histogram_bins_list_orange = (list(bin_half_height_orange + 
-            flux_histogram_bins_orange[0:-1]))
-        # Fit a gaussian curve to the histogram of the flux data.
-        central_height_orange, center_x_orange, x_width_orange = (fit_gaussian(
-            flux_histogram_data_list_orange, flux_histogram_bins_list_orange))
-        # In case the fit returns a negative sigma, take the absolute value.
-        x_width_orange = abs(x_width_orange)
-        # Create data from the gaussian fit to plot on the flux histogram.
-        fit_data_list_orange = []
-        for bin in flux_histogram_bins_list_orange:
-            fit_point = ((central_height_orange/sqrt(2*pi*x_width_orange**2)) * 
-                exp((-1*(bin-center_x_orange)**2)/(2*x_width_orange**2)))
-            fit_data_list_orange.append(fit_point)
-    # RED
-    if red:
-        flux_histogram_data_red, flux_histogram_bins_red = histogram(flux_array_red, 
-            int(num_apertures/160))
-        bin_half_height_red = flux_histogram_bins_red[1] - flux_histogram_bins_red[0]
-        flux_histogram_data_list_red = list(flux_histogram_data_red)
-        flux_histogram_bins_list_red = list(bin_half_height_red + 
-            flux_histogram_bins_red[0:-1])
-        # Fit a gaussian curve to the histogram of the flux data.
-        central_height_red, center_x_red, x_width_red = (fit_gaussian(
-            flux_histogram_data_list_red, flux_histogram_bins_list_red))
-        # In case the fit returns a negative sigma, take the absolute value.
-        x_width_red = abs(x_width_red)
-        # Create data from the gaussian fit to plot on the flux histogram.
-        fit_data_list_red = []
-        for bin in flux_histogram_bins_list_red:
-            fit_point = ((central_height_red/sqrt(2*pi*x_width_red**2)) * 
-                exp((-1*(bin-center_x_red)**2)/(2*x_width_red**2)))
-            fit_data_list_red.append(fit_point)
-    # Generate the flux histogram plot.
-    plot_title = ("Sky Flux Histogram")
-    fig = plt.figure(figsize=(6, 6))
-    ax1 = fig.add_subplot(1,1,1)
-    ax1.plot(flux_histogram_bins_list_green, flux_histogram_data_list_green, 
-        marker = "o", color = "green", linestyle="none", label = "Flux [ADU]")
-    ax1.plot(flux_histogram_bins_list_green, fit_data_list_green, marker = ".", 
-        color = "green", linestyle="solid", label = "Gaussian Fit")
-    if yellow:
-        ax1.plot(flux_histogram_bins_list_yellow, flux_histogram_data_list_yellow, 
-            marker = "o", color = "yellow", linestyle="none", label = "Flux [ADU]")
-        ax1.plot(flux_histogram_bins_list_yellow, fit_data_list_yellow, marker = ".", 
-            color = "yellow", linestyle="solid", label = "Gaussian Fit")
-    if orange:
-        ax1.plot(flux_histogram_bins_list_orange, flux_histogram_data_list_orange, 
-            marker = "o", color = "orange", linestyle="none", label = "Flux [ADU]")
-        ax1.plot(flux_histogram_bins_list_orange, fit_data_list_orange, marker = ".", 
-            color = "orange", linestyle="solid", label = "Gaussian Fit")
-    if red:
-        ax1.plot(flux_histogram_bins_list_red, flux_histogram_data_list_red, 
-            marker = "o", color = "red", linestyle="none", label = "Flux [ADU]")
-        ax1.plot(flux_histogram_bins_list_red, fit_data_list_red, marker = ".", 
-            color = "red", linestyle="solid", label = "Gaussian Fit")
-    ax1.set_ylabel("Number")
-    ax1.set_xlabel("<- Fainter     Bin     Brighter ->")
-    ax1.set_title(plot_title)
-    canvas = FigureCanvas(fig)
-    canvas.print_figure("flux_histogram.png", dpi=144)
+        fit_data_list_green = []
+        for bin in flux_histogram_bins_list_green:
+            fit_point = ((central_height_green/sqrt(2*pi*x_width_green**2)) * 
+                exp((-1*(bin-center_x_green)**2)/(2*x_width_green**2)))
+            fit_data_list_green.append(fit_point)
+        # YELLOW
+        if yellow:
+            flux_histogram_data_yellow, flux_histogram_bins_yellow = histogram(
+                flux_array_yellow, int(num_apertures/160))
+            bin_half_height_yellow = (flux_histogram_bins_yellow[1] - 
+                flux_histogram_bins_yellow[0])
+            flux_histogram_data_list_yellow = list(flux_histogram_data_yellow)
+            flux_histogram_bins_list_yellow = (list(bin_half_height_yellow + 
+                flux_histogram_bins_yellow[0:-1]))
+            # Fit a gaussian curve to the histogram of the flux data.
+            central_height_yellow, center_x_yellow, x_width_yellow = (fit_gaussian(
+                flux_histogram_data_list_yellow, flux_histogram_bins_list_yellow))
+            # In case the fit returns a negative sigma, take the absolute value.
+            x_width_yellow = abs(x_width_yellow)
+            # Create data from the gaussian fit to plot on the flux histogram.
+            fit_data_list_yellow = []
+            for bin in flux_histogram_bins_list_yellow:
+                fit_point = ((central_height_yellow/sqrt(2*pi*x_width_yellow**2)) * 
+                    exp((-1*(bin-center_x_yellow)**2)/(2*x_width_yellow**2)))
+                fit_data_list_yellow.append(fit_point)
+        # ORANGE
+        if orange:
+            flux_histogram_data_orange, flux_histogram_bins_orange = histogram(
+                flux_array_orange, int(num_apertures/160))
+            bin_half_height_orange = (flux_histogram_bins_orange[1] - 
+                flux_histogram_bins_orange[0])
+            flux_histogram_data_list_orange = list(flux_histogram_data_orange)
+            flux_histogram_bins_list_orange = (list(bin_half_height_orange + 
+                flux_histogram_bins_orange[0:-1]))
+            # Fit a gaussian curve to the histogram of the flux data.
+            central_height_orange, center_x_orange, x_width_orange = (fit_gaussian(
+                flux_histogram_data_list_orange, flux_histogram_bins_list_orange))
+            # In case the fit returns a negative sigma, take the absolute value.
+            x_width_orange = abs(x_width_orange)
+            # Create data from the gaussian fit to plot on the flux histogram.
+            fit_data_list_orange = []
+            for bin in flux_histogram_bins_list_orange:
+                fit_point = ((central_height_orange/sqrt(2*pi*x_width_orange**2)) * 
+                    exp((-1*(bin-center_x_orange)**2)/(2*x_width_orange**2)))
+                fit_data_list_orange.append(fit_point)
+        # RED
+        if red:
+            flux_histogram_data_red, flux_histogram_bins_red = histogram(flux_array_red, 
+                int(num_apertures/160))
+            bin_half_height_red = flux_histogram_bins_red[1] - flux_histogram_bins_red[0]
+            flux_histogram_data_list_red = list(flux_histogram_data_red)
+            flux_histogram_bins_list_red = list(bin_half_height_red + 
+                flux_histogram_bins_red[0:-1])
+            # Fit a gaussian curve to the histogram of the flux data.
+            central_height_red, center_x_red, x_width_red = (fit_gaussian(
+                flux_histogram_data_list_red, flux_histogram_bins_list_red))
+            # In case the fit returns a negative sigma, take the absolute value.
+            x_width_red = abs(x_width_red)
+            # Create data from the gaussian fit to plot on the flux histogram.
+            fit_data_list_red = []
+            for bin in flux_histogram_bins_list_red:
+                fit_point = ((central_height_red/sqrt(2*pi*x_width_red**2)) * 
+                    exp((-1*(bin-center_x_red)**2)/(2*x_width_red**2)))
+                fit_data_list_red.append(fit_point)
+        # Generate the flux histogram plot.
+        plot_title = ("Sky Flux Histogram")
+        fig = plt.figure(figsize=(6, 6))
+        ax1 = fig.add_subplot(1,1,1)
+        ax1.plot(flux_histogram_bins_list_green, flux_histogram_data_list_green, 
+            marker = "o", color = "green", linestyle="none", label = "Flux [ADU]")
+        ax1.plot(flux_histogram_bins_list_green, fit_data_list_green, marker = ".", 
+            color = "green", linestyle="solid", label = "Gaussian Fit")
+        if yellow:
+            ax1.plot(flux_histogram_bins_list_yellow, flux_histogram_data_list_yellow, 
+                marker = "o", color = "yellow", linestyle="none", label = "Flux [ADU]")
+            ax1.plot(flux_histogram_bins_list_yellow, fit_data_list_yellow, marker = ".", 
+                color = "yellow", linestyle="solid", label = "Gaussian Fit")
+        if orange:
+            ax1.plot(flux_histogram_bins_list_orange, flux_histogram_data_list_orange, 
+                marker = "o", color = "orange", linestyle="none", label = "Flux [ADU]")
+            ax1.plot(flux_histogram_bins_list_orange, fit_data_list_orange, marker = ".", 
+                color = "orange", linestyle="solid", label = "Gaussian Fit")
+        if red:
+            ax1.plot(flux_histogram_bins_list_red, flux_histogram_data_list_red, 
+                marker = "o", color = "red", linestyle="none", label = "Flux [ADU]")
+            ax1.plot(flux_histogram_bins_list_red, fit_data_list_red, marker = ".", 
+                color = "red", linestyle="solid", label = "Gaussian Fit")
+        ax1.set_ylabel("Number")
+        ax1.set_xlabel("<- Fainter     Bin     Brighter ->")
+        ax1.set_title(plot_title)
+        canvas = FigureCanvas(fig)
+        canvas.print_figure("flux_histogram.png", dpi=144)
     # Now we do photometry. We use the region file to extract the target ra and dec.
     region_file = file(region_file, "r")
     for line in region_file:
@@ -773,6 +748,7 @@ def dophot(progenitor_image_name,region_file,ap=None):
     # computed upper limit.
     sexcat_starlist = []
     sex_inst_mag_list = []
+    sex_inst_flux_list = []
     sexcat_file = file(sexcat, "r")
     for line in sexcat_file:
         ra = float(line.split()[0])
@@ -780,9 +756,13 @@ def dophot(progenitor_image_name,region_file,ap=None):
         mag = float(line.split()[2])
         mag_err = float(line.split()[3])
         flags = int(line.split()[4])
-        sexcat_starlist.append([ra, dec, mag, mag_err, flags])
+        fwhm_image = float(line.split()[5])
+        flux = float(line.split()[6])
+        flux_err = float(line.split()[7])
+        sexcat_starlist.append([ra, dec, mag, mag_err, flags,fwhm_image,flux,flux_err])
         if flags == 0:
             sex_inst_mag_list.append([mag, mag_err, ra, dec])
+            sex_inst_flux_list.append([flux,flux_err, ra, dec])
     sexcat_file.close()
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
@@ -930,55 +910,73 @@ def dophot(progenitor_image_name,region_file,ap=None):
     faintest_mag_err = sex_inst_mag_list_sorted[-1][1]
     faintest_ra = sex_inst_mag_list_sorted[-1][2]
     faintest_dec = sex_inst_mag_list_sorted[-1][3]
-    # Print the upper limit data.
-    print "Number of sky aperatures: " + str(num_apertures)
-    photdict.update({'Num_UL_apertures':num_apertures})
-    
-    greenpixavgweight = average(weight_flux_list_green)/(pi*aperture_size*aperture_size/4)
-    green_ul_mag = -2.5*log(center_x_green + 3*x_width_green, 10) + zeropoint
-    print ("Gaussian Fit Upper Limit green (avg weight pixel=" + 
-        str(greenpixavgweight) + "): " + 
-        str(green_ul_mag) + 
-        " err " + str(zeropoint_error))
-    
-    photdict.update({'upper_green':green_ul_mag})
-    photdict.update({'upper_green_avgpix':greenpixavgweight})
-    
-    if yellow:
-        yellowpixavgweight = average(weight_flux_list_yellow)/(pi*aperture_size*aperture_size/4)
-        yellow_ul_mag = -2.5*log(center_x_yellow + 3*x_width_yellow, 10) + zeropoint
-        print ("Gaussian Fit Upper Limit yellow (avg weight pixel=" + 
-            str(yellowpixavgweight) + "): " + 
-            str(yellow_ul_mag) + 
-            " err " + str(zeropoint_error))
-        photdict.update({'upper_yellow':yellow_ul_mag})
-        photdict.update({'upper_yellow_avgpix':yellowpixavgweight})
+    sex_inst_flux_list_sorted = sorted(sex_inst_flux_list, key=operator.itemgetter(1))
+    faintest_flux = sex_inst_flux_list_sorted[0][0]
+    faintest_flux_err = sex_inst_flux_list_sorted[0][1]
+    # should be redundant
+    faintest_flux_ra = sex_inst_flux_list_sorted[0][2]
+    faintest_flux_dec = sex_inst_flux_list_sorted[0][3]
+    # but raise an exception just in case they're not
+    # if faintest_flux_dec != faintest_dec or faintest_flux_ra != faintest_ra:
+    #     raise Exception('The Faintest Flux != Faintest Mag.  WTF.')
         
-    if orange:
-        orangepixavgweight = average(weight_flux_list_orange)/(pi*aperture_size*aperture_size/4)
-        orange_ul_mag = -2.5*log(center_x_orange + 3*x_width_orange, 10) + zeropoint
-        print ("Gaussian Fit Upper Limit orange (avg weight pixel=" + 
-            str(orangepixavgweight) + "): " + 
-            str(orange_ul_mag) + 
+    if do_upper:
+        # Print the upper limit data.
+        print "Number of sky aperatures: " + str(num_apertures)
+        photdict.update({'Num_UL_apertures':num_apertures})
+    
+        greenpixavgweight = average(weight_flux_list_green)/(pi*aperture_size*aperture_size/4)
+        green_ul_mag = -2.5*log(center_x_green + 3*x_width_green, 10) + zeropoint
+        print ("Gaussian Fit Upper Limit green (avg weight pixel=" + 
+            str(greenpixavgweight) + "): " + 
+            str(green_ul_mag) + 
             " err " + str(zeropoint_error))
-        photdict.update({'upper_orange':orange_ul_mag})
-        photdict.update({'upper_orange_avgpix':orangepixavgweight})
+    
+        photdict.update({'upper_green':green_ul_mag})
+        photdict.update({'upper_green_avgpix':greenpixavgweight})
+    
+        if yellow:
+            yellowpixavgweight = average(weight_flux_list_yellow)/(pi*aperture_size*aperture_size/4)
+            yellow_ul_mag = -2.5*log(center_x_yellow + 3*x_width_yellow, 10) + zeropoint
+            print ("Gaussian Fit Upper Limit yellow (avg weight pixel=" + 
+                str(yellowpixavgweight) + "): " + 
+                str(yellow_ul_mag) + 
+                " err " + str(zeropoint_error))
+            photdict.update({'upper_yellow':yellow_ul_mag})
+            photdict.update({'upper_yellow_avgpix':yellowpixavgweight})
         
-    if red:
-        redpixavgweight = average(weight_flux_list_red)/(pi*aperture_size*aperture_size/4)
-        red_ul_mag = -2.5*log(center_x_red + 3*x_width_red, 10) + zeropoint
-        print ("Gaussian Fit Upper Limit red (avg weight pixel=" + 
-            str(redpixavgweight) + "): " + 
-            str(red_ul_mag) + 
-            " err " + str(zeropoint_error))
-        photdict.update({'upper_red':red_ul_mag})
-        photdict.update({'upper_red_avgpix':redpixavgweight})
+        if orange:
+            orangepixavgweight = average(weight_flux_list_orange)/(pi*aperture_size*aperture_size/4)
+            orange_ul_mag = -2.5*log(center_x_orange + 3*x_width_orange, 10) + zeropoint
+            print ("Gaussian Fit Upper Limit orange (avg weight pixel=" + 
+                str(orangepixavgweight) + "): " + 
+                str(orange_ul_mag) + 
+                " err " + str(zeropoint_error))
+            photdict.update({'upper_orange':orange_ul_mag})
+            photdict.update({'upper_orange_avgpix':orangepixavgweight})
+        
+        if red:
+            redpixavgweight = average(weight_flux_list_red)/(pi*aperture_size*aperture_size/4)
+            red_ul_mag = -2.5*log(center_x_red + 3*x_width_red, 10) + zeropoint
+            print ("Gaussian Fit Upper Limit red (avg weight pixel=" + 
+                str(redpixavgweight) + "): " + 
+                str(red_ul_mag) + 
+                " err " + str(zeropoint_error))
+            photdict.update({'upper_red':red_ul_mag})
+            photdict.update({'upper_red_avgpix':redpixavgweight})
     
     sex_faintest = faintest_mag + zeropoint
     sex_faintest_err = sqrt(faintest_mag_err**2 + zeropoint_error**2)
     print ("SExtractor faintest detection: " + str(sex_faintest) + 
         " err " + str(sex_faintest_err) + " at " + 
         str(faintest_ra) + ", " + str(faintest_dec))
+    
+    faintest_s2n = faintest_flux/faintest_flux_err
+    print ("SExtractor faintest flux: " + str(faintest_flux) + 
+        " err " + str(faintest_flux_err) + " => S/N = " + str(faintest_s2n))
+    
+    photdict.update({'faintest_s2n':faintest_s2n})
+    
     photdict.update({'sex_faintest':(sex_faintest,sex_faintest_err)})
     
     # Clean up the photometry catalog files.
@@ -987,24 +985,28 @@ def dophot(progenitor_image_name,region_file,ap=None):
     system("rm " + progenitor_image_name.replace(".fits", ".sex"))
     system("rm " + weight_image_name.replace(".fits", ".sex"))
     
+    print ("Photometry completed, " + 
+        str(time() - t1) + " seconds required.")
+        
     return photdict
-   
-    fig.close()
-
+    
 def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None):
     import glob
-    jlist = []
-    hlist = []
-    klist = []
+    mylist = []
     photdict = {}
-    jfulllist = glob.glob(photdir+'/*j*.fits')
+    fulllist = glob.glob(photdir+'/*coadd*.fits')
     # Remove the weight images from the list
-    for item in jfulllist:
+    for item in fulllist:
         if item.find('weight') == -1:
-            jlist.append(item)
-    for jfile in jlist:
-        print "Now performing photometry for %s \n" % (jfile)
-        photout = dophot(jfile,reg,ap)
+            mylist.append(item)
+    for myfile in mylist:
+        print "Now performing photometry for %s \n" % (myfile)
+        photout = dophot(myfile,reg,ap)
+        # If a target magnitude or upper limit isn't found, rerun the 
+        # photometry code with do_upper = True to find an upper limit
+        if 'targ_mag' not in photout and 'upper_green' not in photout:
+            print '**Target Magnitude not found. Re-running to find UL**.'
+            photout = dophot(myfile,reg,ap,do_upper=True)
         label = photout['FileName']
         photdict.update({label:photout})
     return photdict
