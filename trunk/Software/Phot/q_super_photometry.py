@@ -66,7 +66,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-sextractor_bin = "/opt/local/bin/sex"
+sextractor_bin = "/usr/bin/sex"
 
 #############
 # NOTE: Make sure the path is set correctly in the keyword
@@ -1062,13 +1062,14 @@ def photloop(filename, reg, aper=None):
     f.close()
     r.close()
     
-def photplot(GRBname):
+def photplot(photdict):
     '''Plots a graph from the pickle output of the photreturn function'''
     import matplotlib
     import glob
-
-    filepath = GRBname + '.data'
-    photdict = qPickle.load(filepath)
+    import datetime
+    
+    #filepath = path + GRBname + '.data'
+    #photdict = qPickle.load(filepath)
     
     h = False
     j = False
@@ -1080,8 +1081,10 @@ def photplot(GRBname):
     errlist = []
 
     for mosaics in photdict:
-        time = float(t_mid.t_mid(mosaics))
-        terr = float(t_mid.t_mid(mosaics, delta = True))/2.
+        print 'now doing ' + str(mosaics)
+        time = photdict[mosaics]['t_mid'][0]
+        terr = photdict[mosaics]['t_mid'][1]
+        
         valu = float(photdict[mosaics]['targ_mag'][0])
         verr = float(photdict[mosaics]['targ_mag'][1])
 
@@ -1113,21 +1116,25 @@ def photplot(GRBname):
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
     matplotlib.pyplot.ylabel('Mag')
-    matplotlib.pyplot.semilogx()
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
     matplotlib.pyplot.legend()
-    
-    savefig('lightcurve')    
+    uniquename = photdict.keys()[0].split('_')[2]
+    savepath = storepath + uniquename + '_lightcurve.png'
+    print 'lightcurve saved to ' + savepath
+    savefig(savepath)    
     matplotlib.pyplot.close()
 
 
-def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None):
-    
-    filepath = GRBname + '.data'
+def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True):
+    '''Returns the photometry results of a GRB that was stored in a pickle file. If the pickle file does not exists, this function will create it. Use Clobber=True for overwriting existing pickle files. '''
+    filepath = storepath + GRBname + '.data'
     while Clobber == False:
         if os.path.isfile(filepath) == True:
             data = qPickle.load(filepath)
             if filename in data:
-                return data[filename]
+                return data
             else:
                 Clobber = True
         else:
@@ -1144,12 +1151,87 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None):
                 #f = file(filepath)
                 photdict = qPickle.load(filepath)
             data = dophot(filename, reg, aper)
+            if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
+                print '**Target Magnitude not found. Re-running to find UL**.'
+                data = dophot(filename,reg,aper,do_upper=True)
             label = data['FileName']
+            time = float(t_mid.t_mid(filename))
+            terr = float(t_mid.t_mid(filename, delta = True))/2.
+            timetuple = (time, terr)
+            data.update({'t_mid':timetuple})
             photdict.update({label:data})
-            #f = file(filepath, 'w')
             qPickle.save(photdict, filepath, clobber = True)
-            #.close()
-            return data
+            return photdict
             break
 
 
+def temploop(GRBname, regfile, aper=None):
+    '''temporary looping'''
+    import glob
+    GRBlist = []
+    GRBlistwweight = glob.glob('*.fits')
+    # Remove the weight images from the list
+    for item in GRBlistwweight:
+        if item.find('weight') == -1:
+            GRBlist.append(item)
+    for mosaic in GRBlist:
+        print "Now performing photometry for %s \n" % (mosaic)
+        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=None)
+
+def plotzp(GRBname):
+    '''Plots a graph of zp from the pickle output of the photreturn function'''
+    import matplotlib
+    import glob
+
+    filepath = GRBname + '.data'
+    photdict = qPickle.load(filepath)
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    vallist = []
+    errlist = []
+
+    for mosaics in photdict:
+        print 'now doing ' + str(mosaics)
+        time = float(t_mid.t_mid(mosaics))
+        terr = float(t_mid.t_mid(mosaics, delta = True))/2.
+        print 'terr is ' + str(terr)
+        valu = float(photdict[mosaics]['zp'][0])
+        verr = float(photdict[mosaics]['zp'][1])
+
+#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+
+        if 'h_' in mosaics:
+            if h == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                h = True
+
+        elif 'j_' in mosaics:            
+            if j == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                j = True
+
+        elif 'k_' in mosaics:
+            if k == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                k = True
+
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1])
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('zero point')
+    matplotlib.pyplot.legend()
+    
+    savefig('zero_point')    
+    matplotlib.pyplot.close()
