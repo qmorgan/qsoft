@@ -990,7 +990,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         
     return photdict
     
-def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None):
+def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=True):
+    '''
+    if auto_upper = True, then rerun to find upper limit if no target mag found
+    '''
     import glob
     mylist = []
     photdict = {}
@@ -1004,7 +1007,7 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None):
         photout = dophot(myfile,reg,ap)
         # If a target magnitude or upper limit isn't found, rerun the 
         # photometry code with do_upper = True to find an upper limit
-        if 'targ_mag' not in photout and 'upper_green' not in photout:
+        if 'targ_mag' not in photout and 'upper_green' not in photout and auto_upper:
             print '**Target Magnitude not found. Re-running to find UL**.'
             photout = dophot(myfile,reg,ap,do_upper=True)
         label = photout['FileName']
