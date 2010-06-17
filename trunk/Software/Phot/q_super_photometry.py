@@ -1141,7 +1141,9 @@ def photplot(photdict):
 
 
 def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True):
-    '''Returns the photometry results of a GRB that was stored in a pickle file. If the pickle file does not exists, this function will create it. Use Clobber=True for overwriting existing pickle files. '''
+    '''Returns the photometry results of a GRB that was stored in a pickle file. 
+    If the pickle file does not exists, this function will create it. Use 
+    Clobber=True for overwriting existing pickle files. '''
     filepath = storepath + GRBname + '.data'
     while Clobber == False:
         if os.path.isfile(filepath) == True:
