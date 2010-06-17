@@ -66,7 +66,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-sextractor_bin = "/usr/bin/sex"
+sextractor_bin = "/opt/local/bin/sex"
 
 #############
 # NOTE: Make sure the path is set correctly in the keyword
@@ -771,6 +771,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     for sexcat_star in sexcat_starlist:
         sexcat_star_ra_rad = sexcat_star[0] * 0.01745329252
         sexcat_star_dec_rad = sexcat_star[1] * 0.01745329252
+        # First check to see if our target location was detected by sextractor
+        # If it was, add it to the starlist.  
         target_separation_arcsec = 206264.806247*(float(ephem.separation(
             (target_ra_rad, target_dec_rad), 
             (sexcat_star_ra_rad, sexcat_star_dec_rad))))
@@ -779,7 +781,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 999, 999, 
                 sexcat_star[2], sexcat_star[3], 
                 sexcat_star[4]])
+            src_flux = flux
+            src_flux_err = flux_err
+            src_s2n = src_flux/src_flux_err
             continue
+        # Now, cross correlate the calibration catalog with our instrumental
+        # Magnitudes, and store any matches in the starlist
         for calibcat_star in vizcat_starlist:
             calibcat_star_ra_rad = calibcat_star[0] * 0.01745329252
             calibcat_star_dec_rad = calibcat_star[1] * 0.01745329252
@@ -836,6 +843,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 ptel_e_mag*ptel_e_mag)
             target_mag = new_mag
             target_e_mag = new_e_mag
+            target_flux = src_flux # Note does not take into account zp
+            target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
             continue
@@ -893,7 +902,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     if str(target_mag) != "999":
         photometry_string = ("%s_mag: %.3f \terr: %f" % 
             (band_type, target_mag, target_e_mag))
+        # Update the photometry string with updated values
         photdict.update({'targ_mag':(target_mag,target_e_mag)})
+        photdict.update({'targ_flux':(target_flux,target_flux_err)})
+        photdict.update({'targ_s2n':src_s2n})
     # Print out photometry data. 
     print progenitor_image_name, "HJD:", hjd
     print "Photometry Results:", photometry_string
@@ -903,6 +915,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     
     photdict.update({'zp':(zeropoint,zeropoint_error)})
     photdict.update({'2mass_abs_avg_dev':str(average(abs_2mass_deviation_list))})
+    
     
     # Sort the instrumental magnitudes to find the faintest detection.
     sex_inst_mag_list_sorted = sorted(sex_inst_mag_list, key=operator.itemgetter(1))
