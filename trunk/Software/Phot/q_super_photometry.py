@@ -315,6 +315,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     try:
         strt_cpu = str(imagefile_header["STRT_CPU"])
         stop_cpu = str(imagefile_header["STOP_CPU"])
+        exptime = str(imagefile_header["EXPTIME"])
     except:
         strt_cpu = 999
         stop_cpu = 999
@@ -323,6 +324,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     
     photdict.update({'STRT_CPU':strt_cpu})
     photdict.update({'STOP_CPU':stop_cpu})
+    photdict.update({'EXPTIME':exptime})
     photdict.update({'filter':band})
     
     if do_upper:
