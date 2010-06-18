@@ -13,10 +13,10 @@ def t_mid(filepath, GRBid=None, delta=None):
 
     if not delta:
 
-        durdiv2 = (start - stop)/2 + start
-        print "durdiv2 is " +  str(durdiv2)
-        print start
-        print stop
+        durdiv2 = (stop - start)/2 + start
+        #print "durdiv2 is " +  str(durdiv2)
+        print 'start time is ' + str(start)
+        print 'stop time is ' + str(stop)
         if not GRBid:
             trg = int(header[0].header['TRGTNAME'][6:])
             dict = LoadGCN.LoadGCN(trg)
@@ -33,7 +33,7 @@ def t_mid(filepath, GRBid=None, delta=None):
         t_mid = durdiv2 - GRB  
         t_mid_str = str(t_mid)
 
-        print t_mid_str
+        #print t_mid_str
 
         if 'days' in t_mid_str:
             t_mid_days = float(t_mid_str.split(' days')[0]) * (24.)
@@ -45,7 +45,7 @@ def t_mid(filepath, GRBid=None, delta=None):
 
         t_mid_time_list = t_mid_str.split(':')
 
-        print t_mid_time_list
+        #print t_mid_time_list
         t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)
         t_mid_hour = t_mid_days + t_mid_time_hour
         t_mid_sec = t_mid_hour*3600.
@@ -60,7 +60,7 @@ def t_mid(filepath, GRBid=None, delta=None):
         #t_mid_hour = t_mid_days + t_mid_time_hour
 
 
-        print t_mid_sec
+        print 't_mid in second is ' + str(t_mid_sec)
         return t_mid_sec
 
     else:
@@ -75,11 +75,11 @@ def t_mid(filepath, GRBid=None, delta=None):
 
         dur_list = durstr.split(':')
 
-        print dur_list
+        #print dur_list
         dur_time_hour = float(dur_list[0]) + float(dur_list[1])*(1/60.) + float(dur_list[2])*(1/3600.)
         dur_hour = durdays + dur_time_hour
         dur_sec = dur_hour*3600.
 
-        print dur_sec
+        print 'duration in second is ' + str(dur_sec)
         return dur_sec
 
