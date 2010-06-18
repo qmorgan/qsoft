@@ -783,9 +783,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 999, 999, 
                 sexcat_star[2], sexcat_star[3], 
                 sexcat_star[4]])
-            src_flux = flux
-            src_flux_err = flux_err
+            src_flux = sexcat_star[6]
+            src_flux_err = sexcat_star[7]
             src_s2n = src_flux/src_flux_err
+            print "SOURCE FOUND WITH S/N OF %f (%f +/- %f)" % (src_s2n, src_flux, src_flux_err)
             continue
         # Now, cross correlate the calibration catalog with our instrumental
         # Magnitudes, and store any matches in the starlist
