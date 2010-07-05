@@ -37,23 +37,147 @@ Start python, then do the following:
 import os, sys
 import shutil
 import glob
-pypath = "~/Programs/epd-6.1-1-rh5-x86/bin/python"
+pypath = "python"
 
 
-def smartStack(obsidlist):
-    '''I need to comment this more.  This is a rough first go at doing 
-    smart coaddition  
+def smartStackRefine(obsidlist, mins2n=10, minfilter='j'):
+    '''Here we continually coadd each observation in the obs list until 
+    the minimum signal to noise is reached.  q_super_photometry is needed.
     '''
+    from Phot import q_super_photometry as q_phot
+    
+    ## PHOTOMETRY PARAMTERS ##
+    ap=3
+    doupper=False
+    regfile = 'PTEL.reg'
+    
+    # Choose which filter to base the minimum s/n off of
+    # i.e. require the s/n to be above the threshold for a specific filter, 
+    # any of them, or all of them, to continue on.
+    minfilteroklist = ['j','h','k','all','any']
+    if minfilter.lower() not in minfilteroklist:
+        raise ValueError
+    elif minfilter.lower() == 'j':
+        filtindex = 1
+    elif minfilter.lower() == 'h':
+        filtindex = 0
+    elif minfilter.lower() == 'k':
+        filtindex = 2
+    elif minfilter.lower() == 'any' or minfilter.lower() == 'all':
+        print 'Not implemented yet'
+        raise ValueError
+    ## END PHOTOMETRY PARAM ##
+    
     prep(obsidlist)
     firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
+    
+    # Assume no modifications have been made between j,h, and k files
+    # I.e that j file is the same order, etc as the others.
     
     j_filename_old = "j_long_triplestacks_full.txt"
     j_file = file(j_filename_old,"r")
     j_list_full = j_file.readlines()
     
     total_length = len(j_list_full)
+    initial_sum_length = 0
+    initial_obs_number = 1
+    
+    doubling_count=0
+    length_count=0
+    
+    sum_length = initial_sum_length
+    obs_num_i = initial_obs_number
+    obs_num_f = 0
+
+    
+    coaddlist = []
+    copyidlist = obsidlist[:]
+    
+    # Raise error if mins2n is not a number or 
+    try:
+        mins2n = float(mins2n)
+    except:
+        raise(TypeError)
+    if mins2n < 3.0:
+        print 'Unrealistically low S2N'
+    elif mins2n < 1.0:
+        print 'S2N too low - exiting'
+        raise(ValueError)
+    
+    # Two nested while loops.  One keeps going until all observations are 
+    # used up.  The other keeps going until the maximum s/n is reached.    
+    # Do the loop until mins2n is reached 
+    while obs_num_f < total_length:
+        s2n = 0
+                
+        while s2n < mins2n:
+        # If the s/n was not reached in the previous iteration,
+        # Remove one from the copy list and add it to our current list
+            # coaddlist.append(copyidlist.pop(0))
+            #         
+            # print 'added: ' + str(coaddlist)
+            # print 'remaining: ' + str(copyidlist)
+                        
+            obs_num_f += 1 
+
+            myrange = (obs_num_i, obs_num_f)
+      
+            # if we're running out of observations, tack the rest on to the end
+            if obs_num_f + sum_length > total_length:
+                obs_num_f = total_length
+                myrange = (obs_num_i, obs_num_f)
+                print 'We have run out of run out observations'
+                break 
+            
+            # Coadd Everything in coaddlist
+            new_coadd_list = coadd(firstid,coadd_range=myrange)
+            # Do photometry on the resultant coadd 
+            print 'Now doing photometry on %s' % (new_coadd_list[filtindex])
+            photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,ap=ap,do_upper=doupper)
+            
+            if not 'targ_s2n' in photdict:
+                # if an upper limit found, give a tiny s2n so the loop keeps going
+                s2n=0.0
+            else:
+                s2n = photdict['targ_s2n']
+            
+            print 'The S/N reached is %s from a total of %s images: %s' % (str(s2n), str(obs_num_f - obs_num_i + 1), str(myrange))
+            
+            if s2n >= mins2n:
+                print 'Minimum S/N Reached. Moving on to the next images set.'  
+            else:
+                # If not reached, add one more to the coaddlist and try again.
+                basename = photdict['FileName'].rstrip('fits')[1:]
+                # remove the ?_long_basename*.fits files created
+                rmname = 'rm -f ?' + basename + '*fits'
+                rmcatname = 'rm -f ?' + basename + '*finalcat.txt'
+                print 'performing system command ' + rmname
+                os.system(rmname)
+                os.system(rmcatname)
         
-    doubling_time = 4
+            # Update the initial obs number for the NEXT observation
+        obs_num_i = obs_num_f + 1
+
+        print myrange 
+
+    cleanup(firstid)
+    
+
+def smartStackDoubling(obsidlist, doubling_time):
+    '''I need to comment this more.  This is a rough first go at doing 
+    smart coaddition using a doubling technique. 
+    '''
+    prep(obsidlist)
+    firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
+    
+    # Assume no modifications have been made between j,h, and k files
+    # I.e that j file is the same order, etc as the others.
+    j_filename_old = "j_long_triplestacks_full.txt"
+    j_file = file(j_filename_old,"r")
+    j_list_full = j_file.readlines()
+    
+    total_length = len(j_list_full)
+        
     initial_sum_length = 0
     initial_obs_number = 1
     
@@ -76,6 +200,7 @@ def smartStack(obsidlist):
             obs_num_f = total_length
             myrange = (obs_num_i, obs_num_f)
         
+        # Update the initial obs number for the NEXT observation
         obs_num_i = obs_num_f + 1
         
         if doubling_count == doubling_time: 
@@ -106,7 +231,8 @@ def prep(obsid, exclude=False):
     for oid in obsid:
         globstr = oid + '-reduction_output'
         if not glob.glob(globstr):
-            sys.exit('search directory does not exist')
+            printstr = 'Search directory does not exist: %s' % (globstr)
+            sys.exit(printstr)
         prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
         os.system(prepstr)
         globstr = '?_long_triplestacks.txt'
@@ -168,6 +294,7 @@ def cleanup(obsid,opt_str=''):
     
 def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
     
+    mosaic_list = []
     fj = open('j_mosaics.txt' , 'w')
     fh = open('h_mosaics.txt' , 'w')
     fk = open('k_mosaics.txt' , 'w')
@@ -258,6 +385,7 @@ def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
                 if 'weight' in new_item:
                     pass
                 else:
+                    mosaic_list.append(new_item)
                     if 'h_long' in new_item:
                         strname = new_item + '\n'
                         fh.write(strname)
@@ -274,3 +402,6 @@ def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
     fj.close()
     fh.close()
     fk.close()
+    
+    # Return an array of the new files created
+    return mosaic_list
