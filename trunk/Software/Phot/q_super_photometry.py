@@ -236,7 +236,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
-def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False, calstar_reg_output = False):
+def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False, calstar_reg_output = True, calreg = None):
     # Begin timing
     t1 = time()
      
@@ -803,6 +803,34 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                     calibcat_star[2], calibcat_star[3], 
                     sexcat_star[2], sexcat_star[3], 
                     sexcat_star[4]])
+
+    # Deleting stars in combined_starlist that is not in the inputted region file (if not calreg == False)
+
+    if not calreg:
+        pass
+    else:
+        reg_path = storepath + calreg
+        regfile = open(reg_path,'r')
+        reglist = regfile.readlines()
+        callist = []
+        for line in reglist:
+            if 'circle' in line:
+                callist += [(((line.rstrip('\n')).strip('circle')).rstrip(')')).strip('(')]
+            else:
+                pass
+        
+        for calstar_new in callist:
+            calstar_list = calstar_new.split(',')
+            for index, calstar_old in enumerate(combined_starlist):
+                if calstar_old[0] == calstar_list[0]:
+                    if calstar_old[1] == calstar_list[1]:
+                        pass
+                    else:
+                        del(combined_starlist[index])
+                else:
+                    del(combined_starlist[index])
+            
+ 
     # Use the combined_starlist to calculate a zeropoint for the science image.
     zeropoint_list = []
     zeropoint_err_list = []
@@ -1010,9 +1038,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     system("rm " + weight_image_name.replace(".fits", ".sex"))
     
      # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
-
-    print 'combined_starlist is:'
-    print combined_starlist
 
     if calstar_reg_output == True:
         uniquename = str(progenitor_image_name.split('_')[2])
