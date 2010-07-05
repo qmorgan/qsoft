@@ -67,7 +67,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-sextractor_bin = "/opt/local/bin/sex"
+sextractor_bin = "/usr/bin/sex"
 
 #############
 # NOTE: Make sure the path is set correctly in the keyword
@@ -236,7 +236,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
-def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False):
+def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False, calstar_reg_output = False):
     # Begin timing
     t1 = time()
      
@@ -682,6 +682,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             target_dec_deg = float(line.split("(")[1].split(",")[1])
     target_ra_rad = target_ra_deg * 0.01745329252
     target_dec_rad = target_dec_deg * 0.01745329252
+
     # We collect the 2MASS photometry of field sources with a query to vizier.
     # Most of this is forming the query and then formatting the returned text file.
     viz_input_file = file(storepath + "viz_input.txt", "w")
@@ -823,6 +824,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             zeropoint_list.append(tmass_mag - ptel_mag)
             zeropoint_err_list.append(sqrt(tmass_e_mag*tmass_e_mag + 
                 ptel_e_mag*ptel_e_mag))
+    print zeropoint_list
+
     zeropoint = average(zeropoint_list)
     if numpy.isnan(zeropoint):
         print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
@@ -991,13 +994,13 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     print ("SExtractor faintest detection: " + str(sex_faintest) + 
         " err " + str(sex_faintest_err) + " at " + 
         str(faintest_ra) + ", " + str(faintest_dec))
-    
+#comments out s2n starts////////////////////////////
     faintest_s2n = faintest_flux/faintest_flux_err
     print ("SExtractor faintest flux: " + str(faintest_flux) + 
         " err " + str(faintest_flux_err) + " => S/N = " + str(faintest_s2n))
     
     photdict.update({'faintest_s2n':faintest_s2n})
-    
+#comments out s2n stops////////////////////////////////////////    
     photdict.update({'sex_faintest':(sex_faintest,sex_faintest_err)})
     
     # Clean up the photometry catalog files.
@@ -1006,11 +1009,32 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     system("rm " + progenitor_image_name.replace(".fits", ".sex"))
     system("rm " + weight_image_name.replace(".fits", ".sex"))
     
+     # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
+
+    print 'combined_starlist is:'
+    print combined_starlist
+
+    if calstar_reg_output == True:
+        uniquename = str(progenitor_image_name.split('_')[2])
+        reg_name = storepath + uniquename + '.reg'
+        regfile=open(reg_name,'w')
+        regfile.write('# Region file format: DS9 version 4.1\n')
+        secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
+                 '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
+                 'delete=1 include=1 source=1\n'
+        regfile.write(secondstr)
+        regfile.write('fk5\n')
+        for calstar in combined_starlist:
+            tmp_str = 'circle('+str(calstar[0])+','+str(calstar[1])\
+                    +','+str(aperture_size)+'")' + '\n'
+            regfile.write(tmp_str)
+        regfile.close
     print ("Photometry completed, " + 
         str(time() - t1) + " seconds required.")
         
     return photdict
     
+
 def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=True):
     '''
     if auto_upper = True, then rerun to find upper limit if no target mag found
@@ -1255,5 +1279,73 @@ def plotzp(photdict):
     uniquename = photdict.keys()[0].split('_')[2]
     savepath = storepath + uniquename + '_zeropoint.png'
     print 'zeropoint plot saved to ' + savepath
+    savefig(savepath)           
+    matplotlib.pyplot.close()
+
+def temploop(GRBname, regfile, aper=None):
+    '''temporary looping'''
+    import glob
+    GRBlist = []
+    GRBlistwweight = glob.glob('*.fits')
+    # Remove the weight images from the list
+    for item in GRBlistwweight:
+        if item.find('weight') == -1:
+            GRBlist.append(item)
+    for mosaic in GRBlist:
+        print "Now performing photometry for %s \n" % (mosaic)
+        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=None)
+
+def plots2n(photdict):
+    '''Plots a graph of s/n versus duration from the pickle output of the photreturn function'''
+    import matplotlib
+    import glob
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    vallist = []
+    errlist = []
+
+    for mosaics in photdict:
+        print 'now doing ' + str(mosaics)
+        #time = float(photdict[mosaics]['EXPTIME'])
+        time = photdict[mosaics]['t_mid'][0]
+       
+        valu = float(photdict[mosaics]['targ_s2n'])
+
+#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+
+        if 'h_' in mosaics:
+            if h == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                h = True
+
+        elif 'j_' in mosaics:            
+            if j == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                j = True
+
+        elif 'k_' in mosaics:
+            if k == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                k = True
+    
+    matplotlib.pyplot.xlabel('duration(s)')
+    matplotlib.pyplot.ylabel('s/n')
+    matplotlib.pyplot.legend()
+    #matplotlib.pyplot.semilogx()
+    uniquename = photdict.keys()[0].split('_')[2]
+    #savepath = storepath + uniquename + '_s2nvsdurationlogx.png'
+    savepath = storepath + uniquename + '_s2n.png'
+    print 's/n plot saved to ' + savepath
     savefig(savepath)           
     matplotlib.pyplot.close()
