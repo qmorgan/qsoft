@@ -45,6 +45,7 @@ from MiscBin import t_mid
 from MiscBin import qPickle
 from pylab import close
 from time import time
+import numpy
 
 # --------------------------    USER INPUT PARAMETERS   --------------------
 
@@ -823,6 +824,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             zeropoint_err_list.append(sqrt(tmass_e_mag*tmass_e_mag + 
                 ptel_e_mag*ptel_e_mag))
     zeropoint = average(zeropoint_list)
+    if numpy.isnan(zeropoint):
+        print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
+        print zeropoint_list
+        raise(ValueError)
     zeropoint_error = average(zeropoint_err_list)
     # Now apply the zeropoint to the instrumental magnitudes and create the 
     # final_starlist. Store the target photometry in target_mag and target_e_mag.
