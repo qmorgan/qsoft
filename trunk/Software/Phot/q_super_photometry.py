@@ -820,18 +820,26 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 pass
         
         token = False
+        indexlist = []
 
-        for calstar_new in callist:
-            calstar_list = calstar_new.split(',')
-            for index, calstar_old in enumerate(combined_starlist):
-                if calstar_old[0] == calstar_list[0]:
-                    if calstar_old[1] == calstar_list[1]:
-                        token = True   
-                else:
-                    delindex = index
-                    
-            if token == False:
-                del(combined_starlist[delindex])
+
+
+        for index, calstar_old in enumerate(combined_starlist):
+            token = False
+            for calstar_new in callist:
+                calstar_list = calstar_new.split(',')
+                if float(calstar_old[0]) == float(calstar_list[0]):
+                    if float(calstar_old[1]) == float(calstar_list[1]):
+                        token = True
+            if not token:
+                indexlist += [index]
+
+        indexlist.sort()
+        print indexlist
+        revindex = indexlist[::-1]
+        for ind in revindex:
+            del combined_starlist[ind]
+            
 
     # Use the combined_starlist to calculate a zeropoint for the science image.
     zeropoint_list = []
@@ -860,7 +868,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     if numpy.isnan(zeropoint):
         print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
         print zeropoint_list
-        #raise(ValueError)
+        raise(ValueError)
     zeropoint_error = average(zeropoint_err_list)
     # Now apply the zeropoint to the instrumental magnitudes and create the 
     # final_starlist. Store the target photometry in target_mag and target_e_mag.
