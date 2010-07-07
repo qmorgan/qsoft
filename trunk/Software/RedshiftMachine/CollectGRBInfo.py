@@ -32,10 +32,12 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have WCSTOOLS installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def_bat_natcats = [storepath+'bat_catalog_07061275.fits',storepath+'bat_catalog_current.fits']
-def_xrt_natcats = [storepath+'xrt_catalog_090831.fits']
-
+def_bat_natcats = [loadpath+'bat_catalog_apj.671.656.fits',\
+                    loadpath+'bat_catalog_apj.711.495.fits',\
+                    loadpath+'bat_catalog_100706.fits']
+def_xrt_natcats = [loadpath+'xrt_catalog_100706.fits']
 
 def whatis(keyword):
     '''Look up what a particular keyword represents in the collected dictionary.
@@ -286,7 +288,7 @@ class GRBdb:
         html_path = self.html_path
         
         print '\nNow loading Swift Online Catalog Entries'
-        swiftcatdict = ParseSwiftCat.parseswiftcat(storepath+'grb_table_current.txt')
+        swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
             from RedshiftMachine import ParseNatCat
             print "Now loading Nat's Catalog"
@@ -294,6 +296,8 @@ class GRBdb:
         collected_dict = {}
         failed_gcn_grbs = []
         failed_nat_grbs = []
+        failed_gcn_grbs_ids = []  # includes just the grb_str e.g. '090313'
+        failed_nat_grbs_ids = []  # includes just the grb_str e.g. '090313'
         failed_finding_charts = []
         for grb_str,catdict in swiftcatdict.iteritems():
             # If the swiftcat has a TRIGGERID associated with it, grab the trigger id
@@ -340,6 +344,8 @@ class GRBdb:
                 except:
                     print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,grb_str)
                     failed_gcn_grbs.append('GRB'+grb_str+' ('+trigid_str+')')
+                    failed_gcn_grbs_ids.append(grb_str)
+                    
             
                 print "Now collecting Nat's Catalog entries for GRB %s" % (grb_str)
                 GRBgrb_str = 'GRB'+grb_str
@@ -356,14 +362,22 @@ class GRBdb:
                         except:
                             print "Cannot load Nat's entries for GRB %s" % (grb_str)
                             failed_nat_grbs.append(GRBgrb_str)
+                            failed_nat_grbs_ids.append(grb_str)
             
                 subdict = {grb_str:catdict}
                 collected_dict.update(subdict)
         
+        failed_nat_grbs.sort()
+        failed_gcn_grbs.sort()
+        failed_finding_charts.sort()
         self.failed_gcn_grbs = failed_gcn_grbs
         self.failed_nat_grbs = failed_nat_grbs
+        self.failed_gcn_grbs_ids = failed_gcn_grbs_ids
+        self.failed_nat_grbs_ids = failed_nat_grbs_ids
         self.failed_finding_charts = failed_finding_charts
         self.length = len(collected_dict)
+        # Can potentially update later to cull out the failed_gcn_grb_ids, etc
+        
         # WOULD BE NICE IF THE 'COLLECTED DICT' Was an OBJECT so these could be 
         # ATTRIBUTES.  and we could have the functions be attributes too.  Bah.
         # this would be nice.  So I made it so.  02/06/10
@@ -842,10 +856,12 @@ class GRBdb:
                     if suppress: doprint = False
             if doprint: print printstr
     
-    def removeShort(self):
-        '''Removes all short bursts with T90 < 2 and those without a redshift'''
+    def removeShort(self,remove_no_redshift=True):
+        '''Removes all short bursts with T90 < 2 and, if remove_no_redshift==
+        True, those without a redshift'''
         remove_list = []
         for i in iter(self.dict):
+            already_removed = False
             if 'T90' in self.dict[i]: 
                 t90 = self.dict[i]['T90']
             elif 't90' in self.dict[i]:
@@ -856,21 +872,29 @@ class GRBdb:
                 z = None
             else:
                 z = self.dict[i]['Z']
-            if not z or t90 < 2.0: 
+            if t90 < 2.0: 
                 remove_list.append(i)
-        print len(self.dict)
-        print len(remove_list)
+                already_removed=True
+            if remove_no_redshift and not z and not already_removed:
+                remove_list.append(i)
+        print 'initial length of dictionary: ' + str(len(self.dict))
+        print ' removing ' + str(len(remove_list)) + ' GRBs'
         for key in remove_list:
             self.dict.pop(key)
-        print len(self.dict)
+        print 'new length of dictionary: ' + str(len(self.dict))
         #update the length
         self.length=len(self.dict)
                     
                     
-    def makeArffFromArray(self,attrlist=['triggerid_str','Z','A','B','DT_MAX_SNR','EP','EP0','FL','FLX_PC','FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT','MAX_SNR','NH_PC','NH_PC_LATE','NH_WT','PK_O_CTS','RT45','T50','T90','bat_bkg_inten','bat_img_peak','bat_inten','bat_is_rate_trig','bat_rate_signif','bat_trigger_dur','xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0','xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux','t90','v_mag_isupper','wh_mag_isupper','xrt_column'],inclerr=True):
+    def makeArffFromArray(self,attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT','CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC','FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT','MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT','NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten','bat_image_signif','bat_img_peak','bat_inten','bat_is_rate_trig','bat_rate_signif','bat_trigger_dur','xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0','xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux','t90','v_mag_isupper','wh_mag_isupper','xrt_column'],inclerr=True):
+        '''Create .arff file from array of attributes
+        MUST Run self.MakeAllAttr() first.
+        
+        '''
+        
         # Open file
-        arffpath = storepath+'redshiftmachine.arff'
-        subpath = storepath+'redshiftdata.txt'
+        arffpath = storepath+self.name+'.arff'
+        subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
         
@@ -996,75 +1020,75 @@ class GRBdb:
         output.close()
         
         # Combine the Header with the data
-        cmd = 'cat %s %s > %s2' %(arffpath,subpath2,arffpath)
+        cmd = 'cat %s %s > %s_full' %(arffpath,subpath2,arffpath)
         os.system(cmd)
         
         
         
-def createarff(outdict,keylist=['T90','FL','peakflux','NH_PC_LATE','wh_mag_isupper','v_mag_isupper'],\
-                    attributeclass='z_class',classlist=['high_z','low_z']):
-    # BAT Specific: T90 Duration, Fluence, 1-sec Peak Photon Flux
-    # XRT Specific: Location, Column Density (NH)
-    # UVOT Specific: V Magnitude, Other Filter Magnitudes
-    
-    # Open file
-    arffpath = storepath+'redshiftmachine.arff'
-    f=open(arffpath,'w')
-    
-    # Create .arff header
-    f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
-    f.write('% \n')
-    f.write('% 2. Sources:\n')
-    f.write('%     (a) Creator: Adam N. Morgan\n')
-    f.write('%     (b) Data From: http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/\n')
-    f.write('%     (c) Date: '+time.asctime()+'\n')
-    f.write('% \n')
-    f.write('% 3. This file was created automatically. \n')
-    f.write('%    CHECK THE ATTRIBUTES before running Weka. \n')
-    f.write('% \n')
-    f.write('@RELATION swift_redshift\n')
-    f.write('\n')
-    
-    # Create .arff attributes section 
-    for keyitem in keylist:
-        # If the key for the first item in the dictonary is not a string, assume it is a numeric quantity
-        if type(outdict[outdict.keys()[0]][keyitem]).__name__ != 'str':
-            keystring = ('@ATTRIBUTE %s NUMERIC\n') % keyitem
-        else:
-            # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
-            f.write('% !CHECK ME:\n')
-            keystring = ('@ATTRIBUTE %s {yes, no}\n') % keyitem
-        f.write(keystring)
-    classsubstr = ''
-    for classitem in classlist:
-        classsubstr += classitem
-        if len(classlist) - classlist.index(classitem) != 1:
-            classsubstr += ', ' 
-    classstring = ('@ATTRIBUTE class {%s}\n') % classsubstr
-    f.write(classstring)
-    
-    # Create .arff data section
-    
-    f.write('\n')
-    f.write('@DATA\n')
-    for entry in outdict.keys():
-        # Output each entry according that appears in keylist.  If it doesn't
-        # appear, output a single '?' as required by the .arff standard
-        datastring = ''
-        for keyitem in keylist:
-            if outdict[entry].has_key(keyitem):
-                datastring += str(outdict[entry][keyitem])
-            else:
-                datastring += '?'
-            datastring += ','
-        
-        #only write the line if the attribute class exists!
-        if attributeclass in outdict[entry]:
-            datastring += outdict[entry][attributeclass]
-            datastring += '\n'
-            f.write(datastring)
-    
-    f.close()
+# def createarff(outdict,keylist=['T90','FL','peakflux','NH_PC_LATE','wh_mag_isupper','v_mag_isupper'],\
+#                     attributeclass='z_class',classlist=['high_z','low_z']):
+#     # BAT Specific: T90 Duration, Fluence, 1-sec Peak Photon Flux
+#     # XRT Specific: Location, Column Density (NH)
+#     # UVOT Specific: V Magnitude, Other Filter Magnitudes
+#     
+#     # Open file
+#     arffpath = storepath+'redshiftmachine.arff'
+#     f=open(arffpath,'w')
+#     
+#     # Create .arff header
+#     f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
+#     f.write('% \n')
+#     f.write('% 2. Sources:\n')
+#     f.write('%     (a) Creator: Adam N. Morgan\n')
+#     f.write('%     (b) Data From: http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/\n')
+#     f.write('%     (c) Date: '+time.asctime()+'\n')
+#     f.write('% \n')
+#     f.write('% 3. This file was created automatically. \n')
+#     f.write('%    CHECK THE ATTRIBUTES before running Weka. \n')
+#     f.write('% \n')
+#     f.write('@RELATION swift_redshift\n')
+#     f.write('\n')
+#     
+#     # Create .arff attributes section 
+#     for keyitem in keylist:
+#         # If the key for the first item in the dictonary is not a string, assume it is a numeric quantity
+#         if type(outdict[outdict.keys()[0]][keyitem]).__name__ != 'str':
+#             keystring = ('@ATTRIBUTE %s NUMERIC\n') % keyitem
+#         else:
+#             # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
+#             f.write('% !CHECK ME:\n')
+#             keystring = ('@ATTRIBUTE %s {yes, no}\n') % keyitem
+#         f.write(keystring)
+#     classsubstr = ''
+#     for classitem in classlist:
+#         classsubstr += classitem
+#         if len(classlist) - classlist.index(classitem) != 1:
+#             classsubstr += ', ' 
+#     classstring = ('@ATTRIBUTE class {%s}\n') % classsubstr
+#     f.write(classstring)
+#     
+#     # Create .arff data section
+#     
+#     f.write('\n')
+#     f.write('@DATA\n')
+#     for entry in outdict.keys():
+#         # Output each entry according that appears in keylist.  If it doesn't
+#         # appear, output a single '?' as required by the .arff standard
+#         datastring = ''
+#         for keyitem in keylist:
+#             if outdict[entry].has_key(keyitem):
+#                 datastring += str(outdict[entry][keyitem])
+#             else:
+#                 datastring += '?'
+#             datastring += ','
+#         
+#         #only write the line if the attribute class exists!
+#         if attributeclass in outdict[entry]:
+#             datastring += outdict[entry][attributeclass]
+#             datastring += '\n'
+#             f.write(datastring)
+#     
+#     f.close()
 
 if __name__ == '__main__':
     collect()
