@@ -26,12 +26,14 @@ if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
     print "directory where you have WCSTOOLS installed"
     sys.exit(1)
-storepath = os.environ.get("Q_DIR") + '/store/'
 
-default_bat_catlist = [storepath+'bat_catalog_07061275.fits',\
-                    storepath+'bat_catalog_current.fits']
+loadpath = os.environ.get("Q_DIR") + '/load/'
 
-default_xrt_catlist = [storepath+'xrt_catalog_090831.fits']
+default_bat_catlist = [loadpath+'bat_catalog_apj.671.656.fits',\
+                    loadpath+'bat_catalog_apj.711.495.fits',\
+                    loadpath+'bat_catalog_100706.fits']
+
+default_xrt_catlist = [loadpath+'xrt_catalog_100706.fits']
 
 def read_nat_bat_cat(fitsname,remove_zeros=False):
     hdulist = pyfits.open(fitsname)
