@@ -27,7 +27,8 @@ def magplot(reg, filelist):
     colornumber = len(callist)
     
     for index, star_reg in enumerate(callist):
-        os.remove(temppath)
+        if os.path.exists(temppath):
+            os.remove(temppath)
         datalist = []
         dataerrlist = []
         timelist = []
