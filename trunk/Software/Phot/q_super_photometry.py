@@ -822,19 +822,18 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         token = False
         indexlist = []
 
-
-
         for index, calstar_old in enumerate(combined_starlist):
             token = False
             for calstar_new in callist:
                 calstar_list = calstar_new.split(',')
-                if float(calstar_old[0]) == float(calstar_list[0]):
-                    if float(calstar_old[1]) == float(calstar_list[1]):
-                        token = True
+                caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*(1/180.)*(float(calstar_old[0])), (numpy.pi)*(1/180.)*(float(calstar_old[1]))),((numpy.pi)*(1/180.)*(float(calstar_list[0])), (numpy.pi)*(1/180.)*(float(calstar_list[1]))))))
+                if caldist < 5:
+                    token = True
             if not token:
                 indexlist += [index]
 
         indexlist.sort()
+        print 'here is the indexlist of calibration stars which are not used'
         print indexlist
         revindex = indexlist[::-1]
         for ind in revindex:
@@ -868,7 +867,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     if numpy.isnan(zeropoint):
         print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
         print zeropoint_list
-        raise(ValueError)
+        #raise(ValueError)
     zeropoint_error = average(zeropoint_err_list)
     # Now apply the zeropoint to the instrumental magnitudes and create the 
     # final_starlist. Store the target photometry in target_mag and target_e_mag.
@@ -1050,8 +1049,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
      # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
 
     if calstar_reg_output == True:
-        uniquename = str(progenitor_image_name.split('_')[2])
-        reg_name = storepath + uniquename + '.reg'
+        uniquename = str(progenitor_image_name.split('_')[2]) + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
+        reg_name = storepath + 'calstarregs/'  + uniquename + '.reg'
         regfile=open(reg_name,'w')
         regfile.write('# Region file format: DS9 version 4.1\n')
         secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
@@ -1207,7 +1206,7 @@ def photplot(photdict):
     matplotlib.pyplot.close()
 
 
-def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True):
+def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True, cal = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     Clobber=True for overwriting existing pickle files. '''
@@ -1232,7 +1231,7 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath)
-            data = dophot(filename, reg, aper)
+            data = dophot(filename, reg, ap=aper, calreg = cal)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
                 data = dophot(filename,reg,aper,do_upper=True)
@@ -1245,10 +1244,9 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             qPickle.save(photdict, filepath, clobber = True)
             return photdict
             break
-
-
-def temploop(GRBname, regfile, aper=None):
-    '''temporary looping'''
+    
+def temploop(GRBname, regfile, ap=None, calregion = None):
+    '''temporary looping 1232'''
     import glob
     GRBlist = []
     GRBlistwweight = glob.glob('*.fits')
@@ -1258,7 +1256,7 @@ def temploop(GRBname, regfile, aper=None):
             GRBlist.append(item)
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=None)
+        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion)
 
 def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
@@ -1317,7 +1315,7 @@ def plotzp(photdict):
     savefig(savepath)           
     matplotlib.pyplot.close()
 
-def temploop(GRBname, regfile, aper=None):
+def temploopeh(GRBname, regfile, aper=None):
     '''temporary looping'''
     import glob
     GRBlist = []
@@ -1384,3 +1382,25 @@ def plots2n(photdict):
     print 's/n plot saved to ' + savepath
     savefig(savepath)           
     matplotlib.pyplot.close()
+
+def textoutput(dict):
+    '''outputs a text file from photdict'''
+    
+    uniquename = dict.keys()[0].split('_')[2]
+    savepath = storepath + uniquename + '_text.txt'
+    text = file(savepath, "w")
+    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 'EXPTIME', 'targ_mag', 'targ_mag error']
+    text.write('\t'.join(namelist))
+    text.write('\n')
+    for input in dict:
+        if 'targ_mag' not in dict[input]:
+            mag = 'not found'
+            magerr = 'not found'
+        else:
+            mag = str(dict[input]['targ_mag'][0]) 
+            magerr = str(dict[input]['targ_mag'][1])
+        datalist = [str(dict[input]['FileName']), str(dict[input]['STRT_CPU']), str(dict[input]['STOP_CPU']), str(dict[input]['EXPTIME']), mag, magerr]
+        text.write('\t'.join(datalist))
+        text.write('\n')
+    text.close()
+
