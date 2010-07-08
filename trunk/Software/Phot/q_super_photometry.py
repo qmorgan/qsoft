@@ -67,7 +67,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-sextractor_bin = "/usr/bin/sex"
+sextractor_bin = "sex"
 
 #############
 # NOTE: Make sure the path is set correctly in the keyword
@@ -262,17 +262,17 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         "-BACK_VALUE 0.0 " + \
         "-FILTER N " + \
         "-CHECKIMAGE_TYPE OBJECTS " + \
-        "-CHECKIMAGE_NAME check.fits " + \
+        "-CHECKIMAGE_NAME " + storepath + "check.fits " + \
         "-PHOT_APERTURES 5.8"
     
     system(syscmd)
 
 
-    objects_image = "check.fits"
+    objects_image = storepath + "check.fits"
     hdulist = pyfits.open(objects_image)
     objects_data = hdulist[0].data
     hdulist.close()
-    system("rm check.fits")
+    system("rm "+ storepath + "check.fits")
 
     sex_file = file(storepath + "star_cat.txt", "r")
     sat_locations = []
