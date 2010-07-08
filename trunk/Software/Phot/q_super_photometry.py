@@ -1389,17 +1389,25 @@ def textoutput(dict):
     uniquename = dict.keys()[0].split('_')[2]
     savepath = storepath + uniquename + '_text.txt'
     text = file(savepath, "w")
-    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 'EXPTIME', 'targ_mag', 'targ_mag error']
+    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME', 'targ_mag', 'targ_mag error']
     text.write('\t'.join(namelist))
     text.write('\n')
-    for input in dict:
-        if 'targ_mag' not in dict[input]:
+    
+    timelist = []
+    for key in dict:
+        timelist.append((dict[key]['t_mid'][0], key))
+    timelist.sort()
+    
+    for tup in timelist:
+        values = dict[tup[1]]
+        if 'targ_mag' not in values:
             mag = 'not found'
             magerr = 'not found'
         else:
-            mag = str(dict[input]['targ_mag'][0]) 
-            magerr = str(dict[input]['targ_mag'][1])
-        datalist = [str(dict[input]['FileName']), str(dict[input]['STRT_CPU']), str(dict[input]['STOP_CPU']), str(dict[input]['EXPTIME']), mag, magerr]
+            mag = str(values['targ_mag'][0]) 
+            magerr = str(values['targ_mag'][1])
+        time = str(values['t_mid'][0])
+        datalist = [str(values['FileName']), str(values['STRT_CPU']), str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
         text.write('\t'.join(datalist))
         text.write('\n')
     text.close()
