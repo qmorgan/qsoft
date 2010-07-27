@@ -40,7 +40,7 @@ import glob
 pypath = "python"
 
 
-def smartStackRefine(obsidlist, mins2n=10, minfilter='j'):
+def smartStackRefine(obsidlist, mins2n=10, minfilter='j', wcs=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_super_photometry is needed.
     '''
@@ -49,7 +49,7 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j'):
     ## PHOTOMETRY PARAMTERS ##
     ap=3
     doupper=False
-    regfile = 'PTEL.reg'
+    regfile = 'j.reg'
     
     # Choose which filter to base the minimum s/n off of
     # i.e. require the s/n to be above the threshold for a specific filter, 
@@ -130,7 +130,7 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j'):
                 break 
             
             # Coadd Everything in coaddlist
-            new_coadd_list = coadd(firstid,coadd_range=myrange)
+            new_coadd_list = coadd(firstid,coadd_range=myrange, dowcs=wcs)
             # Do photometry on the resultant coadd 
             print 'Now doing photometry on %s' % (new_coadd_list[filtindex])
             photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,ap=ap,do_upper=doupper)
@@ -216,7 +216,7 @@ def smartStackDoubling(obsidlist, doubling_time):
 
     cleanup(firstid)
 
-def prep(obsid, exclude=False):
+def prep(obsid, exclude=False, single=False):
     '''Given a string or list of obsids, combine them into a text file
     containing all of the observations to coadd. Exclude keyword will 
     exclude triplestacks which times are specified 
@@ -233,8 +233,11 @@ def prep(obsid, exclude=False):
         if not glob.glob(globstr):
             printstr = 'Search directory does not exist: %s' % (globstr)
             sys.exit(printstr)
-        prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
-        os.system(prepstr)
+	if not single:
+	    prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
+	else:
+	    prepstr = pypath + " mosaic_maker.py -r -o " + oid + " -p"	
+	os.system(prepstr)
         globstr = '?_long_triplestacks.txt'
         text_list = glob.glob(globstr)
         if not text_list:
@@ -292,7 +295,7 @@ def cleanup(obsid,opt_str=''):
     print "Files moved to %s" % dirout
         
     
-def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
+def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None, single=False):
     
     mosaic_list = []
     fj = open('j_mosaics.txt' , 'w')
@@ -363,7 +366,10 @@ def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None):
             k_file_new.close()
             
             print 'Now Coadding triplestacks ' + start_seg + '-' + end_seg + ".."
-            coaddstr = pypath + " mosaic_maker.py -o " + obsid           
+	    if not single:
+	         coaddstr = pypath + " mosaic_maker.py -o " + obsid 
+	    else:
+		 coaddstr = pypath + " mosaic_maker.py -r -o " + obsid  
             if dowcs:
                 coaddstr += ' -w'
             os.system(coaddstr)

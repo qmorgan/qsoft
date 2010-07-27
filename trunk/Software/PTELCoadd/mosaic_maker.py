@@ -53,17 +53,17 @@ start_time = time()
 # Scisoft probably won't work properly on Intel 64-bit Macs. It is strongly 
 # advised that you recompile and install SWarp from source if SWarp's coadd 
 # mosaics are null images.
-swarp_bin = "/Applications/scisoft//i386/bin/swarp"
+swarp_bin = "/usr/local/bin/swarp"
 # We'll also be using some WCSTools. There should be no problem with the Scisoft
 # version of thses.
-sethead_bin = "/Applications/scisoft//i386/bin/sethead"
+sethead_bin = "/usr/bin/sethead"
 # For parallel processing we need the number of available CPUs. You could hard-
 # code this value to something else, but it would result in non-optimal 
 # performance.
 
 # AMORGAN ADDS for WCS FITTING  Change if your python version is different.
 # Will want to avoid having to load this in future versions.
-pypath = "/Library/Frameworks/Python.framework/Versions/Current/bin/python"
+pypath = "~/Programs/epd-6.1-1-rh5-x86/bin/"
 
 if doparallel == 1:
     numprocessors = cpuCount()
@@ -80,15 +80,6 @@ def run_swarp(command):
     return
 #-------------------------------------------------------------------------------
 # BEGIN MAIN PROGRAM
-
-if not os.environ.has_key("Q_DIR"):
-    print "You need to set the environment variable Q_DIR to point to the"
-    print "directory where you have Q_DIR installed"
-    sys.exit(1)
-storepath = os.environ.get("Q_DIR") + '/store/'
-loadpath = os.environ.get("Q_DIR") + '/load/'
-
-
 parser = OptionParser()
 
 parser.add_option("-o", "--obs", "--obs-id", "--obs-string", action="store",     
@@ -105,7 +96,14 @@ parser.add_option("-p", "--prep",
 parser.add_option("-w", "--wcs", "--do-wcs",
                   action="store_true", dest="do_wcs", default=False,
                   help=("Attempt to do wcs fitting after coaddition"))
+
+# Option for use in single reduced image
+parser.add_option("-r", "--single",
+                  action="store_true", dest="do_single", default=False,
+                  help=("Use this for single reduced image"))
+
 (options, args) = parser.parse_args()
+
 obs_string = options.obs_string
 if not obs_string:
     print "No obs_string specified, exiting."
@@ -113,8 +111,8 @@ if not obs_string:
 do_short = options.do_short
 do_prep = options.do_prep
 do_wcs = options.do_wcs
+do_single = options.do_single
 
-# OBTAIN WORKING DIRECTORIES 
 reduction_output_directory = str(obs_string) + "-reduction_output"
 triplestacks_path = (reduction_output_directory + "/" + str(obs_string) + 
     "_triplestacks")
@@ -172,9 +170,15 @@ if do_prep:
 j_long_triplestacks_list = []
 j_long_list = file("j_long_triplestacks.txt", "r")
 j_long_list_weights = file("j_long_triplestackweights.txt", "w")
+
+if not do_single:
+    replaced_str = '_triplestack'
+else:
+    replaced_str = '_reduced'
+
 for line in j_long_list:
     j_long_triplestacks_list.append(line.rstrip())
-    j_long_list_weights.write(line.replace("_triplestack",
+    j_long_list_weights.write(line.replace(replaced_str,
         "_triplestackweightmap").replace("_triplestacks/", 
         "_triplestackweights/").replace("weightmaps",
         "weights"))
@@ -185,7 +189,7 @@ h_long_list = file("h_long_triplestacks.txt", "r")
 h_long_list_weights = file("h_long_triplestackweights.txt", "w")
 for line in h_long_list:
     h_long_triplestacks_list.append(line.rstrip())
-    h_long_list_weights.write(line.replace("_triplestack",
+    h_long_list_weights.write(line.replace(replaced_str,
         "_triplestackweightmap").replace("_triplestacks/", 
         "_triplestackweights/").replace("weightmaps",
         "weights"))
@@ -196,7 +200,7 @@ k_long_list = file("k_long_triplestacks.txt", "r")
 k_long_list_weights = file("k_long_triplestackweights.txt", "w")
 for line in k_long_list:
     k_long_triplestacks_list.append(line.rstrip())
-    k_long_list_weights.write(line.replace("_triplestack",
+    k_long_list_weights.write(line.replace(replaced_str,
         "_triplestackweightmap").replace("_triplestacks/", 
         "_triplestackweights/").replace("weightmaps",
         "weights"))
@@ -244,49 +248,49 @@ if do_short:
 if do_short:
     swarp_commands = [
         swarp_bin + " @j_long_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @j_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME j_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME j_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @j_short_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @j_short_triplestackweights.txt " + 
         "-IMAGEOUT_NAME j_short_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME j_short_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @h_long_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @h_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME h_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME h_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @h_short_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @h_short_triplestackweights.txt " + 
         "-IMAGEOUT_NAME h_short_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME h_short_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @k_long_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @k_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME k_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME k_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @k_short_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @k_short_triplestackweights.txt " + 
         "-IMAGEOUT_NAME k_short_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME k_short_" + obs_string + "_coadd.weight.fits"]
 if not do_short:
     swarp_commands = [
         swarp_bin + " @j_long_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @j_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME j_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME j_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @h_long_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @h_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME h_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME h_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @k_long_triplestacks.txt " + 
-        "-c "+loadpath+"pairitel_redux.swarp " + 
+        "-c pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @k_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME k_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME k_long_" + obs_string + "_coadd.weight.fits"]
@@ -371,81 +375,80 @@ if do_short:
 
 # And, finally, we insert the STRT_CPU and STOP_CPU for each rawfile which was
 # used in the mosaic.
-for triplestackfile in j_long_triplestacks_list:
-    p_num = int(triplestackfile.split("-p")[1].split(".")[0])
-    num_0 = ("%4.f" % ((p_num - 1) * 3)).replace(" ", "0")
-    num_1 = ("%4.f" % ((p_num - 1) * 3 + 1)).replace(" ", "0")
-    num_2 = ("%4.f" % ((p_num - 1) * 3 + 2)).replace(" ", "0")
-    strt_0 = "STRT" + num_0
-    strt_1 = "STRT" + num_1
-    strt_2 = "STRT" + num_2
-    stop_0 = "STOP" + num_0
-    stop_1 = "STOP" + num_1
-    stop_2 = "STOP" + num_2
-    trip_hdulist = pyfits.open(triplestackfile)
-    trip_header = trip_hdulist[0].header
-    strt_0_val = str(trip_header["STRT0000"])
-    strt_1_val = str(trip_header["STRT0001"])
-    strt_2_val = str(trip_header["STRT0002"])
-    stop_0_val = str(trip_header["STOP0000"])
-    stop_1_val = str(trip_header["STOP0001"])
-    stop_2_val = str(trip_header["STOP0002"])
-    trip_hdulist.close()
-    system(sethead_bin + " j_long_" + obs_string + "_coadd.fits " + 
-        "j_long_" + obs_string + "_coadd.weight.fits " + 
-        "%s='%s' %s='%s' %s='%s' %s='%s' %s='%s' %s='%s'" % (strt_0, 
-        strt_0_val, stop_0, stop_0_val, strt_1, strt_1_val, stop_1, 
-        stop_1_val, strt_2, strt_2_val, stop_2, stop_2_val))
-for triplestackfile in h_long_triplestacks_list:
-    p_num = int(triplestackfile.split("-p")[1].split(".")[0])
-    num_0 = ("%4.f" % ((p_num - 1) * 3)).replace(" ", "0")
-    num_1 = ("%4.f" % ((p_num - 1) * 3 + 1)).replace(" ", "0")
-    num_2 = ("%4.f" % ((p_num - 1) * 3 + 2)).replace(" ", "0")
-    strt_0 = "STRT" + num_0
-    strt_1 = "STRT" + num_1
-    strt_2 = "STRT" + num_2
-    stop_0 = "STOP" + num_0
-    stop_1 = "STOP" + num_1
-    stop_2 = "STOP" + num_2
-    trip_hdulist = pyfits.open(triplestackfile)
-    trip_header = trip_hdulist[0].header
-    strt_0_val = str(trip_header["STRT0000"])
-    strt_1_val = str(trip_header["STRT0001"])
-    strt_2_val = str(trip_header["STRT0002"])
-    stop_0_val = str(trip_header["STOP0000"])
-    stop_1_val = str(trip_header["STOP0001"])
-    stop_2_val = str(trip_header["STOP0002"])
-    trip_hdulist.close()
-    system(sethead_bin + " h_long_" + obs_string + "_coadd.fits " + 
-        "h_long_" + obs_string + "_coadd.weight.fits " + 
-        "%s='%s' %s='%s' %s='%s' %s='%s' %s='%s' %s='%s'" % (strt_0, 
-        strt_0_val, stop_0, stop_0_val, strt_1, strt_1_val, stop_1, 
-        stop_1_val, strt_2, strt_2_val, stop_2, stop_2_val))
-for triplestackfile in k_long_triplestacks_list:
-    p_num = int(triplestackfile.split("-p")[1].split(".")[0])
-    num_0 = ("%4.f" % ((p_num - 1) * 3)).replace(" ", "0")
-    num_1 = ("%4.f" % ((p_num - 1) * 3 + 1)).replace(" ", "0")
-    num_2 = ("%4.f" % ((p_num - 1) * 3 + 2)).replace(" ", "0")
-    strt_0 = "STRT" + num_0
-    strt_1 = "STRT" + num_1
-    strt_2 = "STRT" + num_2
-    stop_0 = "STOP" + num_0
-    stop_1 = "STOP" + num_1
-    stop_2 = "STOP" + num_2
-    trip_hdulist = pyfits.open(triplestackfile)
-    trip_header = trip_hdulist[0].header
-    strt_0_val = str(trip_header["STRT0000"])
-    strt_1_val = str(trip_header["STRT0001"])
-    strt_2_val = str(trip_header["STRT0002"])
-    stop_0_val = str(trip_header["STOP0000"])
-    stop_1_val = str(trip_header["STOP0001"])
-    stop_2_val = str(trip_header["STOP0002"])
-    trip_hdulist.close()
-    system(sethead_bin + " k_long_" + obs_string + "_coadd.fits " + 
-        "k_long_" + obs_string + "_coadd.weight.fits " + 
-        "%s='%s' %s='%s' %s='%s' %s='%s' %s='%s' %s='%s'" % (strt_0, 
-        strt_0_val, stop_0, stop_0_val, strt_1, strt_1_val, stop_1, 
-        stop_1_val, strt_2, strt_2_val, stop_2, stop_2_val))
+
+def strt_stop(j_long_triplestacks_list, h_long_triplestacks_list, k_long_triplestacks_list):
+
+    for triplestackfile in j_long_triplestacks_list:
+        p_num = int(triplestackfile.split("-p")[1].split(".")[0])
+        num_0 = ("%4.f" % ((p_num - 1) * 3)).replace(" ", "0")
+        num_1 = ("%4.f" % ((p_num - 1) * 3 + 1)).replace(" ", "0")
+        num_2 = ("%4.f" % ((p_num - 1) * 3 + 2)).replace(" ", "0")
+        strt_0 = "STRT" + num_0
+        strt_1 = "STRT" + num_1
+        strt_2 = "STRT" + num_2
+        stop_0 = "STOP" + num_0
+        stop_1 = "STOP" + num_1
+        stop_2 = "STOP" + num_2
+        trip_hdulist = pyfits.open(triplestackfile)
+        trip_header = trip_hdulist[0].header
+        strt_0_val = str(trip_header["STRT0000"])
+        strt_1_val = str(trip_header["STRT0001"])
+        strt_2_val = str(trip_header["STRT0002"])
+        stop_0_val = str(trip_header["STOP0000"])
+        stop_1_val = str(trip_header["STOP0001"])
+        stop_2_val = str(trip_header["STOP0002"])
+        trip_hdulist.close()
+        system(sethead_bin + " j_long_" + obs_string + "_coadd.fits " + "j_long_" + obs_string + "_coadd.weight.fits " + "%s='%s' %s='%s' %s='%s' %s='%s' %s='%s' %s='%s'" % (strt_0,strt_0_val, stop_0, stop_0_val, strt_1, strt_1_val, stop_1, stop_1_val, strt_2, strt_2_val, stop_2, stop_2_val))
+    for triplestackfile in h_long_triplestacks_list:
+        p_num = int(triplestackfile.split("-p")[1].split(".")[0])
+        num_0 = ("%4.f" % ((p_num - 1) * 3)).replace(" ", "0")
+        num_1 = ("%4.f" % ((p_num - 1) * 3 + 1)).replace(" ", "0")
+        num_2 = ("%4.f" % ((p_num - 1) * 3 + 2)).replace(" ", "0")
+        strt_0 = "STRT" + num_0
+        strt_1 = "STRT" + num_1
+        strt_2 = "STRT" + num_2
+        stop_0 = "STOP" + num_0
+        stop_1 = "STOP" + num_1
+        stop_2 = "STOP" + num_2
+        trip_hdulist = pyfits.open(triplestackfile)
+        trip_header = trip_hdulist[0].header
+        strt_0_val = str(trip_header["STRT0000"])
+        strt_1_val = str(trip_header["STRT0001"])
+        strt_2_val = str(trip_header["STRT0002"])
+        stop_0_val = str(trip_header["STOP0000"])
+        stop_1_val = str(trip_header["STOP0001"])
+        stop_2_val = str(trip_header["STOP0002"])
+        trip_hdulist.close()
+        system(sethead_bin + " h_long_" + obs_string + "_coadd.fits " + "h_long_" + obs_string + "_coadd.weight.fits " + "%s='%s' %s='%s' %s='%s' %s='%s' %s='%s' %s='%s'" % (strt_0, strt_0_val, stop_0, stop_0_val, strt_1, strt_1_val, stop_1, stop_1_val, strt_2, strt_2_val, stop_2, stop_2_val))
+    for triplestackfile in k_long_triplestacks_list:
+        p_num = int(triplestackfile.split("-p")[1].split(".")[0])
+        num_0 = ("%4.f" % ((p_num - 1) * 3)).replace(" ", "0")
+        num_1 = ("%4.f" % ((p_num - 1) * 3 + 1)).replace(" ", "0")
+        num_2 = ("%4.f" % ((p_num - 1) * 3 + 2)).replace(" ", "0")
+        strt_0 = "STRT" + num_0
+        strt_1 = "STRT" + num_1
+        strt_2 = "STRT" + num_2
+        stop_0 = "STOP" + num_0
+        stop_1 = "STOP" + num_1
+        stop_2 = "STOP" + num_2
+        trip_hdulist = pyfits.open(triplestackfile)
+        trip_header = trip_hdulist[0].header
+        strt_0_val = str(trip_header["STRT0000"])
+        strt_1_val = str(trip_header["STRT0001"])
+        strt_2_val = str(trip_header["STRT0002"])
+        stop_0_val = str(trip_header["STOP0000"])
+        stop_1_val = str(trip_header["STOP0001"])
+        stop_2_val = str(trip_header["STOP0002"])
+        trip_hdulist.close()
+        system(sethead_bin + " k_long_" + obs_string + "_coadd.fits " + "k_long_" + obs_string + "_coadd.weight.fits " + "%s='%s' %s='%s' %s='%s' %s='%s' %s='%s' %s='%s'" % (strt_0, strt_0_val, stop_0, stop_0_val, strt_1, strt_1_val, stop_1, stop_1_val, strt_2, strt_2_val, stop_2, stop_2_val))
+
+#Temporarily make it so this code only work with single files
+
+if not do_single:
+    strt_stop(j_long_triplestacks_list, h_long_triplestacks_list, k_long_triplestacks_list)
+else:
+    pass
+
 if do_short:
     for triplestackfile in j_short_triplestacks_list:
         p_num = int(triplestackfile.split("-p")[1].split(".")[0])
@@ -528,7 +531,7 @@ if do_wcs:
     # NOTE TO SELF.  Change this so that pypath will not need to be known.
     # But the simple hack should work for now.
     system(pypath + 
-        " anet.py *_long_" + obs_string + "_coadd.fits")
+        "python anet.py *_long_" + obs_string + "_coadd.fits")
     j_long_hdulist = pyfits.open("j_long_" + obs_string + "_coadd.fits", 
         "readonly")
     j_long_weights_hdulist = pyfits.open("j_long_" + obs_string + 
