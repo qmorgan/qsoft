@@ -80,6 +80,15 @@ def run_swarp(command):
     return
 #-------------------------------------------------------------------------------
 # BEGIN MAIN PROGRAM
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have Q_DIR installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
+
 parser = OptionParser()
 
 parser.add_option("-o", "--obs", "--obs-id", "--obs-string", action="store",     
@@ -113,6 +122,7 @@ do_prep = options.do_prep
 do_wcs = options.do_wcs
 do_single = options.do_single
 
+# OBTAIN WORKING DIRECTORIES 
 reduction_output_directory = str(obs_string) + "-reduction_output"
 triplestacks_path = (reduction_output_directory + "/" + str(obs_string) + 
     "_triplestacks")
@@ -248,49 +258,49 @@ if do_short:
 if do_short:
     swarp_commands = [
         swarp_bin + " @j_long_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @j_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME j_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME j_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @j_short_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @j_short_triplestackweights.txt " + 
         "-IMAGEOUT_NAME j_short_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME j_short_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @h_long_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @h_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME h_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME h_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @h_short_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @h_short_triplestackweights.txt " + 
         "-IMAGEOUT_NAME h_short_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME h_short_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @k_long_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @k_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME k_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME k_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @k_short_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @k_short_triplestackweights.txt " + 
         "-IMAGEOUT_NAME k_short_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME k_short_" + obs_string + "_coadd.weight.fits"]
 if not do_short:
     swarp_commands = [
         swarp_bin + " @j_long_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @j_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME j_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME j_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @h_long_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @h_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME h_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME h_long_" + obs_string + "_coadd.weight.fits",
         swarp_bin + " @k_long_triplestacks.txt " + 
-        "-c pairitel_redux.swarp " + 
+        "-c "+loadpath+"pairitel_redux.swarp " + 
         "-WEIGHT_IMAGE @k_long_triplestackweights.txt " + 
         "-IMAGEOUT_NAME k_long_" + obs_string + "_coadd.fits " + 
         "-WEIGHTOUT_NAME k_long_" + obs_string + "_coadd.weight.fits"]
