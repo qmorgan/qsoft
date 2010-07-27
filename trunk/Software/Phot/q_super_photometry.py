@@ -890,7 +890,26 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             new_e_mag = sqrt(zeropoint_error*zeropoint_error + 
                 ptel_e_mag*ptel_e_mag)
             target_mag = new_mag
-            target_e_mag = new_e_mag
+
+    #Finding the number of triplestacks used in the image:
+            
+            file_header = pyfits.open(progenitor_image_name)
+            STRT_count = 0
+            for info in file_header[0].header:
+                if 'STRT' in info:
+                    STRT_count += 1
+            n_dither = STRT_count - 1
+            print 'Found ' + str(n_dither) + ' dither images'
+            if n_dither == 0:
+                num_triplestacks = 1
+            elif n_dither == 1:
+                num_triplestacks = 1
+            else:
+                num_triplestacks = n_dither/3
+            if n_dither%3 != 0:
+                print 'Warning: Number of dither images is not divisible by 3!'
+            ditherdict = {'N_dither':n_dither}
+            target_e_mag = sqrt(new_e_mag**2 + (0.1/sqrt(num_triplestacks))**2)
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
@@ -1039,7 +1058,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     photdict.update({'faintest_s2n':faintest_s2n})
 #comments out s2n stops////////////////////////////////////////    
     photdict.update({'sex_faintest':(sex_faintest,sex_faintest_err)})
-    
+    photdict.update(ditherdict)
+
     # Clean up the photometry catalog files.
     system("rm viz_output.txt")
     system("rm viz_output_cropped.txt")
@@ -1049,7 +1069,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
      # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
 
     if calstar_reg_output == True:
-        uniquename = str(progenitor_image_name.split('_')[2]) + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
+        uniquename = str(progenitor_image_name.split('_')[2]) # + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
         reg_name = storepath + 'calstarregs/'  + uniquename + '.reg'
         regfile=open(reg_name,'w')
         regfile.write('# Region file format: DS9 version 4.1\n')
@@ -1206,7 +1226,7 @@ def photplot(photdict):
     matplotlib.pyplot.close()
 
 
-def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True, cal = None):
+def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     Clobber=True for overwriting existing pickle files. '''
@@ -1236,8 +1256,8 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
                 print '**Target Magnitude not found. Re-running to find UL**.'
                 data = dophot(filename,reg,aper,do_upper=True)
             label = data['FileName']
-            time = float(t_mid.t_mid(filename))
-            terr = float(t_mid.t_mid(filename, delta = True))/2.
+            time = float(t_mid.t_mid(filename, trigger = trigger_id))
+            terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
             timetuple = (time, terr)
             data.update({'t_mid':timetuple})
             photdict.update({label:data})
@@ -1245,7 +1265,7 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             return photdict
             break
     
-def temploop(GRBname, regfile, ap=None, calregion = None):
+def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None):
     '''temporary looping 1232'''
     import glob
     GRBlist = []
@@ -1256,7 +1276,7 @@ def temploop(GRBname, regfile, ap=None, calregion = None):
             GRBlist.append(item)
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion)
+        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id)
 
 def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
