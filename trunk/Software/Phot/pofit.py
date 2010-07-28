@@ -32,6 +32,8 @@ def fit(xdata, ydata, yerr, band):
     pfinal = out[0]
     covar = out[1]
    
+    print 'pfinal is' + str(pfinal)
+
     index = pfinal[1]
     amp = 10.0**pfinal[0]
 
@@ -41,14 +43,14 @@ def fit(xdata, ydata, yerr, band):
     #plotting data
 
     if band == 'h':
-        plot(logx, line(logx, pfinal[0], pfinal[1]), color = 'black')
-        errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'h') #Data
+        plot(logx, line(logx, pfinal[0], pfinal[1]), color = 'green')
+        errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'green', label = 'h') #Data
     elif band == 'j':
-        plot(logx, line(logx, pfinal[0], pfinal[1]), color = 'black')
+        plot(logx, line(logx, pfinal[0], pfinal[1]), color = 'blue')
         errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'blue', label = 'j') #Data
     elif band == 'k':
-        plot(logx, line(logx, pfinal[0], pfinal[1]), color = 'black')
-        errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'yellow', label = 'k') #Data
+        plot(logx, line(logx, pfinal[0], pfinal[1]), color = 'red')
+        errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'k') #Data
         
 
     title('Best Fit Power Law')
@@ -89,15 +91,31 @@ def fitplot(dict):
     
     for tup in timelist:
         values = kdict[tup[1]]
-        data += [values['targ_mag'][0]]
-        err += [values['targ_mag'][1]]
-        time += [values['t_mid'][0]]
+        if 'targ_mag' not in values:
+            pass
+            #data += [values['upper_green'][0]]
+            #err += [values['upper_green'][1]]
+        elif isnan(values['targ_mag'][0]):
+            pass
+        else:
+            data += [values['targ_mag'][0]]
+            err += [values['targ_mag'][1]]
+       
+        if 'targ_mag' not in values:
+            pass
+        elif isnan(values['targ_mag'][0]):
+            pass
+        else:
+            time += [values['t_mid'][0]]
 
-    arr = array(data)
+    karr = array(data)
     tarr = array(time)
-    aerr = array(err)
+    aerr = 2.4*array(err) # ERROR IS MULTIPLIED BY 2.4 HERE!!!!!!
+    print 'k error is'
+    print aerr
+    print aerr.mean()
 
-    fit(tarr, arr, aerr, 'k')
+    fit(tarr, karr, aerr, 'k')
 
 #HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
     
@@ -112,15 +130,31 @@ def fitplot(dict):
     
     for tup in timelist:
         values = hdict[tup[1]]
-        data += [values['targ_mag'][0]]
-        err += [values['targ_mag'][1]]
-        time += [values['t_mid'][0]]
+        if 'targ_mag' not in values:
+            pass
+            #data += [values['upper_green'][0]]
+            #err += [values['upper_green'][1]]
+        elif isnan(values['targ_mag'][0]):
+            pass
+        else:
+            data += [values['targ_mag'][0]]
+            err += [values['targ_mag'][1]]
 
-    arr = array(data)
+        if 'targ_mag' not in values:
+            pass
+        elif isnan(values['targ_mag'][0]):
+            pass
+        else:
+            time += [values['t_mid'][0]]
+
+    harr = array(data)
     tarr = array(time)
-    aerr = array(err)
+    aerr = 2.4*array(err) # ERROR IS MULTIPLIED BY 2.4 HERE!!!!!!
+    print 'h error is'
+    print aerr
+    print aerr.mean()
 
-    fit(tarr, arr, aerr, 'h')
+    fit(tarr, harr, aerr, 'h')
 
 #JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ
 
@@ -135,15 +169,31 @@ def fitplot(dict):
     
     for tup in timelist:
         values = jdict[tup[1]]
-        data += [values['targ_mag'][0]]
-        err += [values['targ_mag'][1]]
-        time += [values['t_mid'][0]]
+        if 'targ_mag' not in values:
+            pass
+            #data += [values['upper_green'][0]]
+            #err += [values['upper_green'][1]]
+        elif isnan(values['targ_mag'][0]):
+            pass
+        else:
+            data += [values['targ_mag'][0]]
+            err += [values['targ_mag'][1]]
 
-    darr = array(data)
+        if 'targ_mag' not in values:
+            pass
+        elif isnan(values['targ_mag'][0]):
+            pass
+        else:
+            time += [values['t_mid'][0]]
+
+    jarr = array(data)
     tarr = array(time)
-    aerr = array(err)
-
-    fit(tarr, darr, aerr, 'j') 
+    aerr = 2.4*array(err) # ERROR IS MULTIPLIED BY 2.4 HERE!!!!!!
+    print 'j error is'
+    print aerr
+    print aerr.mean()
+    
+    fit(tarr, jarr, aerr, 'j') 
 
 #putting on legend and saving the plot
     
