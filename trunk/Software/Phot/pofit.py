@@ -60,7 +60,7 @@ def fit(xdata, ydata, yerr, band):
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1])   
 
-def fitplot(dict): 
+def fitplot(dict,exclude=[]): 
     '''Takes a dictionary containing photometry results (such as the output from q_super_photometry.photreturn) and solves for a power law fitting. This function will graph the power law fit and the data points on magnitude vs. log(t_mid) space.'''
     clf()
 
@@ -69,12 +69,13 @@ def fitplot(dict):
     jdict = {}
 
     for keys in dict:
-        if 'k' in keys:
-            kdict.update({keys:dict[keys]})
-        elif 'h' in keys:
-            hdict.update({keys:dict[keys]})
-        elif 'j' in keys:
-            jdict.update({keys:dict[keys]})
+        if keys not in exclude:
+            if 'k' in keys:
+                kdict.update({keys:dict[keys]})
+            elif 'h' in keys:
+                hdict.update({keys:dict[keys]})
+            elif 'j' in keys:
+                jdict.update({keys:dict[keys]})
 
     data = []
     err = []
