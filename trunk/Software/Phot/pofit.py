@@ -110,7 +110,7 @@ def fitplot(dict):
 
     karr = array(data)
     tarr = array(time)
-    aerr = 2.4*array(err) # ERROR IS MULTIPLIED BY 2.4 HERE!!!!!!
+    aerr = array(err) 
     print 'k error is'
     print aerr
     print aerr.mean()
@@ -149,7 +149,7 @@ def fitplot(dict):
 
     harr = array(data)
     tarr = array(time)
-    aerr = 2.4*array(err) # ERROR IS MULTIPLIED BY 2.4 HERE!!!!!!
+    aerr = array(err) 
     print 'h error is'
     print aerr
     print aerr.mean()
@@ -188,7 +188,7 @@ def fitplot(dict):
 
     jarr = array(data)
     tarr = array(time)
-    aerr = 2.4*array(err) # ERROR IS MULTIPLIED BY 2.4 HERE!!!!!!
+    aerr = array(err)
     print 'j error is'
     print aerr
     print aerr.mean()

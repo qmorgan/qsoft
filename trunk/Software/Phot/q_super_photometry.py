@@ -906,10 +906,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 num_triplestacks = 1
             else:
                 num_triplestacks = n_dither/3
+            if n_dither == 0:
+                n_dither = 1
             if n_dither%3 != 0:
                 print 'Warning: Number of dither images is not divisible by 3!'
             ditherdict = {'N_dither':n_dither}
-            target_e_mag = sqrt(new_e_mag**2 + (0.1/sqrt(num_triplestacks))**2)
+            target_e_mag = float(sqrt(new_e_mag**2 + (0.1/sqrt(num_triplestacks))**2)*2.4)
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
