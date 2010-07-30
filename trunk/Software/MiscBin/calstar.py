@@ -207,33 +207,36 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         data_h = q_super_photometry.dophot(filename_h, temppath)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_h, trigger=triggerid))
-        terr = float(t_mid.t_mid(filename_H, trigger=triggerid,delta = True))/2.
+        terr = float(t_mid.t_mid(filename_h, trigger=triggerid,delta = True))/2.
         timetuple = (time, terr)
-        data.update({'t_mid':timetuple})
-        this_star_dict = {parent_label:data}
-        stardict_h.update(this_star_dict)
+        data_h.update({'t_mid':timetuple})
+        this_star_dict_h = {parent_label:data_h}
+        stardict_h.update(this_star_dict_h)
         
         data_j = q_super_photometry.dophot(filename_j, temppath)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_j, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_j, trigger=triggerid,delta = True))/2.
         timetuple = (time, terr)
-        data.update({'t_mid':timetuple})
-        this_star_dict = {parent_label:data}
-        stardict_j.update(this_star_dict)
+        data_j.update({'t_mid':timetuple})
+        this_star_dict_j = {parent_label:data_j}
+        stardict_j.update(this_star_dict_j)
 
         data_k = q_super_photometry.dophot(filename_k, temppath)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_k, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_k, trigger=triggerid,delta = True))/2.
         timetuple = (time, terr)
-        data.update({'t_mid':timetuple})
-        this_star_dict = {parent_label:data}
-        stardict_k.update(this_star_dict)
+        data_k.update({'t_mid':timetuple})
+        this_star_dict_k = {parent_label:data_k}
+        stardict_k.update(this_star_dict_k)
 
-    stardict.update(stardict_h)
-    stardict.update(stardict_j)
-    stardict.update(stardict_k)
+    h_dict = {'h':stardict_h}
+    j_dict = {'j':stardict_j}
+    k_dict = {'k':stardict_k}
+    stardict.update(h_dict)
+    stardict.update(j_dict)
+    stardict.update(k_dict)
 
     return stardict
     picklepath = storepath + picklename + '.data'

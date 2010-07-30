@@ -749,38 +749,40 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     target_e_mag = 999
     # Create the catalog of 2MASS stars from the vizier data which corrresponds to
     # the filter/band used for the science image.
-    vizcat_file = file(storepath + "viz_output_cropped.txt", "r")
-    vizcat_starlist = []
-    for line in vizcat_file:
-        data_list = line.rstrip().lstrip().split(";")
-        if len(data_list) == 13: # Check formatting 
-            ra = float(data_list[1]) # degrees
-            dec = float(data_list[2]) # degrees
-            if band == "j":
-                mag = float(data_list[3])
-                e_mag = float(data_list[4])
-                snr = float(data_list[5])
-            if band == "h":
-                mag = float(data_list[6])
-                e_mag = float(data_list[7])
-                snr = float(data_list[8])
-            if band == "k":
-                mag = float(data_list[9])
-                e_mag = float(data_list[10])
-                snr = float(data_list[11])
-            vizcat_starlist.append([ra, dec, mag, e_mag, snr])
-    vizcat_file.close()
+    if not stardict:
+        vizcat_file = file(storepath + "viz_output_cropped.txt", "r")
+        vizcat_starlist = []
+        for line in vizcat_file:
+            data_list = line.rstrip().lstrip().split(";")
+            if len(data_list) == 13: # Check formatting 
+                ra = float(data_list[1]) # degrees
+                dec = float(data_list[2]) # degrees
+                if band == "j":
+                    mag = float(data_list[3])
+                    e_mag = float(data_list[4])
+                    snr = float(data_list[5])
+                if band == "h":
+                    mag = float(data_list[6])
+                    e_mag = float(data_list[7])
+                    snr = float(data_list[8])
+                if band == "k":
+                    mag = float(data_list[9])
+                    e_mag = float(data_list[10])
+                    snr = float(data_list[11])
+                vizcat_starlist.append([ra, dec, mag, e_mag, snr])
+        vizcat_file.close()
 
     # Using deepstack of calibration stars as the catalog, instead of 2MASS
-    
-    if not stardict:
-        pass
     else:
-        for band in stardict:
-            for star in stardict[band]:
-                star_mag = stardict[band][star]['targ_mag'][0]
-                star_e_mag = stardict[band][star]['targ_mag'][1]
-                star_snr = stardictp[band]['targ_s2n']
+        vizcat_starlist = []
+        caldict = stardict[band] 
+        for star in caldict:
+            star_ra = float(star.strip('(').strip(')').split(',')[0].lstrip("'").rstrip("'"))
+            star_dec = float(star.strip('(').strip(')').split(',')[1].lstrip(" ").lstrip("'").rstrip("'"))
+            star_mag = caldict[star]['targ_mag'][0]
+            star_e_mag = caldict[star]['targ_mag'][1]
+            star_snr = caldict[star]['targ_s2n']
+            vizcat_starlist.append([star_ra, star_dec, star_mag, star_e_mag, star_snr])
    
     # Create the sexcat_starlist from the Source Extractor output catalog. Also fill
     # in the sex_inst_mag_list which will be used as a diagnostic check on the 
@@ -1253,7 +1255,7 @@ def photplot(photdict):
     matplotlib.pyplot.close()
 
 
-def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None):
+def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None, str_dict = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     Clobber=True for overwriting existing pickle files. '''
@@ -1278,10 +1280,10 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath)
-            data = dophot(filename, reg, ap=aper, calreg = cal)
+            data = dophot(filename, reg, ap=aper, calreg = cal, stardict=str_dict)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=str_dict)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1292,7 +1294,7 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             return photdict
             break
     
-def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None):
+def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, stardict=None):
     '''temporary looping 1232'''
     import glob
     GRBlist = []
@@ -1303,7 +1305,7 @@ def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None):
             GRBlist.append(item)
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id)
+        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=stardict)
 
 def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
