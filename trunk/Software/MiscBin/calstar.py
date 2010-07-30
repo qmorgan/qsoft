@@ -119,9 +119,9 @@ def magplot(reg, filelist, picklename, triggerid = None, globit = False):
     filepath = storepath + unique_name + '_calibration_stars.png'
     #matplotlib.pyplot.savefig(filepath)
 
-    F.savefig(filepath)
-    
     qPickle.save(caldict, picklepath, clobber=True)
+
+    F.savefig(filepath)
     
 def star_stdv(stardict):
 
@@ -143,11 +143,14 @@ def star_stdv(stardict):
     return stdv_dict
 
 
-def getstar(reg, picklename, filename, triggerid=None):
+def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None):
     
     '''temporary comment: Do photomotery of all calibration stars in the region file, and outputs a pickle file. Needs q_super_photometry and qPickle'''
 
     stardict = {}
+    stardict_h = {}
+    stardict_j = {}
+    stardict_k = {}
     regpath = storepath + reg
     regfile = open(regpath, 'r')
     reglist = regfile.readlines()
@@ -179,7 +182,8 @@ def getstar(reg, picklename, filename, triggerid=None):
             pass
 
     for index, star_reg in enumerate(callist):
-        os.remove(temppath)
+        if os.path.exists(temppath):
+            os.remove(temppath)
         starname = 'star'+str(index)
         tempreg = open(temppath, 'w')
         tempreg.write('# Region file format: DS9 version 4.1\n')
@@ -200,17 +204,38 @@ def getstar(reg, picklename, filename, triggerid=None):
         star_pos = (ra_round, dec_round)
         star_pos_str = str(star_pos)
 
-        data = q_super_photometry.dophot(filename, temppath)
+        data_h = q_super_photometry.dophot(filename_h, temppath)
         parent_label = star_pos_str
-        time = float(t_mid.t_mid(filename, trigger=triggerid))
-        terr = float(t_mid.t_mid(filename, trigger=triggerid,delta = True))/2.
+        time = float(t_mid.t_mid(filename_h, trigger=triggerid))
+        terr = float(t_mid.t_mid(filename_H, trigger=triggerid,delta = True))/2.
         timetuple = (time, terr)
         data.update({'t_mid':timetuple})
         this_star_dict = {parent_label:data}
-        stardict.update(this_star_dict)
+        stardict_h.update(this_star_dict)
+        
+        data_j = q_super_photometry.dophot(filename_j, temppath)
+        parent_label = star_pos_str
+        time = float(t_mid.t_mid(filename_j, trigger=triggerid))
+        terr = float(t_mid.t_mid(filename_j, trigger=triggerid,delta = True))/2.
+        timetuple = (time, terr)
+        data.update({'t_mid':timetuple})
+        this_star_dict = {parent_label:data}
+        stardict_j.update(this_star_dict)
+
+        data_k = q_super_photometry.dophot(filename_k, temppath)
+        parent_label = star_pos_str
+        time = float(t_mid.t_mid(filename_k, trigger=triggerid))
+        terr = float(t_mid.t_mid(filename_k, trigger=triggerid,delta = True))/2.
+        timetuple = (time, terr)
+        data.update({'t_mid':timetuple})
+        this_star_dict = {parent_label:data}
+        stardict_k.update(this_star_dict)
+
+    stardict.update(stardict_h)
+    stardict.update(stardict_j)
+    stardict.update(stardict_k)
 
     return stardict
-
     picklepath = storepath + picklename + '.data'
     qPickle.save(stardict, picklepath, Clobber = True)
 

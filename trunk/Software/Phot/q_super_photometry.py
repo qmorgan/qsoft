@@ -236,7 +236,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
-def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False, calstar_reg_output = True, calreg = None):
+def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False, calstar_reg_output = True, calreg = None, stardict = None):
     # Begin timing
     t1 = time()
      
@@ -770,6 +770,18 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 snr = float(data_list[11])
             vizcat_starlist.append([ra, dec, mag, e_mag, snr])
     vizcat_file.close()
+
+    # Using deepstack of calibration stars as the catalog, instead of 2MASS
+    
+    if not stardict:
+        pass
+    else:
+        for band in stardict:
+            for star in stardict[band]:
+                star_mag = stardict[band][star]['targ_mag'][0]
+                star_e_mag = stardict[band][star]['targ_mag'][1]
+                star_snr = stardictp[band]['targ_s2n']
+   
     # Create the sexcat_starlist from the Source Extractor output catalog. Also fill
     # in the sex_inst_mag_list which will be used as a diagnostic check on the 
     # computed upper limit.
@@ -791,6 +803,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             sex_inst_mag_list.append([mag, mag_err, ra, dec])
             sex_inst_flux_list.append([flux,flux_err, ra, dec])
     sexcat_file.close()
+
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
@@ -1072,9 +1085,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     photdict.update({'sex_faintest':(sex_faintest,sex_faintest_err)})
     photdict.update(ditherdict)
 
+    photdict.update({'calibration_stars':combined_starlist})
+
     # Clean up the photometry catalog files.
     system("rm viz_output.txt")
-    system("rm viz_output_cropped.txt")
+    #system("rm viz_output_cropped.txt")
     system("rm " + progenitor_image_name.replace(".fits", ".sex"))
     system("rm " + weight_image_name.replace(".fits", ".sex"))
     

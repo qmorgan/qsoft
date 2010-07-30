@@ -2,7 +2,7 @@ import datetime
 import pyfits
 from RedshiftMachine import LoadGCN
 
-def t_mid(filepath, GRBid=None, delta=None):
+def t_mid(filepath, GRBid=None, delta=None, trigger=None):
     '''Given a fitts file and the GRB time, this program determines the t-mid for PAIRITEL. If delta = True, t_mid will find the difference of StartCPU and StopCPU in seconds'''
     header = pyfits.open(filepath)
     starttime = header[0].header['STRT_CPU']
@@ -18,7 +18,10 @@ def t_mid(filepath, GRBid=None, delta=None):
         print 'start time is ' + str(start)
         print 'stop time is ' + str(stop)
         if not GRBid:
-            trg = int(header[0].header['TRGTNAME'][6:])
+            if trigger == None :
+                trg = int(header[0].header['TRGTNAME'][6:])
+            else:
+                trg = trigger
             dict = LoadGCN.LoadGCN(trg)
         else:
             dict = LoadGCN.LoadGCN(GRBid)
