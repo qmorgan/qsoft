@@ -40,7 +40,7 @@ import glob
 pypath = "python"
 
 
-def smartStackRefine(obsidlist, mins2n=10, minfilter='j', wcs=False):
+def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_super_photometry is needed.
     '''
@@ -49,7 +49,6 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', wcs=False):
     ## PHOTOMETRY PARAMTERS ##
     ap=3
     doupper=False
-    regfile = 'j.reg'
     
     # Choose which filter to base the minimum s/n off of
     # i.e. require the s/n to be above the threshold for a specific filter, 
@@ -121,16 +120,18 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', wcs=False):
             obs_num_f += 1 
 
             myrange = (obs_num_i, obs_num_f)
-      
+            
+            dobreak = False
             # if we're running out of observations, tack the rest on to the end
             if obs_num_f + sum_length > total_length:
                 obs_num_f = total_length
                 myrange = (obs_num_i, obs_num_f)
                 print 'We have run out of run out observations'
-                break 
+                dobreak = True 
             
             # Coadd Everything in coaddlist
             new_coadd_list = coadd(firstid,coadd_range=myrange, dowcs=wcs)
+            
             # Do photometry on the resultant coadd 
             print 'Now doing photometry on %s' % (new_coadd_list[filtindex])
             photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,ap=ap,do_upper=doupper)
@@ -141,7 +142,12 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', wcs=False):
             else:
                 s2n = photdict['targ_s2n']
             
-            print 'The S/N reached is %s from a total of %s images: %s' % (str(s2n), str(obs_num_f - obs_num_i + 1), str(myrange))
+            print 'The S/N reached is %s from a total of %s images: %s' % 
+                    (str(s2n), str(obs_num_f - obs_num_i + 1), str(myrange))
+            
+            # End here if we've run out of observations to stack.  
+            if dobreak:
+                break
             
             if s2n >= mins2n:
                 print 'Minimum S/N Reached. Moving on to the next images set.'  
@@ -154,7 +160,7 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', wcs=False):
                 print 'performing system command ' + rmname
                 os.system(rmname)
                 os.system(rmcatname)
-        
+            
             # Update the initial obs number for the NEXT observation
         obs_num_i = obs_num_f + 1
 
@@ -222,6 +228,9 @@ def prep(obsid, exclude=False, single=False):
     exclude triplestacks which times are specified 
     (eg:['06h10m32s', '06h11m08s', '06h11m44s']).  
     '''
+    # first, remove old text files
+    rmstr = 'rm ?_long_triplestacks_full.txt'
+    os.system(rmstr)
     # if obsid is a string, convert it into a list
     if isinstance(obsid,str):
         obsid = [obsid]
@@ -233,11 +242,11 @@ def prep(obsid, exclude=False, single=False):
         if not glob.glob(globstr):
             printstr = 'Search directory does not exist: %s' % (globstr)
             sys.exit(printstr)
-	if not single:
-	    prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
-	else:
-	    prepstr = pypath + " mosaic_maker.py -r -o " + oid + " -p"	
-	os.system(prepstr)
+        if not single:
+            prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
+        else:
+            prepstr = pypath + " mosaic_maker.py -r -o " + oid + " -p"	
+        os.system(prepstr)
         globstr = '?_long_triplestacks.txt'
         text_list = glob.glob(globstr)
         if not text_list:
@@ -248,16 +257,20 @@ def prep(obsid, exclude=False, single=False):
             f=open(item,'r')
             linelist=f.readlines()
             linelist.sort()
-            new_item = item.replace('stacks.txt','stacks_full.txt')
+            sorted_item = item.replace('stacks.txt','stacks_sorted.txt')
             f.close()
-            f=open(new_item,'w')
+            f=open(sorted_item,'w')
             for line in linelist:
                 f.write(line)
             f.close()
-            # syscmd = 'cat %s >> %s' % (item,new_item)
-            # os.system(syscmd)
+            new_item = item.replace('stacks.txt','stacks_full.txt')
+            syscmd = 'cat %s >> %s' % (sorted_item,new_item)
+            os.system(syscmd)
             syscmd = 'rm %s' % (item)
             os.system(syscmd)
+            syscmd = 'rm %s' % (sorted_item)
+            os.system(syscmd)
+            
 #            shutil.move(item,new_item)
     # erasing lines that are excluded
     if not exclude:
@@ -366,10 +379,10 @@ def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None, single=False):
             k_file_new.close()
             
             print 'Now Coadding triplestacks ' + start_seg + '-' + end_seg + ".."
-	    if not single:
-	         coaddstr = pypath + " mosaic_maker.py -o " + obsid 
-	    else:
-		 coaddstr = pypath + " mosaic_maker.py -r -o " + obsid  
+            if not single:
+                coaddstr = pypath + " mosaic_maker.py -o " + obsid 
+            else:
+                coaddstr = pypath + " mosaic_maker.py -r -o " + obsid  
             if dowcs:
                 coaddstr += ' -w'
             os.system(coaddstr)
