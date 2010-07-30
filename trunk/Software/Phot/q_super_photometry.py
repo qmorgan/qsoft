@@ -328,6 +328,29 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     photdict.update({'EXPTIME':exptime})
     photdict.update({'filter':band})
     
+    # Finding the number of triplestacks (dither positions) used in the image
+    # for use when calulating the uncertainty (an addl source of error occurs
+    # which reduces as the sqrt of the number of dither positions):
+    base_dither_error = 0.1
+    file_header = pyfits.open(progenitor_image_name)
+    STRT_count = 0
+    for info in file_header[0].header:
+        if 'STRT' in info:
+            STRT_count += 1
+    n_dither = STRT_count - 1
+    print 'Found ' + str(n_dither) + ' dither images'
+    if n_dither == 0:
+        num_triplestacks = 1
+    elif n_dither == 1:
+        num_triplestacks = 1
+    else:
+        num_triplestacks = n_dither/3
+    if n_dither == 0:
+        n_dither = 1
+    if n_dither%3 != 0:
+        print 'Warning: Number of dither images is not divisible by 3!'
+    ditherdict = {'N_dither':n_dither}
+    
     if do_upper:
         # Store the image's dimensions.
         height, width = image_data.shape[0], image_data.shape[1]
@@ -862,7 +885,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             zeropoint_err_list.append(sqrt(tmass_e_mag*tmass_e_mag + 
                 ptel_e_mag*ptel_e_mag))
     print zeropoint_list
-
     zeropoint = average(zeropoint_list)
     if numpy.isnan(zeropoint):
         print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
@@ -890,28 +912,16 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             new_e_mag = sqrt(zeropoint_error*zeropoint_error + 
                 ptel_e_mag*ptel_e_mag)
             target_mag = new_mag
-
-    #Finding the number of triplestacks used in the image:
-            
-            file_header = pyfits.open(progenitor_image_name)
-            STRT_count = 0
-            for info in file_header[0].header:
-                if 'STRT' in info:
-                    STRT_count += 1
-            n_dither = STRT_count - 1
-            print 'Found ' + str(n_dither) + ' dither images'
-            if n_dither == 0:
-                num_triplestacks = 1
-            elif n_dither == 1:
-                num_triplestacks = 1
-            else:
-                num_triplestacks = n_dither/3
-            if n_dither == 0:
-                n_dither = 1
-            if n_dither%3 != 0:
-                print 'Warning: Number of dither images is not divisible by 3!'
-            ditherdict = {'N_dither':n_dither}
-            target_e_mag = float(sqrt(new_e_mag**2 + (0.1/sqrt(num_triplestacks))**2)*2.4)
+            num_triplestacks = ditherdict['N_dither']/3
+            # In PAIRITEL, there are additional sources of uncertainty which
+            # have to be accounted for above the normal photometric statistical
+            # uncertainty.  One is an additive error which reduces by the sqrt
+            # of the number of dither positions used, and the second is a 
+            # multiplicitive factor due to the fact that we are typically 
+            # rebinning from 2"/pix to 1"/pix (should be a factor of two, but
+            # in testing with GRB 071025, Dan found it to be ~2.4).
+            target_e_mag = float(sqrt(new_e_mag**2 + 
+                (base_dither_error/sqrt(num_triplestacks))**2)*2.4)
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
