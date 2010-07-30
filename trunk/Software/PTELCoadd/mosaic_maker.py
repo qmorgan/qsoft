@@ -32,6 +32,7 @@ Date: began 2009/09/04
 import pyfits
 from os import system
 import sys
+import os
 try:
     from multiprocessing import Pool
     from multiprocessing import cpu_count as cpuCount
