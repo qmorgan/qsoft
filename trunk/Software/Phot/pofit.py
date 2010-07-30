@@ -11,7 +11,7 @@ from pylab import *
 from scipy import array
 import os
 
-def fit(xdata, ydata, yerr, band):
+def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
     '''Power law fitting based on www.scipy.org/Cookbook/FittingData'''
 
     powerlaw = lambda x, amp, index: amp*(x**index)
@@ -53,15 +53,19 @@ def fit(xdata, ydata, yerr, band):
         errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'k') #Data
         
 
-    title('Best Fit Power Law')
+    title(name)
     xlabel('Log Time After Burst (s)')
     ylabel('Magnitude')
 
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1])   
 
-def fitplot(dict,exclude=[]): 
-    '''Takes a dictionary containing photometry results (such as the output from q_super_photometry.photreturn) and solves for a power law fitting. This function will graph the power law fit and the data points on magnitude vs. log(t_mid) space.'''
+def fitplot(dict, name='GRB', exclude=[]): 
+    '''Takes a dictionary containing photometry results (such as the output 
+    from q_super_photometry.photreturn) and solves for a power law fitting. 
+    This function will graph the power law fit and the data points on magnitude
+    vs. log(t_mid) space.
+    '''
     clf()
 
     kdict = {}
@@ -116,7 +120,7 @@ def fitplot(dict,exclude=[]):
     print aerr
     print aerr.mean()
 
-    fit(tarr, karr, aerr, 'k')
+    fit(tarr, karr, aerr, 'k', name=name)
 
 #HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
     
@@ -155,7 +159,7 @@ def fitplot(dict,exclude=[]):
     print aerr
     print aerr.mean()
 
-    fit(tarr, harr, aerr, 'h')
+    fit(tarr, harr, aerr, 'h', name=name)
 
 #JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ
 
@@ -194,7 +198,7 @@ def fitplot(dict,exclude=[]):
     print aerr
     print aerr.mean()
     
-    fit(tarr, jarr, aerr, 'j') 
+    fit(tarr, jarr, aerr, 'j', name=name) 
 
 #putting on legend and saving the plot
     
