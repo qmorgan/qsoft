@@ -928,6 +928,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 ptel_e_mag*ptel_e_mag)
             target_mag = new_mag
             num_triplestacks = ditherdict['N_dither']/3
+            if num_triplestacks == 0:
+                num_triplestacks = 1
             # In PAIRITEL, there are additional sources of uncertainty which
             # have to be accounted for above the normal photometric statistical
             # uncertainty.  One is an additive error which reduces by the sqrt
@@ -1294,7 +1296,7 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             return photdict
             break
     
-def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, stardict=None):
+def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_dict=None):
     '''temporary looping 1232'''
     import glob
     GRBlist = []
@@ -1305,7 +1307,7 @@ def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, stardi
             GRBlist.append(item)
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=stardict)
+        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
 
 def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
