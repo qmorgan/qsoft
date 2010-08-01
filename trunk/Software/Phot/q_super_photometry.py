@@ -877,10 +877,19 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         for ind in revindex:
             del combined_starlist[ind]
             
-
     # Use the combined_starlist to calculate a zeropoint for the science image.
     zeropoint_list = []
     zeropoint_err_list = []
+    
+    # In PAIRITEL, there are additional sources of uncertainty which
+    # have to be accounted for above the normal photometric statistical
+    # uncertainty.  One is an additive error which reduces by the sqrt
+    # of the number of dither positions used, and the second is a 
+    # multiplicitive factor due to the fact that we are typically 
+    # rebinning from 2"/pix to 1"/pix (should be a factor of two, but
+    # in testing with GRB 071025, Dan found it to be ~2.4).
+    num_triplestacks = ditherdict['N_dither']/3
+    
     for star in combined_starlist:
         ra = star[0]
         dec = star[1]
@@ -897,18 +906,27 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         if ((target_separation_arcsec > 5) and 
             ((ptel_flag == 0) or (ptel_flag == 2))):
             zeropoint_list.append(tmass_mag - ptel_mag)
-            zeropoint_err_list.append(sqrt(tmass_e_mag*tmass_e_mag + 
-                ptel_e_mag*ptel_e_mag))
+            zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
+                        + (base_dither_error/sqrt(num_triplestacks))**2)
     print zeropoint_list
     zeropoint = average(zeropoint_list)
     if numpy.isnan(zeropoint):
         print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
         print zeropoint_list
         #raise(ValueError)
-    zeropoint_error = average(zeropoint_err_list)
+    
+    # AMorgan edits to a different calculation of Zeropoint Uncertainty
+    N_zp = len(zeropoint_list)
+    zp_err_arr = numpy.array(zeropoint_err_list)
+    zp_err_arr_sq = zp_err_arr**2
+    sum_zp_err_arr_sq = numpy.sum(zp_err_arr_sq)
+#    zeropoint_error = average(zeropoint_err_list)
+    zeropoint_error = numpy.sqrt(sum_zp_err_arr_sq)/N_zp
+
     # Now apply the zeropoint to the instrumental magnitudes and create the 
     # final_starlist. Store the target photometry in target_mag and target_e_mag.
     final_starlist = []
+    photdict.update({'calib_stars':{}})
     for star in combined_starlist:
         # If the star is our target . . .
         if (206264.806247*(float(ephem.separation(
@@ -924,10 +942,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             ptel_e_mag = star[5]
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
-            new_e_mag = sqrt(zeropoint_error*zeropoint_error + 
-                ptel_e_mag*ptel_e_mag)
-            target_mag = new_mag
-            num_triplestacks = ditherdict['N_dither']/3
+            
             if num_triplestacks == 0:
                 num_triplestacks = 1
             # In PAIRITEL, there are additional sources of uncertainty which
@@ -937,8 +952,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             # multiplicitive factor due to the fact that we are typically 
             # rebinning from 2"/pix to 1"/pix (should be a factor of two, but
             # in testing with GRB 071025, Dan found it to be ~2.4).
-            target_e_mag = float(sqrt(new_e_mag**2 + 
-                (base_dither_error/sqrt(num_triplestacks))**2)*2.4)
+            target_mag = new_mag
+            
+            # e_mag = sqrt((inst_err*2.4)**2 + zp_err**2 + (base_dither_error/sqrt(num_triplestacks))**2)
+            target_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
+                            + (base_dither_error/sqrt(num_triplestacks))**2))
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
@@ -954,10 +972,14 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             ptel_e_mag = star[5]
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
-            new_e_mag = sqrt(zeropoint_error*zeropoint_error + 
-                ptel_e_mag*ptel_e_mag)
+            new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
+                            + (base_dither_error/sqrt(num_triplestacks))**2))
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
+            photdict['calib_stars'].update({str(ra):{'ra':ra,'dec':dec,
+                '2mass_mag':tmass_mag,'2mass_e_mag':tmass_e_mag,
+                'inst_mag':ptel_mag,'inst_e_mag':ptel_e_mag,'new_mag':new_mag,
+                'new_e_mag':new_e_mag}})
     # Calculate the midpoint heliocentric julian date of the exposure. We use a 
     # try/except clause in case something fails and use a placeholder hjd in that
     # instance.
@@ -1088,8 +1110,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
 #comments out s2n stops////////////////////////////////////////    
     photdict.update({'sex_faintest':(sex_faintest,sex_faintest_err)})
     photdict.update(ditherdict)
-
-    photdict.update({'calibration_stars':combined_starlist})
 
     # Clean up the photometry catalog files.
     system("rm viz_output.txt")
