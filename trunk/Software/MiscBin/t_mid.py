@@ -10,7 +10,7 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None):
     
     start = datetime.datetime.strptime(starttime.split('.')[0], "%Y-%m-%d %H:%M:%S")
     stop = datetime.datetime.strptime(stoptime.split('.')[0], "%Y-%m-%d %H:%M:%S")
-
+    
     if not delta:
 
         durdiv2 = (stop - start)/2 + start
