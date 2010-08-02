@@ -1187,35 +1187,36 @@ def tmp_phot_plot(photdict):
     pylab.ylabel('J Mag')
     pylab.semilogx()
 
-def photloop(filename, reg, aper=None):
-    '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
-    running q_super_photometry on each. Output is stored in a text file with 
-    the format t_mid|t_miderror|magnitude|magnitudeerror'''
-    close()
-    f = file(filename)
-    textname = filename[0:1] + '_photometry_results.txt'
-    r = open(textname, 'w')
-    #vallist = []
-    #errlist = []
-    timlist = []
-
-    for lameline in f.readlines():
-        line = lameline.rstrip('\n')
-        print line
-        magnitude = dophot(line,reg,ap=aper)
-        if magnitude['targ_mag'][0] == 'nan':
-            pass
-        else:
-            vallist = magnitude['targ_mag'][0]
-            errlist = magnitude['targ_mag'][1]
-        time = t_mid.t_mid(line)
-        time_err = t_mid.t_mid(line, delta = True) 
-
-        result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
-        r.write(result)
-        
-    f.close()
-    r.close()
+# # amorgan comments out since photLoop is more powerful 
+# def photloop(filename, reg, aper=None):
+#     '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
+#     running q_super_photometry on each. Output is stored in a text file with 
+#     the format t_mid|t_miderror|magnitude|magnitudeerror'''
+#     close()
+#     f = file(filename)
+#     textname = filename[0:1] + '_photometry_results.txt'
+#     r = open(textname, 'w')
+#     #vallist = []
+#     #errlist = []
+#     timlist = []
+# 
+#     for lameline in f.readlines():
+#         line = lameline.rstrip('\n')
+#         print line
+#         magnitude = dophot(line,reg,ap=aper)
+#         if magnitude['targ_mag'][0] == 'nan':
+#             pass
+#         else:
+#             vallist = magnitude['targ_mag'][0]
+#             errlist = magnitude['targ_mag'][1]
+#         time = t_mid.t_mid(line)
+#         time_err = t_mid.t_mid(line, delta = True) 
+# 
+#         result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
+#         r.write(result)
+#         
+#     f.close()
+#     r.close()
     
 def photplot(photdict):
     '''Plots a graph from photdict'''
@@ -1321,7 +1322,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, auto_upper
             return photdict
             break
     
-def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_dict=None, clobber=False):
+def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_dict=None, clobber=False):
     '''temporary looping 1232'''
     import glob
     GRBlist = []
