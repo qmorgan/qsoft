@@ -1188,7 +1188,9 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 def photloop(filename, reg, aper=None):
-    '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, running q_super_photometry on each. Output is stored in a text file with the format t_mid|t_miderror|magnitude|magnitudeerror'''
+    '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
+    running q_super_photometry on each. Output is stored in a text file with 
+    the format t_mid|t_miderror|magnitude|magnitudeerror'''
     close()
     f = file(filename)
     textname = filename[0:1] + '_photometry_results.txt'
@@ -1280,22 +1282,22 @@ def photplot(photdict):
     matplotlib.pyplot.close()
 
 
-def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None, str_dict = None):
+def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None, str_dict = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
-    Clobber=True for overwriting existing pickle files. '''
+    clobber=True for overwriting existing pickle files. '''
     filepath = storepath + GRBname + '.data'
-    while Clobber == False:
+    while clobber == False:
         if os.path.isfile(filepath) == True:
             data = qPickle.load(filepath)
             if filename in data:
                 return data
             else:
-                Clobber = True
+                clobber = True
         else:
-            Clobber = True
+            clobber = True
 
-    while Clobber == True:
+    while clobber == True:
         if reg == None: 
             print 'Need to input reg file'
             break
@@ -1319,7 +1321,7 @@ def photreturn(GRBname, filename, Clobber=False, reg=None, aper=None, auto_upper
             return photdict
             break
     
-def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_dict=None):
+def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_dict=None, clobber=False):
     '''temporary looping 1232'''
     import glob
     GRBlist = []
@@ -1330,7 +1332,7 @@ def temploop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_d
             GRBlist.append(item)
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
+        photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
 
 def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
@@ -1389,18 +1391,6 @@ def plotzp(photdict):
     savefig(savepath)           
     matplotlib.pyplot.close()
 
-def temploopeh(GRBname, regfile, aper=None):
-    '''temporary looping'''
-    import glob
-    GRBlist = []
-    GRBlistwweight = glob.glob('*.fits')
-    # Remove the weight images from the list
-    for item in GRBlistwweight:
-        if item.find('weight') == -1:
-            GRBlist.append(item)
-    for mosaic in GRBlist:
-        print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, Clobber=False, reg=regfile, aper=None)
 
 def plots2n(photdict):
     '''Plots a graph of s/n versus duration from the pickle output of the photreturn function'''
