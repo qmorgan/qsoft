@@ -974,6 +974,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             ptel_e_mag = star[5]
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
+            delta_mag = abs(new_mag-tmass_mag) # difference between our magnitude and 2mass
             new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
                             + (base_dither_error/sqrt(num_triplestacks))**2))
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
@@ -981,7 +982,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             photdict['calib_stars'].update({str(ra):{'ra':ra,'dec':dec,
                 '2mass_mag':tmass_mag,'2mass_e_mag':tmass_e_mag,
                 'inst_mag':ptel_mag,'inst_e_mag':ptel_e_mag,'new_mag':new_mag,
-                'new_e_mag':new_e_mag}})
+                'new_e_mag':new_e_mag, 'delta_mag':delta_mag}})
     # Calculate the midpoint heliocentric julian date of the exposure. We use a 
     # try/except clause in case something fails and use a placeholder hjd in that
     # instance.
