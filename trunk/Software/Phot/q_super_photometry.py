@@ -935,7 +935,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             ((star[6] == 0) or (star[6] == 2) or (star[6] == 4) or (star[6] == 6) or 
             (star[6] == 7))):
             ra = star[0]
-            dec = star[1]
+            dec = star[1] 
             tmass_mag = star[2]
             tmass_e_mag = star[3]
             ptel_mag = star[4]
@@ -956,6 +956,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             
             # e_mag = sqrt((inst_err*2.4)**2 + zp_err**2 + (base_dither_error/sqrt(num_triplestacks))**2)
             target_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
+                            + (base_dither_error/sqrt(num_triplestacks))**2))
+            new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
                             + (base_dither_error/sqrt(num_triplestacks))**2))
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
