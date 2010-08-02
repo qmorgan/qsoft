@@ -912,7 +912,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                         + (base_dither_error/sqrt(num_triplestacks))**2)
     print 'zp list is'
     print zeropoint_list
-    zeropoint = average(zeropoint_list)
+    # zeropoint = average(zeropoint_list) # average is not very robust
+    zeropoint = numpy.median(zeropoint_list)
     if numpy.isnan(zeropoint):
         print 'ZEROPOINT IS NAN - something is wrong.  Here is zeropoint_list:'
         print zeropoint_list
@@ -1170,121 +1171,6 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
         photdict.update({label:photout})
     return photdict
 
-def tmp_phot_plot(photdict):
-    '''quick write-up of getting the photometry because I am lazy '''
-    import pylab
-    timearr = []
-    timeerrarr = []
-    photarr = []
-    photerrarr = []
-    for imgresult in photdict.itervalues():
-        timearr.append(imgresult['HJD_mid'])
-        duration = imgresult['HJD_start'] - imgresult['HJD_stop']
-        timeerrarr.append(duration)
-        photarr.append(imgresult['targ_mag'][0])
-        photerrarr.append(imgresult['targ_mag'][1])
-        
-    pylab.errorbar(y=photarr,x=timearr,xerr=timeerrarr,yerr=photerrarr,fmt='ro')
-    pylab.ylim(pylab.ylim()[1],pylab.ylim()[0]) #transpose axes
-    pylab.xlabel('Time since Burst (s)')
-    pylab.ylabel('J Mag')
-    pylab.semilogx()
-
-# # amorgan comments out since photLoop is more powerful 
-# def photloop(filename, reg, aper=None):
-#     '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
-#     running q_super_photometry on each. Output is stored in a text file with 
-#     the format t_mid|t_miderror|magnitude|magnitudeerror'''
-#     close()
-#     f = file(filename)
-#     textname = filename[0:1] + '_photometry_results.txt'
-#     r = open(textname, 'w')
-#     #vallist = []
-#     #errlist = []
-#     timlist = []
-# 
-#     for lameline in f.readlines():
-#         line = lameline.rstrip('\n')
-#         print line
-#         magnitude = dophot(line,reg,ap=aper)
-#         if magnitude['targ_mag'][0] == 'nan':
-#             pass
-#         else:
-#             vallist = magnitude['targ_mag'][0]
-#             errlist = magnitude['targ_mag'][1]
-#         time = t_mid.t_mid(line)
-#         time_err = t_mid.t_mid(line, delta = True) 
-# 
-#         result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
-#         r.write(result)
-#         
-#     f.close()
-#     r.close()
-    
-def photplot(photdict):
-    '''Plots a graph from photdict'''
-    import matplotlib
-    import glob
-    import datetime
-    
-    #filepath = path + GRBname + '.data'
-    #photdict = qPickle.load(filepath)
-    
-    h = False
-    j = False
-    k = False
-
-    timlist = []
-    terlist = []
-    vallist = []
-    errlist = []
-
-    for mosaics in photdict:
-        print 'now doing ' + str(mosaics)
-        time = photdict[mosaics]['t_mid'][0]
-        terr = photdict[mosaics]['t_mid'][1]
-        
-        valu = float(photdict[mosaics]['targ_mag'][0])
-        verr = float(photdict[mosaics]['targ_mag'][1])
-
-#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
-
-        if 'h_' in mosaics:
-            if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
-            else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
-                h = True
-
-        elif 'j_' in mosaics:            
-            if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
-            else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
-                j = True
-
-        elif 'k_' in mosaics:
-            if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
-            else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
-                k = True
-
-    ax = matplotlib.pyplot.gca()
-    ax.set_ylim(ax.get_ylim()[::-1])
-    
-    matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('Mag')
-    #matplotlib.pyplot.semilogx()
-    ax = matplotlib.pyplot.gca()
-    ax.set_xscale('log')
-    matplotlib.pyplot.legend()
-    uniquename = photdict.keys()[0].split('_')[2]
-    savepath = storepath + uniquename + '_lightcurve.png'
-    print 'lightcurve saved to ' + savepath
-    savefig(savepath)    
-    matplotlib.pyplot.close()
-
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None, str_dict = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
@@ -1480,3 +1366,149 @@ def textoutput(dict):
         text.write('\n')
     text.close()
 
+
+def tmp_phot_plot(photdict):
+    '''quick write-up of getting the photometry because I am lazy '''
+    import pylab
+    timearr = []
+    timeerrarr = []
+    photarr = []
+    photerrarr = []
+    for imgresult in photdict.itervalues():
+        timearr.append(imgresult['HJD_mid'])
+        duration = imgresult['HJD_start'] - imgresult['HJD_stop']
+        timeerrarr.append(duration)
+        photarr.append(imgresult['targ_mag'][0])
+        photerrarr.append(imgresult['targ_mag'][1])
+        
+    pylab.errorbar(y=photarr,x=timearr,xerr=timeerrarr,yerr=photerrarr,fmt='ro')
+    pylab.ylim(pylab.ylim()[1],pylab.ylim()[0]) #transpose axes
+    pylab.xlabel('Time since Burst (s)')
+    pylab.ylabel('J Mag')
+    pylab.semilogx()
+
+# # amorgan comments out since photLoop is more powerful 
+# def photloop(filename, reg, aper=None):
+#     '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
+#     running q_super_photometry on each. Output is stored in a text file with 
+#     the format t_mid|t_miderror|magnitude|magnitudeerror'''
+#     close()
+#     f = file(filename)
+#     textname = filename[0:1] + '_photometry_results.txt'
+#     r = open(textname, 'w')
+#     #vallist = []
+#     #errlist = []
+#     timlist = []
+# 
+#     for lameline in f.readlines():
+#         line = lameline.rstrip('\n')
+#         print line
+#         magnitude = dophot(line,reg,ap=aper)
+#         if magnitude['targ_mag'][0] == 'nan':
+#             pass
+#         else:
+#             vallist = magnitude['targ_mag'][0]
+#             errlist = magnitude['targ_mag'][1]
+#         time = t_mid.t_mid(line)
+#         time_err = t_mid.t_mid(line, delta = True) 
+# 
+#         result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
+#         r.write(result)
+#         
+#     f.close()
+#     r.close()
+    
+def photplot(photdict):
+    '''Plots a graph from photdict'''
+    import matplotlib
+    import glob
+    import datetime
+    
+    #filepath = path + GRBname + '.data'
+    #photdict = qPickle.load(filepath)
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    vallist = []
+    errlist = []
+
+    for mosaics in photdict:
+        print 'now doing ' + str(mosaics)
+        time = photdict[mosaics]['t_mid'][0]
+        terr = photdict[mosaics]['t_mid'][1]
+        
+        valu = float(photdict[mosaics]['targ_mag'][0])
+        verr = float(photdict[mosaics]['targ_mag'][1])
+
+#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+
+        if 'h_' in mosaics:
+            if h == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                h = True
+
+        elif 'j_' in mosaics:            
+            if j == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                j = True
+
+        elif 'k_' in mosaics:
+            if k == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                k = True
+
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1])
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    uniquename = photdict.keys()[0].split('_')[2]
+    savepath = storepath + uniquename + '_lightcurve.png'
+    print 'lightcurve saved to ' + savepath
+    savefig(savepath)    
+    matplotlib.pyplot.close()
+
+def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
+    ''' Due to sampling and dithering issues, finding the optimal aperture in
+    PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
+    we loop around images in a directory and measure the photometry of the 
+    calibration stars.
+    '''
+    k_delta_list = []
+    h_delta_list = []
+    j_delta_list = []
+
+    for key, val in data.iteritems():
+        for calkey, calval in val['calib_stars'].iteritems():
+            delta = calval['delta_mag']
+            if val['filter']=='j':
+                j_delta_list.append(delta)
+            elif val['filter']=='h':
+                h_delta_list.append(delta)
+            elif val['filter']=='k':
+                k_delta_list.append(delta)
+            else:
+                raise ValueError
+        
+    
+
+    print 'j'
+    print j_delta_list
+    print 'h'
+    print h_delta_list
+    print 'k'
+    print k_delta_list
