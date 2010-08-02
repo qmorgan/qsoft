@@ -889,7 +889,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     # rebinning from 2"/pix to 1"/pix (should be a factor of two, but
     # in testing with GRB 071025, Dan found it to be ~2.4).
     num_triplestacks = ditherdict['N_dither']/3
-    
+    if num_triplestacks == 0:
+        num_triplestacks = 1    
+
     for star in combined_starlist:
         ra = star[0]
         dec = star[1]
@@ -908,6 +910,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             zeropoint_list.append(tmass_mag - ptel_mag)
             zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
                         + (base_dither_error/sqrt(num_triplestacks))**2)
+    print 'zp list is'
     print zeropoint_list
     zeropoint = average(zeropoint_list)
     if numpy.isnan(zeropoint):
@@ -919,6 +922,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     N_zp = len(zeropoint_list)
     zp_err_arr = numpy.array(zeropoint_err_list)
     zp_err_arr_sq = zp_err_arr**2
+    print 'zp_err_arr_sq is'
+    print zp_err_arr_sq
     sum_zp_err_arr_sq = numpy.sum(zp_err_arr_sq)
 #    zeropoint_error = average(zeropoint_err_list)
     zeropoint_error = numpy.sqrt(sum_zp_err_arr_sq)/N_zp
@@ -942,9 +947,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             ptel_e_mag = star[5]
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
-            
-            if num_triplestacks == 0:
-                num_triplestacks = 1
+      
             # In PAIRITEL, there are additional sources of uncertainty which
             # have to be accounted for above the normal photometric statistical
             # uncertainty.  One is an additive error which reduces by the sqrt
