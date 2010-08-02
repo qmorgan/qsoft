@@ -1223,7 +1223,8 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_d
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
-
+    return photout
+    
 def plotzp(photdict):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
     import matplotlib
@@ -1488,27 +1489,32 @@ def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
     we loop around images in a directory and measure the photometry of the 
     calibration stars.
     '''
-    k_delta_list = []
-    h_delta_list = []
-    j_delta_list = []
-
-    for key, val in data.iteritems():
-        for calkey, calval in val['calib_stars'].iteritems():
-            delta = calval['delta_mag']
-            if val['filter']=='j':
-                j_delta_list.append(delta)
-            elif val['filter']=='h':
-                h_delta_list.append(delta)
-            elif val['filter']=='k':
-                k_delta_list.append(delta)
-            else:
-                raise ValueError
-        
+    j_delta_med_list = []
+    h_delta_med_list = []
+    k_delta_med_list = []
+    aplist = [2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0]
+    for ap in aplist:
     
+        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, clobber=True) 
+    
+        k_delta_list = []
+        h_delta_list = []
+        j_delta_list = []
 
-    print 'j'
-    print j_delta_list
-    print 'h'
-    print h_delta_list
-    print 'k'
-    print k_delta_list
+        for key, val in data.iteritems():
+            for calkey, calval in val['calib_stars'].iteritems():
+                delta = calval['delta_mag']
+                if val['filter']=='j':
+                    j_delta_list.append(delta)
+                elif val['filter']=='h':
+                    h_delta_list.append(delta)
+                elif val['filter']=='k':
+                    k_delta_list.append(delta)
+                else:
+                    raise ValueError
+    
+        j_delta_med_list.append(numpy.median(j_delta_list))
+        h_delta_med_list.append(numpy.median(h_delta_list))
+        k_delta_med_list.append(numpy.median(k_delta_list))
+    
+    return (j_delta_med_list,h_delta_med_list,k_delta_med_list)
