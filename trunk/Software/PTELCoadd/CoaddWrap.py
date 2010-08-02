@@ -142,8 +142,7 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=F
             else:
                 s2n = photdict['targ_s2n']
             
-            print 'The S/N reached is %s from a total of %s images: %s' % 
-                    (str(s2n), str(obs_num_f - obs_num_i + 1), str(myrange))
+            print 'The S/N reached is %s from a total of %s images: %s' % (str(s2n), str(obs_num_f - obs_num_i + 1), str(myrange))
             
             # End here if we've run out of observations to stack.  
             if dobreak:
