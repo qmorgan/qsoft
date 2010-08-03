@@ -59,6 +59,7 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
 
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1])   
+    return str(pfinal)
 
 def fitplot(dict, name='GRB', exclude=[]): 
     '''Takes a dictionary containing photometry results (such as the output 
@@ -119,8 +120,9 @@ def fitplot(dict, name='GRB', exclude=[]):
     print 'k error is'
     print aerr
     print aerr.mean()
-
-    fit(tarr, karr, aerr, 'k', name=name)
+    
+    k_err = aerr.mean()
+    k_results = fit(tarr, karr, aerr, 'k', name=name)
 
 #HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
     
@@ -159,7 +161,8 @@ def fitplot(dict, name='GRB', exclude=[]):
     print aerr
     print aerr.mean()
 
-    fit(tarr, harr, aerr, 'h', name=name)
+    h_err = aerr.mean()
+    h_results = fit(tarr, harr, aerr, 'h', name=name)
 
 #JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ
 
@@ -198,7 +201,8 @@ def fitplot(dict, name='GRB', exclude=[]):
     print aerr
     print aerr.mean()
     
-    fit(tarr, jarr, aerr, 'j', name=name) 
+    j_err = aerr.mean()
+    j_results = fit(tarr, jarr, aerr, 'j', name=name) 
 
 #putting on legend and saving the plot
     
@@ -207,3 +211,14 @@ def fitplot(dict, name='GRB', exclude=[]):
     unique_name = dict.keys()[0].split('_')[2]
     filepath = storepath + unique_name + '_power_law_fit.png'
     savefig(filepath)
+    h_val = [float(h_results.rstrip(']').lstrip('[').lstrip().split('  ')[0]), float(h_results.rstrip(']').lstrip('[').lstrip().split('  ')[1])]
+    j_val = [float(j_results.rstrip(']').lstrip('[').lstrip().split('  ')[0]), float(j_results.rstrip(']').lstrip('[').lstrip().split('  ')[1])]
+    k_val = [float(k_results.rstrip(']').lstrip('[').lstrip().split('  ')[0]), float(k_results.rstrip(']').lstrip('[').lstrip().split('  ')[1])]
+
+    k_str = 'k & '+ str(k_val[0]) + ' & '+ str(k_val[1]) +' & '+ str(k_err) + ' \\\ \hline'
+    h_str = 'h & '+ str(h_val[0]) + ' & '+ str(h_val[1]) +' & '+ str(h_err) + ' \\\ \hline'
+    j_str = 'j & '+ str(j_val[0]) + ' & '+ str(j_val[1]) +' & '+ str(j_err)
+    print k_str
+    print h_str
+    print j_str
+

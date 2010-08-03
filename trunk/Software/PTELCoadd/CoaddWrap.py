@@ -39,7 +39,6 @@ import shutil
 import glob
 pypath = "python"
 
-
 def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_super_photometry is needed.
