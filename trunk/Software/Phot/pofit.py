@@ -210,7 +210,12 @@ def fitplot(dict, name='GRB', exclude=[]):
     storepath = os.environ.get("Q_DIR") + '/store/'
     unique_name = dict.keys()[0].split('_')[2]
     filepath = storepath + unique_name + '_power_law_fit.png'
+
+    ax = gca()
+    ax.set_xlim((ax.get_xlim()[0]),(ax.get_xlim()[1])*1.005)
+
     savefig(filepath)
+
     h_val = [float(h_results.rstrip(']').lstrip('[').lstrip().split('  ')[0]), float(h_results.rstrip(']').lstrip('[').lstrip().split('  ')[1])]
     j_val = [float(j_results.rstrip(']').lstrip('[').lstrip().split('  ')[0]), float(j_results.rstrip(']').lstrip('[').lstrip().split('  ')[1])]
     k_val = [float(k_results.rstrip(']').lstrip('[').lstrip().split('  ')[0]), float(k_results.rstrip(']').lstrip('[').lstrip().split('  ')[1])]
