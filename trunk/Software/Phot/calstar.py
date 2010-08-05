@@ -145,7 +145,9 @@ def star_stdv(stardict):
 
 def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None):
     
-    '''temporary comment: Do photomotery of all calibration stars in the region file, and outputs a pickle file. Needs q_phot and qPickle'''
+    '''temporary comment: Do photomotery of all calibration stars in the 
+    region file, and outputs a pickle file. Needs q_phot and qPickle
+    '''
 
     stardict = {}
     stardict_h = {}
@@ -238,9 +240,11 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
     stardict.update(j_dict)
     stardict.update(k_dict)
 
-    return stardict
     picklepath = storepath + picklename + '.data'
     qPickle.save(stardict, picklepath, Clobber = True)
+
+    return stardict
+
 
 
     
