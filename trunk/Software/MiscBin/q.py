@@ -597,3 +597,22 @@ def object2dict(obj,include=[],force=True):
         else: objdict.update({attr:getattr(obj,attr)})
             
     return objdict
+    
+
+def SaveSortedDictTxt(indict,outpath='prettydict.txt'):
+    '''Given a dictionary, save a prettified version of it to a text file
+    for human consumption.
+    '''
+    import pprint
+    f = open(outpath,'w')
+    keys = indict.keys()
+    keys.sort()
+    sorted_vals = map(indict.get,keys)
+    for item in keys:
+        myindex=keys.index(item)
+        mystr = '\n\n** %s **\n' % (item)
+        f.write(mystr)
+        prettydict = pprint.pformat(sorted_vals[myindex])
+        f.write(prettydict)
+    f.close
+
