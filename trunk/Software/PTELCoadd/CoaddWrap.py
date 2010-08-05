@@ -41,9 +41,9 @@ pypath = "python"
 
 def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=False):
     '''Here we continually coadd each observation in the obs list until 
-    the minimum signal to noise is reached.  q_super_photometry is needed.
+    the minimum signal to noise is reached.  q_phot is needed.
     '''
-    from Phot import q_super_photometry as q_phot
+    from Phot import q_phot
     
     ## PHOTOMETRY PARAMTERS ##
     ap=3

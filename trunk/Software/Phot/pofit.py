@@ -63,7 +63,7 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
 
 def fitplot(dict, name='GRB', exclude=[]): 
     '''Takes a dictionary containing photometry results (such as the output 
-    from q_super_photometry.photreturn) and solves for a power law fitting. 
+    from q_phot.photreturn) and solves for a power law fitting. 
     This function will graph the power law fit and the data points on magnitude
     vs. log(t_mid) space.
     '''

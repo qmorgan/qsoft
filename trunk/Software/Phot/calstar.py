@@ -1,4 +1,4 @@
-from Phot import q_super_photometry
+from Phot import q_phot
 import matplotlib
 from scipy import array
 from MiscBin import t_mid
@@ -13,7 +13,7 @@ loadpath = os.environ.get("Q_DIR") + '/load/'
 
 def magplot(reg, filelist, picklename, triggerid = None, globit = False):
     
-    '''temporary comment: Plot magnitudes of calibration stars, needs q_super_photometry and t_mid.'''
+    '''temporary comment: Plot magnitudes of calibration stars, needs q_phot and t_mid.'''
 
     if globit == True:
         globstr1 = str(filelist) + '_coadd_?-?.fits'
@@ -76,7 +76,7 @@ def magplot(reg, filelist, picklename, triggerid = None, globit = False):
             print '**************************************'
             print 'Photometry of star' + str(index) 
             print 'doing image ' + image
-            data = q_super_photometry.dophot(image, temppath)
+            data = q_phot.dophot(image, temppath)
             if 'targ_mag' in data:
                 datalist += [data['targ_mag'][0]] 
                 dataerrlist += [data['targ_mag'][1]]
@@ -145,7 +145,7 @@ def star_stdv(stardict):
 
 def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None):
     
-    '''temporary comment: Do photomotery of all calibration stars in the region file, and outputs a pickle file. Needs q_super_photometry and qPickle'''
+    '''temporary comment: Do photomotery of all calibration stars in the region file, and outputs a pickle file. Needs q_phot and qPickle'''
 
     stardict = {}
     stardict_h = {}
@@ -204,7 +204,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         star_pos = (ra_round, dec_round)
         star_pos_str = str(star_pos)
 
-        data_h = q_super_photometry.dophot(filename_h, temppath)
+        data_h = q_phot.dophot(filename_h, temppath)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_h, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_h, trigger=triggerid,delta = True))/2.
@@ -213,7 +213,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         this_star_dict_h = {parent_label:data_h}
         stardict_h.update(this_star_dict_h)
         
-        data_j = q_super_photometry.dophot(filename_j, temppath)
+        data_j = q_phot.dophot(filename_j, temppath)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_j, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_j, trigger=triggerid,delta = True))/2.
@@ -222,7 +222,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         this_star_dict_j = {parent_label:data_j}
         stardict_j.update(this_star_dict_j)
 
-        data_k = q_super_photometry.dophot(filename_k, temppath)
+        data_k = q_phot.dophot(filename_k, temppath)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_k, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_k, trigger=triggerid,delta = True))/2.

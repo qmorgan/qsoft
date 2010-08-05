@@ -1391,7 +1391,7 @@ def tmp_phot_plot(photdict):
 # # amorgan comments out since photLoop is more powerful 
 # def photloop(filename, reg, aper=None):
 #     '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
-#     running q_super_photometry on each. Output is stored in a text file with 
+#     running q_phot on each. Output is stored in a text file with 
 #     the format t_mid|t_miderror|magnitude|magnitudeerror'''
 #     close()
 #     f = file(filename)
