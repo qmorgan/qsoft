@@ -1,7 +1,7 @@
 from Phot import q_phot
 import matplotlib
 from scipy import array
-from MiscBin import t_mid
+from Phot import t_mid
 import numpy
 import os
 import pylab

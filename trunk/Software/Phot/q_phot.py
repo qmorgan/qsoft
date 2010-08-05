@@ -41,7 +41,7 @@ from scipy import loadtxt, savetxt, sort
 import pyfits
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import operator
-from MiscBin import t_mid
+from Phot import t_mid
 from MiscBin import qPickle
 from pylab import close
 from time import time
