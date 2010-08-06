@@ -1149,9 +1149,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         regfile.write(secondstr)
         regfile.write('fk5\n')
         for calstar in combined_starlist:
-            tmp_str = 'circle('+str(calstar[0])+','+str(calstar[1])\
-                    +','+str(aperture_size)+'")' + '\n'
-            regfile.write(tmp_str)
+            # only add it to the region file if it is not our target
+            if calstar[2] != 999:
+                tmp_str = 'circle('+str(calstar[0])+','+str(calstar[1])\
+                        +','+str(aperture_size)+'")' + '\n'
+                regfile.write(tmp_str)
         regfile.close
     print ("Photometry completed, " + 
         str(time() - t1) + " seconds required.")
