@@ -970,7 +970,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
             continue
         # If the star is just a field 2MASS star . . .
-        if star[6] == 0:
+        elif star[6] == 0:
             ra = star[0]
             dec = star[1]
             tmass_mag = star[2]
@@ -988,6 +988,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 '2mass_mag':tmass_mag,'2mass_e_mag':tmass_e_mag,
                 'inst_mag':ptel_mag,'inst_e_mag':ptel_e_mag,'new_mag':new_mag,
                 'new_e_mag':new_e_mag, 'delta_mag':delta_mag}})
+        else:
+            print 'BLARGH CANNOT USE THIS STAR'
+            print star
     # Calculate the midpoint heliocentric julian date of the exposure. We use a 
     # try/except clause in case something fails and use a placeholder hjd in that
     # instance.
