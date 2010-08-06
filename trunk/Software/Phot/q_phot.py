@@ -865,7 +865,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             for calstar_new in callist:
                 calstar_list = calstar_new.split(',')
                 caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*(1/180.)*(float(calstar_old[0])), (numpy.pi)*(1/180.)*(float(calstar_old[1]))),((numpy.pi)*(1/180.)*(float(calstar_list[0])), (numpy.pi)*(1/180.)*(float(calstar_list[1]))))))
-                if caldist < 5:
+                # only remove the calstar entry if it is not our target; i.e. it does not have [2]=999
+                if caldist < 5 and calstar_old[2] != 999:
                     token = True
             if not token:
                 indexlist += [index]
