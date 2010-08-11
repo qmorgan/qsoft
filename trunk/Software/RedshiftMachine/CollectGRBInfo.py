@@ -55,7 +55,7 @@ def whatis(keyword):
     'B2': {'definition':'Beta Upper limit','type':'double','source':'NatBat Spectra','speed':'processed','sample':-1.9612000000000001},
     'CHI2': {'definition':'Chi-squared residuals for the fit to the BAT gamma-ray spectrum','type':'double','source':'NatBat Spectra','speed':'processed','sample':36.090000000000003},
     'CHI2_PC': {'definition':'Chi-squared residuals for the XRT Spectral Fit using PC (Photon-counting Mode) data - see T_PC for time range','type':'string','source':'NatXRT','speed':'processed','sample':'31.90/44'},
-    'CHI2_PC_LATE': {'definition':'XRT Spectral Fit Chi-squared residuals from Late Time (>10ks) XRT PC (Photon Counting Mode) Data - see T_PC_LATE for time range','type':'string','source':'NatXRT','speed':'na','sample':'17.49/17'},
+    'CHI2_PC_LATE': {'definition':'XRT Spectral Fit Chi-squared residuals from Late Time (>10ks) XRT PC (Photon Counting Mode) Data - see T_PC_LATE for time range','type':'string','source':'NatXRT','speed':'late_processed','sample':'17.49/17'},
     'CHI2_WT': {'definition':'XRT Spectral Fit Chi-squared residuals from WT (Windowed Timing Mode) XRT Data - Typically the earliest data; see T_WT for time range','type':'string','source':'NatXRT','speed':'processed','sample':'17.85/20'},
     'DPK_O_CTS': {'definition':'Peak Countrate over Counts Uncertainty (s^-1)','type':'string','source':'NatBat','speed':'processed','sample':0.0084310400000000008},
     'DRT45': {'definition':'rT_0.45 Uncertainty (s)','type':'string','source':'NatBat Timing','speed':'processed','sample':0.10100000000000001},
@@ -119,7 +119,7 @@ def whatis(keyword):
     'T_PC_LATE': {'definition':'XRT Late Photon Counting Mode Time Region (at least 10ks post burst)','type':'string','source':'NatXRT Spectra','speed':'late_processed','sample':'10.0000-1087.4741'},
     'T_WT': {'definition':'XRT WindowTiming Mode Region Time Region (ks post burst)','type':'string','source':'NatXRT Spectra','speed':'processed','sample':'0.0802510-5.72213'},
     'UT': {'definition':'UT Time of Burst','type':'string','source':'NatBat','speed':'processed','sample':'20060908_085722.340000'},
-    'Z': {'definition':'Redshift (from Nat)','type':'double','source':'NatBat Spectra','speed':'processed','sample':2.4300000000000002},
+    'Z': {'definition':'Redshift (from Nat)','type':'double','source':'NatBat Spectra','speed':'na','sample':2.4300000000000002},
     'b_mag_isupper': {'definition':'Is the UVOT B Magnitude an upper limit?','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'bat_bkg_dur': {'definition':'GCN BAT Background duration (seconds)','type':'double','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':8.0},
     'bat_bkg_inten': {'definition':'GCN BAT Background intensity (counts)','type':'double','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':41524.0},
@@ -886,7 +886,7 @@ class GRBdb:
         self.length=len(self.dict)
                     
                     
-    def makeArffFromArray(self,attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT','CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC','FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT','MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT','NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten','bat_image_signif','bat_img_peak','bat_inten','bat_is_rate_trig','bat_rate_signif','bat_trigger_dur','xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0','xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux','t90','v_mag_isupper','wh_mag_isupper','xrt_column'],inclerr=True):
+    def makeArffFromArray(self,time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT','CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC','FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT','MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT','NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten','bat_image_signif','bat_img_peak','bat_inten','bat_is_rate_trig','bat_rate_signif','bat_trigger_dur','xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0','xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux','t90','v_mag_isupper','wh_mag_isupper','xrt_column'],inclerr=True):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
@@ -897,6 +897,8 @@ class GRBdb:
         subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
+        
+        helpdict = whatis('all')
         
         f=open(arffpath,'w')
 
@@ -931,6 +933,10 @@ class GRBdb:
                 # Check if a numeric or nominal attribute
                 if not 'type' in attrdict:
                     print 'type not in attribute dict.  Continuing...'
+                    continue
+                # Check if in the timedict
+                if not helpdict[keyitem]['speed'] in time_list:
+                    print 'Speed for %s not in time_list; not including' % (keyitem)
                     continue
                 if attrdict['type'] == 'numeric':
                     numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
