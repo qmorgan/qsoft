@@ -777,12 +777,15 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         vizcat_starlist = []
         caldict = stardict[band] 
         for star in caldict:
-            star_ra = float(star.strip('(').strip(')').split(',')[0].lstrip("'").rstrip("'"))
-            star_dec = float(star.strip('(').strip(')').split(',')[1].lstrip(" ").lstrip("'").rstrip("'"))
-            star_mag = caldict[star]['targ_mag'][0]
-            star_e_mag = caldict[star]['targ_mag'][1]
-            star_snr = caldict[star]['targ_s2n']
-            vizcat_starlist.append([star_ra, star_dec, star_mag, star_e_mag, star_snr])
+            if 'targ_mag' not in caldict[star]:
+                pass
+            else:
+                star_ra = float(star.strip('(').strip(')').split(',')[0].lstrip("'").rstrip("'"))
+                star_dec = float(star.strip('(').strip(')').split(',')[1].lstrip(" ").lstrip("'").rstrip("'"))
+                star_mag = caldict[star]['targ_mag'][0]
+                star_e_mag = caldict[star]['targ_mag'][1]
+                star_snr = caldict[star]['targ_s2n']
+                vizcat_starlist.append([star_ra, star_dec, star_mag, star_e_mag, star_snr])
         
     # Create the sexcat_starlist from the Source Extractor output catalog. Also fill
     # in the sex_inst_mag_list which will be used as a diagnostic check on the 
@@ -842,6 +845,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                     sexcat_star[2], sexcat_star[3], 
                     sexcat_star[4]])
 
+    print 'length of combined_starlist is'
+    print len(combined_starlist)
+
     # Deleting stars in combined_starlist that is not in the inputted region file (if not calreg == False)
 
     if not calreg:
@@ -866,7 +872,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 calstar_list = calstar_new.split(',')
                 caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*(1/180.)*(float(calstar_old[0])), (numpy.pi)*(1/180.)*(float(calstar_old[1]))),((numpy.pi)*(1/180.)*(float(calstar_list[0])), (numpy.pi)*(1/180.)*(float(calstar_list[1]))))))
                 # only remove the calstar entry if it is not our target; i.e. it does not have [2]=999
-                if caldist < 5 and calstar_old[2] != 999:
+                if caldist < 5: # and calstar_old[2] != 999:
                     token = True
             if not token:
                 indexlist += [index]
@@ -874,6 +880,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         indexlist.sort()
         print 'here is the indexlist of calibration stars which are not used'
         print indexlist
+        print 'length of indexlist is'
+        print len(indexlist)
         revindex = indexlist[::-1]
         for ind in revindex:
             del combined_starlist[ind]
@@ -929,6 +937,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     sum_zp_err_arr_sq = numpy.sum(zp_err_arr_sq)
 #    zeropoint_error = average(zeropoint_err_list)
     zeropoint_error = numpy.sqrt(sum_zp_err_arr_sq)/N_zp
+
 
     # Now apply the zeropoint to the instrumental magnitudes and create the 
     # final_starlist. Store the target photometry in target_mag and target_e_mag.
@@ -1149,10 +1158,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         regfile.write(secondstr)
         regfile.write('fk5\n')
         for calstar in combined_starlist:
-            # only add it to the region file if it is not our target
+             #only add it to the region file if it is not our target
             if calstar[2] != 999:
-                tmp_str = 'circle('+str(calstar[0])+','+str(calstar[1])\
-                        +','+str(aperture_size)+'")' + '\n'
+                tmp_str = 'circle('+str(calstar[0])+','+str(calstar[1]) +','+str(aperture_size)+'")' + '\n'
                 regfile.write(tmp_str)
         regfile.close
     print ("Photometry completed, " + 
@@ -1506,10 +1514,11 @@ def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
     j_delta_med_list = []
     h_delta_med_list = []
     k_delta_med_list = []
-    aplist = [2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0]
+    #aplist = [2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0]
+    aplist = [7.0,7.2,7.4,7.6,7.8,8.0,8.2,8.4,8.6,8.8,9.0,9.2,9.4,9.6,9.8,10]
     for ap in aplist:
     
-        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, clobber=True) 
+        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, clobber=True, tger_id=tger_id) 
     
         k_delta_list = []
         h_delta_list = []

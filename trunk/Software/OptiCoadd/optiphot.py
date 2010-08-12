@@ -198,7 +198,7 @@ grb050525a = GRB(30.938,120.9655,-1.12,"GRB050525a")
 testgrb = GRB(3,50,-1.2,"TestGRB")
 
 # **MAKE INTO DEFINITION OF LCMODEL**
-def fit(function, parameters, y, x = None, err=1):
+def fit(function, parameters, y, yerr, x = None):
     '''Fit performs a simle least-squares fit on a function.  To use:
     
     Give initial paramaters:
@@ -221,17 +221,19 @@ def fit(function, parameters, y, x = None, err=1):
         for p in parameters:
             p.set(params[i])
             i += 1
-        return (y - function(x))/err
+        return (y - function(x))/yerr
+
+    #errfunc = lambda x, y, err: (y-function(x))/err
     
     # If no x axis given, set x array as integral steps starting with 
     # zero for the length of the y array.  For instance, if 
     # y = array([1.32,2.15,3.01,3.92]), then x will be x = array([0,1,2,3])
     if x is None: x = numpy.arange(y.shape[0]) 
     paraminit = [param() for param in parameters]
-    print "Parameter list:", paraminit
-    print "error function:", errfunc
-    fitout = scipy.optimize.leastsq(errfunc, paraminit,full_output=1)
-    print fitout
+    #print "Parameter list:", paraminit
+    #print "error function:", errfunc
+    fitout = scipy.optimize.leastsq(errfunc, paraminit, full_output=1)
+    #print fitout
     
     # paramfinal=[param() for param in parameters]
     paramfinal = fitout[0]
@@ -250,6 +252,7 @@ def fit(function, parameters, y, x = None, err=1):
     degrees_of_freedom = y.shape[0] - len(paramfinal)
     chi2r = chi2/degrees_of_freedom
     print "reduced chi^2 = %f on %f degrees of freedom" % (chi2r,degrees_of_freedom)
+    return paramfinal
 
 # ==========================================
 # = PORTING OLD CODE. MAKE OBJECT ORIENTY. =

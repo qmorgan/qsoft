@@ -5,7 +5,7 @@ from Phot import t_mid
 import numpy
 import os
 import pylab
-import qPickle
+from MiscBin import qPickle
 import glob
 
 storepath = os.environ.get("Q_DIR") + '/store/'
@@ -143,10 +143,10 @@ def star_stdv(stardict):
     return stdv_dict
 
 
-def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None):
+def getstar(reg, picklename, filename_h, filename_j, filename_k, ap_h,ap_j,ap_k,triggerid=None, calibration_reg=None):
     
     '''temporary comment: Do photomotery of all calibration stars in the 
-    region file, and outputs a pickle file. Needs q_phot and qPickle
+    region file, and outputs a pickle file. Needs q_phot and qPickle. The keyword calibration_reg is for the calibration stars used to calibrate these calibration stars.
     '''
 
     stardict = {}
@@ -206,7 +206,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         star_pos = (ra_round, dec_round)
         star_pos_str = str(star_pos)
 
-        data_h = q_phot.dophot(filename_h, temppath)
+        data_h = q_phot.dophot(filename_h, temppath, calreg=calibration_reg, ap=ap_h)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_h, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_h, trigger=triggerid,delta = True))/2.
@@ -215,7 +215,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         this_star_dict_h = {parent_label:data_h}
         stardict_h.update(this_star_dict_h)
         
-        data_j = q_phot.dophot(filename_j, temppath)
+        data_j = q_phot.dophot(filename_j, temppath, calreg=calibration_reg, ap=ap_j)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_j, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_j, trigger=triggerid,delta = True))/2.
@@ -224,7 +224,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
         this_star_dict_j = {parent_label:data_j}
         stardict_j.update(this_star_dict_j)
 
-        data_k = q_phot.dophot(filename_k, temppath)
+        data_k = q_phot.dophot(filename_k, temppath, calreg=calibration_reg, ap=ap_k)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_k, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_k, trigger=triggerid,delta = True))/2.
@@ -241,7 +241,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, triggerid=None)
     stardict.update(k_dict)
 
     picklepath = storepath + picklename + '.data'
-    qPickle.save(stardict, picklepath, Clobber = True)
+    qPickle.save(stardict, picklepath, clobber = True)
 
     return stardict
 
