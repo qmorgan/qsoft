@@ -221,7 +221,7 @@ def fit(function, parameters, y, x = None, err=1):
         for p in parameters:
             p.set(params[i])
             i += 1
-            return (y - function(x))/err
+        return (y - function(x))/err
     
     # If no x axis given, set x array as integral steps starting with 
     # zero for the length of the y array.  For instance, if 
