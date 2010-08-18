@@ -220,10 +220,14 @@ def CrawlThruLyraData():
     print 'error paths:', error_paths
     return ptel_dict
 
-def SwiftTargUnderTime(pteldict,range=(0.0,24.0)):
+def SwiftTargUnderTime(pteldict,range=(0.0,24.0),savecsv=False):
     count = 0
     countlist=[]
     grblist=[]
+    timedeltalist=[]
+    grbtimelist=[]
+    pteltimelist=[]
+    newfilelist=[]
     badtrigger=[]
     for target in pteldict.keys():
         if pteldict[target]['mission'] == 'swift':
@@ -232,14 +236,25 @@ def SwiftTargUnderTime(pteldict,range=(0.0,24.0)):
                     count += 1
                     countlist.append(target)
                     grblist.append(pteldict[target]['grb_name'])
+                    timedeltalist.append(pteldict[target]['time_delta'])
+                    grbtimelist.append(pteldict[target]['grb_time'])
+                    pteltimelist.append(pteldict[target]['ptel_time'])
             except:
                 badtrigger.append(target)
     print '%i Swift Targets observed between %f and %f hours' % (count,range[0],range[1])
     print 'Triggers: ', countlist
     print 'GRB List: ', grblist
     print 'Bad Triggers (not a GRB): ', badtrigger
-    return count
-
+    zipped = zip(countlist,grblist,grbtimelist,pteltimelist,timedeltalist)
+    if savecsv:
+        f = open('targundertime.csv','w')
+        for line in zipped:
+            newline = str(line).lstrip('(').rstrip(')') + '\n'
+            f.write(newline)
+        f.close()
+        print 'file saved to targundertime.csv'
+    return zipped
+    
 def MakeReduxScript(pteldict,trigid,pl3base='/home/ptelreducer/PyPAIRITELfullredux_distribution/',outdirbase='/home/ptelreducer/storage/amorgan/redux/'):
     '''Designed for use on Betsy!
     
