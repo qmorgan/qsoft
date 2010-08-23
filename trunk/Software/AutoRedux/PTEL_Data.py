@@ -332,6 +332,46 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/
     if grbname:
         pass
 
+
+def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1'):
+    '''Copy all files in a directory (such as created by copyraw) into 
+    a new folder elsewhere, renaming all files to a common GRB ID.  Useful
+    when needing to tack observations together for a common reduction
+    
+    When two observations should be combined, put the raw files from them into
+    a common folder.  Then run this code on them and output the results into a
+    new folder.
+    '''
+    rawfilelist = glob.glob(inpath+'/*')
+    newfilelist = []
+    # extract 
+    for line in rawfilelist:
+        
+        fbase = os.path.basename(line)
+        fdir = os.path.dirname(line)
+        
+        fs = fbase.split('-')
+        # Check if a raw file
+        if len(fs) == 7 and fs[0][0] == 'r':
+            fbasenew = '%s-%s-%s-%s-%s-%s-%s' % (fs[0],fs[1],fs[2],fs[3],newid,fs[5],fs[6])
+            newfilelist.append(fbasenew)
+            
+            #check the path exists
+            if not os.path.exists(outpath):
+                try:
+                    os.mkdir(outpath)
+                except:
+                    print 'Cannot make the directory %s.  Crap.' % (outpath)
+            
+            outfull = outpath + '/' + fbasenew
+            
+            cmd = 'cp %s %s' % (line, outfull)
+            os.system(cmd)
+        
+        else:
+            print 'Line %s did not pass critera; not moving' % (line)    
+        
+
 def PlotHist(pteldict):
     '''Plot a histogram of the response times of all available data.'''
     import pylab
