@@ -498,8 +498,6 @@ class GRBdb:
         
         setattr(self,key,keydict)
    
-    def RemOutliers(self,array):
-        pass
     
     def norm_update_class(self,keylist):
         '''
@@ -856,6 +854,57 @@ class GRBdb:
                     if suppress: doprint = False
             if doprint: print printstr
     
+    def removeOutliers(self,key,threshold=0.32):
+        '''Given a key and error type, This will remove all values with 
+        uncertainties larger than the threshold.  MUST Run self.MakeAllAttr() 
+        first. '''
+        
+        if hasattr(self,key):
+            
+            keydict = getattr(self,key)
+            if 'poserrarr' in keydict and 'negerrarr' in keydict:
+            
+                begin_num = len(RemoveNaN(keydict['array']))
+                print "%s: Beginning with %i non-NaN values" % (key,begin_num)
+            
+                up_per_err = keydict['poserrarr']/keydict['array']
+                lo_per_err = keydict['negerrarr']/keydict['array']
+            
+                #find indices of values where the percent error is larger than threshold
+                up_ind = numpy.nonzero(up_per_err >= threshold)
+                lo_ind = numpy.nonzero(lo_per_err >= threshold)
+            
+                # set indices = None, thus removing them
+                keydict['array'][up_ind] = None
+                keydict['array'][lo_ind] = None
+                keydict['poserrarr'][up_ind] = None
+                keydict['poserrarr'][lo_ind] = None
+                keydict['negerrarr'][up_ind] = None
+                keydict['negerrarr'][lo_ind] = None
+                keydict['subarr'] = RemoveNaN(keydict['array'])
+            
+                end_num = len(RemoveNaN(keydict['array']))
+                print "Ending with %i non-NaN values" % (end_num)
+                print "%i outliers removed." % (begin_num-end_num)
+                print ''
+            
+                setattr(self,key,keydict)
+            else:
+                print 'Key %s does not have uncertainties; cannot remove outliers.' % (key)
+        else:
+            print 'Key %s does not exist' % (key)
+        
+        # In [21]: new=db.RT45['poserrarr']/db.RT45['array']
+        # 
+        # In [22]: numpy.nonzero(new>0.1)
+        # Out[22]: 
+        # (array([ 46,  54,  61,  71,  72,  95, 105, 127, 136, 142, 180, 260, 266,
+        #        286, 293, 316, 320, 330, 334, 340, 343, 353, 359, 365, 381, 384,
+        #        385, 400, 404, 441, 479, 512, 524, 530]),)
+        # 
+        
+    
+        
     def removeShort(self,remove_no_redshift=True):
         '''Removes all short bursts with T90 < 2 and, if remove_no_redshift==
         True, those without a redshift'''
@@ -897,6 +946,11 @@ class GRBdb:
         subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
+        
+        remove_outliers = True
+        if remove_outliers:
+            for attr in attrlist:
+                self.removeOutliers(attr,threshold=0.32)
         
         helpdict = whatis('all')
         
