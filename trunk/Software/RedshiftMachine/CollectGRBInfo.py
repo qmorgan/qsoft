@@ -522,7 +522,6 @@ class GRBdb:
                 tmp_dict = getattr(self,key)
                 # Check to make sure there's the right # of entries in the temp arr
                 if len(tmp_dict['array']) == self.length:
-                    self.RemOutliers(tmp_dict) # Currently does nothing
                     # THESE ARE IN NESTED FOR LOOPS  - Remove? - Did this.  Made function MakeAttrArr
                     if key in self.dict[grb]:
                         newname = 'norm_'+key
