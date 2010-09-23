@@ -9,10 +9,12 @@ def ColorScatterExample():
     ColorScatter(x,y,z,cmap='jet',colorbar=True)
 
 
-def ColorScatter(x,y,z,cmap='jet',colorbar=True):
-    sc = pylab.scatter(x,y,c=z,cmap=cmap)
-    if colorbar: pylab.colorbar(sc)
-        
+def ColorScatter(x,y,z=None,cmap='jet',colorbar=True):
+    if z != None:
+        sc = pylab.scatter(x,y,c=z,cmap=cmap)
+        if colorbar: pylab.colorbar(sc)
+    else:
+        sc = pylab.scatter(x,y)
 
 def cmap_discretize(cmap, N):
     """Return a discrete colormap from the continuous colormap cmap.
