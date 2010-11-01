@@ -24,6 +24,9 @@ from MiscBin import qPickle
 import pylab
 import scipy
 import numpy
+from Plotting.ColorScatter import ColorScatter
+from Plotting.Annote import AnnotatedSubPlot
+
 
 #from MiscBin.q import Standardize
 
@@ -453,6 +456,17 @@ class GRBdb:
         keydict = {'array':arr,'subarr':subarr,'type':'nominal'}
         setattr(self,key,keydict)
         
+    def MakeBinArr(self,key,truval):
+        zeros = numpy.zeros(self.length) # Create array of zeros
+        nans = numpy.nonzero(getattr(self,key)['array'] == 'nan')
+        inds = numpy.nonzero(getattr(self,key)['array'] == truval) #get indices
+        zeros[inds] = 1.0 #convert locations of indices to 1.0
+        zeros[nans] = numpy.nan
+        subarr = RemoveNaN(zeros)
+        newkey = key + '_binary' #make new key name
+        keydict = {'array':zeros,'subarr':subarr,'type':'binary'}
+        setattr(self,newkey,keydict)
+    
     def MakeAttrArr(self,key,poserrkey=None,negerrkey=None,DeltaErr=True):
         '''For the key, create a numpy array of all the values
         Good for getting the mean, std dev, etc.  And for plotting!
@@ -590,27 +604,45 @@ class GRBdb:
             return((xlist,ylist,ilist))
     
     
-    def grbplot(self,x,y,logx=False,logy=False):
-        list_tup = self.ret_list(x,y)
-        xlist = list_tup[0]
-        ylist = list_tup[1]
+    # def grbplot(self,x,y,z=None,logx=False,logy=False):
+    #     list_tup = self.ret_list(x,y)
+    #     xlist = list_tup[0]
+    #     ylist = list_tup[1]
+    #     zlist = None
+    #     if not logx and not logy:
+    #         ColorScatter(xlist,ylist,zlist)
+    #     if logx and not logy:
+    #         pylab.semilogx()
+    #     if logy and not logx:
+    #         pylab.semilogy()
+    #     if logy and logx:
+    #         pylab.loglog()
+    #     pylab.ylabel(y)
+    #     pylab.xlabel(x)
+
+    def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False):
+        # list_tup = self.ret_list(x,y)
+        xlist = getattr(self,x_key)['array']
+        ylist = getattr(self,y_key)['array']
+        zlist = None
+        if z_key:
+            zlist = getattr(self,z_key)['array']
         if not logx and not logy:
-            pylab.plot(xlist,ylist,'ro')
+            ColorScatter(xlist,ylist,zlist)
         if logx and not logy:
-            pylab.semilogx(xlist,ylist,'ro')
+            pylab.semilogx()
         if logy and not logx:
-            pylab.semilogy(xlist,ylist,'ro')
+            pylab.semilogy()
         if logy and logx:
-            pylab.loglog(xlist,ylist,'ro')
-        pylab.ylabel(y)
-        pylab.xlabel(x)
+            pylab.loglog()
+        pylab.ylabel(y_key)
+        pylab.xlabel(x_key)
 
 
     def grbannotesubplot(self,y_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],x_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],z_keys=['Z','Z','Z','Z'],logx=True,logy=True):
         '''Bah
     
         '''
-        from Plotting.Annote import AnnotatedSubPlot
     
         remove_short = True
     
@@ -698,13 +730,12 @@ class GRBdb:
                 ykey = ykeys[ind]
                 if zval:
                     zkey = zkeys[ind]
-                    z_keys = [zkey]
                 else:
-                    z_keys=None
-                self.grbannotesubplot(x_keys=[xkey],y_keys=[ykey],z_keys=z_keys)
+                    zkey=None
+                self.grbplot(x_key=xkey,y_key=ykey,z_key=zkey)
                 figname = self.name
                 figname += '_'+xkey+'_vs_'+ykey
-                if z_keys:
+                if zkey:
                     figname += '_vs_' + zkey
                 figname += '.png'
                 figoutdir = storepath + 'figures/'+figname
@@ -714,14 +745,21 @@ class GRBdb:
         else:
             grbannotesubplot(self.dict,x_keys=xkeys,y_keys=ykeys,z_keys=zkeys)
 
+
     def test_log_update(self,plot=True,hist=True):
         self.update_class()
         keys_to_log = ['xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
         self.log_update_class(keys_to_log)
         keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
         self.norm_update_class(keys_to_norm)
-        keys_to_plot = ['Z', 'v_mag_isupper_binary', 'bat_is_rate_trig_binary', 'norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
+        keys_to_plot = ['Z', 'norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90','v_mag_isupper_binary','wh_mag_isupper_binary','bat_is_rate_trig_binary']
         keys_to_hist = [ 'norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
+        
+        remove_outliers = True
+        if remove_outliers:
+            for attr in keys_to_log:
+                self.removeOutliers(attr,threshold=0.32)
+        
         if plot:
             self.plotallvall(keylist=keys_to_plot,zval='Z')
         if hist:
@@ -808,6 +846,11 @@ class GRBdb:
         self.MakeNomArr('z_isupper')
         self.MakeNomArr('triggerid_str')
         
+        # Make the following Binary attributes
+        keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig']
+        for key in keys_to_binary:
+            self.MakeBinArr(key,'yes')
+        
     def DistHist(self,keylist):
         self.MakeAttrArr('T90',negerrkey='DT90',poserrkey='DT90')
         long_ind=numpy.nonzero(self.T90['array'] > 2.0) #indeces of long bursts
@@ -881,6 +924,26 @@ class GRBdb:
                 keydict['negerrarr'][up_ind] = None
                 keydict['negerrarr'][lo_ind] = None
                 keydict['subarr'] = RemoveNaN(keydict['array'])
+                
+                # Now remove the outliers from any logged or normed arrays
+                prefix_list = ['norm','log','norm_log']
+                for prefix in prefix_list:
+                    newkey = prefix + '_' + key
+                    if hasattr(self,newkey):
+                        print 'Also Removing for %s' % (newkey)
+                        newkeydict = getattr(self,newkey)
+                        # set indices = None, thus removing them
+                        newkeydict['array'][up_ind] = None
+                        newkeydict['array'][lo_ind] = None
+                        try:
+                            newkeydict['poserrarr'][up_ind] = None
+                            newkeydict['poserrarr'][lo_ind] = None
+                            newkeydict['negerrarr'][up_ind] = None
+                            newkeydict['negerrarr'][lo_ind] = None
+                        except(KeyError):
+                            pass
+                        newkeydict['subarr'] = RemoveNaN(keydict['array'])
+                
             
                 end_num = len(RemoveNaN(keydict['array']))
                 print "Ending with %i non-NaN values" % (end_num)
