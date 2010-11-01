@@ -1,6 +1,10 @@
 import pylab
 import scipy
 import matplotlib
+from numpy import *
+from scipy import *
+from pylab import *
+import scipy.interpolate as interpolate
 
 def ColorScatterExample():
     x=scipy.rand(20)
@@ -9,8 +13,15 @@ def ColorScatterExample():
     ColorScatter(x,y,z,cmap='jet',colorbar=True)
 
 
-def ColorScatter(x,y,z=None,cmap='jet',colorbar=True):
+def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=2):
+    '''set discrete to N for splitting up into N values'''
     if z != None:
+        if discrete:
+            try:
+                N = int(discrete)
+            except:
+                N = 2
+            cmap = cmap_discretize(pylab.cm.cool_r,N)
         sc = pylab.scatter(x,y,c=z,cmap=cmap)
         if colorbar: pylab.colorbar(sc)
     else:
