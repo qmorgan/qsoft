@@ -1,0 +1,276 @@
+\documentclass[12pt,preprint]{aastex}
+%\documentclass[apj]{emulateapj}
+
+%\usepackage{epsfig}
+\usepackage{lscape,graphicx,rotating}
+%\usepackage{apjfonts}
+\usepackage{epstopdf}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% New Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\Swift}{\textit{Swift}}
+\newcommand{\KW}{\textit{Konus-Wind}}
+\newcommand{\HST}{\textit{Hubble Space Telescope}}
+\newcommand{\hst}{\textit{HST}}
+\newcommand{\gmos}{\textit{GMOS}}
+\newcommand{\Bc}{\textit{B$_{\mathrm{C}}$}}
+\newcommand{\Rc}{\textit{R$_{\mathrm{C}}$}}
+\newcommand{\Ic}{\textit{I$_{\mathrm{C}}$}}
+\newcommand{\Vc}{\textit{V$_{\mathrm{C}}$}}
+\newcommand{\zG}{\textit{z}}
+\newcommand{\iG}{\textit{i}}
+\newcommand{\gG}{\textit{g}}
+\newcommand{\ip}{\textit{i$^{\prime}$}}
+\newcommand{\zp}{\textit{z$^{\prime}$}}
+\newcommand{\gp}{\textit{g$^{\prime}$}}
+\newcommand{\rp}{\textit{r$^{\prime}$}}
+\newcommand{\J}{\textit{J}}
+\newcommand{\Hm}{\textit{H}}
+\newcommand{\Ks}{\textit{K$_{s}$}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%======================================================
+% Title and Author Info
+%======================================================
+\title{Gamma-Ray Burst Forecasting - Redshift Inference from Early-time Metrics}
+%======================================================
+
+%======================================================
+% Author List
+%======================================================
+\author{A.~N.~Morgan\altaffilmark{1}, S.~O.~Else\altaffilmark{1},
+  and E.~A.~Einstein\altaffilmark{3}}
+
+\altaffiltext{1}{Department of Astronomy, University of
+  California, Berkeley, CA 94720-3411, USA.}
+\altaffiltext{2}{Beyond the Grave}
+
+%======================================================
+% Other Misc Info
+%======================================================
+\slugcomment{Submitted to \textit{???}}
+
+\shorttitle{Machine learning rocks.}
+\shortauthors{Morgan \textit{et al.}}
+
+%======================================================
+% Abstract
+%======================================================
+\begin{abstract}
+% When a Gamma-ray burst goes off, one usually needs to decide very quickly about what appropriate actions need to be taken using what little information is available at the time.  If the event is potentially interesting, say - high redshift - we'd want to make sure to use available telescope resources to observe it, while at the same time not wasting resources on events that are unlikely to be of value. In principle, indications of high redshift are present in quickly available metrics such as GRB duration, peak brightness, detections of the afterglow in the optical, and others. Other groups have used hard cuts of a small number of such parameters to make  predictions, but we aim to do better by utilizing machine learning techniques to make increasingly stronger probabilistic statements about the nature of the events (as more and more information comes in) - automatically, in real time, and using all available data In summary, given rapidly available metrics, how well can we predict the redshift for a newly discovered GRB?
+
+As the number of observed GRBs continues to accumulate, a natural consequence 
+is that the available follow-up resources need to be used more conservatively 
+in order to maximize the science output from available telescope time. As 
+such, it is becoming increasingly important to be able to rapidly identify 
+bursts of interest using early-time metrics.  Here we present preliminary 
+results making use of machine-learned classification with CART (Classification
+and Regression Trees) for identification of high-redshift candidates using a 
+selection of early-time and post-processed metrics from the three telescopes 
+onboard \Swift.
+\end{abstract}
+
+%======================================================
+% Keywords
+%======================================================
+\keywords{gamma-rays: bursts}
+
+%======================================================
+% Introduction
+%======================================================
+\section{Introduction}
+\label{sec:intro}
+
+While much work has gone into potential luminosity predictors of GRBs, a 
+related but distinct problem is predicting the redshift of a new event based 
+on early-time metrics.  Since the launch of the \Swift satellite, more than 170 
+gamma-ray bursts have had measured redshifts, but only a handful fall into the 
+highest range that allow for the probing of the earliest ages of the universe 
+(Fig. 1).  With a limited budget of telescope time accessible for deep 
+follow-up, it is becoming increasingly important to rapidly identify these 
+bursts of interest to utilize available resources before the afterglows fade 
+beyond detectability.
+
+In principle, indications of high redshift are present in quickly available 
+metrics from the three telescopes onboard \Swift (BAT, XRT, UVOT) such as GRB 
+duration, peak brightness, detections of the afterglow in the optical, and 
+others. Past studies have used hard cuts on a small number of these attributes 
+with some success (e.g. [1], [2], [3]). In this work, we aim to improve upon 
+these techniques we aim to do better by utilizing machine learning to make 
+increasingly stronger probabilistic statements about the nature of the events 
+(as more and more information arrives) automatically, in real time, and using 
+all available data
+
+
+
+
+Supervised learning, specifically classification, on the data set.
+
+Attribute selection is in of itself a non-trivial research problem in 
+statistics, and we do not attempt a full treatment here.  Instead, we have 
+chosen to test attributes which we believe to be physically motivated to 
+correlate with redshift (e.g. ...) or ones that have been shown in past 
+studies to reveal potential correlations (e.g. ... )
+
+Statement about independence of attributes?
+
+Statement of correlation (Amati etc.) .. hope for a standard candle.
+
+It should be noted that there has been significant debate in the literature as
+to whether these relations are due to intrinsic physical properites of the GRBs,
+or due to thresholding effects specific to the detectors (e.g. Butler 200?).  
+Regardless, the nature of these relationships would not affect their utility 
+as a {\it detector specific} parameter prediction tool.
+
+%======================================================
+% Data Collection
+%======================================================
+\section{Data Collection}
+\label{sec:obs}
+Data are collected in real-time directly from GCN notices and from automated 
+pipelines ([1],[2]) that process and refine the data into more useful metrics.  
+Tens of attributes are parsed from the various sources and collated into a 
+common format.  Values with uncertainties larger than 32\% of the mean are 
+removed from the sample and marked as missing values.  The attributes are 
+broken up into four time periods based on their arrival time after the burst 
+to simulate the clearer picture about the nature of each GRB that emerges with 
+time, and our algorithm is applied at each stage.
+
+%======================================================
+% Broadband Modeling
+%======================================================
+\section{Machine Learning Algorithms}
+\label{sec:models}
+Classification and Regression Trees (CART) are a simple, flexible, and 
+interpretable machine learning algorithm [6]. For the problem of 
+classification, the trees generated by this algorithm form a partition of 
+the predictor space. Classes are assigned to predictor vectors according to 
+the partition element into which each vector falls. The partition itself is 
+learned from the training data recursively. First, the root node of the 
+titular tree is given a correspondence to the entire predictor space. A 
+hyperplane, typically axis-aligned, is chosen to partition the space into 
+two regions, each corresponding to one of the two child nodes of the tree's 
+root node. Recursively, each subspace represented by a node of the tree is 
+further split into two subspaces---and the node correspondingly grows two 
+child nodes. The predictor type and value for each split is determined so 
+as to heuristically maximize the information in the tree, and recursive 
+splitting halts when, heuristically, no further information can be gained.
+
+Our method utilizes CART to achieve the objective function of maximizing the 
+number of redshift events correctly classified as high (rather than low) while
+classifying at most a fixed percentage of the entire data set as 
+high-redshift. This last constraint represents a restricted ability to follow 
+up on high-redshift events since we consider a high-redshift classification 
+equivalent to a decision to follow up.  We weight misclassification of a 
+high-redshift burst as low more strongly than vice versa with under the 
+assumption that the potential loss of telescope time on a relatively 
+uninteresting event is less scientifically damaging than missing the highest 
+redshift bursts. To achieve our objective, we evaluate CART models derived 
+under a range of splitting criteria and choose that model which performs best 
+according to the objective. The different node-splitting criteria are achieved
+by varying the prior probability mass on each class (high or low redshift).  
+To achieve an unbiased estimate of our method's performance, we report a final
+evaluation obtained via ten-fold cross-validation [7].
+
+
+%======================================================
+\subsection{Results}
+\label{sec:models:some}
+
+While CART is particularly well-suited to deal with the normally troublesome 
+problem of missing values (which are highly present in this dataset), 
+additional complications persist.  The primary issue is the scarcity of high-z 
+events from which to train, and further challenges lie in properly dealing 
+with uncertainties in individual values, spurious values, and attribute 
+selection.
+
+As suggested by previous works, our studies indicate that the lack of UVOT 
+afterglow detection (at early times, and away from the galactic plane) is by 
+far the strongest predictor of redshift class.  Further, however, our 
+preliminary results show that little, if any, additional information can be 
+learned from the other attributes.  Our full results  on binary classification 
+of redshift with CART will be presented in an upcoming paper, and future 
+studies investigating the related (but more complicated) problem of CART 
+regression on this dataset are to follow.
+
+
+
+\S~\ref{sec:conclusion}.
+
+
+%======================================================
+%\input{tab6}
+\input{./Tables/tab7.tab}
+%======================================================
+
+%=======================================================
+% Discussion
+%=======================================================
+\section{Discussion}
+\label{sec:discussion}
+
+Discussion
+
+%=======================================================
+% Figure: EKE vs Egamma
+%=======================================================
+\begin{figure}[t!]
+  \centerline{\plotone{./Figures/RedshiftDist.png}}
+\  \caption[Redshift distribution of long-duration \Swift GRBs.]
+  {Redshift distribution of long-duration \Swift GRBs.  For the purposes of 
+this study,  “high” redshift is defined as those bursts with redshifts larger 
+than 1-sigma above the mean, or about z~4.  In our current sample, 17 bursts 
+fall into this category (green, and in inset).
+ }
+\label{fig:energy}
+\end{figure}
+%=======================================================
+
+
+
+%=======================================================
+% Conclusion
+%=======================================================
+\section{Conclusions}
+\label{sec:conclusions}
+In this work we have presented model fits to the broadband afterglows of the 
+
+\Swift\ GRBs\,050820A, 060418, and 080319B.  
+
+ Here is a citation: (e.g. \citealt{zwh04}). 
+
+%======================================================
+% Acknowledgments
+%======================================================
+\acknowledgments{
+Sponsored by an NSF-CDI grant (award #0941742)  ``Real-time Classification of Massive Time-series Data Streams'' (PI: Bloom). This publication has made use of data obtained from the \Swift\ interface
+of the High-Energy Astrophysics Archive (HEASARC), provided by
+NASA's Goddard Space Flight Center.  }
+
+%======================================================
+% Facility Keywords
+%======================================================
+{\it Facilities:}
+\facility{Swift (BAT, XRT, UVOT)}
+
+%======================================================
+% Bibliography
+%======================================================
+\begin{thebibliography}{134}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Zhang {et~al.}(2004)Zhang, Woosley, \& Heger}]{zwh04}
+Zhang, W., Woosley, S.~E., \& Heger, A. 2004, \apj, 608, 365
+
+\end{thebibliography}
+
+
+%======================================================
+% The End
+%======================================================
+\end{document}
+
