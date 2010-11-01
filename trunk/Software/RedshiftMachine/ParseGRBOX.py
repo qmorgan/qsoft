@@ -10,6 +10,8 @@ from matplotlib import rc
 import copy
 import cosmocalc
 
+
+overplot_high_z = True
 #check out yuml.me for flow chart creator
 
 #sent to me from JSB on 10/01/11
@@ -23,8 +25,8 @@ storepath = os.environ.get("Q_DIR") + '/store/'
 # Import matplotlib run commands to set font
 rc('font', family='serif')
 
-def parse_grbox_xml():
-    filename=storepath+"grboxtxt.xml"
+def parse_grbox_xml(ignore_preswift=True):
+    filename=storepath+"grboxtxt_updated.xml"
     a = bindery.parse(filename)
 
     # Parse the xml to grab the grb names and whether there have been certain 
@@ -65,18 +67,24 @@ def parse_grbox_xml():
            has_host = False
            if z_type[i].find("hostz") != -1:
                has_host = True
-
+           
            if use_this_z and not uncertain_z[i]:
                use = True
                zz = tentative_z[i]
        if use:
-           zname_list.append(grbname)
-           has_host_z.append(has_host)
-           z_list.append(float(zz))
+
            yr = int("19" + grbname[0:2]) if int(grbname[0]) > 8 else int("20" + grbname[0:2])
            mn = int(grbname[2:4])
            dy = int(grbname[4:6])
+           
+           if ignore_preswift and datetime.date(yr,mn,dy) < datetime.date(2004,12,10):
+               continue
+               
+           zname_list.append(grbname)
+           has_host_z.append(has_host)
+           z_list.append(float(zz))
            date_list.append(datetime.date(yr,mn,dy))
+           
            
            subdict = {grbname:{'grbox_z':float(zz),'has_host_z':has_host}}
            
@@ -131,14 +139,19 @@ for grb in alll:
 
 
 ax = plt.subplot(111)
-n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='#666666',alpha=0.95)
+n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='#660000',alpha=0.95)
 
 # Define pre-swift burst index as bursts before 041210
 preswifti = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
 
 pre_swift_z_list = [z_list[i] for i in list(preswifti[0])]
 #print pre_swift_z_list
-n, bins1, patches = plt.hist(plt.log10(pre_swift_z_list),bins=bins,facecolor='#999999',alpha=0.6)
+n, bins1, patches = plt.hist(plt.log10(pre_swift_z_list),bins=bins,facecolor='#990000',alpha=0.6)
+
+if overplot_high_z:
+    pre_swift_z_list = [z for z in z_list if z > 4.0]
+    n, bins1, patches = plt.hist(plt.log10(pre_swift_z_list),bins=bins,facecolor='#666600')
+
 
 ay = ax.twinx()
 
@@ -163,7 +176,7 @@ yy = [0]
 yy.extend(argg)
 
 
-ay.plot(tmp,yy,"-",linewidth = 3,color='#222222',alpha=0.85)
+ay.plot(tmp,yy,"-",linewidth = 2,color='#222222',alpha=0.75)
 ay.set_ylim((0,len(z_list)*1.05))
 ay.set_ylabel("Cumulative Number",fontsize=20,family="times")
 # formatter for bottom x axis 
@@ -207,7 +220,7 @@ ax2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20,family="times")
 #plt.bar(l,a['yy'],width=w,log=False)
 #ax.set_xscale("log",nonposx='clip')
 
-## Now plot inset plot of GRBs greater than z=3.5
+## Now plot inset plot of GRBs greater than z=4.0
 
 axins = inset_axes(ax2,
                   width="30%", # width = 30% of parent_bbox
@@ -217,18 +230,23 @@ locator=axins.get_axes_locator()
 locator.set_bbox_to_anchor((-0.8,-0.45,1.35,1.35), ax.transAxes)
 locator.borderpad = 0.0
 
-pre_swift_z_list = [z for z in z_list if z > 3.5]
+pre_swift_z_list = [z for z in z_list if z > 4.0]
 
-n, bins, patches = plt.hist(plt.array(pre_swift_z_list),facecolor='#666666',alpha=0.95)
-axins.set_xlim(3.5,8.5)
+n, bins, patches = plt.hist(plt.array(pre_swift_z_list),facecolor='#666600')
+axins.set_xlim(4.0,8.5)
 axins.set_xlabel("z")
 axins.set_ylabel("N")
 
 preswifti = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
-pre_swift_z_list = [z_list[i] for i in list(preswifti[0]) if z_list[i] > 3.5]
+pre_swift_z_list = [z_list[i] for i in list(preswifti[0]) if z_list[i] > 4.0]
 
-n, bins, patches = plt.hist(plt.array(pre_swift_z_list),bins=bins,facecolor='#999999',alpha=0.9)
-axins.set_xlim(3.5,8.5)
+n, bins, patches = plt.hist(plt.array(pre_swift_z_list),bins=bins,facecolor='#999900')
+
+pre_swift_z_list = [z for z in z_list if z > 4.0]
+
+n, bins, patches = plt.hist(plt.array(pre_swift_z_list),facecolor='#666600')
+
+axins.set_xlim(4.0,9.0)
 #mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
 
 #axins2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20)
