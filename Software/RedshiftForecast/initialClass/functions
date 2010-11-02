@@ -1,0 +1,106 @@
+### functions for classification
+
+
+
+removeErrors = function(data1){
+	# identify which are "error" features
+	neg = grep("*_negerr", names(data1))
+	pos = grep("*_poserr", names(data1))
+	errors = c(neg,pos)
+	errors = errors[order(errors)]
+	errors = 1:length(data1) %in% errors
+
+
+	# remove the errors, for now
+	data1 = subset(data1,select = !errors)
+	
+	return(data1)
+}
+
+
+
+
+
+# generates k equally sized disjoint sets containing the numbers 1 through len
+findFolds = function(len,k){
+	sets = list()
+	indices = 1:len
+	base = floor( len / k )
+	left = len %% k 
+	for( i in 1:left ){
+		sets[[i]] = sample(indices,base + 1)
+		indices = indices[!(indices %in% sets[[i]])]
+	}
+	for( i in (left + 1):k ){
+		sets[[i]] = sample(indices,base)
+		indices = indices[!(indices %in% sets[[i]])]
+
+	}
+	return(sets)
+}
+
+
+confusionAndMisses = function(datagrb,weights,test){
+	confusion = matrix(0,nrow=2,ncol=2)
+	train = !(1:nrow(datagrb) %in% test)
+	test = (1:nrow(datagrb) %in% test)	
+	fit = rpart(Z ~ ., subset = train,weights=weights,data=datagrb)
+	predictions = predict(fit,type='class',newdata=datagrb)
+	
+	confusion[1,1] = sum(1*(predictions == "L" & predictions == datagrb$Z & test == T))
+	confusion[1,2] = sum(1*(predictions == "L" & predictions != datagrb$Z & test == T))
+	confusion[2,1] = sum(1*(predictions == "H" & predictions != datagrb$Z & test == T))
+	confusion[2,2] = sum(1*(predictions == "H" & predictions == datagrb$Z & test == T))
+	
+	highaslow = predictions == "L" & (predictions != datagrb$Z) & test == T
+
+	return(list(highaslow,confusion))	
+
+}
+
+confusionMatrix = function(datagrb,weights,nfold){
+	sets = findFolds(nrow(datagrb),nfold)
+	highErrorsCV = rep(FALSE,nrow(datagrb))
+	confusion = matrix(0,nrow=2,ncol=2)
+	for(i in 1:nfold){
+		out1 = confusionAndMisses(datagrb,weights,sets[[i]])		
+		highErrorsCV = highErrorsCV | out1[[1]]
+		confusion = confusion + out1[[2]]		
+	}
+	return(list(highErrorsCV,confusion))
+}
+	
+
+
+# datagrb should have columns as features AND a column Z which is numeric redshift
+# Z > CUTOFF ==> high redshift
+# COST = cost of classifying high as low (low as high cost is 1)
+# nameTree is the name of the output pdf for printing the tree, should end in .pdf
+grbTree = function(datagrb,CUTOFF,COST,nameTree,treeTitle){
+
+	## building full tree and printing it
+	# define high redshift as > CUTOFF
+	redshift = rep("L",nrow(datagrb))
+	redshift[datagrb$Z > CUTOFF] = "H"
+	datagrb$Z = as.factor(redshift)
+
+	# what should be the relative misclassification costs be
+	weights = rep(1,nrow(datagrb))
+	weights[datagrb$Z == "H"] = COST
+
+	fit = rpart(Z ~ .,data=datagrb,weights=weights)
+
+	pdf(nameTree)
+	plot(fit,margin=.1,main=treeTitle)
+	text(fit,use.n=T,pretty=0)
+	dev.off()
+
+	highErrorsFull = predict(fit,type='class') != datagrb$Z & datagrb$Z == "H"
+
+	confusion = confusionMatrix(datagrb,weights,10)
+
+	return(list(fit,highErrorsFull,confusion))
+}
+
+
+

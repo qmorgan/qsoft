@@ -1,0 +1,163 @@
+####
+#### apply CART and RF classifiers with cost function / prior
+####
+
+#### by James Long
+#### June 21, 2010
+
+# load the packages
+library('foreign')
+library('rpart')
+library('tree')
+library('randomForest')
+library('xtable')
+
+
+
+
+###
+
+set.seed(230)
+
+
+
+
+###
+### good code for running functions file below
+###
+
+
+# setup parameters, create output matrix, create
+CUTOFF = 4
+COST = c(3,5,7)
+nCV = 10
+outTable = matrix(0,nrow=length(COST),ncol=3)
+outTable = data.frame(outTable)
+names(outTable) = c("","Without Error Features","With Error Features")
+
+
+
+outRowNames = rep("",length(COST))
+for(i in 1:length(COST)){
+	outRowNames[i] = paste("Cost",COST[i])
+}
+outTable[,1] = outRowNames
+
+
+
+
+###
+### without error features
+
+
+# load functions we will use
+source('functions')
+
+
+
+# load the data
+data1 = read.arff('redshiftmachine.arff')
+
+# remove the error features from the data
+data1 = removeErrors(data1)
+
+
+# create confusion out
+confusionOutput = matrix("",nrow=4,ncol=(2*length(COST) + 1) )
+confusionOutput = data.frame(confusionOutput,stringsAsFactors=F)
+confusionOutput[1,c(2,4,6)] = c("Cost 3","Cost 5","Cost 7")
+confusionOutput[2,2:7] = rep(c("Low","High"),3)
+confusionOutput[,1] = c("","","Low","High")
+
+##
+## run without error features
+
+figureName = c("GRB Tree: High > 4, Cost = 3 w/o Error Feat.","GRB Tree: High > 4, Cost = 5 w/o Error Feat.","GRB Tree: High > 4, Cost = 7 w/o Error Feat.")
+figureFile = c("noErrorCost3.pdf","noErrorCost5.pdf","noErrorCost7.pdf")
+
+for(i in 1:length(COST)){
+	thetree = grbTree(data1,CUTOFF,COST[[i]],figureFile[i],figureName[i],nCV)
+	thetreepretty = grbTreePretty(thetree)
+	outTable[i,2] = thetreepretty[[1]]
+	confusionOutput[3:4,(2*i):(2*i+1)] = thetreepretty[[2]] 
+}
+
+# Display Confusion Matrices
+caption1 = "Confusion Matrices from Cross Validation for Non Error Feature Model Using Costs of 3, 5, and 7. Columns are True Class, Rows are Estimated Class. The three sets of High/Low columns are for Costs of 3,5, and 7 (for High as Low). The numbers in parenthesis are the .05 quantile and .95 quantile for cross validation."
+
+
+outputX = xtable(confusionOutput,caption=caption1,label="tab:confusionNonErrors",align=c('c','c','|c','c','|c','c','|c','c|'))
+print(outputX,type='latex',file='confusionNonErrors.tex',table.placement="H",include.colnames=F,include.rownames=F,append=F,hline.after=c(1,2) )
+
+
+
+
+# Display Variable Importance
+
+outputX = xtable(thetreepretty[[3]],caption="Variable Importance for Non Error Feature Model.",label="tab:nonErrorVarImp",align=c('c','c','c'))
+print(outputX,type='latex',file='nonErrorVarImp.tex',table.placement="H",include.rownames=F,append=F)
+
+
+
+
+### To Do
+#1. Copy Analysis of Without Error Feature to With Error Features, making appropriate changes
+#2. Think about results a bit
+#3. Write Report
+
+
+
+
+
+
+
+
+###
+### with error features
+
+# load functions we will use
+source('functions')
+
+# load the data
+data1 = read.arff('redshiftmachine.arff')
+
+
+# create confusion out
+confusionOutput = matrix("",nrow=4,ncol=(2*length(COST) + 1) )
+confusionOutput = data.frame(confusionOutput,stringsAsFactors=F)
+confusionOutput[1,c(2,4,6)] = c("Cost 3","Cost 5","Cost 7")
+confusionOutput[2,2:7] = rep(c("Low","High"),3)
+confusionOutput[,1] = c("","","Low","High")
+
+##
+## run without error features
+
+figureName = c("GRB Tree: High > 4, Cost = 3 with Error Feat.","GRB Tree: High > 4, Cost = 5 with Error Feat.","GRB Tree: High > 4, Cost = 7 with Error Feat.")
+figureFile = c("errorCost3.pdf","errorCost5.pdf","errorCost7.pdf")
+
+for(i in 1:length(COST)){
+	thetree = grbTree(data1,CUTOFF,COST[[i]],figureFile[i],figureName[i],nCV)
+	thetreepretty = grbTreePretty(thetree)
+	outTable[i,3] = thetreepretty[[1]]
+	confusionOutput[3:4,(2*i):(2*i+1)] = thetreepretty[[2]] 
+}
+
+
+# Display Confusion Matrices
+caption1 = "Confusion Matrices from Cross Validation for Error Feature Models Using Costs of 3, 5, and 7. Columns are True Class, Rows are Estimated Class. The three sets of High/Low columns are for Costs of 3,5, and 7 (for High as Low). The numbers in parenthesis are the .05 quantile and .95 quantile for cross validation."
+
+outputX = xtable(confusionOutput,caption=caption1,label="tab:confusionErrors",align=c('c','c','|c','c','|c','c','|c','c|'))
+print(outputX,type='latex',file='confusionErrors.tex',table.placement="H",include.colnames=F,include.rownames=F,append=F,hline.after=c(1,2) )
+
+outputX = xtable(thetreepretty[[3]],caption="Variable Importance for Error Feature Model.",label="tab:errorVarImp",align=c('c','c','c'))
+print(outputX,type='latex',file='errorVarImp.tex',table.placement="H",include.rownames=F,append=F)
+
+
+
+
+# print the loss table
+outputX = xtable(outTable,caption="Performance of CART for Two Sets of Features and 3 Loss Functions",label="tab:results",align=c('c','c','|c','c'))
+print(outputX,type='latex',file='results.tex',table.placement="H",include.rownames=F,append=F,hline.after=c(0))
+
+
+
