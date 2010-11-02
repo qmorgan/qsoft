@@ -404,6 +404,7 @@ def PlotHist(pteldict):
     pylab.xlim(0,0.1)
     pylab.ylabel('# of Events')
     pylab.xlabel('Hours Post-Trigger to First Observation')
+    pylab.savefig('PTELHist.eps')
     pylab.show()
 
 
