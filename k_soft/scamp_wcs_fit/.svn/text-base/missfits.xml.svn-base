@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="file:///usr/local/share/missfits/missfits.xsl"?>
+<VOTABLE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.ivoa.net/xml/VOTable/v1.1">
+<DESCRIPTION>produced by MissFITS</DESCRIPTION>
+<!-- VOTable description at http://www.ivoa.net/Documents/latest/VOT.html -->
+<RESOURCE ID="MissFITS" name="MissFITS">
+ <DESCRIPTION>Data related to MissFITS</DESCRIPTION>
+ <INFO name="QUERY_STATUS" value="OK" />
+ <RESOURCE ID="MetaData" name="MetaData">
+  <DESCRIPTION>MissFITS meta-data</DESCRIPTION>
+  <INFO name="QUERY_STATUS" value="OK" />
+  <PARAM name="Software" datatype="char" arraysize="*" ucd="meta.title;meta.software" value="MissFITS"/>
+  <PARAM name="Version" datatype="char" arraysize="*" ucd="meta.version;meta.software" value="2.2.11"/>
+  <PARAM name="Soft_URL" datatype="char" arraysize="*" ucd="meta.ref.url;meta.software" value="http://astromatic.iap.fr/software/missfits"/>
+  <PARAM name="Soft_Auth" datatype="char" arraysize="*" ucd="meta.bib.author;meta.software" value="Emmanuel Bertin"/>
+  <PARAM name="Soft_Ref" datatype="char" arraysize="*" ucd="meta.bib.bibcode;meta.software" value="2006ASPC..351..112B"/>
+  <PARAM name="NThreads" datatype="int" ucd="meta.number;meta.software" value="1"/>
+  <PARAM name="Date" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="2010-02-20"/>
+  <PARAM name="Time" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="12:58:15"/>
+  <PARAM name="Duration" datatype="float" ucd="time.event;meta.software" value="0" unit="s"/>
+  <PARAM name="User" datatype="char" arraysize="*" ucd="meta.curation" value="CRK"/>
+  <PARAM name="Host" datatype="char" arraysize="*" ucd="meta.curation" value="(null)"/>
+  <PARAM name="Path" datatype="char" arraysize="*" ucd="meta.dataset" value="/Users/CRK/Desktop/TCP_Repo/TCP/Software/Reduction_Pipeline_3/scamp_wcs_fit"/>
+  <TABLE ID="OutFields" name="OutFields">
+   <DESCRIPTION>Metadata about the MissFITS</DESCRIPTION>  output images
+   <PARAM name="NImages" datatype="int" ucd="meta.number;meta.dataset" value="1"/>
+   <FIELD name="Output_Image_Name" datatype="char" ucd="meta.id;meta.file;meta.fits"/>
+   <FIELD name="Input_Image_Type" datatype="char" ucd="meta;meta.code.class"/>
+   <FIELD name="Input_Extensions" datatype="int" ucd="meta.number;meta.dataset"/>
+   <FIELD name="Input_Naxis3" datatype="int" ucd="meta.number;meta.dataset"/>
+   <FIELD name="Output_Image_Type" datatype="char" ucd="meta;meta.code.class"/>
+   <FIELD name="Output_Extensions" datatype="int" ucd="meta.number;meta.dataset"/>
+   <FIELD name="Output_Naxis3" datatype="int" ucd="meta.number;meta.dataset"/>
+   <FIELD name="HeadFlag" datatype="boolean" ucd="meta.code;obs.param"/>
+   <FIELD name="OBJECT" datatype="char" ucd="meta;meta.note"/>
+   <DATA><TABLEDATA>
+    <TR>
+     <TD>k_long_GRB.486.9_coadd.weight.fits</TD><TD>SAME</TD><TD>1</TD><TD>1</TD>
+     <TD>SAME</TD><TD>1</TD><TD>1</TD><TD>T</TD>
+<TD>GRB.486.9</TD>    </TR>
+   </TABLEDATA></DATA>
+  </TABLE>
+  <TABLE ID="Warnings" name="Warnings">
+   <DESCRIPTION>MissFITS warnings (limited to the last 1000)</DESCRIPTION>
+   <FIELD name="Date" datatype="char" arraysize="*" ucd="meta;time.event.end"/>
+   <FIELD name="Time" datatype="char" arraysize="*" ucd="meta;time.event.end"/>
+   <FIELD name="Msg" datatype="char" arraysize="*" ucd="meta"/>
+   <DATA><TABLEDATA>
+    <TR><TD>2010-02-20</TD><TD>12:58:15</TD><TD>default.missfits not found, using internal defaults</TD></TR>
+   </TABLEDATA></DATA>
+  </TABLE>
+  <RESOURCE ID="Config" name="Config">
+   <DESCRIPTION>MissFITS configuration</DESCRIPTION>
+   <PARAM name="Command_Line" datatype="char" arraysize="*" ucd="obs.param" value="/usr/local/bin/missfits k_long_GRB.486.9_coadd.weight"/>
+   <PARAM name="Prefs_Name" datatype="char" arraysize="*" ucd="obs.param;meta.file" value="default.missfits"/>
+   <PARAM name="Remove_Keyword" datatype="char" arraysize="*" ucd="  " value=""/>
+   <PARAM name="Replace_Keyword" datatype="char" arraysize="*" ucd="  " value=""/>
+   <PARAM name="Slice_Keyword" datatype="char" arraysize="*" ucd="  " value=""/>
+   <PARAM name="SliceKey_Format" datatype="char" arraysize="*" ucd="  " value="%02d"/>
+   <PARAM name="Display_Keyword" datatype="char" arraysize="*" ucd="  " value="OBJECT"/>
+   <PARAM name="Header_Suffix" datatype="char" arraysize="*" ucd="  " value=".head"/>
+   <PARAM name="NExtensions_Min" datatype="int" ucd="  " value="0"/>
+   <PARAM name="OutFile_Type" datatype="char" arraysize="*" ucd="  " value="SAME"/>
+   <PARAM name="Split_Suffix" datatype="char" arraysize="*" ucd="  " value=".%02d.fits"/>
+   <PARAM name="Slice_Suffix" datatype="char" arraysize="*" ucd="  " value=".%02d.fits"/>
+   <PARAM name="Process_Type" datatype="char" arraysize="*" ucd="meta.id;meta.code" value="NONE"/>
+   <PARAM name="Checksum_Type" datatype="char" arraysize="*" ucd="meta.id;meta.code" value="NONE"/>
+   <PARAM name="Save_Type" datatype="char" arraysize="*" ucd="meta.id;meta.code" value="BACKUP"/>
+   <PARAM name="New_Suffix" datatype="char" arraysize="*" ucd="meta.id;meta.code" value=".miss"/>
+   <PARAM name="Verbose_Type" datatype="char" arraysize="*" ucd="meta.code" value="NORMAL"/>
+   <PARAM name="Write_XML" datatype="boolean" ucd="meta.code" value="T"/>
+   <PARAM name="NThreads" datatype="int" ucd="meta.number;meta.software" value="1"/>
+  </RESOURCE>
+ </RESOURCE>
+</RESOURCE>
+</VOTABLE>
