@@ -1,0 +1,197 @@
+#!/bin/bash
+################################################################################
+#
+# Astronomical image alignment software. Copyright Edward Rosten 2009.
+#
+################################################################################
+ 
+dir="$1"
+out="$2"
+series="$3"
+
+#Set debug to 1 if you want intermedite composited images to be displayed.
+#These can be used to check the fine and coarse alignments.
+debug=1
+
+#Note: amend the following line if you want to use > 1 CPU.
+#examples follow.
+#execute=sh
+
+#execute="parallel 2"
+#execute="ssh_parallel $PWD localhost 1 davinci 2 thetis 2 zero 2 parthenope 1 megatron 2"
+execute="parallel 10"
+
+if [ "$3" != "h" ] && [ "$3" != "j" ] && [ "$3" != "k"]
+then
+	echo "Please specify INPUT_DIR OUTPUT_DIR SERIES" 1>&2
+	exit 1
+fi
+
+if [ -d "$out" ]
+then
+	echo "Error! $out exists" 1>&2
+	exit 1
+fi
+
+if ! mkdir -p "$out"
+then
+	echo "Error! Cannot create $out" 1>&2
+	exit 1
+fi
+
+#Perform a coarse alignment
+#
+#Files are called:
+#
+# $dir/p?rr*-pXX-?.fits
+#
+# For a given value of XX, the images are of the same alignment
+# so only do the (slow) coarse alignment for
+# 
+# $dir/phrr-*-p*-0.fits
+
+mkdir -p "$out/coarse"
+
+#Arbitratily choose the first image to be the source
+#
+#Images matching *-pXX-? will have the same offset for a given XX.
+#
+#Therefore only perform coarse alignment on phrr*-p*-0.fits
+
+source=`echo $dir/p${series}rr*-p0-0.fits`
+
+ls $dir/p${series}rr*-p*-0.fits | gawk -v out=$out -v source=$source '
+function strip(f)
+{
+	sub(/.*\//, "", f)
+	return f
+}
+
+#Create a fake entry
+$0 == source{
+	print "0 0" > out "/coarse/" strip(source) "," strip(source) ",txt"
+	next
+}
+
+{
+	fname=$0
+	
+	print "./ncc_coarse --source " source " --image " $0 " > " out "/coarse/" strip(source) "," strip($0) ",txt; echo "$0
+
+}' | $execute
+
+ 
+if [ "$debug" == 1 ]
+then
+	#Overlay images on the original source image in different colours for
+	#debugging purposes.
+	mkdir -p "$out/overlay_coarse"
+
+	ls $out/coarse/*,txt | gawk -v o=$out -v d=$dir -F '[,/]' '{print "./overlay_pair "d"/"$(NF-2) " "d"/"$(NF-1)" < " $0 " > " o "/overlay_coarse/" $(NF-2) "," $(NF-1)".png"}' | $execute
+fi
+
+# Once the coarse alignment has been found, a more detailed, fine-scale alignment 
+# can be performed. This is slower, and less robust in general but only needs to 
+# run on a small area. It is performed independently for images 0,1,2, but starting
+# from the coarse offset computed from 0.
+#
+
+mkdir -p "$out/fine"
+
+ls $dir/p${series}rr*-p*-?.fits | gawk -v out=$out -v source=$source '
+function strip(f)
+{
+	sub(/.*\//, "", f)
+	return f
+}
+$1!=source{
+	image=$0
+
+	#Mash the filenames
+	offset_stub =  strip(source) "," strip($0) ",txt"
+	fine_file  = out "/fine/" offset_stub
+	coarse_file = out "/coarse/" offset_stub
+	#Coarse alignment done against -0 only
+	gsub(/-[012].fits/, "-0.fits", coarse_file)
+
+	offset=""
+	
+	#Read in the initial offset
+	getline offset < coarse_file
+	close(coarse_file)
+
+	if(offset == "")
+	{
+		print "Error reading " coarse_file > "/dev/stderr"
+		exit(1);
+	}
+
+	#print the command
+	print "./ncc_fine --source " source " --image " image " --initial_offset \"" offset "\" > " fine_file "; echo " NR 
+} ' | $execute
+
+
+#
+# Now perform weighted mean estimation on the fine alignments, to get a final offset
+# Again, this is independent for 0,1,2
+#
+mkdir -p "$out/final"
+
+ls $dir/p${series}rr*-p*-?.fits | gawk -v out=$out -v source=$source '
+function strip(f)
+{
+	sub(/.*\//, "", f)
+	return f
+}
+
+$0==source{
+	#Create a fake entry for the first one
+	offset_stub =  strip(source) "," strip($0) ",txt"
+	final_file  = out "/final/" offset_stub
+	print "0 0" > final_file
+	close(final_file)
+	next
+}
+
+
+{
+	image=$0
+
+	#Mash the filenames
+	
+	offset_stub =  strip(source) "," strip($0) ",txt"
+	coarse_file = out "/coarse/" offset_stub
+	fine_file  = out "/fine/" offset_stub
+	final_file  = out "/final/" offset_stub
+	#Coarse alignment done against -0 only
+	gsub(/-[012].fits/, "-0.fits", coarse_file)
+
+	offset=""
+	
+	#Read in the initial offset
+	getline offset < coarse_file
+	close(coarse_file)
+
+	if(offset == "")
+	{
+		print "Error reading " coarse_file > "/dev/stderr"
+		exit(1);
+	}
+
+	#print the command
+	print "cut -d\\  -f 2,3 " fine_file " |  ./weighted_mean --start \"" offset "\" > " final_file "; echo " NR 
+} '  | $execute
+
+if [ "$debug" == 1 ]
+then
+	#Overlay images on the original source image in different colours for
+	#debugging purposes.
+	mkdir -p "$out/overlay_final"
+
+	ls $out/final/*,txt | gawk -v o=$out -v d=$dir -F '[,/]' '{print "./overlay_pair "d"/"$(NF-2) " "d"/"$(NF-1)" < " $0 " > " o "/overlay_final/" $(NF-2) "," $(NF-1)".png"}' | $execute
+fi
+
+ls $out/final/p${series}rr* | gawk -F'[,/]' -v out=$out -v dir=$dir '{ getline a < $0 ; print a, dir"/"$(NF-1); close($0)}' > $out/p${series}rr_alignments.txt
+
+./composite < $out/p${series}rr_alignments.txt > $out/p${series}rr.fits
+
