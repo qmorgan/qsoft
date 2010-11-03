@@ -1,0 +1,21 @@
+####
+#### We are trying to classify GRBs as being High or Low redshift based on
+#### early-time and post-processed metrics from the SWIFT satellite.
+####
+#### date: Sept. 28, 2010
+####
+####
+
+
+SUMMARY OF APPROACH TO CLASSIFICATION
+
+SUMMARY OF FILES
+
+lotsTrees.R - There is a lot of cross validation and tuning that does on with algorithm1. At the end of the day we get out a single tree, built on all of the data. The purpose of lotsTrees.R is to give a sense of what the classifier we use will actually be. lotsTrees.R builds trees with every prior we are considering for each set of features we have (recall there are 4 sets of features, the features we have increase with time as SWIFT gets more information).
+
+priorsloss.R - This file is for practice with the rpart function in R, trying to determine how the parameters 'loss' and 'prior' work together. After some experimenting it appears that both (loss and prior) adjust the splitting criteria optimization. This could be used to account for the fact that either 1) misclassification costs are different in different class or 2) in the test set to be classified the priors will not match the empirical priors in the training set. The comments do a pretty good job of explaining what is happening. Reading section 4.4 in CART by Breiman et al. should give a decent understanding of what is going on here.
+
+report.Rtex - For a while the report code and text were being created together in the Sweave format in this file. Now the code is being written in algorithm1.R. I'm not sure if this file will be used again but I'm keeping it here just in case.
+
+
+an update!!!!!!!!!!!!

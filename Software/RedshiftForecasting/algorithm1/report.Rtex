@@ -1,0 +1,522 @@
+%%% NOTE (added Sep 28,2010): Some of the R code here is old, development has been moved 
+%%% to algorithm1.R. Sweave was not working out so well. Most likely algorithm1.R will 
+%%% be tranferred into Sweave code once it passes some testing. For now, use
+%%% doe in algorithm1.R
+
+
+
+\documentclass[10pt]{article}
+\usepackage{verbatim, amsmath,amssymb,amsthm,Sweave,graphicx,float,sectsty}
+\usepackage[margin=.5in,nohead,nofoot]{geometry}
+\title{GRB Classification}
+\date{\today}
+\author{James Long}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}{Example}[section]
+\sectionfont{\normalsize}
+\subsectionfont{\small}
+\subsubsectionfont{\footnotesize}
+
+
+\begin{document}
+\maketitle
+
+
+%%
+%% some simple functions
+%%
+\begin{Scode}{eval=TRUE,echo=FALSE}
+
+# get rid of error features in data, if desired
+removeErrors = function(data1){
+	# identify which are "error" features
+	neg = grep("*_negerr", names(data1))
+	pos = grep("*_poserr", names(data1))
+	errors = c(neg,pos)
+	errors = errors[order(errors)]
+	errors = 1:length(data1) %in% errors
+
+
+	# remove the errors, for now
+	data1 = subset(data1,select = !errors)
+	
+	return(data1)
+}
+
+
+
+# generates k equally sized disjoint sets containing the numbers 1 through len
+# returns as list, each element in list is vector of numbers
+# used to randomly select folds in the cross validation
+findFolds = function(len,k){
+	sets = list()
+	indices = 1:len
+	base = floor( len / k )
+	left = len %% k 
+	if(left > 0){
+		for( i in 1:left ){
+			sets[[i]] = sample(indices,base + 1)
+			indices = indices[!(indices %in% sets[[i]])]
+		}
+	}
+	for( i in (left + 1):k ){
+		sets[[i]] = sample(indices,base)
+		indices = indices[!(indices %in% sets[[i]])]	
+	}
+	return(sets)
+}
+
+#
+# used to get the astro data to look right, converts continuous redshift Z into
+# high / low factor class, high is greater than Zcutoff
+#
+cleanData = function(data1,Zcutoff){
+	classZ = factor(rep("low",nrow(data1)),levels=c("low","high"))
+	classZ[data1$Z > Zcutoff] = "high"
+	data1$Z = classZ
+	names(data1) = c("class",names(data1)[2:length(data1)])
+	return(data1)
+}
+\end{Scode}
+
+
+
+
+%%
+%% algorithm1 and functions algorithm 1 uses for execution
+%%
+\begin{Scode}{eval=TRUE,echo=FALSE}
+##
+## implementation of Tamara's "algorithm 1" (see pseudocode in email)
+## 1. data1 is the data
+## 2. nfolds is scalar, the number of folds for cross validation (usually 10)
+## 3. priorHigh is prior on GRB being high (we treat this as a parameter in the model)
+## 4. alpha is the maximum proportion of low that can classify as high, 50% is reasonable
+##
+## this function returns the cart tree that maximizes high as high while not classifying 
+## more than alpha proportion of low as high, this is assessed using cross validation
+##
+algorithm1 = function(data1,nfolds,priorHigh,alpha){
+	folds = findFolds(nrow(data1),nfolds) # get the folds for CV
+	confusionMatrices = array(0,c(length(priorHigh),2,2)) # for holding results
+	for(i in 1:nfolds){
+  		confusionMatrices = confusionMatrices + confusionCV(data1,folds[[i]],priorHigh)
+	}
+	# using confusionMatrices, find best prior
+	c = choosePrior(confusionMatrices,alpha) # determine index of best prior, 0 if no priors work
+	if( c > 0){
+		c = priorHigh[c]
+	}
+	# c is now the best prior, unless no matrices satisfied alpha condition in which case c=0
+	return(c)
+}
+
+##
+## used by function algorithm1, see comments there
+##
+confusionCV = function(data1,leftOut,priorHigh){
+	train = !( (1:nrow(data1)) %in% leftOut ) # convert to boolean
+	test = (1:nrow(data1)) %in% leftOut # convert to boolean
+	data1train = subset(data1,subset=train) # separate training and test sets
+	data1test = subset(data1,subset=test) # separate training and test sets
+	confusion = array(0,c(length(priorHigh),2,2)) # for holding confusion matrices
+	for(i in 1:length(priorHigh)){
+		  fit1 = rpart(class ~ .,parms=list(prior=c(1-priorHigh[i],priorHigh[i])),method="class",data=data1train)
+ 		  if(length(fit1$cptable) > 3){
+			bestRow = which.min(fit1$cptable[,4])
+			cp = fit1$cptable[bestRow,1]
+		  	fit1 = prune(fit1,cp=cp)
+		  }
+		  predictions = predict(fit1,type='class',newdata=data1test) # make predictions on test
+
+		  predictionsHigh = predictions == "high"
+		  actualHigh = data1test$class == "high"
+
+		  confusion[i,,] = matrix(c(sum(!predictionsHigh & !actualHigh),sum(predictionsHigh & !actualHigh),sum(!predictionsHigh & actualHigh),sum(predictionsHigh & actualHigh)),nrow=2)
+	}
+	return(confusion)
+}
+
+
+# forces confusionMatrix to satisfy alpha condition exactly
+fillAlpha = function(confusionMatrix,alpha){
+	confusionOut = matrix(0,nrow=2,ncol=2)
+	totalObs = sum(confusionMatrix)
+	asHigh = confusionMatrix[2,1] + confusionMatrix[2,2]
+	change = totalObs*alpha - asHigh
+	c = change / (totalObs - asHigh)
+	
+	if(c > 0){
+		 confusionOut[2,1] = c*confusionMatrix[1,1] + confusionMatrix[2,1]
+		 confusionOut[2,2] = c*confusionMatrix[1,2] + confusionMatrix[2,2]
+		 confusionOut[1,1] = (1-c)*confusionMatrix[1,1]
+		 confusionOut[1,2] = (1-c)*confusionMatrix[1,2]
+	}
+	if(c < 0){
+		 c = -1 * change / asHigh
+		 confusionOut[1,1] = c*confusionMatrix[2,1] + confusionMatrix[1,1]
+		 confusionOut[1,2] = c*confusionMatrix[2,2] + confusionMatrix[1,2]
+		 confusionOut[2,1] = (1-c)*confusionMatrix[2,1]
+		 confusionOut[2,2] = (1-c)*confusionMatrix[2,2]
+	}
+	if(c == 0){
+		 confusionOut = confusionMatrix
+	}
+	return(confusionOut)
+}
+
+##
+## accepts a set of confusion matrices and returns the index of the matrix with 
+## proportion follow up below alpha and highest number of high as high. if none
+## of the matrices satisfy the alpha condition, 0 is returned
+##
+choosePrior = function(confusionMatrices,alpha){
+	for(i in 1:length(confusionMatrices[,2,2])){
+		  confusionMatrices[i,,] = fillAlpha(confusionMatrices[i,,],alpha)
+	}
+	#satisfyAlpha = apply(confusionMatrices,1,function(x) {alpha > (x[2,1] + x[2,2]) / sum(x) })
+	#confusionMatrices[!satisfyAlpha,2,2] = 0 # disqualify models that violate alpha condition
+	bestModel = which.max(confusionMatrices[,2,2])
+	# if none of the models meet conditions, make the best prior 0
+	if(confusionMatrices[bestModel,2,2] == 0){
+		bestModel = 0
+	}
+	return(bestModel)
+}
+
+##
+## runs algorithm 1 nalgorithm1 times and returns the prior on high that algorithm 1 chooses the most
+##
+algorithm1CV = function(data1,nfolds,priorHigh,alpha,nalgorithm1){
+	choices = matrix(0,nrow=(length(priorHigh)+1),ncol=2)
+	choices[,1] = c(0,priorHigh)
+	for(i in 1:nalgorithm1){
+		  choice = algorithm1(data1,nfolds,priorHigh,alpha)
+		  choices[choices[,1] == choice,2] = choices[choices[,1] == choice,2] + 1
+	}
+	bestC = which.max(choices[,2])
+	return(choices[bestC,1])
+}
+
+\end{Scode}
+
+
+
+%%
+%% code for assessing quality of algorithm1 or algorithm2 classifiers
+%%
+\begin{Scode}{echo=FALSE,eval=TRUE}
+##
+## cross validate to determine quality of classifier, can be used with algorithm1 or algorithm2
+##
+## 1. data1 is the data
+## 2. priorHigh is a vector of prior on a GRB being high
+## 3. alpha is a proportion, an upper bound on the proportion of low classified as high
+## 4. nfolds1 is the number of folds in the outer CV step, initiated in this loop (usually 10)
+## 5. nfolds2 is the number of fold in inner CV step, initiated by algorithm1 or algorithm2 (usually 10)
+##
+crossValidateAlgorithm = function(data1,priorHigh,alpha,nfolds1,nfolds2,nalgorithm1,Z){
+	folds = findFolds(nrow(data1),nfolds1)
+	confusion = matrix(0,nrow=2,ncol=2)
+	correct = rep(0,nrow(data1))
+	theFits = list()
+	for(i in 1:nfolds1){
+		  train = !( (1:nrow(data1)) %in% folds[[i]] ) # convert to boolean
+		  test = (1:nrow(data1)) %in% folds[[i]] # convert to boolean
+		  data1train = subset(data1,subset=train) # separate training and test sets
+		  data1test = subset(data1,subset=test) # separate training and test sets
+		  bestPrior = algorithm1CV(data1train,nfolds2,priorHigh,alpha,nalgorithm1)
+		  if(bestPrior != 0){
+		  	 fit1 = rpart(class ~ .,parms=list(prior=c(1-bestPrior,bestPrior)),method="class",data=data1train)
+			 if(length(fit1$cptable) > 3){
+		  		bestRow = which.min(fit1$cptable[,4])
+				cp = fit1$cptable[bestRow,1]
+		  		fit1 = prune(fit1,cp=cp)
+			 }
+			 theFits[[i]] = fit1
+			 predictions = predict(fit1,type='class',newdata=data1test) # predict test set
+		  }
+		  if(bestPrior == 0){
+		  	 theFits[[i]] = 0
+		  	 predictions = rep("low",nrow(data1test)) # classify as low if no priors work
+		  }
+
+		  predictionsHigh = predictions == "high"
+		  actualHigh = data1test$class == "high"
+
+		  confusion = confusion + matrix(c(sum(!predictionsHigh & !actualHigh),sum(predictionsHigh & !actualHigh),sum(!predictionsHigh & actualHigh),sum(predictionsHigh & actualHigh)),nrow=2)
+		  correct[test] = 1*(actualHigh == predictionsHigh)
+	}
+	return(list(confusion,theFits,correct))
+}
+\end{Scode}
+
+
+
+
+%%
+%% output table of frequency of variable use and confusion matrices to look nice
+%%
+\begin{Scode}{eval=TRUE,echo=FALSE}
+# compute importances
+outputSplits = function(fits,alpha,filename1,number){
+	# turn lists fits into table of number splits
+	importance = data.frame( names(data1)[2:length(data1)] , 0 )
+	names(importance) = c("Feature","Number Times")
+	totalTrees = 0
+	for(i in 1:length(fits)){
+		  for(j in 1:length(fits[[i]])){
+		  		totalTrees = totalTrees + 1
+		  		if(class(fits[[i]][[j]]) == "rpart"){
+		      		varsUsed = (fits[[i]][[j]])$frame[,1]
+		  	  		varsUsed = varsUsed[varsUsed!="<leaf>"]
+			  		importance[,2] = importance[,2] + (importance$Feature %in% varsUsed)
+				}
+		  }
+	}
+	# get variable importance looking nice
+	importance = importance[order(importance[,2],decreasing=T),]
+	importance = subset(importance,subset=(importance[,2] > 0))
+	if(nrow(importance) == 0){
+		importance[,1] = as.character(importance[,1])
+		importance[1,] = c("No Features Used",0)
+	}
+
+	# output the importance plot to a file filename1
+	if(number==1){
+		append1 = FALSE
+	}
+	if(number!=1){
+		append1 = TRUE
+	}
+	caption1 = paste("Splits for alpha =",alpha,"model. The Number Times column is the number of trees the given feature appeared in out of a total of",totalTrees,"created for cross validation.")
+	outputX = xtable(importance,caption=caption1,align=c('c','c','c'),digits=0)
+	print(outputX,type='latex',append=append1,file=filename1,table.placement="H",include.rownames=F)
+}
+
+prettyConfusion	= function(confusion,alpha,number,filename1){
+	prettyOut = matrix(rep("Empty",4),nrow=2)
+	for(i in 1:2){
+		for(j in 1:2){
+			x = confusion[i,j,]
+			mean1 = round(mean(x),2)
+			q1 = round(quantile(x,.25),2)
+			q2 = round(quantile(x,.75),2)
+			prettyOut[i,j] = paste(mean1,"(",q1,",",q2,")",collapse="")
+		}
+	}
+	rownames(prettyOut) = c("Pred. Low","Pred High")
+	colnames(prettyOut) = c("Actual Low","Actual High")
+	caption1 = paste("CV Confusion Matrix for alpha =",alpha,". The parentheses are .25 and .75 quantiles")	
+	if(number==1){
+		append1 = FALSE
+	}
+	if(number!=1){
+		append1 = TRUE
+	}
+	outputX = xtable(prettyOut,caption=caption1)
+	print(outputX,type='latex',filename1,table.placement="H",include.rownames=T,append=append1)
+}
+
+
+
+\end{Scode}
+
+
+
+
+
+%%%
+%%%
+%%% here we start using function we created
+%%%
+\begin{Scode}{echo=FALSE,eval=TRUE}
+
+set.seed(250)
+library('foreign')
+library('rpart')
+library('plotrix')
+library('xtable')
+
+##
+## get the data in the desired form
+##
+data1 = read.arff('070710_shortremoved_NoZremoved.arff')
+Z = data1$Z
+data1$triggerid_str = NULL
+data1 = removeErrors(data1)
+data1 = cleanData(data1,4)
+
+# these features are removed because they are formatted weirdly, according to Adam they
+# probably are not important in prediction anyway
+data1 = subset(data1,select=(!(names(data1) %in% c("CHI2_PC","CHI2_WT","CHI2_PC_LATE"))))
+
+# uncomment following line if want code to run fast (reduced features)
+# data1 = subset(data1,select=((names(data1) %in% c("class","A","FLX_PC_LATE","wh_mag_isupper"))))
+
+
+###
+### Important: data1 should now be dataframe with first column ''class'' a factor with two 
+### levels. Remaining columns are features, which may be continuous and/or categorical, 
+### missingness okay.
+\end{Scode}
+
+
+
+
+\section{Introduction}
+
+There are \Sexpr{nrow(data1)} observations. There are \Sexpr{length(data1)} columns. There are \Sexpr{sum(data1$class=="high")} high redshift bursts.
+
+
+\begin{Scode}{eval=TRUE,echo=FALSE}
+###
+### here we assess how stable algorithm 1's selection of optimal prior is
+### 
+ALPHA_RANGE = 1:9 / 10
+PRIOR_RANGE = (1:19) / 20
+NUMBER = 10
+toPlot = matrix(0,nrow=length(PRIOR_RANGE)+1,ncol=length(ALPHA_RANGE))
+colnames(toPlot) = ALPHA_RANGE
+rownames(toPlot) = c(PRIOR_RANGE[order(PRIOR_RANGE,decreasing=T)],0)
+
+for(i in 1:length(ALPHA_RANGE)){
+	  for(j in 1:NUMBER){
+	  		bestPrior = algorithm1(data1,10,PRIOR_RANGE,ALPHA_RANGE[i])
+			if(bestPrior == 0){
+				toPlot[nrow(toPlot),i] = toPlot[nrow(toPlot),i] + 1
+			}
+			if(bestPrior != 0){
+				col = which.max(1*(PRIOR_RANGE == bestPrior))
+				toPlot[nrow(toPlot) - col,i] = toPlot[nrow(toPlot) - col,i] + 1
+			}
+	  }
+}
+\end{Scode}
+
+\begin{Scode}{echo=FALSE,eval=TRUE,label=alphaPrior,fig=TRUE,include=FALSE}
+color2D.matplot(toPlot,extremes=c('white','red'),xlab="alpha",ylab="Prior Parameter Chosen",axes=F,show.values=T,main="Frequency of Prior Parameter Chosen for Different Alpha")
+axis(1,at=(1:length(ALPHA_RANGE) - .5),labels=ALPHA_RANGE)
+axis(2,at=(c(0,1:length(PRIOR_RANGE)) + .5),labels=c(0,PRIOR_RANGE))
+\end{Scode}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=3.5in,height=3.5in]{report-alphaPrior}
+  \caption{}
+  \label{fig:alphaPrior}
+\end{center}
+\end{figure}
+
+
+
+\section{The Results}
+
+%%
+%% get CVed confusion matrices for classifiers
+%%
+
+\begin{Scode}{echo=FALSE,eval=TRUE}
+ALPHA_RANGE = c(.1,.3,.5,.7)
+PRIORS = (1:19 / 20)
+nCV = 5 # needs to be at least 2, otherwise formatting error occurs
+nCV1 = 10
+nCV2 = 10
+NUMBER_ALG1 = 3
+confusionMatrices = array(0,c(2,2,nCV,length(ALPHA_RANGE)))
+correct = matrix(0,nrow=length(Z),ncol=(length(ALPHA_RANGE)+1))
+correct[,1] = Z
+theFits = list()
+for(i in 1:length(ALPHA_RANGE)){
+	  theFits[[i]] = list()
+	  for(j in 1:nCV){
+	  		CVdata = crossValidateAlgorithm(data1,PRIORS,ALPHA_RANGE[i],nCV1,nCV2,NUMBER_ALG1,Z)
+	  		confusionMatrices[,,j,i] = fillAlpha(CVdata[[1]],ALPHA_RANGE[i])
+			theFits[[i]][[j]] = CVdata[[2]]
+			correct[,i+1] = correct[,i+1] + CVdata[[3]]
+	  }
+}
+\end{Scode}
+
+
+\begin{Scode}{echo=FALSE,eval=TRUE}
+correct = correct[order(correct[,1],decreasing=TRUE),]
+correct = correct[1:30,]
+correct[,2:ncol(correct)] = correct[,2:ncol(correct)] / nCV
+colnames(correct) = c("Redshift",ALPHA_RANGE)
+outputX = xtable(correct,caption="Fraction of Times Given Burst was Classified Correctly. This is before adjustment is made to fill alpha parameter so results are hard to interpret.",digits=2)
+print(outputX,type='latex',append=FALSE,file="correct.tex",table.placement="H",include.rownames=F)
+\end{Scode}
+
+\input{correct.tex}
+
+\begin{Scode}{echo=FALSE,eval=TRUE}
+	filename1 = "splits.tex"
+	for(i in 1:length(ALPHA_RANGE)){
+		  outputSplits(theFits[[i]],ALPHA_RANGE[i],filename1,i)
+	}		  
+\end{Scode}
+
+
+\input{\Sexpr{filename1}}
+
+
+
+\begin{Scode}{eval=TRUE,echo=FALSE}
+CONFUSION_NAME = 'confusions.tex'
+for(i in 1:length(ALPHA_RANGE)){
+	  prettyConfusion(confusionMatrices[,,,i],ALPHA_RANGE[i],i,CONFUSION_NAME)
+}
+\end{Scode}
+
+
+\input{\Sexpr{CONFUSION_NAME}}
+
+
+%%%
+%%% generate trees that might be selected by algorithm 1
+%%%
+
+\begin{Scode}{eval=TRUE,echo=FALSE}
+fit1 = rpart(class ~ .,parms=list(prior=c(.95,.05)),method="class",data = data1)
+if(length(fit1$cptable) > 3){
+	bestRow = which.min(fit1$cptable[,4])
+	cp = fit1$cptable[bestRow,1]
+	fit1 = prune(fit1,cp=cp)
+}
+\end{Scode}
+
+%\begin{Scode}{echo=TRUE,eval=TRUE,label=prior05,fig=TRUE,include=FALSE}
+%plot(fit1,margin=.1,main="Prior .05 on High Tree")
+%text(fit1,use.n=T,pretty=0)
+%\end{Scode}
+
+
+\begin{Scode}{eval=TRUE,echo=FALSE}
+fit1 = rpart(class ~ .,parms=list(prior=c(.7,.3)),method="class",data = data1)
+if(length(fit1$cptable) > 3){
+	bestRow = which.min(fit1$cptable[,4])
+	cp = fit1$cptable[bestRow,1]
+	fit1 = prune(fit1,cp=cp)
+}
+\end{Scode}
+
+%\begin{Scode}{echo=TRUE,eval=TRUE,label=prior30,fig=TRUE,include=FALSE}
+%plot(fit1,margin=.1,main="Prior .30 on High Tree")
+%text(fit1,use.n=T,pretty=0)
+%\end{Scode}
+
+
+
+
+%\begin{figure}[H]
+%\begin{center}
+%\includegraphics[width=3.5in,height=3.5in]{report-prior30}
+%  \caption{Tree using a prior of .30 on an observation being a high GRB.}
+%  \label{fig:prior30}
+%\end{center}
+%\end{figure}
+
+
+\end{document}
