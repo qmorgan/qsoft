@@ -33,6 +33,31 @@ class Obs:
         self.Observer.long = longitude
         self.Observer.elevation=elevation
     
+    def GetMoon(self,silent=False):
+        '''Calculate the relative position of the moon'''
+        self.Observer.date=ephem.now()
+        self.moon = ephem.Moon()
+        self.moon.compute(self.Observer)
+        if not silent:
+            print '*******   Moon Position   *******'
+            print 'RA, Dec: (%s,%s)' % (self.moon.ra,self.moon.dec)
+            print 'Alt, Az: (%s,%s)' % (self.moon.alt,self.moon.az)
+            print 'Illumination: %1.4f' (self.moon.moon_phase)
+            print 'Moonset: %s UT' % (self.Observer.next_setting(moon))
+            print 'Moonrise: %s UT' % (self.Observer.next_rising(moon))
+    
+    def GetSun(self,silent=False):
+        '''Calculate the relative position of the Sun'''
+        self.Observer.date=ephem.now()
+        self.sun = ephem.Sun()
+        self.sun.compute(self.Observer)
+        if not silent:
+            print '*******    Sun Position    *******'
+            print 'RA, Dec: (%s,%s)' % (self.sun.ra,self.sun.dec)
+            print 'Alt, Az: (%s,%s)' % (self.sun.alt,self.sun.az)
+            print 'Sunset: %s UT' % (self.Observer.next_setting(sun))
+            print 'Sunrise: %s UT' % (self.Observer.next_rising(sun))
+    
     def lst(self):
         '''Given the location of the observatory, calculate the local sidereal
         time.
