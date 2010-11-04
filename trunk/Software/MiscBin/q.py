@@ -42,9 +42,10 @@ class Obs:
             print '*******   Moon Position   *******'
             print 'RA, Dec: (%s,%s)' % (self.moon.ra,self.moon.dec)
             print 'Alt, Az: (%s,%s)' % (self.moon.alt,self.moon.az)
-            print 'Illumination: %1.4f' (self.moon.moon_phase)
-            print 'Moonset: %s UT' % (self.Observer.next_setting(moon))
-            print 'Moonrise: %s UT' % (self.Observer.next_rising(moon))
+            print 'Illumination: %1.4f' % (self.moon.moon_phase)
+            print 'Current time: %s UT' % (self.Observer.date)
+            print 'Moonset: %s UT' % (self.Observer.next_setting(self.moon))
+            print 'Moonrise: %s UT' % (self.Observer.next_rising(self.moon))
     
     def GetSun(self,silent=False):
         '''Calculate the relative position of the Sun'''
@@ -55,8 +56,9 @@ class Obs:
             print '*******    Sun Position    *******'
             print 'RA, Dec: (%s,%s)' % (self.sun.ra,self.sun.dec)
             print 'Alt, Az: (%s,%s)' % (self.sun.alt,self.sun.az)
-            print 'Sunset: %s UT' % (self.Observer.next_setting(sun))
-            print 'Sunrise: %s UT' % (self.Observer.next_rising(sun))
+            print 'Current time: %s UT' % (self.Observer.date)
+            print 'Sunset: %s UT' % (self.Observer.next_setting(self.sun))
+            print 'Sunrise: %s UT' % (self.Observer.next_rising(self.sun))
     
     def lst(self):
         '''Given the location of the observatory, calculate the local sidereal
