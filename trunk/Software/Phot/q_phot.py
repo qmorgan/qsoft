@@ -1273,23 +1273,35 @@ def plotzp(photdict):
 
         if 'h_' in mosaics:
             if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
+                    ecolor = 'red')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
+                    ecolor = 'red', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 's', linestyle ='None', mfc = 'yellow', \
+                    mec = 'green', ecolor = 'yellow')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 's', linestyle ='None', mfc = 'yellow', \
+                    mec = 'green', ecolor = 'yellow', label = 'k')
                 k = True
 
     ax = matplotlib.pyplot.gca()
@@ -1326,27 +1338,40 @@ def plots2n(photdict):
        
         valu = float(photdict[mosaics]['targ_s2n'])
 
-#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+#there's probably a prettier way to do this, the second if statements are 
+#there so that only 1 label per filter is on the legend
 
         if 'h_' in mosaics:
             if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green',\
+                    ecolor = 'yellow')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green',\
+                    ecolor = 'yellow', label = 'k')
                 k = True
     
     matplotlib.pyplot.xlabel('duration(s)')
@@ -1366,7 +1391,8 @@ def textoutput(dict):
     uniquename = dict.keys()[0].split('_')[2]
     savepath = storepath + uniquename + '_text.txt'
     text = file(savepath, "w")
-    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME', 'targ_mag', 'targ_mag error']
+    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
+        'targ_mag', 'targ_mag error']
     text.write('\t'.join(namelist))
     text.write('\n')
     
@@ -1384,7 +1410,8 @@ def textoutput(dict):
             mag = str(values['targ_mag'][0]) 
             magerr = str(values['targ_mag'][1])
         time = str(values['t_mid'][0])
-        datalist = [str(values['FileName']), str(values['STRT_CPU']), str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
+        datalist = [str(values['FileName']), str(values['STRT_CPU']), \
+            str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
         text.write('\t'.join(datalist))
         text.write('\n')
     text.close()
@@ -1467,27 +1494,40 @@ def photplot(photdict):
         valu = float(photdict[mosaics]['targ_mag'][0])
         verr = float(photdict[mosaics]['targ_mag'][1])
 
-#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+        #there's probably a prettier way to do this, the second if statements 
+        #are there so that only 1 label per filter is on the legend
 
         if 'h_' in mosaics:
             if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
+                    ecolor = 'yellow')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
+                    ecolor = 'yellow', label = 'k')
                 k = True
 
     ax = matplotlib.pyplot.gca()
@@ -1518,7 +1558,8 @@ def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
     aplist = [7.0,7.2,7.4,7.6,7.8,8.0,8.2,8.4,8.6,8.8,9.0,9.2,9.4,9.6,9.8,10]
     for ap in aplist:
     
-        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, clobber=True, tger_id=tger_id) 
+        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
+            clobber=True, tger_id=tger_id) 
     
         k_delta_list = []
         h_delta_list = []
