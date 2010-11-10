@@ -7,15 +7,29 @@ from pylab import *
 import scipy.interpolate as interpolate
 
 def ColorScatterExample():
-    x=scipy.rand(20)
-    y=scipy.rand(20)
+    x=list(arange(20))
+    y=list(arange(20))
     z=scipy.rand(20)*50
-    ColorScatter(x,y,z,cmap='jet',colorbar=True)
+    ColorScatter(x,y,z,cmap='jet',colorbar=True,xjitter=2)
 
 
-def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=2):
-    '''set discrete to N for splitting up into N values'''
+def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=0.0,\
+    xjitter=0.0):
+    '''set discrete to N for splitting up into N values
+    yjitter sets a percent random jitter in the y direction to help distinguish
+    overlapping values.  
+    '''
+    #Convert to arrays
+    
+    if yjitter:
+        y_lim_len = pylab.ylim()[1] - pylab.ylim()[0]
+        y = y + random(len(y))*yjitter*y_lim_len
+    if xjitter:
+        x_lim_len = pylab.xlim()[1] - pylab.xlim()[0]
+        x = x + random(len(x))*xjitter*x_lim_len
+    
     if z != None:
+        z = array(z)
         if discrete:
             try:
                 N = int(discrete)

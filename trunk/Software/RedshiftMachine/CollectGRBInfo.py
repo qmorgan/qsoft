@@ -620,7 +620,8 @@ class GRBdb:
     #     pylab.ylabel(y)
     #     pylab.xlabel(x)
 
-    def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False):
+    def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
+        xjitter=0.0):
         # list_tup = self.ret_list(x,y)
         xlist = getattr(self,x_key)['array']
         ylist = getattr(self,y_key)['array']
@@ -628,7 +629,7 @@ class GRBdb:
         if z_key:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
-            ColorScatter(xlist,ylist,zlist)
+            ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter)
         if logx and not logy:
             pylab.semilogx()
         if logy and not logx:
