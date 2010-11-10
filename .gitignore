@@ -3,3 +3,8 @@
 /store/*.jpeg
 /store/*.gif
 /store/*.svg
+/store/*.fits
+/store/*.img
+/store/*.zip
+/store/*.pkl
+/store/*.erg
