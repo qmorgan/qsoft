@@ -560,7 +560,10 @@ class GRBdb:
 
 
     def ret_list(self,x,y,z=[]):
-        '''Returns a list of all the values and index names for a specific key'''
+        '''Returns a list of all the values and index names for a specific key
+        
+        THIS SHOULD BE DEPRECIATED.  Use the arrays created by MakeAllAttr instead.
+        '''
         xlist = []
         ylist = []
         zlist = []
@@ -622,6 +625,12 @@ class GRBdb:
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
         xjitter=0.0):
+        '''Plot two keys against each other, with an optional third key as 
+        the colorbar parameter.  Specify xjitter or yjitter to add a bit 
+        of scatter to the plot for visualization reasons.  This replaces the
+        old grbplot function which read from the dictionaries, and instead
+        uses the arrays created by MakeAllAttr.
+        '''
         # list_tup = self.ret_list(x,y)
         xlist = getattr(self,x_key)['array']
         ylist = getattr(self,y_key)['array']
@@ -640,8 +649,13 @@ class GRBdb:
         pylab.xlabel(x_key)
 
 
-    def grbannotesubplot(self,y_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],x_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],z_keys=['Z','Z','Z','Z'],logx=True,logy=True):
-        '''Bah
+    def grbannotesubplot(self,\
+        y_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
+        x_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
+        z_keys=['Z','Z','Z','Z'],\
+        logx=False,logy=False):
+        '''Create an annotated sub plot of the GRB parameters specified in the
+        keys.
     
         '''
     
@@ -678,7 +692,8 @@ class GRBdb:
         # Maybe instead of plotting a loglog plot, create a new parameter which
         # is the log of the value and plot a linear scatter.  This will make 
         # the plotting faster and allow for more flexibility 
-        AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,xnames=x_keys,znames=z_keys,logx=False,logy=False)
+        AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
+            xnames=x_keys,znames=z_keys,logx=False,logy=False)
 
     def plotallvall(self,keylist,zval=None,remove_redundant=True,single_save=True):
         '''Plot all listed keywords against each other.  If zval is specified, use
