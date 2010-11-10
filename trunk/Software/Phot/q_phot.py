@@ -238,6 +238,36 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None):
+    '''
+    Do photometry on a given image file given a region file with the coordinates.
+    
+    Arguments:
+        progenitor_image_name: the path to the image file
+        region_file: the region file containing a single fk5 coordinate position
+            on which to perform photometry.  The associated positional uncertainty
+            within this file does not matter.
+        ap: desired aperature in arcseconds.  If not specified, we will try 
+            to find_fwhm to get the optimal aperture.  If this does not work,
+            a default of 4.5 arcseconds will be used
+        find_fwhm: find the fwhm of the image.  If ap is not set, then this will
+            also be used to attempt to find the optimal aperture, set as
+            1.5*FWHM
+        do_upper: If False, skip the steps to attempt to find the limiting 
+            magnitude of the field.  As this is a very time consuming step,
+            it is beneficial to skip if a detection is assured.
+        calstar_reg_output: if True, save calibration stars that are found by 
+            the code to be usable into a region file, which can be trimmed 
+            and fed to calreg
+        calreg: If the path to a calibration star region file is provided 
+            (created and modified from calstar_reg_output), use only those 
+            targets which are BOTH found by the code to be useable AND in
+            the calreg file.  Currently no implementation to override what
+            the code thinks is usuable calibration stars.
+        stardict: If set, use a dictionary of calibration star photometries 
+            from a deep stack of the location rather than the 2mass values.  
+            CURRENTLY NOT WORKING.
+        
+    '''
     # Begin timing
     t1 = time()
      
@@ -307,6 +337,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     else:
         aperture_size = ap
     photdict.update({'Aperture':aperture_size})
+    print 'Using aperture size: %f' % (aperture_size)
 
     '''Read in the image and convert data to array. Also store STRT_CPU, STOP_CPU, 
     and FILTER header keyword values for future use. If the start and stop times
@@ -479,10 +510,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
 
         # savetxt("aperture_data.txt", aperture_data)
         # savetxt("weight_aperture_data.txt", weight_aperture_data)
-
-        print len(aperture_data), len(weight_aperture_data)
+        
+        if len(aperture_data) != len (weight_aperture_data):
+            print "Aperture Data list length mismatch:"
+            print len(aperture_data), len(weight_aperture_data)
+            raise(ValueError)
     
-
         combined_aperture_data = []
         flux_list = []
         mismatch_num = 0
@@ -902,6 +935,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     multiplicitive factor due to the fact that we are typically 
     rebinning from 2"/pix to 1"/pix (should be a factor of two, but
     in testing with GRB 071025, Dan found it to be ~2.4).'''
+    
     num_triplestacks = ditherdict['N_dither']/3
     if num_triplestacks == 0:
         num_triplestacks = 1    
@@ -1446,37 +1480,7 @@ def tmp_phot_plot(photdict):
     pylab.ylabel('J Mag')
     pylab.semilogx()
 
-# # amorgan comments out since photLoop is more powerful 
-# def photloop(filename, reg, aper=None):
-#     '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
-#     running q_phot on each. Output is stored in a text file with 
-#     the format t_mid|t_miderror|magnitude|magnitudeerror'''
-#     close()
-#     f = file(filename)
-#     textname = filename[0:1] + '_photometry_results.txt'
-#     r = open(textname, 'w')
-#     #vallist = []
-#     #errlist = []
-#     timlist = []
-# 
-#     for lameline in f.readlines():
-#         line = lameline.rstrip('\n')
-#         print line
-#         magnitude = dophot(line,reg,ap=aper)
-#         if magnitude['targ_mag'][0] == 'nan':
-#             pass
-#         else:
-#             vallist = magnitude['targ_mag'][0]
-#             errlist = magnitude['targ_mag'][1]
-#         time = t_mid.t_mid(line)
-#         time_err = t_mid.t_mid(line, delta = True) 
-# 
-#         result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
-#         r.write(result)
-#         
-#     f.close()
-#     r.close()
-    
+
 def photplot(photdict):
     '''Plots a graph from photdict'''
     import matplotlib
