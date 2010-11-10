@@ -11,25 +11,30 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 
-# First click the thumbnail on status.pairitel to induce a quick reduction
-# runs obs@pteld:/home/jbloom/public_html/show_postage.php
-# Then run PCheck() to download the jrr file and run anet.py to check position
-# The anet.py seems to fail...
+
 
 pathbase = os.environ.get('Q_DIR')
 anetlocation = pathbase + '/trunk/Software/PTELCoadd/anet.py'
 
-def _GetMostRecent():
+def _GetMostRecent(allday=False):
+    '''Will download all the quickobs downloaded from the last 0-10 minutes,
+    depending on what time it is run (searches for HH-M?-??).  Once downloaded,
+    will return the path to the most recent of those.
+    '''
     mostrecentitem = ['None',1]
 
-    # Get the current gmt YYYY-Mmm-DD-HH string
-    thishourstr = time.strftime("%Y-%b-%d-%H",time.gmtime())
-
+    # Get the current gmt YYYY-Mmm-DD-HH-M? string
+    thishourstr = time.strftime("%Y-%b-%d-%H-",time.gmtime())
+    minutesplitstr = time.strftime("%M",time.gmtime())[0]
+    timestr = thishourstr + minutesplitstr
+    if allday:
+        # grab all the files taken today
+        timestr = time.strftime("%Y-%b-%d",time.gmtime())
     # Download the jrr* files from pteld within this hour
-    command = 'scp obs@pteld.sao.arizona.edu:/tmp/jrr%s*.fits %s.' % (thishourstr,storepath)
+    command = 'scp obs@pteld.sao.arizona.edu:/tmp/jrr%s*.fits %s.' % (timestr,storepath)
     os.system(command)
     
-    gsearch = '%s/jrr%s*.fits' % (storepath,thishourstr)
+    gsearch = '%s/jrr%s*.fits' % (storepath,timestr)
     glist = glob.glob(gsearch)
 
     for path in glist:
@@ -41,14 +46,20 @@ def _GetMostRecent():
     return mostrecentitem[0]
 
 def _FitWcs(filename):
-    # First Run astrometry.net on file and update header.
-    # For some reason, running within python doesn't update the header info 
-    # if the astrometry is solved.  However, the command line will.
+    '''First Run astrometry.net on file and update header.                   
+    For some reason, running within python doesn't update the header info 
+    if the astrometry is solved.  However, the command line will.
+    '''
+
     os.system("python "+anetlocation+" "+filename)
     # anet.anet([mostrecentitem[0]])
 
  
 def Compare(filename):
+    '''For a downloaded PAIRITEL quick reduced file, compare the location
+    that the telescope thinks it is at to the actual location determined 
+    by astrometry.net.
+    '''
     # Load file header info
     try:
         header = pyfits.getheader(filename)
@@ -104,6 +115,11 @@ def Compare(filename):
     print "This is %f arcmin away; half the FOV is 4.25'." % (dist_amin)
     
 def PCheck(remove=True):
+    ''' First click the thumbnail on status.pairitel to induce a quick reduction
+    runs obs@pteld:/home/jbloom/public_html/show_postage.php
+    Then run PCheck() to download the latest jrr file and run anet.py to 
+    check position
+    '''
     filename = _GetMostRecent()
     _FitWcs(filename)
     Compare(filename)
