@@ -24,7 +24,7 @@ def _GetMostRecent(allday=False):
     mostrecentitem = ['None',1]
 
     # Get the current gmt YYYY-Mmm-DD-HH-M? string
-    thishourstr = time.strftime("%Y-%b-%d-%H-",time.gmtime())
+    thishourstr = time.strftime("%Y-%b-%d-%Hh",time.gmtime())
     minutesplitstr = time.strftime("%M",time.gmtime())[0]
     timestr = thishourstr + minutesplitstr
     if allday:
