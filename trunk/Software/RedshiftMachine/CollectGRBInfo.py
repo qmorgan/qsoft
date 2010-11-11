@@ -452,7 +452,7 @@ class GRBdb:
         we can't calculate a mean or stdev for these values.) 
         '''
         arr = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
-        namearr = numpy.array(map(lambda x:x[0] if key in x[1] else numpy.nan, db.dict.iteritems()))
+        namearr = numpy.array(map(lambda x:x[0] if key in x[1] else numpy.nan, self.dict.iteritems()))
         subarr = arr[where(arr,'nan','!=')]
         keydict = {'array':arr,'names':namearr,'subarr':subarr,'type':'nominal'}
         setattr(self,key,keydict)
@@ -495,7 +495,7 @@ class GRBdb:
             std - calculated from subarray
         '''
         arr = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
-        namearr = numpy.array(map(lambda x:x[0] if key in x[1] else numpy.nan, db.dict.iteritems()))
+        namearr = numpy.array(map(lambda x:x[0] if key in x[1] else numpy.nan, self.dict.iteritems()))
         subarr = RemoveNaN(arr)
         mean = subarr.mean()
         median = numpy.median(subarr)
