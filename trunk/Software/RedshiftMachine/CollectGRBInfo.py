@@ -653,8 +653,29 @@ class GRBdb:
 
 
     def grbannotesubplot(self,\
-        y_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
-        x_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
+        x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
+        y_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
+        z_keys=['Z','Z','Z','Z'],\
+        logx=False,logy=False):
+        '''Create an annotated sub plot of the GRB parameters specified in the
+        keys.
+    
+        '''
+        
+        
+        xlist = [getattr(self,key)['array'] for key in x_keys]
+        ylist = [getattr(self,key)['array'] for key in y_keys]
+        annotelist = [getattr(self,key)['names'] for key in y_keys]
+        zlist = [getattr(self,key)['array'] for key in z_keys]
+        
+        AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
+            xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
+        
+        
+        
+    def _old_grbannotesubplot(self,\
+        x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
+        y_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
         z_keys=['Z','Z','Z','Z'],\
         logx=False,logy=False):
         '''Create an annotated sub plot of the GRB parameters specified in the
@@ -662,7 +683,7 @@ class GRBdb:
     
         '''
         # POTENTIAL PORT TO NOT USING ret_list
-        #Annote.AnnotatedSubPlot([db.NH_PC['array'],db.NH_PC['array'],db.NH_WT['array'],db.NH_WT['array']],[db.NH_PC['array'],db.NH_WT['array'],db.NH_PC['array'],db.NH_WT['array']],[db.dict.keys(),db.dict.keys(),db.dict.keys(),db.dict.keys()],zlist=[db.Z['array'],db.Z['array'],db.Z['array'],db.Z['array']])
+        #Annote.AnnotatedSubPlot([db.NH_PC['array'],db.NH_PC['array'],db.NH_WT['array'],db.NH_WT['array']],[db.NH_PC['array'],db.NH_WT['array'],db.NH_PC['array'],db.NH_WT['array']],[db.NH_PC['names'],db.NH_WT['names'],db.NH_PC['names'],db.NH_WT['names']],zlist=[db.Z['array'],db.Z['array'],db.Z['array'],db.Z['array']])
         
         remove_short = True
     
@@ -686,8 +707,7 @@ class GRBdb:
         
             currentgrbname = list_tup[2]
             annotelist.append(currentgrbname)
-        
-        
+       
             xlist.append(list_tup[0])
             ylist.append(list_tup[1])
             if z_keys:
@@ -698,7 +718,7 @@ class GRBdb:
         # is the log of the value and plot a linear scatter.  This will make 
         # the plotting faster and allow for more flexibility 
         AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
-            xnames=x_keys,znames=z_keys,logx=False,logy=False)
+            xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
 
     def plotallvall(self,keylist,zval=None,remove_redundant=True,single_save=True):
         '''Plot all listed keywords against each other.  If zval is specified, use
@@ -764,7 +784,7 @@ class GRBdb:
                 pylab.close()
                 ind += 1 
         else:
-            grbannotesubplot(self.dict,x_keys=xkeys,y_keys=ykeys,z_keys=zkeys)
+            self.grbannotesubplot(x_keys=xkeys,y_keys=ykeys,z_keys=zkeys)
 
 
     def test_log_update(self,plot=True,hist=True):
