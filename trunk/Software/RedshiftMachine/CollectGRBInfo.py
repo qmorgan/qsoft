@@ -452,19 +452,21 @@ class GRBdb:
         we can't calculate a mean or stdev for these values.) 
         '''
         arr = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
+        namearr = numpy.array(map(lambda x:x[0] if key in x[1] else numpy.nan, db.dict.iteritems()))
         subarr = arr[where(arr,'nan','!=')]
-        keydict = {'array':arr,'subarr':subarr,'type':'nominal'}
+        keydict = {'array':arr,'names':namearr,'subarr':subarr,'type':'nominal'}
         setattr(self,key,keydict)
         
     def MakeBinArr(self,key,truval):
         zeros = numpy.zeros(self.length) # Create array of zeros
         nans = numpy.nonzero(getattr(self,key)['array'] == 'nan')
         inds = numpy.nonzero(getattr(self,key)['array'] == truval) #get indices
+        namearr = getattr(self,key)[namearr]
         zeros[inds] = 1.0 #convert locations of indices to 1.0
         zeros[nans] = numpy.nan
         subarr = RemoveNaN(zeros)
         newkey = key + '_binary' #make new key name
-        keydict = {'array':zeros,'subarr':subarr,'type':'binary'}
+        keydict = {'array':zeros,'names':namearr,'subarr':subarr,'type':'binary'}
         setattr(self,newkey,keydict)
     
     def MakeAttrArr(self,key,poserrkey=None,negerrkey=None,DeltaErr=True):
@@ -493,11 +495,12 @@ class GRBdb:
             std - calculated from subarray
         '''
         arr = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
+        namearr = numpy.array(map(lambda x:x[0] if key in x[1] else numpy.nan, db.dict.iteritems()))
         subarr = RemoveNaN(arr)
         mean = subarr.mean()
         median = numpy.median(subarr)
         std = subarr.std()
-        keydict = {'array':arr,'subarr':subarr,'mean':mean,'median':median,'std':std,'type':'numeric'}
+        keydict = {'array':arr,'subarr':subarr,'names':namearr,'mean':mean,'median':median,'std':std,'type':'numeric'}
         if poserrkey:
             errarr = numpy.array(map(lambda x:x[poserrkey] if poserrkey in x else numpy.nan, self.dict.itervalues()))
             if not DeltaErr:
@@ -658,7 +661,9 @@ class GRBdb:
         keys.
     
         '''
-    
+        # POTENTIAL PORT TO NOT USING ret_list
+        #Annote.AnnotatedSubPlot([db.NH_PC['array'],db.NH_PC['array'],db.NH_WT['array'],db.NH_WT['array']],[db.NH_PC['array'],db.NH_WT['array'],db.NH_PC['array'],db.NH_WT['array']],[db.dict.keys(),db.dict.keys(),db.dict.keys(),db.dict.keys()],zlist=[db.Z['array'],db.Z['array'],db.Z['array'],db.Z['array']])
+        
         remove_short = True
     
         if len(x_keys) != len(y_keys):
