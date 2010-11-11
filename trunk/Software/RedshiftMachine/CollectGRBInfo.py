@@ -461,7 +461,7 @@ class GRBdb:
         zeros = numpy.zeros(self.length) # Create array of zeros
         nans = numpy.nonzero(getattr(self,key)['array'] == 'nan')
         inds = numpy.nonzero(getattr(self,key)['array'] == truval) #get indices
-        namearr = getattr(self,key)[namearr]
+        namearr = getattr(self,key)['namearr']
         zeros[inds] = 1.0 #convert locations of indices to 1.0
         zeros[nans] = numpy.nan
         subarr = RemoveNaN(zeros)
