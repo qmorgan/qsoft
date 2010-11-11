@@ -682,9 +682,7 @@ class GRBdb:
         keys.
     
         '''
-        # POTENTIAL PORT TO NOT USING ret_list
-        #Annote.AnnotatedSubPlot([db.NH_PC['array'],db.NH_PC['array'],db.NH_WT['array'],db.NH_WT['array']],[db.NH_PC['array'],db.NH_WT['array'],db.NH_PC['array'],db.NH_WT['array']],[db.NH_PC['names'],db.NH_WT['names'],db.NH_PC['names'],db.NH_WT['names']],zlist=[db.Z['array'],db.Z['array'],db.Z['array'],db.Z['array']])
-        
+
         remove_short = True
     
         if len(x_keys) != len(y_keys):
