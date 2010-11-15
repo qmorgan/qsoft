@@ -162,6 +162,7 @@ def whatis(keyword):
     'uvot_pos_err': {'definition':'Uncertainty in UVOT Position (arcsec)','type':'double','source':'Swift-UVOT Position','speed':'nfi_prompt','sample':0.40000000000000002},
     'uvot_ra': {'definition':'RA of burst, as determined by Swift UVOT afterglow ','type':'double','source':'Swift-UVOT Position','speed':'nfi_prompt','sample':31.8264},
     'v_mag_isupper': {'definition':'Is the UVOT V Magnitude an upper limit? - V is our second best chance of getting a detection; typically second on-sky (sometimes first) and the reddest of the filters','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
+    'uvot_detection': {'definition':'Is there a detection in the UVOT? Combines information from wh_mag_isupper and v_mag_isupper','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'v_mag_str': {'definition':'Initial UVOT V Magnitude String','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'V=16.85'},
     'w1_mag_isupper': {'definition':'Is the UVOT W1 Magnitude an upper limit?','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'w2_mag_isupper': {'definition':'Is the UVOT W2 Magnitude an upper limit?','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'yes'},
@@ -601,7 +602,7 @@ class GRBdb:
     
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
-        xjitter=0.0):
+        xjitter=0.0,discrete=0):
         '''Plot two keys against each other, with an optional third key as 
         the colorbar parameter.  Specify xjitter or yjitter to add a bit 
         of scatter to the plot for visualization reasons.  This replaces the
@@ -615,7 +616,8 @@ class GRBdb:
         if z_key:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
-            ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter)
+            ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
+                discrete=discrete)
         if logx and not logy:
             pylab.semilogx()
         if logy and not logx:
@@ -969,6 +971,8 @@ class GRBdb:
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
+        reduced_attr_list = ['A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR','NH_PC','T90','bat_image_signif','bat_img_peak','bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+        
         '''
         
         # Open file
@@ -1113,72 +1117,7 @@ class GRBdb:
         cmd = 'cat %s %s > %s_full' %(arffpath,subpath2,arffpath)
         os.system(cmd)
         
-        
-        
-# def createarff(outdict,keylist=['T90','FL','peakflux','NH_PC_LATE','wh_mag_isupper','v_mag_isupper'],\
-#                     attributeclass='z_class',classlist=['high_z','low_z']):
-#     # BAT Specific: T90 Duration, Fluence, 1-sec Peak Photon Flux
-#     # XRT Specific: Location, Column Density (NH)
-#     # UVOT Specific: V Magnitude, Other Filter Magnitudes
-#     
-#     # Open file
-#     arffpath = storepath+'redshiftmachine.arff'
-#     f=open(arffpath,'w')
-#     
-#     # Create .arff header
-#     f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
-#     f.write('% \n')
-#     f.write('% 2. Sources:\n')
-#     f.write('%     (a) Creator: Adam N. Morgan\n')
-#     f.write('%     (b) Data From: http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/\n')
-#     f.write('%     (c) Date: '+time.asctime()+'\n')
-#     f.write('% \n')
-#     f.write('% 3. This file was created automatically. \n')
-#     f.write('%    CHECK THE ATTRIBUTES before running Weka. \n')
-#     f.write('% \n')
-#     f.write('@RELATION swift_redshift\n')
-#     f.write('\n')
-#     
-#     # Create .arff attributes section 
-#     for keyitem in keylist:
-#         # If the key for the first item in the dictonary is not a string, assume it is a numeric quantity
-#         if type(outdict[outdict.keys()[0]][keyitem]).__name__ != 'str':
-#             keystring = ('@ATTRIBUTE %s NUMERIC\n') % keyitem
-#         else:
-#             # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
-#             f.write('% !CHECK ME:\n')
-#             keystring = ('@ATTRIBUTE %s {yes, no}\n') % keyitem
-#         f.write(keystring)
-#     classsubstr = ''
-#     for classitem in classlist:
-#         classsubstr += classitem
-#         if len(classlist) - classlist.index(classitem) != 1:
-#             classsubstr += ', ' 
-#     classstring = ('@ATTRIBUTE class {%s}\n') % classsubstr
-#     f.write(classstring)
-#     
-#     # Create .arff data section
-#     
-#     f.write('\n')
-#     f.write('@DATA\n')
-#     for entry in outdict.keys():
-#         # Output each entry according that appears in keylist.  If it doesn't
-#         # appear, output a single '?' as required by the .arff standard
-#         datastring = ''
-#         for keyitem in keylist:
-#             if outdict[entry].has_key(keyitem):
-#                 datastring += str(outdict[entry][keyitem])
-#             else:
-#                 datastring += '?'
-#             datastring += ','
-#         
-#         #only write the line if the attribute class exists!
-#         if attributeclass in outdict[entry]:
-#             datastring += outdict[entry][attributeclass]
-#             datastring += '\n'
-#             f.write(datastring)
-#     
-#     f.close()
+
 
 if __name__ == '__main__':
     collect()
