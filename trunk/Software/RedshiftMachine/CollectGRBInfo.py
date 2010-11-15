@@ -419,21 +419,6 @@ class GRBdb:
                 if self.dict[grb]['v_mag_isupper'] == 'no':
                     UVOT_Detection = 'yes'                
             self.dict[grb]['uvot_detection'] = UVOT_Detection
-            
-            # commented out since we have a binary maker
-            # if 'v_mag_isupper' in self.dict[grb]:
-            #     vmagbinarystr = self.dict[grb]['v_mag_isupper']
-            #     if vmagbinarystr == 'no':
-            #         self.dict[grb]['v_mag_isupper_binary'] = 0
-            #     else:
-            #         self.dict[grb]['v_mag_isupper_binary'] = 1
-            #         
-            # if 'bat_is_rate_trig' in self.dict[grb]:
-            #     ratebinarystr = self.dict[grb]['bat_is_rate_trig']
-            #     if ratebinarystr == 'no':
-            #         self.dict[grb]['bat_is_rate_trig_binary'] = 0
-            #     else:
-            #         self.dict[grb]['bat_is_rate_trig_binary'] = 1
       
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
@@ -729,6 +714,8 @@ class GRBdb:
 
     def test_log_update(self,plot=True,hist=True):
         self.update_class()
+        self.MakeAllAttr()
+        
         keys_to_log = ['xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
         self.log_update_class(keys_to_log)
         keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
