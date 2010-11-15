@@ -15,7 +15,8 @@ source('algorithm1.R')
 ##
 ## get the data in the desired form
 ##
-filename = '070710_shortremoved_NoZremoved_outremoved_late_proccessed.arff'
+filename = 'uvot_feature.arff'
+#filename = '070710_shortremoved_NoZremoved_outremoved_late_proccessed.arff'
 data1 = read.arff(filename)
 Z = data1$Z
 data1$triggerid_str = NULL # meaningless feature in the data sets

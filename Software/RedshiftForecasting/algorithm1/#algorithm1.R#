@@ -6,7 +6,6 @@
 ###### Note 1: This file contains functions for implementing algorithm 1. Code is
 ###### highly commented.
 
-
 ###### Note 2: Even quite recently the function outputSplits was producing incorrect
 ###### results. The purpose of output splits is to let the user know what features
 ###### CART was splitting on. Also the output correct.tex was (ironically) often
