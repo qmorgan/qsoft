@@ -236,7 +236,38 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
-def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upper = False, calstar_reg_output = True, calreg = None, stardict = None):
+def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
+        do_upper = False, calstar_reg_output = True, calreg = None, stardict = None):
+    '''
+    Do photometry on a given image file given a region file with the coordinates.
+    
+    Arguments:
+        progenitor_image_name: the path to the image file
+        region_file: the region file containing a single fk5 coordinate position
+            on which to perform photometry.  The associated positional uncertainty
+            within this file does not matter.
+        ap: desired aperature in arcseconds.  If not specified, we will try 
+            to find_fwhm to get the optimal aperture.  If this does not work,
+            a default of 4.5 arcseconds will be used
+        find_fwhm: find the fwhm of the image.  If ap is not set, then this will
+            also be used to attempt to find the optimal aperture, set as
+            1.5*FWHM
+        do_upper: If False, skip the steps to attempt to find the limiting 
+            magnitude of the field.  As this is a very time consuming step,
+            it is beneficial to skip if a detection is assured.
+        calstar_reg_output: if True, save calibration stars that are found by 
+            the code to be usable into a region file, which can be trimmed 
+            and fed to calreg
+        calreg: If the path to a calibration star region file is provided 
+            (created and modified from calstar_reg_output), use only those 
+            targets which are BOTH found by the code to be useable AND in
+            the calreg file.  Currently no implementation to override what
+            the code thinks is usuable calibration stars.
+        stardict: If set, use a dictionary of calibration star photometries 
+            from a deep stack of the location rather than the 2mass values.  
+            CURRENTLY NOT WORKING.
+        
+    '''
     # Begin timing
     t1 = time()
      
@@ -306,10 +337,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     else:
         aperture_size = ap
     photdict.update({'Aperture':aperture_size})
+    print 'Using aperture size: %f' % (aperture_size)
 
-    # Read in the image and convert data to array. Also store STRT_CPU, STOP_CPU, 
-    # and FILTER header keyword values for future use. If the start and stop times
-    # are not in the header, use placeholder values.
+    '''Read in the image and convert data to array. Also store STRT_CPU, STOP_CPU, 
+    and FILTER header keyword values for future use. If the start and stop times
+    are not in the header, use placeholder values.'''
     imagefile_hdulist = pyfits.open(progenitor_image_name)
     imagefile_header = imagefile_hdulist[0].header
     image_data = imagefile_hdulist[0].data
@@ -328,9 +360,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     photdict.update({'EXPTIME':exptime})
     photdict.update({'filter':band})
     
-    # Finding the number of triplestacks (dither positions) used in the image
-    # for use when calulating the uncertainty (an addl source of error occurs
-    # which reduces as the sqrt of the number of dither positions):
+    '''Finding the number of triplestacks (dither positions) used in the image
+    for use when calulating the uncertainty (an addl source of error occurs
+    which reduces as the sqrt of the number of dither positions):'''
     base_dither_error = 0.1
     file_header = pyfits.open(progenitor_image_name)
     STRT_count = 0
@@ -354,13 +386,13 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     if do_upper:
         # Store the image's dimensions.
         height, width = image_data.shape[0], image_data.shape[1]
-        # We will drop apertures of 3 pixel radius everywhere on the image where there
-        # exists science data. Since apertures are circular there will be gaps between
-        # adjacent apertures. Science data is determined as any pixel with a weightmap
-        # value > 0. To make sure we drop all possible apertures we need to create an 
-        # expanded weight mask. This is a mask array with value 1 where aperatures can 
-        # be centered and 0 elsewhere. It is formed by shrinking slightly the science
-        # data area from the original image (by about 4 pixels).
+        '''We will drop apertures of 3 pixel radius everywhere on the image where there
+        exists science data. Since apertures are circular there will be gaps between
+        adjacent apertures. Science data is determined as any pixel with a weightmap
+        value > 0. To make sure we drop all possible apertures we need to create an 
+        expanded weight mask. This is a mask array with value 1 where aperatures can 
+        be centered and 0 elsewhere. It is formed by shrinking slightly the science
+        data area from the original image (by about 4 pixels).'''
         imagefile_hdulist = pyfits.open(weight_image_name)
         imagefile_header = imagefile_hdulist[0].header
         weight_data = imagefile_hdulist[0].data
@@ -373,11 +405,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         # random data with a mean of 0.
         random_background_data = (-0.5 + 
             random.random_sample(width*height).reshape(height, width))
-        # To run SourceExtractor in two-image mode we need to first generate the fake
-        # stars image which dictates where the apertures will be dropped on the science
-        # image. We make fake stars at evenly spaced (6 pixels) intervals, blur them a 
-        # bit to make them look like stars, and then use the expanded weight mask to 
-        # enforce the boundaries.
+        '''To run SourceExtractor in two-image mode we need to first generate the fake
+        stars image which dictates where the apertures will be dropped on the science
+        image. We make fake stars at evenly spaced (6 pixels) intervals, blur them a 
+        bit to make them look like stars, and then use the expanded weight mask to 
+        enforce the boundaries.'''
         peak = 1000
         aperture_data = array([[0,0,0,0,0,0,0,0]])
         flux_array = array([])
@@ -425,7 +457,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
                 fake_star_data = zeros([height,width])
                 for i in range(int(width/aperture_size/order)-1):
                     for j in range(int(height/aperture_size/order)-1):
-                        fake_star_data[int((j+1-1./(order*2))*spacing+aperture_size*h)][int((i+1-1./(order*2))*spacing+aperture_size*g)] = peak
+                        fake_star_data[int((j+1-1./(order*2))*spacing+aperture_size*h)]\
+                            [int((i+1-1./(order*2))*spacing+aperture_size*g)] = peak
                 blurred_fake_star_data = zeros([height,width])
                 gaussian_filter(fake_star_data*weight_mask_expanded, 0.7, 
                     output=blurred_fake_star_data)
@@ -477,10 +510,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
 
         # savetxt("aperture_data.txt", aperture_data)
         # savetxt("weight_aperture_data.txt", weight_aperture_data)
-
-        print len(aperture_data), len(weight_aperture_data)
+        
+        if len(aperture_data) != len (weight_aperture_data):
+            print "Aperture Data list length mismatch:"
+            print len(aperture_data), len(weight_aperture_data)
+            raise(ValueError)
     
-
         combined_aperture_data = []
         flux_list = []
         mismatch_num = 0
@@ -585,12 +620,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
         red = False
         if len(flux_array_red) > 50:
             red = True
-        # Create a histogram from the flux_array. Convert the flux_histogram_data into a
-        # list for use with the gaussian fitting. Convert the flux_histogram_bins into a
-        # list of length one less with values replaced with the average value of each 
-        # bin. This is necessary because the output bins array is actually the bin
-        # boundaries.
-        # Repeat this code block 4 times, once for each color/quality subset.
+        '''Create a histogram from the flux_array. Convert the flux_histogram_data into a
+        list for use with the gaussian fitting. Convert the flux_histogram_bins into a
+        list of length one less with values replaced with the average value of each 
+        bin. This is necessary because the output bins array is actually the bin
+        boundaries. Repeat this code block 4 times, once for each color/quality subset.'''
         # GREEN
         flux_histogram_data_green, flux_histogram_bins_green = histogram(
             flux_array_green, int(num_apertures/160))
@@ -870,7 +904,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             token = False
             for calstar_new in callist:
                 calstar_list = calstar_new.split(',')
-                caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*(1/180.)*(float(calstar_old[0])), (numpy.pi)*(1/180.)*(float(calstar_old[1]))),((numpy.pi)*(1/180.)*(float(calstar_list[0])), (numpy.pi)*(1/180.)*(float(calstar_list[1]))))))
+                caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*\
+                    (1/180.)*(float(calstar_old[0])), (numpy.pi)*(1/180.)*\
+                    (float(calstar_old[1]))),((numpy.pi)*(1/180.)*\
+                    (float(calstar_list[0])), (numpy.pi)*(1/180.)*\
+                    (float(calstar_list[1]))))))
                 # only remove the calstar entry if it is not our target; i.e. it does not have [2]=999
                 if caldist < 5: # and calstar_old[2] != 999:
                     token = True
@@ -890,13 +928,14 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
     zeropoint_list = []
     zeropoint_err_list = []
     
-    # In PAIRITEL, there are additional sources of uncertainty which
-    # have to be accounted for above the normal photometric statistical
-    # uncertainty.  One is an additive error which reduces by the sqrt
-    # of the number of dither positions used, and the second is a 
-    # multiplicitive factor due to the fact that we are typically 
-    # rebinning from 2"/pix to 1"/pix (should be a factor of two, but
-    # in testing with GRB 071025, Dan found it to be ~2.4).
+    '''In PAIRITEL, there are additional sources of uncertainty which
+    have to be accounted for above the normal photometric statistical
+    uncertainty.  One is an additive error which reduces by the sqrt
+    of the number of dither positions used, and the second is a 
+    multiplicitive factor due to the fact that we are typically 
+    rebinning from 2"/pix to 1"/pix (should be a factor of two, but
+    in testing with GRB 071025, Dan found it to be ~2.4).'''
+    
     num_triplestacks = ditherdict['N_dither']/3
     if num_triplestacks == 0:
         num_triplestacks = 1    
@@ -959,13 +998,13 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, do_upp
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
       
-            # In PAIRITEL, there are additional sources of uncertainty which
-            # have to be accounted for above the normal photometric statistical
-            # uncertainty.  One is an additive error which reduces by the sqrt
-            # of the number of dither positions used, and the second is a 
-            # multiplicitive factor due to the fact that we are typically 
-            # rebinning from 2"/pix to 1"/pix (should be a factor of two, but
-            # in testing with GRB 071025, Dan found it to be ~2.4).
+            '''In PAIRITEL, there are additional sources of uncertainty which
+            have to be accounted for above the normal photometric statistical
+            uncertainty.  One is an additive error which reduces by the sqrt
+            of the number of dither positions used, and the second is a 
+            multiplicitive factor due to the fact that we are typically 
+            rebinning from 2"/pix to 1"/pix (should be a factor of two, but
+            in testing with GRB 071025, Dan found it to be ~2.4).'''
             target_mag = new_mag
             
             # e_mag = sqrt((inst_err*2.4)**2 + zp_err**2 + (base_dither_error/sqrt(num_triplestacks))**2)
@@ -1194,7 +1233,8 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
     return photdict
 
 
-def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, auto_upper=True, cal = None, trigger_id = None, str_dict = None):
+def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
+    auto_upper=True, cal = None, trigger_id = None, str_dict = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1233,7 +1273,8 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, auto_upper
             return photdict
             break
     
-def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_dict=None, clobber=False):
+def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, \
+    star_dict=None, clobber=False):
     '''temporary looping 1232'''
     import glob
     GRBlist = []
@@ -1244,7 +1285,8 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, star_d
             GRBlist.append(item)
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
+        photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
+            aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
     return photout
     
 def plotzp(photdict):
@@ -1269,27 +1311,40 @@ def plotzp(photdict):
         valu = float(photdict[mosaics]['zp'][0])
         verr = float(photdict[mosaics]['zp'][1])
 
-#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+#there's probably a prettier way to do this, the second if statements are 
+#there so that only 1 label per filter is on the legend
 
         if 'h_' in mosaics:
             if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
+                    ecolor = 'red')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
+                    ecolor = 'red', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 's', linestyle ='None', mfc = 'yellow', \
+                    mec = 'green', ecolor = 'yellow')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 's', linestyle ='None', mfc = 'yellow', \
+                    mec = 'green', ecolor = 'yellow', label = 'k')
                 k = True
 
     ax = matplotlib.pyplot.gca()
@@ -1326,27 +1381,40 @@ def plots2n(photdict):
        
         valu = float(photdict[mosaics]['targ_s2n'])
 
-#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+#there's probably a prettier way to do this, the second if statements are 
+#there so that only 1 label per filter is on the legend
 
         if 'h_' in mosaics:
             if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green',\
+                    ecolor = 'yellow')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                matplotlib.pyplot.errorbar(time, valu, yerr = 0, xerr= 0, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green',\
+                    ecolor = 'yellow', label = 'k')
                 k = True
     
     matplotlib.pyplot.xlabel('duration(s)')
@@ -1366,7 +1434,8 @@ def textoutput(dict):
     uniquename = dict.keys()[0].split('_')[2]
     savepath = storepath + uniquename + '_text.txt'
     text = file(savepath, "w")
-    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME', 'targ_mag', 'targ_mag error']
+    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
+        'targ_mag', 'targ_mag error']
     text.write('\t'.join(namelist))
     text.write('\n')
     
@@ -1384,7 +1453,8 @@ def textoutput(dict):
             mag = str(values['targ_mag'][0]) 
             magerr = str(values['targ_mag'][1])
         time = str(values['t_mid'][0])
-        datalist = [str(values['FileName']), str(values['STRT_CPU']), str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
+        datalist = [str(values['FileName']), str(values['STRT_CPU']), \
+            str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
         text.write('\t'.join(datalist))
         text.write('\n')
     text.close()
@@ -1410,37 +1480,7 @@ def tmp_phot_plot(photdict):
     pylab.ylabel('J Mag')
     pylab.semilogx()
 
-# # amorgan comments out since photLoop is more powerful 
-# def photloop(filename, reg, aper=None):
-#     '''Loops through all the mosaics on h/j/k_mosaics.txt from CoaddWrap, 
-#     running q_phot on each. Output is stored in a text file with 
-#     the format t_mid|t_miderror|magnitude|magnitudeerror'''
-#     close()
-#     f = file(filename)
-#     textname = filename[0:1] + '_photometry_results.txt'
-#     r = open(textname, 'w')
-#     #vallist = []
-#     #errlist = []
-#     timlist = []
-# 
-#     for lameline in f.readlines():
-#         line = lameline.rstrip('\n')
-#         print line
-#         magnitude = dophot(line,reg,ap=aper)
-#         if magnitude['targ_mag'][0] == 'nan':
-#             pass
-#         else:
-#             vallist = magnitude['targ_mag'][0]
-#             errlist = magnitude['targ_mag'][1]
-#         time = t_mid.t_mid(line)
-#         time_err = t_mid.t_mid(line, delta = True) 
-# 
-#         result = str(time) + '|' + str(time_err) + '|' + str(vallist) + '|' + str(errlist) + '\n'
-#         r.write(result)
-#         
-#     f.close()
-#     r.close()
-    
+
 def photplot(photdict):
     '''Plots a graph from photdict'''
     import matplotlib
@@ -1467,27 +1507,40 @@ def photplot(photdict):
         valu = float(photdict[mosaics]['targ_mag'][0])
         verr = float(photdict[mosaics]['targ_mag'][1])
 
-#there's probably a prettier way to do this, the second if statements are there so that only 1 label per filter is on the legend
+        #there's probably a prettier way to do this, the second if statements 
+        #are there so that only 1 label per filter is on the legend
 
         if 'h_' in mosaics:
             if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'red', mec = 'green', ecolor = 'red', label = 'h')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                    ecolor = 'red', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
+                    ecolor = 'yellow')
             else:
-                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', ecolor = 'yellow', label = 'k')
+                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
+                    ecolor = 'yellow', label = 'k')
                 k = True
 
     ax = matplotlib.pyplot.gca()
@@ -1514,11 +1567,11 @@ def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
     j_delta_med_list = []
     h_delta_med_list = []
     k_delta_med_list = []
-    #aplist = [2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0]
     aplist = [7.0,7.2,7.4,7.6,7.8,8.0,8.2,8.4,8.6,8.8,9.0,9.2,9.4,9.6,9.8,10]
     for ap in aplist:
     
-        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, clobber=True, tger_id=tger_id) 
+        data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
+            clobber=True, tger_id=tger_id) 
     
         k_delta_list = []
         h_delta_list = []
