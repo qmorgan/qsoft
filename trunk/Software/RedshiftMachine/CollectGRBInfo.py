@@ -395,7 +395,10 @@ class GRBdb:
     def update_class(self):
         '''
         Given conditions, assign and update the redshift class
+        
+        LOOKS TO BE OUTDATED.  
         '''
+        print "WARNING: update_class is depreciated."
         for grb in self.dict:
             if 'z' in self.dict[grb]:
                 if self.dict[grb]['z'] > 5.0:
@@ -436,17 +439,7 @@ class GRBdb:
         # Some better way to deal with negative numbers before taking their log maybe? 
       
       
-    def CreateStructuredArray(self,keylist):
-        '''This is not working...
-        see http://docs.scipy.org/doc/numpy/user/basics.rec.html
-        
-        abandon all ye hope?
-        '''
-        nparr = numpy.zeros(len(keylist),dtype={'names':keylist,'formats':['f4','f4']})
-        for key in keylist:
-            nparr[key] = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
-        return nparr
-        
+
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
         we can't calculate a mean or stdev for these values.) 
@@ -567,6 +560,8 @@ class GRBdb:
         
         THIS SHOULD BE DEPRECIATED.  Use the arrays created by MakeAllAttr instead.
         '''
+        
+        print 'WARNING: ret_list is depreciated.'
         xlist = []
         ylist = []
         zlist = []
@@ -609,22 +604,6 @@ class GRBdb:
                         pass
             return((xlist,ylist,ilist))
     
-    
-    # def grbplot(self,x,y,z=None,logx=False,logy=False):
-    #     list_tup = self.ret_list(x,y)
-    #     xlist = list_tup[0]
-    #     ylist = list_tup[1]
-    #     zlist = None
-    #     if not logx and not logy:
-    #         ColorScatter(xlist,ylist,zlist)
-    #     if logx and not logy:
-    #         pylab.semilogx()
-    #     if logy and not logx:
-    #         pylab.semilogy()
-    #     if logy and logx:
-    #         pylab.loglog()
-    #     pylab.ylabel(y)
-    #     pylab.xlabel(x)
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
         xjitter=0.0):
@@ -670,54 +649,7 @@ class GRBdb:
         
         AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
             xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
-        
-        
-        
-    def _old_grbannotesubplot(self,\
-        x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
-        y_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
-        z_keys=['Z','Z','Z','Z'],\
-        logx=False,logy=False):
-        '''Create an annotated sub plot of the GRB parameters specified in the
-        keys.
-    
-        '''
-
-        remove_short = True
-    
-        if len(x_keys) != len(y_keys):
-            raise(ValueError('Len of key lists do not match'))
-    
-        ind = 0
-        xlist=[]
-        ylist=[]
-        zlist=[]
-        annotelist=[]
-    
-        while ind < len(x_keys):
-            x=x_keys[ind]
-            y=y_keys[ind]
-            if z_keys:
-                z=z_keys[ind]
-                list_tup = self.ret_list(x,y,z)
-            else:
-                list_tup = self.ret_list(x,y)
-        
-            currentgrbname = list_tup[2]
-            annotelist.append(currentgrbname)
-       
-            xlist.append(list_tup[0])
-            ylist.append(list_tup[1])
-            if z_keys:
-                zlist.append(list_tup[3])
-            ind += 1 
-        
-        # Maybe instead of plotting a loglog plot, create a new parameter which
-        # is the log of the value and plot a linear scatter.  This will make 
-        # the plotting faster and allow for more flexibility 
-        AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
-            xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
-
+                
     def plotallvall(self,keylist,zval=None,remove_redundant=True,single_save=True):
         '''Plot all listed keywords against each other.  If zval is specified, use
         it as the third 'color' dimension.  If remove_redundant, do not plot e.g.
