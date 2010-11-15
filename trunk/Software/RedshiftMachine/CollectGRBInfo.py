@@ -391,14 +391,13 @@ class GRBdb:
         print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs  
         print "GRBs failed to obtain finding charts: ", failed_finding_charts           
         return collected_dict
-
+    
+    
     def update_class(self):
         '''
         Given conditions, assign and update the redshift class
         
-        LOOKS TO BE OUTDATED.  
         '''
-        print "WARNING: update_class is depreciated."
         for grb in self.dict:
             if 'z' in self.dict[grb]:
                 if self.dict[grb]['z'] > 5.0:
@@ -409,37 +408,33 @@ class GRBdb:
             if 'T90' in self.dict[grb] and 'FL' in self.dict[grb]:
                 flosqrtrt90 = self.dict[grb]['FL']*(self.dict[grb]['T90']**-0.5)
                 self.dict[grb]['FL_over_SQRT_T90'] = flosqrtrt90  # this should be a measure of S/N
-        
-            if 'v_mag_isupper' in self.dict[grb]:
-                vmagbinarystr = self.dict[grb]['v_mag_isupper']
-                if vmagbinarystr == 'no':
-                    self.dict[grb]['v_mag_isupper_binary'] = 0
-                else:
-                    self.dict[grb]['v_mag_isupper_binary'] = 1
-                    
-            if 'bat_is_rate_trig' in self.dict[grb]:
-                ratebinarystr = self.dict[grb]['bat_is_rate_trig']
-                if ratebinarystr == 'no':
-                    self.dict[grb]['bat_is_rate_trig_binary'] = 0
-                else:
-                    self.dict[grb]['bat_is_rate_trig_binary'] = 1
-        
-    def log_update_class(self,keylist):
-        '''Create offset if there are negative values before taking the logarithm?'''
-        for grb in self.dict:
-            for key in keylist:
-                if key in self.dict[grb]:
-                    newname = 'log_'+key
-                    try:
-                        self.dict[grb][newname] = numpy.log(self.dict[grb][key])
-                    except:
-                        print 'Cannot take the log of GRB %s %s' % (grb,key)
-                    
-        # Note that this will make potentially interesting negative numbers into NAN
-        # Some better way to deal with negative numbers before taking their log maybe? 
+            
+            # Make new attribute checking if there's ANY uvot detection
+            UVOT_Detection = 'no'
+            if 'wh_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['wh_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+                
+            elif 'v_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['v_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'                
+            self.dict[grb]['uvot_detection'] = UVOT_Detection
+            
+            # commented out since we have a binary maker
+            # if 'v_mag_isupper' in self.dict[grb]:
+            #     vmagbinarystr = self.dict[grb]['v_mag_isupper']
+            #     if vmagbinarystr == 'no':
+            #         self.dict[grb]['v_mag_isupper_binary'] = 0
+            #     else:
+            #         self.dict[grb]['v_mag_isupper_binary'] = 1
+            #         
+            # if 'bat_is_rate_trig' in self.dict[grb]:
+            #     ratebinarystr = self.dict[grb]['bat_is_rate_trig']
+            #     if ratebinarystr == 'no':
+            #         self.dict[grb]['bat_is_rate_trig_binary'] = 0
+            #     else:
+            #         self.dict[grb]['bat_is_rate_trig_binary'] = 1
       
-      
-
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
         we can't calculate a mean or stdev for these values.) 
@@ -508,6 +503,21 @@ class GRBdb:
         
         setattr(self,key,keydict)
    
+    def log_update_class(self,keylist):
+        '''Create offset if there are negative values before taking the logarithm?
+        
+        Note that this will make potentially interesting negative numbers into NAN
+        Some better way to deal with negative numbers before taking their log maybe?
+        '''
+        for grb in self.dict:
+            for key in keylist:
+                if key in self.dict[grb]:
+                    newname = 'log_'+key
+                    try:
+                        self.dict[grb][newname] = numpy.log(self.dict[grb][key])
+                    except:
+                        print 'Cannot take the log of GRB %s %s' % (grb,key)
+        
     
     def norm_update_class(self,keylist):
         '''
@@ -817,8 +827,14 @@ class GRBdb:
         self.MakeNomArr('z_isupper')
         self.MakeNomArr('triggerid_str')
         
+        # Self-created values
+        self.update_class()
+        self.MakeAttrArr('FL_over_SQRT_T90')
+        self.MakeNomArr('uvot_detection')
+        
         # Make the following Binary attributes
-        keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig']
+        keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig',
+            'uvot_detection']
         for key in keys_to_binary:
             self.MakeBinArr(key,'yes')
         
@@ -842,13 +858,7 @@ class GRBdb:
             figoutdir = storepath + 'figures/'+figname
             pylab.savefig(figoutdir)
             pylab.close()
-    
-    # def testplotall(self):
-    #     keylist = ['EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T50', 'T90', 'RT45', 'Z', 'MAX_SNR', 'DT_MAX_SNR']
-    #     self.plotallvall(keylist=keylist,zval='Z')
-    #     #['n','n','y','n','n','n','n']
-    #     pass
-    # 
+
     def printall(self,keywordlist,suppress = True):
         '''Print all the keywords in the keyword list in the collected dictionary
         If suppress, then only print them out if all keywords are present for a 
