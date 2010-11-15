@@ -186,13 +186,13 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
 def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
 
-def CrawlThruLyraData():
+def CrawlThruLyraData(basepath='/PAIRITEL/'):
     swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
     rawpaths=[]
     ptel_dict={}
     error_paths=[]
     
-    globstr = '/Volumes/BR2/Bloom/PAIRITEL-DATA/sem20???/Dir20??-???-??/'
+    globstr = basepath + 'sem20???/Dir20??-???-??/'
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
@@ -287,7 +287,7 @@ def MakeReduxScript(pteldict,trigid,pl3base='/home/ptelreducer/PyPAIRITELfullred
     os.system(cmd)
     f.close()
 
-def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/Data/FullDB/',clobber=False):
+def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/MyPassport/Data/FullDB/',clobber=False):
     '''
     Specifying either a target ID or a grb name, copy the raw data over to the
     desired location.
@@ -317,7 +317,7 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/CavalryData/
                     os.mkdir(obsoutlocation)
                 except:
                     print 'Cannot make the directory.  Crap.'
-            cmd = 'scp amorgan@lyra.berkeley.edu:%s %s/.' % (globstr, obsoutlocation)
+            cmd = 'scp -P 10222 amorgan@lyra.berkeley.edu:%s %s/.' % (globstr, obsoutlocation)
             os.system(cmd)
             # globlist = glob.glob(globstr)
             # print globlist
