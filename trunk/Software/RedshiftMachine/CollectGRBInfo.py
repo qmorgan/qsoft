@@ -137,6 +137,10 @@ def whatis(keyword):
     'bat_trig_ind': {'definition':'BAT Trigger Index?','type':'double','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':147.0},
     'bat_trig_ind_range': {'definition':'BAT Trigger Energy Range string (keV)','type':'string','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':' 25-100 keV'},
     'bat_trigger_dur': {'definition':'Duration of BAT Trigger (seconds)','type':'double','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':1.024},
+    'best_ra': {'definition':'Right Ascention of burst, as determined - from the most accurate GCN available','type':'double','source':'GCN Notices','speed':'nfi_prompt','sample':31.825500000000002},
+    'best_dec': {'definition':'Declination of burst, as determined  - from the most accurate GCN available','type':'double','source':'GCN Notices','speed':'nfi_prompt','sample':0.34160000000000001},
+    'best_pos_err': {'definition':'Uncertainty in Best position (arcsec)','type':'double','source':'GCN','speed':'nfi_prompt','sample':6.0999999999999996},
+    'best_pos_type': {'definition':'Source of best position','type':'string','source':'GCN','speed':'nfi_prompt','sample':'XRT'},
     'burst_time_str': {'definition':'Burst time in HH:MM:SS format, read directly from Swift Catalog (less precise than grb_time_str)','type':'string','source':'SwiftCat','speed':'bat_prompt','sample':'08:57:22'},
     'fluence': {'definition':'BAT fluence (15-150 keV) [10^-7 erg/cm^2] (see FL for full definition) - trust less than FL?','type':'double','source':'SwiftCat','speed':'processed','sample':28.0},
     'fluence_str': {'definition':'BAT Fluence String, read from Swift catalog','type':'string','source':'SwiftCat','speed':'processed','sample':'28.00'},
@@ -161,6 +165,7 @@ def whatis(keyword):
     'uvot_list': {'definition':'List of initial UVOT magnitudes and upper limits (all but V)','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'B=18.41|U=17.01|UVW1=18.61|UVM2>18.57|UVW2>19.07|White=15.06'},
     'uvot_pos_err': {'definition':'Uncertainty in UVOT Position (arcsec)','type':'double','source':'Swift-UVOT Position','speed':'nfi_prompt','sample':0.40000000000000002},
     'uvot_ra': {'definition':'RA of burst, as determined by Swift UVOT afterglow ','type':'double','source':'Swift-UVOT Position','speed':'nfi_prompt','sample':31.8264},
+    'uvot_time_delta': {'definition':'time since burst of first uvot observation','type':'double','source':'SwiftCat','speed':'nfi_prompt','sample':116.2},
     'v_mag_isupper': {'definition':'Is the UVOT V Magnitude an upper limit? - V is our second best chance of getting a detection; typically second on-sky (sometimes first) and the reddest of the filters','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'uvot_detection': {'definition':'Is there a detection in the UVOT? Combines information from wh_mag_isupper and v_mag_isupper','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'v_mag_str': {'definition':'Initial UVOT V Magnitude String','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'V=16.85'},
@@ -182,6 +187,7 @@ def whatis(keyword):
     'xrt_tam1': {'definition':'XRT TAM 1?','type':'double','source':'Swift-XRT Position','speed':'nfi_prompt','sample':237.21000000000001},
     'xrt_tam2': {'definition':'XRT TAM 2?','type':'double','source':'Swift-XRT Position','speed':'nfi_prompt','sample':261.25999999999999},
     'xrt_tam3': {'definition':'XRT TAM 3?','type':'double','source':'Swift-XRT Position','speed':'nfi_prompt','sample':243.41999999999999},
+    'xrt_time_delta': {'definition':'time since burst of first xrt observation','type':'double','source':'SwiftCat','speed':'nfi_prompt','sample':86.2},
     'xrt_waveform': {'definition':'XRT Waveform?','type':'integer','source':'Swift-XRT Position','speed':'nfi_prompt','sample':134},
     'z': {'definition':'Redshift','type':'double','source':'SwiftCat','speed':'na','sample':2.4300000000000002},
     'z_class': {'definition':'Redshift class (high_z,medium_z,low_z) derived from actual redshift value','type':'string','source':'Derived','speed':'na','sample':'medium_z'},
@@ -316,6 +322,7 @@ class GRBdb:
                     triggerid=int(trigid_str)
                     loaded_gcn = LoadGCN.LoadGCN(triggerid)
                     loaded_gcn.extract_values()
+                    loaded_gcn.get_positions()
                     source_name = 'Swift_%s-GRB%s' % (trigid_str, grb_str)
                     if incl_reg:
                         try:
