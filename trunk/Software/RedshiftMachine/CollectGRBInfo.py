@@ -20,12 +20,14 @@ from AutoRedux import Signal
 from MiscBin.q import RemoveNaN
 from MiscBin.q import object2dict
 from MiscBin.q import where
+from MiscBin.q import dec2sex
 from MiscBin import qPickle
 import pylab
 import scipy
 import numpy
 from Plotting.ColorScatter import ColorScatter
 from Plotting.Annote import AnnotatedSubPlot
+from Phot import extinction
 
 
 #from MiscBin.q import Standardize
@@ -243,7 +245,7 @@ class GRBdb:
             self.incl_reg = incl_reg
             self.make_html = make_html
             self.html_path = html_path
-        
+            self.class_updated = False
             self.dict = self.collect()
         
             if len(self.name) > 20:
@@ -427,6 +429,18 @@ class GRBdb:
                 if self.dict[grb]['v_mag_isupper'] == 'no':
                     UVOT_Detection = 'yes'                
             self.dict[grb]['uvot_detection'] = UVOT_Detection
+            
+            # Make new attribute grabbing the extinction column.  
+            # Might want to change the observation epoch.
+            if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
+                best_position = dec2sex((self.dict[grb]['best_ra'],self.dict[grb]['best_dec']))
+                ext_list = extinction.extinction(lon=best_position[0],\
+                    lat=best_position[1],system_in='Equatorial',\
+                    system_out='Galactic',obs_epoch="2005.0")
+                gal_EB_V = ext_list[0]
+            self.dict[grb]['gal_EB_V'] = gal_EB_V
+            self.class_updated = True
+            
       
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
@@ -722,7 +736,8 @@ class GRBdb:
 
 
     def test_log_update(self,plot=True,hist=True):
-        self.update_class()
+        if not self.class_updated:
+            self.update_class()
         self.MakeAllAttr()
         
         keys_to_log = ['xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
@@ -822,11 +837,15 @@ class GRBdb:
         self.MakeAttrArr('z')
         self.MakeNomArr('z_isupper')
         self.MakeNomArr('triggerid_str')
+        self.MakeAttrArr('xrt_time_delta')
+        self.MakeAttrArr('uvot_time_delta')
         
         # Self-created values
-        self.update_class()
+        if not self.class_updated:
+            self.update_class()
         self.MakeAttrArr('FL_over_SQRT_T90')
         self.MakeNomArr('uvot_detection')
+        self.MakeAttrArr('gal_EB_V')
         
         # Make the following Binary attributes
         keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig',
