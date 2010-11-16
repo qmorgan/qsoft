@@ -977,6 +977,7 @@ class GRBdb:
         
         # Open file
         arffpath = storepath+self.name+'.arff'
+        arffpathpartial = arffpath + '_part'
         subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
@@ -988,7 +989,7 @@ class GRBdb:
         
         helpdict = whatis('all')
         
-        f=open(arffpath,'w')
+        f=open(arffpathpartial,'w')
 
         # Create .arff header
         f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
@@ -1022,11 +1023,20 @@ class GRBdb:
                 if not 'type' in attrdict:
                     print 'type not in attribute dict.  Continuing...'
                     continue
-                # Check if in the timedict
-                if not helpdict[keyitem]['speed'] in time_list:
+                # Check if in the timedict.  Attributes made to binary values
+                # Will have the same features, so just strip that word and 
+                # look up the original in the helpdict
+                if keyitem[-7:] == '_binary':
+                    print keyitem
+                    keyitem_lookup = keyitem.rstrip('binary').rstrip('_')
+                    print keyitem_lookup
+                else:
+                    keyitem_lookup = keyitem
+                helpdictitem = helpdict[keyitem_lookup]
+                if not helpdictitem['speed'] in time_list:
                     print 'Speed for %s not in time_list; not including' % (keyitem)
                     continue
-                if attrdict['type'] == 'numeric':
+                if attrdict['type'] == 'numeric' or attrdict['type'] == 'binary':
                     numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
                     numattrlist.append(keyitem)
                     fmt += ',%f'
@@ -1057,27 +1067,32 @@ class GRBdb:
         f.write('@DATA\n')    
         
             
-        firstattr = numattrlist[0]
-        numtotarr=numpy.array([getattr(self,firstattr)['array']])
-        # Populate the total array
-        for keyitem in numattrlist[1:]:
-            attrdict = getattr(self,keyitem)
-            numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['array']])),axis=0)
-            if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
-                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['poserrarr']])),axis=0)
-                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['negerrarr']])),axis=0)
-                    
+        if numattrlist:
+            firstattr = numattrlist[0]
+            numtotarr=numpy.array([getattr(self,firstattr)['array']])
+            # Populate the total array
+            for keyitem in numattrlist[1:]:
+                attrdict = getattr(self,keyitem)
+                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['array']])),axis=0)
+                if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
+                    numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['poserrarr']])),axis=0)
+                    numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['negerrarr']])),axis=0)
+            numarr2 = numtotarr
+        else:
+            numarr2 = numpy.array(['# NO NUMERIC ATTRIBUTES'])
+            
         
         
-        firstattr = nomattrlist[0]
-        nomtotarr=numpy.array([getattr(self,firstattr)['array']])
-        # Populate the total array
-        for keyitem in nomattrlist[1:]:
-            attrdict = getattr(self,keyitem)
-            nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
-        
-        numarr2 = numtotarr
-        nomarr2 = nomtotarr
+        if nomattrlist:
+            firstattr = nomattrlist[0]
+            nomtotarr=numpy.array([getattr(self,firstattr)['array']])
+            # Populate the total array
+            for keyitem in nomattrlist[1:]:
+                attrdict = getattr(self,keyitem)
+                nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
+            nomarr2 = nomtotarr
+        else:
+            nomarr2 = numpy.array(['# NO NOMINAL ATTRIBUTES'])
         
         nomsubpath = subpath + 'nom'
         numsubpath = subpath + 'num'
@@ -1114,7 +1129,7 @@ class GRBdb:
         output.close()
         
         # Combine the Header with the data
-        cmd = 'cat %s %s > %s_full' %(arffpath,subpath2,arffpath)
+        cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
 
