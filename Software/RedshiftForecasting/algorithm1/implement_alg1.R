@@ -15,7 +15,8 @@ source('algorithm1.R')
 ##
 ## get the data in the desired form
 ##
-filename = 'uvot_feature.arff'
+#filename = '070710_shortremoved_NoZremoved.arff_full'
+filename='uvot_no_error.arff'
 #filename = '070710_shortremoved_NoZremoved_outremoved_late_proccessed.arff'
 data1 = read.arff(filename)
 Z = data1$Z
@@ -30,7 +31,7 @@ data1 = subset(data1,select=(!(names(data1) %in% c("CHI2_PC","CHI2_WT","CHI2_PC_
 # uncomment the following line if want code to run fast (vastly reduced # of features)
 # this is used mostly for testing
 # data1 = subset(data1,select=((names(data1) %in% c("class","A","FLX_PC_LATE","wh_mag_isupper"))))
-data1 = subset(data1,select=((names(data1) %in% c("class","wh_mag_isupper"))))
+data1 = subset(data1,select=((names(data1) %in% c("class","uvot_detection"))))
 
 
 
@@ -79,6 +80,27 @@ print(names(data1))
 implement(data1,Z)
 
 
+
+###
+### 
+###
+
+table(data1$class,data1$uvot_detection)
+
+
+###
+### add some useless features and rerun algorithm
+###
+
+names(data1)
+number_or_useless_features = 10
+useless_data = matrix(runif(nrow(data1)*number_of_useless_features),nrow=nrow(data1))
+data1 = cbind(data1,useless_data)
+names(data1)
+
+data1 = cbind(data1,runif(151),runif(151),runif(151),runif(151),runif(151))
+names(data1) = c('class','uvot_detection','f1','f2','f3','f4','f5')
+implement(data1,Z)
 
 
 

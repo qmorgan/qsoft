@@ -6,6 +6,7 @@
 ###### Note 1: This file contains functions for implementing algorithm 1. Code is
 ###### highly commented.
 
+
 ###### Note 2: Even quite recently the function outputSplits was producing incorrect
 ###### results. The purpose of output splits is to let the user know what features
 ###### CART was splitting on. Also the output correct.tex was (ironically) often
@@ -396,7 +397,7 @@ heatMap = function(data1,ALPHA_RANGE = 1:9 / 10,PRIOR_RANGE = (1:19) / 20,NUMBER
 ###
 ### 1. ALPHA_RANGE is the proportion of bursts astronomers are able to follow up on
 ### 2. PRIORS is a vector of the choices for the priors
-### 3. nCV # times we cross validate, high = stable est (must be > 1, this is a bug)
+### 3. nCV # times we cross validate, high = stableest (must be > 1, this is a bug)
 ### 4. nCV1 is number folds used by function crossValidateAlgorithm, which CVs algorithm1
 ### 5. nCV2 is number of folds used by algorithm1
 ### 6. Z is actual redshift
