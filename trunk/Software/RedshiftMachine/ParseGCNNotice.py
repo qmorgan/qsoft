@@ -209,7 +209,13 @@ class GCNNotice:
                     self.uvot_pos = self.parse_positions(item)
                     if not hasattr(self,'best_pos') or (self.uvot_pos[2] < self.best_pos[2]):
                         self.best_pos = self.uvot_pos
-                        self.best_pos_type = 'UVOT'    
+                        self.best_pos_type = 'UVOT'  
+        # Put them in to a dictionary:
+        sub_dict = {'best_ra':self.best_pos[0],'best_dec':self.best_pos[1],\
+            'best_pos_error':self.best_pos[2],'best_pos_type':self.best_pos_type}
+        self.pdict.update(sub_dict)
+        
+        
             
         if create_reg_file == True:
             # Creates a ds9 region file
