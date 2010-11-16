@@ -2,8 +2,11 @@
 ########
 ######## Get GRB data in form so we can run through algorithm1.R
 ########
+######## by James Long
+######## date Nov 16, 2010
 ########
-########
+
+# necessary packages
 set.seed(250)
 library('foreign')
 library('rpart')
@@ -20,8 +23,8 @@ filename='uvot_no_error.arff'
 #filename = '070710_shortremoved_NoZremoved_outremoved_late_proccessed.arff'
 data1 = read.arff(filename)
 Z = data1$Z
-data1$triggerid_str = NULL # meaningless feature in the data sets
-data1 = removeErrors(data1)
+data1$triggerid_str = NULL # meaningless feature in some of the data sets
+data1 = removeErrors(data1) # get rid of error features
 data1 = cleanData(data1,4) # define above 4 as high, below 4 as low
 
 # these features are removed because they are formatted weirdly, according to Adam they
@@ -31,6 +34,8 @@ data1 = subset(data1,select=(!(names(data1) %in% c("CHI2_PC","CHI2_WT","CHI2_PC_
 # uncomment the following line if want code to run fast (vastly reduced # of features)
 # this is used mostly for testing
 # data1 = subset(data1,select=((names(data1) %in% c("class","A","FLX_PC_LATE","wh_mag_isupper"))))
+
+# only use uvot_detection feature
 data1 = subset(data1,select=((names(data1) %in% c("class","uvot_detection"))))
 
 
@@ -45,7 +50,7 @@ data1 = subset(data1,select=((names(data1) %in% c("class","uvot_detection"))))
 
 
 ###
-### Important: data1 should now be dataframe with first column ''class'' a factor with two 
+### Important PLEASE READ: data1 should now be dataframe with first column ''class'' a factor with two 
 ### levels. Remaining columns are features, which may be continuous and/or categorical, 
 ### missingness okay. The actual redshift (numerical value) should be stored in the variable
 ### Z. The order of Z should match the observation order in data1.
@@ -70,13 +75,11 @@ print(names(data1))
 
 
 
-# get a heat map
-#heatmap(data1)
-# get everything else
 
-
-
-
+##
+## outputs of bunch of useful tables in .tex form, see algorithm1.R
+## comments for exact description
+##
 implement(data1,Z)
 
 
@@ -93,18 +96,20 @@ table(data1$class,data1$uvot_detection)
 ###
 
 names(data1)
-number_or_useless_features = 10
+number_of_useless_features = 25
 useless_data = matrix(runif(nrow(data1)*number_of_useless_features),nrow=nrow(data1))
+colnames(useless_data) = paste('f',1:number_of_useless_features,sep="")
 data1 = cbind(data1,useless_data)
 names(data1)
 
-data1 = cbind(data1,runif(151),runif(151),runif(151),runif(151),runif(151))
-names(data1) = c('class','uvot_detection','f1','f2','f3','f4','f5')
+
 implement(data1,Z)
 
 
 
-
+###
+### find alphas chosen by each method
+###
 prior_alpha1 = algorithm1(data1,10,(1:9) / 10,.1)
 prior_alpha3 = algorithm1(data1,10,(1:9) / 10,.3)
 prior_alpha5 = algorithm1(data1,10,(1:9) / 10,.5)
@@ -116,6 +121,13 @@ fit1 = rpart(class ~ .,parms=list(prior=c(1-prior_alpha1,prior_alpha1)),method="
 fit2 = rpart(class ~ .,parms=list(prior=c(1-prior_alpha3,prior_alpha3)),method="class",data = data1)
 fit3 = rpart(class ~ .,parms=list(prior=c(1-prior_alpha5,prior_alpha5)),method="class",data = data1)
 
+
+
+
+
+####
+#### display some actual trees
+####
 
 par(mfcol=c(1,1))
 pdf('alpha_1.pdf')

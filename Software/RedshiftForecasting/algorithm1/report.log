@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2010.9.20)  15 NOV 2010 14:53
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2010.9.20)  16 NOV 2010 14:12
 entering extended mode
  %&-line parsing enabled.
 **report.tex
@@ -230,22 +230,22 @@ LaTeX Font Info:    Try loading font information for U+msb on input line 5.
 
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2002/01/19 v2.2g AMS font definitions
-)) [1
+)) (./splits.tex) [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] (./report.aux) ) 
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] (./report.aux) ) 
 Here is how much of TeX's memory you used:
- 2037 strings out of 94101
- 24837 string characters out of 1165810
- 81030 words of memory out of 1500000
- 5321 multiletter control sequences out of 10000+50000
+ 2041 strings out of 94101
+ 24883 string characters out of 1165810
+ 83030 words of memory out of 1500000
+ 5322 multiletter control sequences out of 10000+50000
  5339 words of font info for 22 fonts, out of 1200000 for 2000
  637 hyphenation exceptions out of 8191
- 27i,7n,32p,250b,233s stack positions out of 5000i,500n,6000p,200000b,5000s
-</usr/shar
-e/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb>
-Output written on report.pdf (1 page, 12369 bytes).
+ 27i,8n,32p,268b,233s stack positions out of 5000i,500n,6000p,200000b,5000s
+</usr/
+share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb>
+Output written on report.pdf (2 pages, 14639 bytes).
 PDF statistics:
- 10 PDF objects out of 1000 (max. 8388607)
+ 13 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
