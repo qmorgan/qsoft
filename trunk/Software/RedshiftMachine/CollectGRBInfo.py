@@ -20,12 +20,14 @@ from AutoRedux import Signal
 from MiscBin.q import RemoveNaN
 from MiscBin.q import object2dict
 from MiscBin.q import where
+from MiscBin.q import dec2sex
 from MiscBin import qPickle
 import pylab
 import scipy
 import numpy
 from Plotting.ColorScatter import ColorScatter
 from Plotting.Annote import AnnotatedSubPlot
+from Phot import extinction
 
 
 #from MiscBin.q import Standardize
@@ -137,6 +139,10 @@ def whatis(keyword):
     'bat_trig_ind': {'definition':'BAT Trigger Index?','type':'double','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':147.0},
     'bat_trig_ind_range': {'definition':'BAT Trigger Energy Range string (keV)','type':'string','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':' 25-100 keV'},
     'bat_trigger_dur': {'definition':'Duration of BAT Trigger (seconds)','type':'double','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':1.024},
+    'best_ra': {'definition':'Right Ascention of burst, as determined - from the most accurate GCN available','type':'double','source':'GCN Notices','speed':'nfi_prompt','sample':31.825500000000002},
+    'best_dec': {'definition':'Declination of burst, as determined  - from the most accurate GCN available','type':'double','source':'GCN Notices','speed':'nfi_prompt','sample':0.34160000000000001},
+    'best_pos_err': {'definition':'Uncertainty in Best position (arcsec)','type':'double','source':'GCN','speed':'nfi_prompt','sample':6.0999999999999996},
+    'best_pos_type': {'definition':'Source of best position','type':'string','source':'GCN','speed':'nfi_prompt','sample':'XRT'},
     'burst_time_str': {'definition':'Burst time in HH:MM:SS format, read directly from Swift Catalog (less precise than grb_time_str)','type':'string','source':'SwiftCat','speed':'bat_prompt','sample':'08:57:22'},
     'fluence': {'definition':'BAT fluence (15-150 keV) [10^-7 erg/cm^2] (see FL for full definition) - trust less than FL?','type':'double','source':'SwiftCat','speed':'processed','sample':28.0},
     'fluence_str': {'definition':'BAT Fluence String, read from Swift catalog','type':'string','source':'SwiftCat','speed':'processed','sample':'28.00'},
@@ -161,7 +167,9 @@ def whatis(keyword):
     'uvot_list': {'definition':'List of initial UVOT magnitudes and upper limits (all but V)','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'B=18.41|U=17.01|UVW1=18.61|UVM2>18.57|UVW2>19.07|White=15.06'},
     'uvot_pos_err': {'definition':'Uncertainty in UVOT Position (arcsec)','type':'double','source':'Swift-UVOT Position','speed':'nfi_prompt','sample':0.40000000000000002},
     'uvot_ra': {'definition':'RA of burst, as determined by Swift UVOT afterglow ','type':'double','source':'Swift-UVOT Position','speed':'nfi_prompt','sample':31.8264},
+    'uvot_time_delta': {'definition':'time since burst of first uvot observation','type':'double','source':'SwiftCat','speed':'nfi_prompt','sample':116.2},
     'v_mag_isupper': {'definition':'Is the UVOT V Magnitude an upper limit? - V is our second best chance of getting a detection; typically second on-sky (sometimes first) and the reddest of the filters','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
+    'uvot_detection': {'definition':'Is there a detection in the UVOT? Combines information from wh_mag_isupper and v_mag_isupper','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'v_mag_str': {'definition':'Initial UVOT V Magnitude String','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'V=16.85'},
     'w1_mag_isupper': {'definition':'Is the UVOT W1 Magnitude an upper limit?','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'no'},
     'w2_mag_isupper': {'definition':'Is the UVOT W2 Magnitude an upper limit?','type':'string','source':'SwiftCat','speed':'nfi_prompt','sample':'yes'},
@@ -181,6 +189,7 @@ def whatis(keyword):
     'xrt_tam1': {'definition':'XRT TAM 1?','type':'double','source':'Swift-XRT Position','speed':'nfi_prompt','sample':237.21000000000001},
     'xrt_tam2': {'definition':'XRT TAM 2?','type':'double','source':'Swift-XRT Position','speed':'nfi_prompt','sample':261.25999999999999},
     'xrt_tam3': {'definition':'XRT TAM 3?','type':'double','source':'Swift-XRT Position','speed':'nfi_prompt','sample':243.41999999999999},
+    'xrt_time_delta': {'definition':'time since burst of first xrt observation','type':'double','source':'SwiftCat','speed':'nfi_prompt','sample':86.2},
     'xrt_waveform': {'definition':'XRT Waveform?','type':'integer','source':'Swift-XRT Position','speed':'nfi_prompt','sample':134},
     'z': {'definition':'Redshift','type':'double','source':'SwiftCat','speed':'na','sample':2.4300000000000002},
     'z_class': {'definition':'Redshift class (high_z,medium_z,low_z) derived from actual redshift value','type':'string','source':'Derived','speed':'na','sample':'medium_z'},
@@ -236,7 +245,7 @@ class GRBdb:
             self.incl_reg = incl_reg
             self.make_html = make_html
             self.html_path = html_path
-        
+            self.class_updated = False
             self.dict = self.collect()
         
             if len(self.name) > 20:
@@ -315,6 +324,7 @@ class GRBdb:
                     triggerid=int(trigid_str)
                     loaded_gcn = LoadGCN.LoadGCN(triggerid)
                     loaded_gcn.extract_values()
+                    loaded_gcn.get_positions()
                     source_name = 'Swift_%s-GRB%s' % (trigid_str, grb_str)
                     if incl_reg:
                         try:
@@ -391,10 +401,12 @@ class GRBdb:
         print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs  
         print "GRBs failed to obtain finding charts: ", failed_finding_charts           
         return collected_dict
-
+    
+    
     def update_class(self):
         '''
         Given conditions, assign and update the redshift class
+        
         '''
         for grb in self.dict:
             if 'z' in self.dict[grb]:
@@ -406,47 +418,30 @@ class GRBdb:
             if 'T90' in self.dict[grb] and 'FL' in self.dict[grb]:
                 flosqrtrt90 = self.dict[grb]['FL']*(self.dict[grb]['T90']**-0.5)
                 self.dict[grb]['FL_over_SQRT_T90'] = flosqrtrt90  # this should be a measure of S/N
-        
-            if 'v_mag_isupper' in self.dict[grb]:
-                vmagbinarystr = self.dict[grb]['v_mag_isupper']
-                if vmagbinarystr == 'no':
-                    self.dict[grb]['v_mag_isupper_binary'] = 0
-                else:
-                    self.dict[grb]['v_mag_isupper_binary'] = 1
-                    
-            if 'bat_is_rate_trig' in self.dict[grb]:
-                ratebinarystr = self.dict[grb]['bat_is_rate_trig']
-                if ratebinarystr == 'no':
-                    self.dict[grb]['bat_is_rate_trig_binary'] = 0
-                else:
-                    self.dict[grb]['bat_is_rate_trig_binary'] = 1
-        
-    def log_update_class(self,keylist):
-        '''Create offset if there are negative values before taking the logarithm?'''
-        for grb in self.dict:
-            for key in keylist:
-                if key in self.dict[grb]:
-                    newname = 'log_'+key
-                    try:
-                        self.dict[grb][newname] = numpy.log(self.dict[grb][key])
-                    except:
-                        print 'Cannot take the log of GRB %s %s' % (grb,key)
-                    
-        # Note that this will make potentially interesting negative numbers into NAN
-        # Some better way to deal with negative numbers before taking their log maybe? 
+            
+            # Make new attribute checking if there's ANY uvot detection
+            UVOT_Detection = 'no'
+            if 'wh_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['wh_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+                
+            elif 'v_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['v_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'                
+            self.dict[grb]['uvot_detection'] = UVOT_Detection
+            
+            # Make new attribute grabbing the extinction column.  
+            # Might want to change the observation epoch.
+            if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
+                best_position = dec2sex((self.dict[grb]['best_ra'],self.dict[grb]['best_dec']))
+                ext_list = extinction.extinction(lon=best_position[0],\
+                    lat=best_position[1],system_in='Equatorial',\
+                    system_out='Galactic',obs_epoch="2005.0")
+                gal_EB_V = ext_list[0]
+            self.dict[grb]['gal_EB_V'] = gal_EB_V
+            self.class_updated = True
+            
       
-      
-    def CreateStructuredArray(self,keylist):
-        '''This is not working...
-        see http://docs.scipy.org/doc/numpy/user/basics.rec.html
-        
-        abandon all ye hope?
-        '''
-        nparr = numpy.zeros(len(keylist),dtype={'names':keylist,'formats':['f4','f4']})
-        for key in keylist:
-            nparr[key] = numpy.array(map(lambda x:x[key] if key in x else numpy.nan, self.dict.itervalues()))
-        return nparr
-        
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
         we can't calculate a mean or stdev for these values.) 
@@ -515,6 +510,21 @@ class GRBdb:
         
         setattr(self,key,keydict)
    
+    def log_update_class(self,keylist):
+        '''Create offset if there are negative values before taking the logarithm?
+        
+        Note that this will make potentially interesting negative numbers into NAN
+        Some better way to deal with negative numbers before taking their log maybe?
+        '''
+        for grb in self.dict:
+            for key in keylist:
+                if key in self.dict[grb]:
+                    newname = 'log_'+key
+                    try:
+                        self.dict[grb][newname] = numpy.log(self.dict[grb][key])
+                    except:
+                        print 'Cannot take the log of GRB %s %s' % (grb,key)
+        
     
     def norm_update_class(self,keylist):
         '''
@@ -567,6 +577,8 @@ class GRBdb:
         
         THIS SHOULD BE DEPRECIATED.  Use the arrays created by MakeAllAttr instead.
         '''
+        
+        print 'WARNING: ret_list is depreciated.'
         xlist = []
         ylist = []
         zlist = []
@@ -609,25 +621,9 @@ class GRBdb:
                         pass
             return((xlist,ylist,ilist))
     
-    
-    # def grbplot(self,x,y,z=None,logx=False,logy=False):
-    #     list_tup = self.ret_list(x,y)
-    #     xlist = list_tup[0]
-    #     ylist = list_tup[1]
-    #     zlist = None
-    #     if not logx and not logy:
-    #         ColorScatter(xlist,ylist,zlist)
-    #     if logx and not logy:
-    #         pylab.semilogx()
-    #     if logy and not logx:
-    #         pylab.semilogy()
-    #     if logy and logx:
-    #         pylab.loglog()
-    #     pylab.ylabel(y)
-    #     pylab.xlabel(x)
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
-        xjitter=0.0):
+        xjitter=0.0,discrete=0):
         '''Plot two keys against each other, with an optional third key as 
         the colorbar parameter.  Specify xjitter or yjitter to add a bit 
         of scatter to the plot for visualization reasons.  This replaces the
@@ -641,7 +637,8 @@ class GRBdb:
         if z_key:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
-            ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter)
+            ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
+                discrete=discrete)
         if logx and not logy:
             pylab.semilogx()
         if logy and not logx:
@@ -670,56 +667,7 @@ class GRBdb:
         
         AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
             xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
-        
-        
-        
-    def _old_grbannotesubplot(self,\
-        x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
-        y_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
-        z_keys=['Z','Z','Z','Z'],\
-        logx=False,logy=False):
-        '''Create an annotated sub plot of the GRB parameters specified in the
-        keys.
-    
-        '''
-        # POTENTIAL PORT TO NOT USING ret_list
-        #Annote.AnnotatedSubPlot([db.NH_PC['array'],db.NH_PC['array'],db.NH_WT['array'],db.NH_WT['array']],[db.NH_PC['array'],db.NH_WT['array'],db.NH_PC['array'],db.NH_WT['array']],[db.NH_PC['names'],db.NH_WT['names'],db.NH_PC['names'],db.NH_WT['names']],zlist=[db.Z['array'],db.Z['array'],db.Z['array'],db.Z['array']])
-        
-        remove_short = True
-    
-        if len(x_keys) != len(y_keys):
-            raise(ValueError('Len of key lists do not match'))
-    
-        ind = 0
-        xlist=[]
-        ylist=[]
-        zlist=[]
-        annotelist=[]
-    
-        while ind < len(x_keys):
-            x=x_keys[ind]
-            y=y_keys[ind]
-            if z_keys:
-                z=z_keys[ind]
-                list_tup = self.ret_list(x,y,z)
-            else:
-                list_tup = self.ret_list(x,y)
-        
-            currentgrbname = list_tup[2]
-            annotelist.append(currentgrbname)
-       
-            xlist.append(list_tup[0])
-            ylist.append(list_tup[1])
-            if z_keys:
-                zlist.append(list_tup[3])
-            ind += 1 
-        
-        # Maybe instead of plotting a loglog plot, create a new parameter which
-        # is the log of the value and plot a linear scatter.  This will make 
-        # the plotting faster and allow for more flexibility 
-        AnnotatedSubPlot(xlist,ylist,annotelist,zlist=zlist,ynames=y_keys,\
-            xnames=x_keys,znames=z_keys,logx=logx,logy=logy)
-
+                
     def plotallvall(self,keylist,zval=None,remove_redundant=True,single_save=True):
         '''Plot all listed keywords against each other.  If zval is specified, use
         it as the third 'color' dimension.  If remove_redundant, do not plot e.g.
@@ -788,7 +736,10 @@ class GRBdb:
 
 
     def test_log_update(self,plot=True,hist=True):
-        self.update_class()
+        if not self.class_updated:
+            self.update_class()
+        self.MakeAllAttr()
+        
         keys_to_log = ['xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
         self.log_update_class(keys_to_log)
         keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
@@ -886,9 +837,19 @@ class GRBdb:
         self.MakeAttrArr('z')
         self.MakeNomArr('z_isupper')
         self.MakeNomArr('triggerid_str')
+        self.MakeAttrArr('xrt_time_delta')
+        self.MakeAttrArr('uvot_time_delta')
+        
+        # Self-created values
+        if not self.class_updated:
+            self.update_class()
+        self.MakeAttrArr('FL_over_SQRT_T90')
+        self.MakeNomArr('uvot_detection')
+        self.MakeAttrArr('gal_EB_V')
         
         # Make the following Binary attributes
-        keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig']
+        keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig',
+            'uvot_detection']
         for key in keys_to_binary:
             self.MakeBinArr(key,'yes')
         
@@ -912,13 +873,7 @@ class GRBdb:
             figoutdir = storepath + 'figures/'+figname
             pylab.savefig(figoutdir)
             pylab.close()
-    
-    # def testplotall(self):
-    #     keylist = ['EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T50', 'T90', 'RT45', 'Z', 'MAX_SNR', 'DT_MAX_SNR']
-    #     self.plotallvall(keylist=keylist,zval='Z')
-    #     #['n','n','y','n','n','n','n']
-    #     pass
-    # 
+
     def printall(self,keywordlist,suppress = True):
         '''Print all the keywords in the keyword list in the collected dictionary
         If suppress, then only print them out if all keywords are present for a 
@@ -1042,10 +997,13 @@ class GRBdb:
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
+        reduced_attr_list = ['A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR','NH_PC','T90','bat_image_signif','bat_img_peak','bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+        
         '''
         
         # Open file
         arffpath = storepath+self.name+'.arff'
+        arffpathpartial = arffpath + '_part'
         subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
@@ -1057,7 +1015,7 @@ class GRBdb:
         
         helpdict = whatis('all')
         
-        f=open(arffpath,'w')
+        f=open(arffpathpartial,'w')
 
         # Create .arff header
         f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
@@ -1091,11 +1049,20 @@ class GRBdb:
                 if not 'type' in attrdict:
                     print 'type not in attribute dict.  Continuing...'
                     continue
-                # Check if in the timedict
-                if not helpdict[keyitem]['speed'] in time_list:
+                # Check if in the timedict.  Attributes made to binary values
+                # Will have the same features, so just strip that word and 
+                # look up the original in the helpdict
+                if keyitem[-7:] == '_binary':
+                    print keyitem
+                    keyitem_lookup = keyitem.rstrip('binary').rstrip('_')
+                    print keyitem_lookup
+                else:
+                    keyitem_lookup = keyitem
+                helpdictitem = helpdict[keyitem_lookup]
+                if not helpdictitem['speed'] in time_list:
                     print 'Speed for %s not in time_list; not including' % (keyitem)
                     continue
-                if attrdict['type'] == 'numeric':
+                if attrdict['type'] == 'numeric' or attrdict['type'] == 'binary':
                     numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
                     numattrlist.append(keyitem)
                     fmt += ',%f'
@@ -1126,27 +1093,32 @@ class GRBdb:
         f.write('@DATA\n')    
         
             
-        firstattr = numattrlist[0]
-        numtotarr=numpy.array([getattr(self,firstattr)['array']])
-        # Populate the total array
-        for keyitem in numattrlist[1:]:
-            attrdict = getattr(self,keyitem)
-            numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['array']])),axis=0)
-            if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
-                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['poserrarr']])),axis=0)
-                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['negerrarr']])),axis=0)
-                    
+        if numattrlist:
+            firstattr = numattrlist[0]
+            numtotarr=numpy.array([getattr(self,firstattr)['array']])
+            # Populate the total array
+            for keyitem in numattrlist[1:]:
+                attrdict = getattr(self,keyitem)
+                numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['array']])),axis=0)
+                if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
+                    numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['poserrarr']])),axis=0)
+                    numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['negerrarr']])),axis=0)
+            numarr2 = numtotarr
+        else:
+            numarr2 = numpy.array(['# NO NUMERIC ATTRIBUTES'])
+            
         
         
-        firstattr = nomattrlist[0]
-        nomtotarr=numpy.array([getattr(self,firstattr)['array']])
-        # Populate the total array
-        for keyitem in nomattrlist[1:]:
-            attrdict = getattr(self,keyitem)
-            nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
-        
-        numarr2 = numtotarr
-        nomarr2 = nomtotarr
+        if nomattrlist:
+            firstattr = nomattrlist[0]
+            nomtotarr=numpy.array([getattr(self,firstattr)['array']])
+            # Populate the total array
+            for keyitem in nomattrlist[1:]:
+                attrdict = getattr(self,keyitem)
+                nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
+            nomarr2 = nomtotarr
+        else:
+            nomarr2 = numpy.array(['# NO NOMINAL ATTRIBUTES'])
         
         nomsubpath = subpath + 'nom'
         numsubpath = subpath + 'num'
@@ -1183,75 +1155,10 @@ class GRBdb:
         output.close()
         
         # Combine the Header with the data
-        cmd = 'cat %s %s > %s_full' %(arffpath,subpath2,arffpath)
+        cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-        
-        
-# def createarff(outdict,keylist=['T90','FL','peakflux','NH_PC_LATE','wh_mag_isupper','v_mag_isupper'],\
-#                     attributeclass='z_class',classlist=['high_z','low_z']):
-#     # BAT Specific: T90 Duration, Fluence, 1-sec Peak Photon Flux
-#     # XRT Specific: Location, Column Density (NH)
-#     # UVOT Specific: V Magnitude, Other Filter Magnitudes
-#     
-#     # Open file
-#     arffpath = storepath+'redshiftmachine.arff'
-#     f=open(arffpath,'w')
-#     
-#     # Create .arff header
-#     f.write('% 1. Title: Redshift Predictor for Swift GRBs\n')
-#     f.write('% \n')
-#     f.write('% 2. Sources:\n')
-#     f.write('%     (a) Creator: Adam N. Morgan\n')
-#     f.write('%     (b) Data From: http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/\n')
-#     f.write('%     (c) Date: '+time.asctime()+'\n')
-#     f.write('% \n')
-#     f.write('% 3. This file was created automatically. \n')
-#     f.write('%    CHECK THE ATTRIBUTES before running Weka. \n')
-#     f.write('% \n')
-#     f.write('@RELATION swift_redshift\n')
-#     f.write('\n')
-#     
-#     # Create .arff attributes section 
-#     for keyitem in keylist:
-#         # If the key for the first item in the dictonary is not a string, assume it is a numeric quantity
-#         if type(outdict[outdict.keys()[0]][keyitem]).__name__ != 'str':
-#             keystring = ('@ATTRIBUTE %s NUMERIC\n') % keyitem
-#         else:
-#             # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
-#             f.write('% !CHECK ME:\n')
-#             keystring = ('@ATTRIBUTE %s {yes, no}\n') % keyitem
-#         f.write(keystring)
-#     classsubstr = ''
-#     for classitem in classlist:
-#         classsubstr += classitem
-#         if len(classlist) - classlist.index(classitem) != 1:
-#             classsubstr += ', ' 
-#     classstring = ('@ATTRIBUTE class {%s}\n') % classsubstr
-#     f.write(classstring)
-#     
-#     # Create .arff data section
-#     
-#     f.write('\n')
-#     f.write('@DATA\n')
-#     for entry in outdict.keys():
-#         # Output each entry according that appears in keylist.  If it doesn't
-#         # appear, output a single '?' as required by the .arff standard
-#         datastring = ''
-#         for keyitem in keylist:
-#             if outdict[entry].has_key(keyitem):
-#                 datastring += str(outdict[entry][keyitem])
-#             else:
-#                 datastring += '?'
-#             datastring += ','
-#         
-#         #only write the line if the attribute class exists!
-#         if attributeclass in outdict[entry]:
-#             datastring += outdict[entry][attributeclass]
-#             datastring += '\n'
-#             f.write(datastring)
-#     
-#     f.close()
+
 
 if __name__ == '__main__':
     collect()

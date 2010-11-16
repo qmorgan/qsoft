@@ -111,8 +111,8 @@ def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
 
     for grbs in borklist:
         subdict={grbs[0]:{'burst_time_str':grbs[1],'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
-                 'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_column_str':grbs[21], \
-                 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
+                 'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_time_delta_str':grbs[16], 'xrt_column_str':grbs[21], \
+                 'uvot_time_delta_str':grbs[25], 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
         grbdict.update(subdict)
     
     # Update the dictonary to parse the crap and make it better
@@ -133,7 +133,22 @@ def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
         else:
             print 'COULD NOT PARSE XRT_POS for entry %s' % entry
         # TODO: Convert into a distance above the galactic plane
-
+        
+        # Convert time_deltas to a float
+        try:
+            # Try to convert uvot_time_delta to a float
+            uvot_time_delta = {'uvot_time_delta':float(grbdict[entry]['uvot_time_delta_str'])}
+            grbdict[entry].update(uvot_time_delta)
+        except:
+            print 'COULD NOT PARSE UVOT_TIME_DELTA for entry %s' % entry
+        #
+        try:
+            # Try to convert xrt_time_delta to a float
+            xrt_time_delta = {'xrt_time_delta':float(grbdict[entry]['xrt_time_delta_str'])}
+            grbdict[entry].update(xrt_time_delta)
+        except:
+            print 'COULD NOT PARSE XRT_TIME_DELTA for entry %s' % entry
+        
         # Convert T90 to float
         try:
             # Try to convert t90 to a float
