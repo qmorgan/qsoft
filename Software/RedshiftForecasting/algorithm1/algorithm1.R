@@ -17,7 +17,8 @@
 ###### a relative term.
 
 
-
+###### Note 3: trees returned by rpart are now being pruned so they have lowest CV
+###### error.
 
 
 
@@ -118,11 +119,11 @@ confusionCV = function(data1,leftOut,priorHigh){
 		  fit1 = rpart(class ~ .,parms=list(prior=c(1-priorHigh[i],priorHigh[i])),method="class",data=data1train)
           # prune the tree, this is some question as to whether this is the optimal pruning
           # stategy, already investigated this a bit but might want to do more
- 		  #if(length(fit1$cptable) > 3){
-          #  bestRow = which.min(fit1$cptable[,4])
-		#	cp = fit1$cptable[bestRow,1]
-		 # 	fit1 = prune(fit1,cp=cp)
-		 # }
+ 		  if(length(fit1$cptable) > 3){
+            bestRow = which.min(fit1$cptable[,4])
+			cp = fit1$cptable[bestRow,1]
+		 	fit1 = prune(fit1,cp=cp)
+		  }
           # make predictions on the test data
 		  predictions = predict(fit1,type='class',newdata=data1test)
 
@@ -237,11 +238,11 @@ crossValidateAlgorithm = function(data1,priorHigh,alpha,nfolds1,nfolds2,nalgorit
 		  bestPrior = algorithm1CV(data1train,nfolds2,priorHigh,alpha,nalgorithm1)
 		  if(bestPrior != 0){
 		  	 fit1 = rpart(class ~ .,parms=list(prior=c(1-bestPrior,bestPrior)),method="class",data=data1train)
-			 #if(length(fit1$cptable) > 3){
-		  	#	bestRow = which.min(fit1$cptable[,4])
-			#	cp = fit1$cptable[bestRow,1]
-		  	#	fit1 = prune(fit1,cp=cp)
-			 #}
+			 if(length(fit1$cptable) > 3){
+		  		bestRow = which.min(fit1$cptable[,4])
+				cp = fit1$cptable[bestRow,1]
+		  		fit1 = prune(fit1,cp=cp)
+			 }
 			 theFits[[i]] = fit1
 			 predictions = predict(fit1,type='class',newdata=data1test) # predict test set
 		  }
@@ -397,10 +398,15 @@ heatMap = function(data1,ALPHA_RANGE = 1:9 / 10,PRIOR_RANGE = (1:19) / 20,NUMBER
 ###
 ### 1. ALPHA_RANGE is the proportion of bursts astronomers are able to follow up on
 ### 2. PRIORS is a vector of the choices for the priors
-### 3. nCV # times we cross validate, high = stable est (must be > 1, this is a bug)
+### 3. nCV # times we cross validate, high = stableest (must be > 1, this is a bug)
 ### 4. nCV1 is number folds used by function crossValidateAlgorithm, which CVs algorithm1
 ### 5. nCV2 is number of folds used by algorithm1
 ### 6. Z is actual redshift
+
+### This function outputs:
+### 1. confusions.tex, a set of CV confusion matrices, one for each element of ALPHA_RANGE
+### 2. splits.tex, a set of tables letting user know what CART split on, one for each elements of ALPHA_RANGE
+### 3. correct.tex, a table which tells user how often bursts were classified correctly
 implement = function(data1,Z=0,ALPHA_RANGE = c(.1,.3,.5),PRIORS = (1:9 / 10),nCV = 10,nCV1 = 10,nCV2 = 10,NUMBER_ALG1 = 1){
   if(length(Z) != nrow(data1)){
     Z = rep(0,nrow(data1))
