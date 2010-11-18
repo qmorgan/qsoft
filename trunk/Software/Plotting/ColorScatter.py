@@ -14,7 +14,7 @@ def ColorScatterExample():
 
 
 def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=0.0,\
-    xjitter=0.0):
+    xjitter=0.0,marker='o'):
     '''set discrete to N for splitting up into N values
     yjitter sets a percent random jitter in the y direction to help distinguish
     overlapping values.  
@@ -36,10 +36,10 @@ def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=0.0,\
             except:
                 N = 2
             cmap = cmap_discretize(pylab.cm.cool_r,N)
-        sc = pylab.scatter(x,y,c=z,cmap=cmap)
+        sc = pylab.scatter(x,y,c=z,cmap=cmap,marker=marker)
         if colorbar: pylab.colorbar(sc)
     else:
-        sc = pylab.scatter(x,y)
+        sc = pylab.scatter(x,y,marker=marker)
 
 def cmap_discretize(cmap, N):
     """Return a discrete colormap from the continuous colormap cmap.
