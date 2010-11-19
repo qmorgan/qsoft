@@ -333,7 +333,7 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/MyPassport/D
         pass
 
 
-def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1'):
+def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1',newdirs=True):
     '''Copy all files in a directory (such as created by copyraw) into 
     a new folder elsewhere, renaming all files to a common GRB ID.  Useful
     when needing to tack observations together for a common reduction
@@ -341,12 +341,19 @@ def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1'):
     When two observations should be combined, put the raw files from them into
     a common folder.  Then run this code on them and output the results into a
     new folder.
+    
+    If newdirs = True, it will further split on days and create folders for each one.
     '''
     rawfilelist = glob.glob(inpath+'/*')
     newfilelist = []
     # extract 
+    datelist=[]
     for line in rawfilelist:
-        
+        # Grab the dates
+        date = os.path.basename(line)[1:12]
+        if date not in datelist:
+            datelist.append(date)
+            
         fbase = os.path.basename(line)
         fdir = os.path.dirname(line)
         
@@ -370,6 +377,20 @@ def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1'):
         
         else:
             print 'Line %s did not pass critera; not moving' % (line)    
+    
+    if newdirs:
+        for date in datelist:
+            rawfilelist = glob.glob(os.path.dirname(outfull)+'/?'+date+'*')
+            newdatepath = outpath + '/' + date
+            if not os.path.exists(newdatepath):
+                try:
+                    os.mkdir(newdatepath)
+                except:
+                    print 'Cannot make the directory %s. Crap.' % (newdatepath)
+                    
+            for rawfile in rawfilelist:
+                cmd = 'mv %s %s' % (rawfile, newdatepath)
+                os.system(cmd)
         
 
 def PlotHist(pteldict):
