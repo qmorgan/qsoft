@@ -522,6 +522,7 @@ class GRBdb:
                     newname = 'log_'+key
                     try:
                         self.dict[grb][newname] = numpy.log(self.dict[grb][key])
+                        self.MakeAttrArr(newname)
                     except:
                         print 'Cannot take the log of GRB %s %s' % (grb,key)
         
@@ -623,7 +624,7 @@ class GRBdb:
     
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
-        xjitter=0.0,discrete=0):
+        xjitter=0.0,discrete=0,marker='o'):
         '''Plot two keys against each other, with an optional third key as 
         the colorbar parameter.  Specify xjitter or yjitter to add a bit 
         of scatter to the plot for visualization reasons.  This replaces the
@@ -638,7 +639,7 @@ class GRBdb:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
             ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
-                discrete=discrete)
+                discrete=discrete,marker=marker)
         if logx and not logy:
             pylab.semilogx()
         if logy and not logx:
@@ -736,16 +737,20 @@ class GRBdb:
 
 
     def test_log_update(self,plot=True,hist=True):
+        # Remove the shorts before removing outliers so as to not bias the sample
+        self.removeShort(remove_no_redshift=False)
+        
         if not self.class_updated:
             self.update_class()
         self.MakeAllAttr()
         
-        keys_to_log = ['xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
+        
+        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
         self.log_update_class(keys_to_log)
         keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
         self.norm_update_class(keys_to_norm)
-        keys_to_plot = ['Z', 'norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90','v_mag_isupper_binary','wh_mag_isupper_binary','bat_is_rate_trig_binary']
-        keys_to_hist = [ 'norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
+        keys_to_plot = ['Z', 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90','v_mag_isupper_binary','wh_mag_isupper_binary','bat_is_rate_trig_binary']
+        keys_to_hist = [ 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
         
         remove_outliers = True
         if remove_outliers:
@@ -891,6 +896,7 @@ class GRBdb:
                     printstr += '??? '
                     if suppress: doprint = False
             if doprint: print printstr
+        
     
     def removeOutliers(self,key,threshold=0.32):
         '''Given a key and error type, This will remove all values with 
@@ -960,8 +966,48 @@ class GRBdb:
         #        286, 293, 316, 320, 330, 334, 340, 343, 353, 359, 365, 381, 384,
         #        385, 400, 404, 441, 479, 512, 524, 530]),)
         # 
-        
     
+    
+    def removeValues(self,key,argument):
+        remove_list = []
+        # Quick check to see if the argument is kind of formatted correctly
+        allowed_arguments = ['>','<','=','!']
+        arg_flag = 0
+        for arg in allowed_arguments:
+            if argument[0] == arg:
+                arg_flag = 1
+        if not arg_flag: 
+            print 'Malformed argument; returning full array.'
+            
+        for ii in iter(self.dict):
+            already_removed = False
+            if key in self.dict[ii]:
+                keyval = self.dict[ii][key]
+            else:
+                keyval = 'unknown'
+            
+            if not keyval == 'unknown':
+                execstring = 'if keyval %s: remove_list.append(ii); already_removed=True '\
+                    % (argument)
+            else:
+                execstring = 'pass'
+            
+            try:
+                exec(execstring)
+            except:
+                print 'Cannot evaluate argument, returning'
+                return 
+        
+        print 'initial length of dictionary: ' + str(len(self.dict))
+        print ' removing ' + str(len(remove_list)) + ' GRBs'
+        for key in remove_list:
+            self.dict.pop(key)
+        print 'new length of dictionary: ' + str(len(self.dict))
+        #update the length
+        self.length=len(self.dict)
+        # Now remake the arrays
+        self.MakeAllAttr()
+        
         
     def removeShort(self,remove_no_redshift=True):
         '''Removes all short bursts with T90 < 2 and, if remove_no_redshift==

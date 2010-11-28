@@ -284,6 +284,34 @@ def sex2dec(sex_pos):
     return ddeg_pos
 
 
+def pruneArray(array, argument):
+    '''Prune an array on a given argument and return only values which agree
+    with that argument.
+    
+    In [77]: array = [6,1,3,5,2,8]
+    In [78]: q.pruneArray(array,'< 4')
+    Out[78]: [1, 3, 2]
+    '''
+    # Quick check to see if the argument is kind of formatted correctly
+    allowed_arguments = ['>','<','=','!']
+    arg_flag = 0
+    for arg in allowed_arguments:
+        if argument[0] == arg:
+            arg_flag = 1
+    if not arg_flag: 
+        print 'Malformed argument; returning full array.'
+        return array
+
+    evalstring = 'filter(lambda xx: xx %s, array)' % (argument)
+    # Try to evaluate evalstring; else return full array
+    try:
+        new_array = eval(evalstring)
+        return new_array
+    except:
+        print 'Cannot evaluate argument, returning full array'
+        return array
+
+
 def sphere_dist(ra1,dec1,ra2,dec2):
     cosdistance = math.cos(ra1-ra2)*math.cos(dec1)*math.cos(dec2) + \
         math.sin(dec1)*math.sin(dec2)
