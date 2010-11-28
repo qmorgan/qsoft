@@ -275,7 +275,7 @@ crossValidateAlgorithm = function(data1,priorHigh,alpha,nfolds1,nfolds2,nalgorit
 #   first call the file ''filename'' is created, on subsequent calls we
 #   append to it
 #
-# the purporse of this function is to give an idea of what features the tree
+# the purpose of this function is to give an idea of what features the tree
 # are using as splits and thus measure feature importance in a rough manner
 #
 outputSplits = function(fits,alpha,filename1,number){

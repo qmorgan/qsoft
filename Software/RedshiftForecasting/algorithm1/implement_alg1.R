@@ -125,6 +125,63 @@ fit3 = rpart(class ~ .,parms=list(prior=c(1-prior_alpha5,prior_alpha5)),method="
 
 
 
+
+#####
+##### fit a lot of possible trees
+#####
+
+# levels of prior
+PRIOR = (1:19) / 20
+trees = list()
+
+for(i in 1:length(PRIOR)){
+  the_priors = c(1-PRIOR[i],PRIOR[i])
+  fit1 = rpart(class ~ .,parms=list(prior=the_priors),method="class",data = data1)
+  if(length(fit1$cptable) > 3){
+    bestRow = which.min(fit1$cptable[,4])
+    cp = fit1$cptable[bestRow,1]
+    fit1 = prune(fit1,cp=cp)
+  }	
+  trees[[i]] = fit1
+}
+
+sink('the_trees.txt')
+for(i in 1:length(trees)){
+  print(paste('prior on being high:', i / 20))
+  print(trees[[i]])
+}
+sink()
+
+
+
+
+
+# levels of prior
+PRIOR = (1:19) / 20
+trees = list()
+
+for(i in 1:length(PRIOR)){
+  fit1 = rpart(class ~ .,parms=list(prior=c(PRIOR[i],1-PRIOR[i])),method="class",data = data1)
+  trees[[i]] = fit1
+}
+
+sink('the_trees_unpruned.txt',append=F)
+for(i in 1:length(trees)){
+  print(paste('prior on being high:', i / 20))
+  print(trees[[i]])
+}
+sink()
+
+
+
+
+
+
+
+
+
+
+
 ####
 #### display some actual trees
 ####
@@ -160,6 +217,8 @@ if(length(fit1$cptable) > 3){
 	cp = fit1$cptable[bestRow,1]
 	fit1 = prune(fit1,cp=cp)
 }
+
+
 
 
 
