@@ -1,34 +1,16 @@
 #######
 ####### Classification of Gamma Ray Bursts
-####### date: Nov 14, 2010
+####### date: Nov 28, 2010
 #######
 
 ###### Note 1: This file contains functions for implementing algorithm 1. Code is
-###### highly commented.
+###### highly commented. The function 'implement' in this program wraps many of
+###### the functions in this code. The file implement_alg1.R loads a data set
+###### and call many of the functions in this code.
 
-
-###### Note 2: Even quite recently the function outputSplits was producing incorrect
-###### results. The purpose of output splits is to let the user know what features
-###### CART was splitting on. Also the output correct.tex was (ironically) often
-###### incorrect. correct.tex is suppose to tell the user which GRBs were classified
-###### correctly as a way to examine if high bursts were classified right / how often.
-###### These may have been fixed but results should be examined closely for
-###### signs of error. The other aspects of the program are more stable, but this is
-###### a relative term.
-
-
-###### Note 3: trees returned by rpart are now being pruned so they have lowest CV
+###### Note 2: trees returned by rpart are now being pruned so they have lowest CV
 ###### error.
 
-
-
-
-########
-########
-######## SECTION 1: FUNCTIONS
-########
-########
-########
 
 library('rpart')
 library('plotrix')
@@ -85,11 +67,11 @@ cleanData = function(data1,Zcutoff){
 
 ##
 ## implementation of Tamara's "algorithm 1" (see pseudocode in email)
-## 1. data1 is the data
+## 1. data1 is the data, factor column 'class' with 'high' or 'low' and column for each feature 
 ## 2. nfolds is scalar, the number of folds for cross validation (usually 10)
 ## 3. priorHigh is vector of priors. we want to choose the prior that when used in
 ##      CART will give the best performance
-## 4. alpha is the maximum proportion of low that can classify as high, 50% is reasonable
+## 4. alpha is the maximum proportion of low that can classify as high, 30% and 50% are reasonable
 ##
 ## this function returns the prior (in priorHigh vector) that maximizes high as
 ## high after the confusion matrices have been forced to fill the alpha condition
@@ -314,6 +296,71 @@ outputSplits = function(fits,alpha,filename1,number){
 }
 
 
+# very similar to outputSplits function. records the number of times each variable was used as
+# the first split in the tree
+#
+# accepts
+# 1. fits = a list of trees
+# 2. alpha = the alpha for which these trees were calculated
+# 3. filename = the file to put the pretty table in
+# 4. number = the number of times this function has been called, on the
+#   first call the file ''filename'' is created, on subsequent calls we
+#   append to it
+#
+# the purpose of this function is to give an idea of what features the tree
+# are using as the first split
+#
+outputFirstSplits = function(fits,alpha,filename1,number){
+	# turn lists fits into table of number splits
+	importance = data.frame( names(data1)[2:length(data1)] , 0 )
+	names(importance) = c("Feature","No. Times First Split")
+	totalTrees = 0
+
+    #####
+    ##### NEEDS TO BE REWRITTEN SO WE ONLY SELECT FIRST SPLIT
+    ##### ALSO NEED TO CHECK FORMAT OF FITS, IS IT A LIST OF
+    ##### TREES OR A LIST OF LISTS WITH EACH SUBLIST CONTAINING
+    ##### TREES (COMMENTS INDICATE FORMER, CODE INDICATES LATTER)
+    #####
+    for(i in 1:length(fits)){
+		  for(j in 1:length(fits[[i]])){
+		  		totalTrees = totalTrees + 1
+		  		if(class(fits[[i]][[j]]) == "rpart"){
+		      		varsUsed = (fits[[i]][[j]])$frame[,1]
+		  	  		varsUsed = varsUsed[varsUsed!="<leaf>"]
+			  		importance[,2] = importance[,2] + (importance$Feature %in% varsUsed)
+				}
+		  }
+	}
+    
+	# get variable importance looking nice
+	importance = importance[order(importance[,2],decreasing=T),]
+	importance = subset(importance,subset=(importance[,2] > 0))
+	if(nrow(importance) == 0){
+		importance[,1] = as.character(importance[,1])
+		importance[1,] = c("No Features Used",0)
+	}
+
+	# output the importance plot to a file filename1
+	if(number==1){
+		append1 = FALSE
+	}
+	if(number!=1){
+		append1 = TRUE
+	}
+	caption1 = paste("Splits for alpha =",alpha,"model. The Number Times column is the number of trees the given feature was the first split in a total of",totalTrees,"created for cross validation.")
+	outputX = xtable(importance,caption=caption1,align=c('c','c','c'),digits=0)
+	print(outputX,type='latex',append=append1,file=filename1,table.placement="H",include.rownames=F)
+}
+
+
+
+
+
+
+
+
+
 ## make the confusion matrices look nice for output in .tex, added quantiles to values,
 ## ect.
 prettyConfusion	= function(confusion,alpha,number,filename1){
@@ -396,22 +443,28 @@ heatMap = function(data1,ALPHA_RANGE = 1:9 / 10,PRIOR_RANGE = (1:19) / 20,NUMBER
 ###
 ### wrapper function that makes algorithm1, CV, alpha selection, ect work the way it should
 ###
-### 1. ALPHA_RANGE is the proportion of bursts astronomers are able to follow up on
-### 2. PRIORS is a vector of the choices for the priors
-### 3. nCV # times we cross validate, high = stableest (must be > 1, this is a bug)
-### 4. nCV1 is number folds used by function crossValidateAlgorithm, which CVs algorithm1
-### 5. nCV2 is number of folds used by algorithm1
-### 6. Z is actual redshift
+### 1. data1 = dataframe with class factor column 'high' or 'low' and 1 column for each feature
+### 2. Z is actual redshift of each burst, used to determine how burst with given redshift is
+###    classified correctly, not too important, if user doesn't enter anything the output of
+###    table correct.tex will be meaningless, but rest of algorithm is fine
+### 3. ALPHA_RANGE is the proportion of bursts astronomers are able to follow up on
+### 4. PRIORS is a vector of the choices for the priors
+### 5. nCV # times we cross validate, high = stablest (must be > 1, this is a bug)
+### 6. nCV1 is number folds used by function crossValidateAlgorithm, which CVs algorithm1
+### 7. nCV2 is number of folds used by algorithm1
+### 8. NUMBER_ALG1 = number times we run algorithm1 to choose a prior, 1 is probably okay, but
+###    running more than 1 time might make it more stable to random choices in CV sets
 
 ### This function outputs:
 ### 1. confusions.tex, a set of CV confusion matrices, one for each element of ALPHA_RANGE
 ### 2. splits.tex, a set of tables letting user know what CART split on, one for each elements of ALPHA_RANGE
-### 3. correct.tex, a table which tells user how often bursts were classified correctly
+### 3. first_splits.tex, a set of tables letting the user know what feature CART split on first for each tree
+### 4. correct.tex, a table which tells user how often bursts were classified correctly
 implement = function(data1,Z=0,ALPHA_RANGE = c(.1,.3,.5),PRIORS = (1:9 / 10),nCV = 10,nCV1 = 10,nCV2 = 10,NUMBER_ALG1 = 1){
   if(length(Z) != nrow(data1)){
     Z = rep(0,nrow(data1))
   }
-  confusionMatrices = array(0,c(2,2,nCV,length(ALPHA_RANGE))) # for storing results
+  confusionMatrices = array(0,c(2,2,nCV,length(ALPHA_RANGE))) # for storing CV results
   correct = matrix(0,nrow=length(Z),ncol=(length(ALPHA_RANGE)+1)) # record which redshift we predict correctly
   correct[,1] = Z # store actual redshift
   theFits = list() # record trees we create so we can see which features are split on 
@@ -448,10 +501,18 @@ implement = function(data1,Z=0,ALPHA_RANGE = c(.1,.3,.5),PRIORS = (1:9 / 10),nCV
     outputSplits(theFits[[i]],ALPHA_RANGE[i],filename1,i)
   }
 
+## this prints the variable of the first split for each tree in a nice .tex format
+## a lot like outputSplits above
+  filename1 = "first_splits.tex"
+  for(i in 1:length(ALPHA_RANGE)){
+    outputFirstSplits(theFits[[i]],ALPHA_RANGE[i],filename1,i)
+  }
+
 
 ## outputs confusion matrices in nice format, for viewing with .tex
   CONFUSION_NAME = 'confusions.tex'
   for(i in 1:length(ALPHA_RANGE)){
     prettyConfusion(confusionMatrices[,,,i],ALPHA_RANGE[i],i,CONFUSION_NAME)
   }
+
 }
