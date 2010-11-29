@@ -250,7 +250,7 @@ crossValidateAlgorithm = function(data1,priorHigh,alpha,nfolds1,nfolds2,nalgorit
 
 
 # accepts
-# 1. fits = a list of trees
+# 1. fits = a list of lists, each sublist contains trees
 # 2. alpha = the alpha for which these trees were calculated
 # 3. filename = the file to put the pretty table in
 # 4. number = the number of times this function has been called, on the
@@ -318,15 +318,12 @@ outputFirstSplits = function(fits,alpha,filename1,number){
 
     #####
     ##### NEEDS TO BE REWRITTEN SO WE ONLY SELECT FIRST SPLIT
-    ##### ALSO NEED TO CHECK FORMAT OF FITS, IS IT A LIST OF
-    ##### TREES OR A LIST OF LISTS WITH EACH SUBLIST CONTAINING
-    ##### TREES (COMMENTS INDICATE FORMER, CODE INDICATES LATTER)
     #####
     for(i in 1:length(fits)){
 		  for(j in 1:length(fits[[i]])){
 		  		totalTrees = totalTrees + 1
 		  		if(class(fits[[i]][[j]]) == "rpart"){
-		      		varsUsed = (fits[[i]][[j]])$frame[,1]
+                    varsUsed = (fits[[i]][[j]])$frame["1",1]
 		  	  		varsUsed = varsUsed[varsUsed!="<leaf>"]
 			  		importance[,2] = importance[,2] + (importance$Feature %in% varsUsed)
 				}

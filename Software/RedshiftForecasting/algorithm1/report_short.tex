@@ -1,0 +1,44 @@
+%%%
+%%% view results of algorithm 1 in nice format
+%%%
+%%%
+
+\documentclass[10pt]{article}
+\usepackage{verbatim, amsmath,amssymb,amsthm}
+\usepackage[margin=.5in,nohead,nofoot]{geometry}
+\usepackage{sectsty}
+\usepackage{float,graphicx}
+\sectionfont{\normalsize}
+\subsectionfont{\small}
+\subsubsectionfont{\footnotesize}
+
+
+\title{GRB Classification}
+\date{}
+\author{James Long}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}{Example}[section]
+
+\begin{document}
+
+
+\section{0 Noise Features}
+
+\input{confusions0}
+\input{splits0}
+\input{first_splits0}
+
+%\section{1 Noise Features}
+
+%\input{confusions1}
+%\input{splits1}
+
+\section{10 Noise Features}
+
+\input{confusions10}
+\input{splits10}
+\input{first_splits10}
+
+
+\end{document}
