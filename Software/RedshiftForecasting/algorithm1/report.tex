@@ -22,8 +22,43 @@
 
 \begin{document}
 
-\input{confusions}
+\section{Introduction}
 
-\input{splits}
+Here are some results from tests of the algorithm. In each test there is a feature \verb|uvot_detection|.  13 out of 17 high redshifts are ``no'' for \verb|uvot_detection|.  36 out of 134 lows are ''no'' for this feature. I ran the algorithm using 0, 1, 10, and 25 noise features. Originally I had been using rpart default pruning for constructing trees but this seemed to be underpruning trees so I switched to pruning to minimize CV error.
+
+The algorithm does fine for 0 noise features. There is a slight decrease in performance with 1 noise feature. With 10 and 25 noise features there is a clear decrease in performance. It's not entirely clear what is causing this. The final section may have some clues. In the final section ''The Trees'' I printed all possible classifiers that we could have ended up choosing for the case with 25 noise variables. In other words for each prior on high from .05 through .95 (increments of .05) I constructed a tree. I did this using the CV pruning rpart provides (``With Pruning''), and the default R pruning (``Without Pruning'' section). It appears that with 25 noise variables we are at the detection limit for choosing \verb|uvot_detection| as the first split. Several of the trees split on other features. This is with the entire data set. In practice, CART will be using only 80\% of the data since it will be inside two cross validation loops when trying to assess CV error. This indicates to me that 25 features may be about as many as is appropriate to use, given the amount of data we have.
+
+
+\section{0 Noise Features}
+
+\input{confusions0}
+\input{splits0}
+
+
+\section{1 Noise Features}
+
+\input{confusions1}
+\input{splits1}
+
+\section{10 Noise Features}
+
+\input{confusions10}
+\input{splits10}
+
+
+
+\section{25 Noise Features}
+
+\input{confusions25}
+\input{splits25}
+
+\section{The Trees}
+
+\subsection{With Pruning}
+\verbatiminput{the_trees.txt}
+
+
+\subsection{Without Pruning}
+\verbatiminput{the_trees_unpruned.txt}
 
 \end{document}

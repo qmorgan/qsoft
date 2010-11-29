@@ -1,0 +1,165 @@
+[1] "prior on being high: 0.05"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 7.55 high (0.0500000 0.9500000) *
+[1] "prior on being high: 0.1"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 15.1 high (0.1000000 0.9000000) *
+[1] "prior on being high: 0.15"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 22.65 high (0.1500000 0.8500000) *
+[1] "prior on being high: 0.2"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 30.20000 high (0.2000000 0.8000000)  
+  2) f19>=0.7679173 43  0.00000 low (1.0000000 0.0000000) *
+  3) f19< 0.7679173 108 20.50896 high (0.1451356 0.8548644) *
+[1] "prior on being high: 0.25"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 37.75 high (0.2500000 0.7500000) *
+[1] "prior on being high: 0.3"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 45.3 high (0.3000000 0.7000000) *
+[1] "prior on being high: 0.35"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 52.85000 high (0.3500000 0.6500000)  
+  2) f19>=0.7679173 43  0.00000 low (1.0000000 0.0000000) *
+  3) f19< 0.7679173 108 35.89067 high (0.2677596 0.7322404) *
+[1] "prior on being high: 0.4"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 60.4 high (0.4000000 0.6000000) *
+[1] "prior on being high: 0.45"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 67.95000 high (0.4500000 0.5500000)  
+  2) uvot_detection=yes 102 19.54118 low (0.7177597 0.2822403) *
+  3) uvot_detection=no 49 18.25522 high (0.2232671 0.7767329) *
+[1] "prior on being high: 0.5"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 75.50000 low (0.5000000 0.5000000)  
+  2) uvot_detection=yes 102 17.76471 low (0.7565849 0.2434151) *
+  3) uvot_detection=no 49 20.28358 high (0.2599830 0.7400170) *
+[1] "prior on being high: 0.55"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 67.95000 low (0.5500000 0.4500000)  
+  2) uvot_detection=yes 102 15.98824 low (0.7916199 0.2083801) *
+  3) uvot_detection=no 49 22.31194 high (0.3004016 0.6995984)  
+    6) f19>=0.7059694 14  0.00000 low (1.0000000 0.0000000) *
+    7) f19< 0.7059694 35 13.63507 high (0.2078618 0.7921382) *
+[1] "prior on being high: 0.6"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 151 60.40000 low (0.6000000 0.4000000)  
+   2) uvot_detection=yes 102 14.21176 low (0.8233937 0.1766063) *
+   3) uvot_detection=no 49 24.34030 high (0.3451128 0.6548872)  
+     6) f19>=0.7059694 14  0.00000 low (1.0000000 0.0000000) *
+     7) f19< 0.7059694 35 14.87463 high (0.2435953 0.7564047)  
+      14) f10>=0.8366564 7  0.00000 low (1.0000000 0.0000000) *
+      15) f10< 0.8366564 28 10.14179 high (0.1800424 0.8199576) *
+[1] "prior on being high: 0.65"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 151 52.85000 low (0.6500000 0.3500000)  
+   2) uvot_detection=yes 102 12.43529 low (0.8523416 0.1476584) *
+   3) uvot_detection=no 49 26.36866 high (0.3948387 0.6051613)  
+     6) f19>=0.7059694 14  0.00000 low (1.0000000 0.0000000) *
+     7) f19< 0.7059694 35 16.11418 high (0.2850610 0.7149390)  
+      14) f10>=0.8366564 7  0.00000 low (1.0000000 0.0000000) *
+      15) f10< 0.8366564 28 10.98694 high (0.2137469 0.7862531) *
+[1] "prior on being high: 0.7"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 151 45.300000 low (0.7000000 0.3000000)  
+   2) uvot_detection=yes 102 10.658820 low (0.8788244 0.1211756) *
+   3) uvot_detection=no 49 28.397010 high (0.4504732 0.5495268)  
+     6) f19>=0.7059694 14  0.000000 low (1.0000000 0.0000000) *
+     7) f19< 0.7059694 35 17.353730 high (0.3337583 0.6662417)  
+      14) f10>=0.8366564 7  0.000000 low (1.0000000 0.0000000) *
+      15) f10< 0.8366564 28 11.832090 high (0.2545999 0.7454001)  
+        30) f14>=0.7870227 7  2.664706 low (0.6397849 0.3602151) *
+        31) f14< 0.7870227 21  7.099254 high (0.1816794 0.8183206) *
+[1] "prior on being high: 0.75"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 37.75 low (0.7500000 0.2500000) *
+[1] "prior on being high: 0.8"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 30.2 low (0.8000000 0.2000000) *
+[1] "prior on being high: 0.85"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 22.65 low (0.8500000 0.1500000) *
+[1] "prior on being high: 0.9"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 15.1 low (0.9000000 0.1000000) *
+[1] "prior on being high: 0.95"
+n= 151 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 151 7.55 low (0.9500000 0.0500000) *

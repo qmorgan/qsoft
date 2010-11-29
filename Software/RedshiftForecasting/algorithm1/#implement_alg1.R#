@@ -96,7 +96,7 @@ table(data1$class,data1$uvot_detection)
 ###
 
 names(data1)
-number_of_useless_features = 25
+number_of_useless_features = 10
 useless_data = matrix(runif(nrow(data1)*number_of_useless_features),nrow=nrow(data1))
 colnames(useless_data) = paste('f',1:number_of_useless_features,sep="")
 data1 = cbind(data1,useless_data)
