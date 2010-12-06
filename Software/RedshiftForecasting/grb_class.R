@@ -125,12 +125,16 @@ classes = data1[,1]
 features = data1[,-1]
 
 confmats = list()
-prior.high = seq(0.45,0.55,0.02)
-for(ii in 1:length(prior.high)){
-  tree.out = rpart.cv(features,classes,prior=c(1-prior.high[ii],prior.high[ii]),nfolds=10,seed=1)
-  confmats[[ii]]=tree.out$confmat
-}
+# prior.high = seq(0.1,0.9,0.05)
+# for(ii in 1:length(prior.high)){
+#   tree.out = rpart.cv(features,classes,prior=c(1-prior.high[ii],prior.high[ii]),nfolds=10,seed=1)
+#   confmats[[ii]]=tree.out$confmat
+# }
 
+# Documentation on rpart commands - mayo.edu/hsr/techrpt/61.pdf
 # run RF classifier
 # you will need to add the weights argument here
-test = rfc.cv(features,classes,nfolds=10)
+carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
+foresttest = rfc.cv(features,classes,nfolds=10)
+
+# Do bumps plot
