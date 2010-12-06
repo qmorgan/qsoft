@@ -135,6 +135,26 @@ confmats = list()
 # run RF classifier
 # you will need to add the weights argument here
 carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
-foresttest = rfc.cv(features,classes,nfolds=10)
+forest_order = NULL
+forest_res = NULL
+for(whigh in seq(1,10,1)) {
+	weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
+	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec)
+	forest_res = cbind(forest_res,foresttest$predprob[,1])
+	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
+}
 
 # Do bumps plot
+color_vec = array("",dim=length(data1$class))
+for(i in seq(1,length(data1$class))) {
+	if(data1$class[i] == "high") { color_vec[i] = "red"}
+	else { color_vec[i] = "blue"}
+}
+parcoord(forest_order,color_vec)
+
+# write output
+write(forest_res,"forest_probs_pred.txt")
+postscript(file="forest_probs_pred_bumps.eps",width=10,height=10)
+parcoord(forest_order,color_vec)
+dev.off()
+
