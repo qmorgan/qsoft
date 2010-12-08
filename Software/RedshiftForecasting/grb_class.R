@@ -135,26 +135,35 @@ confmats = list()
 # run RF classifier
 # you will need to add the weights argument here
 carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
-forest_order = NULL
-forest_res = NULL
-for(whigh in seq(1,10,1)) {
+forest_order = NULL # save the probabilities-order output from random forests
+forest_res = NULL # save the raw-probabilities output from random forests
+weights_try = seq(1,101,10)
+print(weights_try)
+for(whigh in weights_try) {
 	weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
-	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec)
+	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
+	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1)
 	forest_res = cbind(forest_res,foresttest$predprob[,1])
 	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
 }
 
 # Do bumps plot
 color_vec = array("",dim=length(data1$class))
+lwd_vec = array(1,dim=length(data1$class))
 for(i in seq(1,length(data1$class))) {
-	if(data1$class[i] == "high") { color_vec[i] = "red"}
-	else { color_vec[i] = "blue"}
+	if(data1$class[i] == "high") {
+			color_vec[i] = "red"
+			lwd_vec[i] = 2
+	} else {
+			color_vec[i] = "blue"
+	}
 }
-parcoord(forest_order,color_vec)
+# plot here---as well as in eps file below
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
 
 # write output
-write(forest_res,"forest_probs_pred.txt")
-postscript(file="forest_probs_pred_bumps.eps",width=10,height=10)
-parcoord(forest_order,color_vec)
+write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
+postscript(file="forest_probs_pred_bumps.eps",width=10,height=10) # save bumps plot
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
 dev.off()
 
