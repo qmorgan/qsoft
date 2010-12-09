@@ -148,14 +148,19 @@ for(whigh in weights_try) {
 }
 
 # Do bumps plot
-color_vec = array("",dim=length(data1$class))
+color_vec = array(1,dim=length(data1$class))
 lwd_vec = array(1,dim=length(data1$class))
 for(i in seq(1,length(data1$class))) {
 	if(data1$class[i] == "high") {
-			color_vec[i] = "red"
-			lwd_vec[i] = 2
+			color_vec[i] = 1
+			lwd_vec[i] = 3
 	} else {
-			color_vec[i] = "blue"
+			color_vec[i] = ceiling(1+Z[i])
+			# Z = 0-1: red
+			# Z = 1-2: green
+			# Z = 2-3: blue
+			# Z = 3-4: cyan
+			# Z = 4-8: Black
 	}
 }
 # plot here---as well as in eps file below
