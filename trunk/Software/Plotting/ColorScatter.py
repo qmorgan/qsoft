@@ -6,6 +6,13 @@ from scipy import *
 from pylab import *
 import scipy.interpolate as interpolate
 
+def Bumps(x,y,z=None):
+    pdict =  {'a':[3,2,1],'b':[2,3,2],'c':[1,1,3]}
+    x = arange(len(pdict.values()[0]))
+    for element in plist
+       pylab.plot(x,element)
+    
+
 def ColorScatterExample():
     x=list(arange(20))
     y=list(arange(20))
