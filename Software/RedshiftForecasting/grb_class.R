@@ -163,8 +163,24 @@ for(i in seq(1,length(data1$class))) {
 			# Z = 4-8: Black
 	}
 }
+
+library(fields)
+
+
+z=log10(1+Z)
+
+# The next few lines are for coloring
+col.vec=ceiling((z-min(z))/(max(z)-min(z))*64)
+for(n in 1:length(col.vec)) {
+   if(col.vec[n] > 1) {
+      col.vec[n] = col.vec[n]
+   } else {
+      col.vec[n] = 1
+   }
+}
+tc = tim.colors(64)
 # plot here---as well as in eps file below
-parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
 
 # write output
 write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
