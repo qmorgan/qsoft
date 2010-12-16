@@ -116,9 +116,12 @@ library(foreign)
 filename = './algorithm1/uvot_no_error.arff'
 data1 = read.arff(filename)
 Z = data1$Z
+high_cutoff = 4 # define above high_cutoff as high, below as low
+num_high = length(Z[Z >= high_cutoff])
+num_low = length(Z[Z < high_cutoff])
 data1$triggerid_str = NULL # meaningless feature in the data sets
 data1 = removeErrors(data1)
-data1 = cleanData(data1,4) # define above 4 as high, below 4 as low
+data1 = cleanData(data1,high_cutoff) 
 
 ### run rpart classifier
 classes = data1[,1]
@@ -169,7 +172,7 @@ library(fields)
 
 z=log10(1+Z)
 
-# The next few lines are for coloring
+# The next few lines are for coloring - break up log(1+z) into 64 color bins
 col.vec=ceiling((z-min(z))/(max(z)-min(z))*64)
 for(n in 1:length(col.vec)) {
    if(col.vec[n] > 1) {
@@ -181,6 +184,27 @@ for(n in 1:length(col.vec)) {
 tc = tim.colors(64)
 # plot here---as well as in eps file below
 parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
+
+
+# PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
+# Calculate the number of GRBs we are allowing ourselves to follow-up
+num_of_grbs = length(Z)
+alpha = 0.3
+num_to_follow = ceiling(alpha*num_of_grbs)
+# Grab the probability above which a GRB is considered low for following up
+# a given percentage of bursts.  Taking weight column 7
+mid_prob=sort(forest_res[,7])[num_to_follow]
+# Grab the array of Zs which are less than mid_prob 
+high_array=sort(Z[forest_res[,7] <= mid_prob])
+# Calculate our objective function and confusion matrices
+num_actually_high=length(high_array[high_array >= high_cutoff])
+pct_actually_high=num_actually_high/num_of_grbs
+objective = num_actually_high/num_to_follow
+
+high_as_high = num_actually_high
+high_as_low = num_high - num_actually_high
+low_as_high = num_to_follow - num_actually_high
+low_as_low = num_low - low_as_high
 
 # write output
 write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
