@@ -144,7 +144,7 @@ weights_try = seq(1,101,10)
 print(weights_try)
 for(whigh in weights_try) {
 	weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
-	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
+#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
 	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1)
 	forest_res = cbind(forest_res,foresttest$predprob[,1])
 	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
@@ -156,14 +156,9 @@ lwd_vec = array(1,dim=length(data1$class))
 for(i in seq(1,length(data1$class))) {
 	if(data1$class[i] == "high") {
 			color_vec[i] = 1
-			lwd_vec[i] = 3
+			lwd_vec[i] = 3 # High-z bursts are thicker
 	} else {
 			color_vec[i] = ceiling(1+Z[i])
-			# Z = 0-1: red
-			# Z = 1-2: green
-			# Z = 2-3: blue
-			# Z = 3-4: cyan
-			# Z = 4-8: Black
 	}
 }
 
@@ -188,14 +183,24 @@ parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
 
 # PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
 # Calculate the number of GRBs we are allowing ourselves to follow-up
+alpha=0.3
+weight=61
+mtry=4
 num_of_grbs = length(Z)
-alpha = 0.3
+
+weights_vec = 1*(data1$class == "low") + weight*(data1$class == "high")
+# the following might screw things up
+#weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
+# ff
+foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1,mtry=mtry)
+
+probs = foresttest$predprob[,1]
 num_to_follow = ceiling(alpha*num_of_grbs)
 # Grab the probability above which a GRB is considered low for following up
 # a given percentage of bursts.  Taking weight column 7
-mid_prob=sort(forest_res[,7])[num_to_follow]
+mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
 # Grab the array of Zs which are less than mid_prob 
-high_array=sort(Z[forest_res[,7] <= mid_prob])
+high_array=sort(Z[foresttest$predprob[,1] <= mid_prob])
 # Calculate our objective function and confusion matrices
 num_actually_high=length(high_array[high_array >= high_cutoff])
 pct_actually_high=num_actually_high/num_of_grbs
@@ -205,6 +210,10 @@ high_as_high = num_actually_high
 high_as_low = num_high - num_actually_high
 low_as_high = num_to_follow - num_actually_high
 low_as_low = num_low - low_as_high
+print(high_as_high)
+print(low_as_high)
+print(low_as_low)
+print(high_as_low)
 
 # write output
 write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
