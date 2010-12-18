@@ -102,32 +102,35 @@ rfc.cv = function(x,y,nfolds=5,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,s
   return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
 }
 
-# GRB high-z classification
+##########################################
+####### GRB high-z classification #######
+##########################################
 
-# read in GRB functions
+####### read in GRB functions#######
 source('./algorithm1/algorithm1.R')
 
-# read in data:
+####### read in data: #######
 library(foreign)
+library(fields)
 
-##
-## get the data in the desired form
-##
 filename = './algorithm1/uvot_no_error.arff'
 data1 = read.arff(filename)
 Z = data1$Z
-high_cutoff = 4 # define above high_cutoff as high, below as low
+
+####### define above high_cutoff as high, below as low $ ####### 
+high_cutoff = 4 
 num_high = length(Z[Z >= high_cutoff])
 num_low = length(Z[Z < high_cutoff])
 data1$triggerid_str = NULL # meaningless feature in the data sets
 data1 = removeErrors(data1)
 data1 = cleanData(data1,high_cutoff) 
 
-### run rpart classifier
+
+####### run rpart classifier ####### 
 classes = data1[,1]
 features = data1[,-1]
-
 confmats = list()
+
 # prior.high = seq(0.1,0.9,0.05)
 # for(ii in 1:length(prior.high)){
 #   tree.out = rpart.cv(features,classes,prior=c(1-prior.high[ii],prior.high[ii]),nfolds=10,seed=1)
@@ -135,8 +138,8 @@ confmats = list()
 # }
 
 # Documentation on rpart commands - mayo.edu/hsr/techrpt/61.pdf
-# run RF classifier
-# you will need to add the weights argument here
+
+####### run Random Forest classifier ####### 
 carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
 forest_order = NULL # save the probabilities-order output from random forests
 forest_res = NULL # save the raw-probabilities output from random forests
@@ -150,74 +153,80 @@ for(whigh in weights_try) {
 	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
 }
 
-# Do bumps plot
-color_vec = array(1,dim=length(data1$class))
-lwd_vec = array(1,dim=length(data1$class))
-for(i in seq(1,length(data1$class))) {
-	if(data1$class[i] == "high") {
-			color_vec[i] = 1
-			lwd_vec[i] = 3 # High-z bursts are thicker
-	} else {
-			color_vec[i] = ceiling(1+Z[i])
-	}
-}
-
-library(fields)
-
-
-z=log10(1+Z)
-
-# The next few lines are for coloring - break up log(1+z) into 64 color bins
-col.vec=ceiling((z-min(z))/(max(z)-min(z))*64)
-for(n in 1:length(col.vec)) {
-   if(col.vec[n] > 1) {
-      col.vec[n] = col.vec[n]
-   } else {
-      col.vec[n] = 1
+make_bumps_plot = function(n_colors=64,z_width=3){
+   ####### PLOTTING - here and in EPS ####### 
+   #######  Set up color for bumps plot ####### 
+   color_vec = array(1,dim=length(data1$class))
+   lwd_vec = array(1,dim=length(data1$class))
+   for(i in seq(1,length(data1$class))) {
+   	if(data1$class[i] == "high") {
+   			color_vec[i] = 1
+   			lwd_vec[i] = z_width # High-z bursts are thicker
+   	} else {
+   			color_vec[i] = ceiling(1+Z[i])
+   	}
    }
+
+   logz=log10(1+Z)
+
+
+   ####### The next few lines are for coloring ####### 
+   ####### Break up log(1+z) into 64 color bins ####### 
+   col.vec=ceiling((logz-min(logz))/(max(logz)-min(logz))*n_colors)
+   for(n in 1:length(col.vec)) {
+      if(col.vec[n] > 1) {
+         col.vec[n] = col.vec[n]
+      } else {
+         col.vec[n] = 1
+      }
+   }
+   tc = tim.colors(n_colors)
+
+   parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
+   postscript(file="forest_probs_pred_bumps.eps",width=10,height=10) # save bumps plot
+   parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
+   write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
+   dev.off()
 }
-tc = tim.colors(64)
-# plot here---as well as in eps file below
-parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
 
 
 # PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
 # Calculate the number of GRBs we are allowing ourselves to follow-up
-alpha=0.3
-weight=61
-mtry=4
-num_of_grbs = length(Z)
+forest_run = function(features,classes,nfolds=10,alpha=0.3,mtry=4,weight_value=61,n.trees=500){
+   alpha=0.3
+   weight=61
+   mtry=4
+   num_of_grbs = length(Z)
 
-weights_vec = 1*(data1$class == "low") + weight*(data1$class == "high")
-# the following might screw things up
-#weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
-# ff
-foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1,mtry=mtry)
+   weights_vec = 1*(data1$class == "low") + weight*(data1$class == "high")
+   # the following might screw things up
+   #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
+   # ff
+   foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1,mtry=mtry)
 
-probs = foresttest$predprob[,1]
-num_to_follow = ceiling(alpha*num_of_grbs)
-# Grab the probability above which a GRB is considered low for following up
-# a given percentage of bursts.  Taking weight column 7
-mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
-# Grab the array of Zs which are less than mid_prob 
-high_array=sort(Z[foresttest$predprob[,1] <= mid_prob])
-# Calculate our objective function and confusion matrices
-num_actually_high=length(high_array[high_array >= high_cutoff])
-pct_actually_high=num_actually_high/num_of_grbs
-objective = num_actually_high/num_to_follow
+   probs = foresttest$predprob[,1]
+   num_to_follow = ceiling(alpha*num_of_grbs)
+   # Grab the probability above which a GRB is considered low for following up
+   # a given percentage of bursts
+   mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
+   # Grab the array of Zs which are less than mid_prob 
+   high_array=sort(Z[foresttest$predprob[,1] <= mid_prob])
+   # Calculate our objective function and confusion matrices
+   num_actually_high=length(high_array[high_array >= high_cutoff])
+   pct_actually_high=num_actually_high/num_of_grbs
+   objective = num_actually_high/num_to_follow
 
-high_as_high = num_actually_high
-high_as_low = num_high - num_actually_high
-low_as_high = num_to_follow - num_actually_high
-low_as_low = num_low - low_as_high
-print(high_as_high)
-print(low_as_high)
-print(low_as_low)
-print(high_as_low)
+   high_as_high = num_actually_high
+   high_as_low = num_high - num_actually_high
+   low_as_high = num_to_follow - num_actually_high
+   low_as_low = num_low - low_as_high
+   print(high_as_high)
+   print(low_as_high)
+   print(low_as_low)
+   print(high_as_low)
+  return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
+}
 
-# write output
-write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
-postscript(file="forest_probs_pred_bumps.eps",width=10,height=10) # save bumps plot
-parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
-dev.off()
+
+
 
