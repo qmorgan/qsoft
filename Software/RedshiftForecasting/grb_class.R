@@ -124,33 +124,33 @@ num_low = length(Z[Z < high_cutoff])
 data1$triggerid_str = NULL # meaningless feature in the data sets
 data1 = removeErrors(data1)
 data1 = cleanData(data1,high_cutoff) 
-
-
-####### run rpart classifier ####### 
 classes = data1[,1]
 features = data1[,-1]
 confmats = list()
 
-# prior.high = seq(0.1,0.9,0.05)
-# for(ii in 1:length(prior.high)){
-#   tree.out = rpart.cv(features,classes,prior=c(1-prior.high[ii],prior.high[ii]),nfolds=10,seed=1)
-#   confmats[[ii]]=tree.out$confmat
-# }
-
-# Documentation on rpart commands - mayo.edu/hsr/techrpt/61.pdf
+####### run rpart CART classifier ####### 
+test_cart = function(seed=1){
+   # prior.high = seq(0.1,0.9,0.05)
+   # for(ii in 1:length(prior.high)){
+   #   tree.out = rpart.cv(features,classes,prior=c(1-prior.high[ii],prior.high[ii]),nfolds=10,seed=1)
+   #   confmats[[ii]]=tree.out$confmat
+   # }
+   carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
+   # Documentation on rpart commands - mayo.edu/hsr/techrpt/61.pdf
+}
 
 ####### run Random Forest classifier ####### 
-carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
-forest_order = NULL # save the probabilities-order output from random forests
-forest_res = NULL # save the raw-probabilities output from random forests
-weights_try = seq(1,101,10)
-print(weights_try)
-for(whigh in weights_try) {
-	weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
-#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
-	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1)
-	forest_res = cbind(forest_res,foresttest$predprob[,1])
-	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
+test_random_forest_weights = function(weights_try = seq(1,101,10)){
+   forest_order = NULL # save the probabilities-order output from random forests
+   forest_res = NULL # save the raw-probabilities output from random forests
+
+   for(whigh in weights_try) {
+   	weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
+   #	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
+   	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1)
+   	forest_res = cbind(forest_res,foresttest$predprob[,1])
+   	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
+   }
 }
 
 make_bumps_plot = function(n_colors=64,z_width=3){
