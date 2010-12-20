@@ -124,7 +124,7 @@ read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
    data1 = cleanData(data1,high_cutoff) 
    classes = data1[,1]
    features = data1[,-1]
-   confmats = list()  
+   confmats = list()
    print("Read in:")
    print(filename)
    print("with a high-z cutoff value of")
@@ -143,21 +143,41 @@ test_cart = function(seed=1){
    # Documentation on rpart commands - mayo.edu/hsr/techrpt/61.pdf
 }
 
-####### run Random Forest classifier ####### 
-test_random_forest_weights = function(weights_try = seq(1,101,10)){
-   forest_order = NULL # save the probabilities-order output from random forests
-   forest_res = NULL # save the raw-probabilities output from random forests
+####### run Random Forest classifier over a vector of weights ####### 
+test_random_forest_weights = function(log_weights_try=seq(0,5,0.5),seed=1){
+	forest_order = NULL # save the probabilities-order output from random forests
+	forest_res = NULL # save the raw-probabilities output from random forests
 
-   for(whigh in weights_try) {
-   	weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
-   #	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
-   	foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1)
-   	forest_res = cbind(forest_res,foresttest$predprob[,1])
-   	forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
-   }
+	weights_try = 10^log_weights_try
+	Nweights = length(weights_try)
+	for(nweight in seq(1,Nweights)) {
+   		print(paste("*** weight",nweight,"of",Nweights,"***"))
+   		whigh = weights_try[nweight]
+   		weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
+   		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
+   		foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=seed)
+   		forest_res = cbind(forest_res,foresttest$predprob[,1])
+   		forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
+	}
+   
+	return(forest_res)
 }
 
-make_bumps_plot = function(n_colors=64,z_width=3){
+####### smooth weighted random forest classifiers over a number of seeds ####### 
+smooth_random_forest_weights = function(log_weights_try=seq(0,5,0.5),Nseeds=10){
+	Nweights = length(log_weights_try)
+	forest_res = matrix(0,length(Z),Nweights) # average across seeds
+	for(nseed in seq(1,Nseeds)) {
+   		print(paste("@@@@@@ seed",nseed,"of",Nseeds,"@@@@@@"))
+		forest_res_loc = test_random_forest_weights(log_weights_try,nseed) # result for this seed
+		forest_res = (1./nseed) * forest_res_loc + ((nseed-1.)/nseed) * forest_res
+	}
+	
+	return(forest_res)
+}
+
+####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
+make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_probs_pred_bumps.eps",textfile="forest_probs_pred.txt"){
    ####### PLOTTING - here and in EPS ####### 
    #######  Set up color for bumps plot ####### 
    color_vec = array(1,dim=length(data1$class))
