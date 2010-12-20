@@ -192,10 +192,8 @@ make_bumps_plot = function(n_colors=64,z_width=3){
 
 # PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
 # Calculate the number of GRBs we are allowing ourselves to follow-up
-forest_run = function(features,classes,nfolds=10,alpha=0.3,mtry=4,weight_value=61,n.trees=500){
-   alpha=0.3
-   weight=61
-   mtry=4
+forest_run = function(nfolds=10,alpha=0.3,mtry=4,weight_value=61,n.trees=500){
+
    num_of_grbs = length(Z)
 
    weights_vec = 1*(data1$class == "low") + weight*(data1$class == "high")
@@ -224,7 +222,7 @@ forest_run = function(features,classes,nfolds=10,alpha=0.3,mtry=4,weight_value=6
    print(low_as_high)
    print(low_as_low)
    print(high_as_low)
-  return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
+   return(list(objective=objective,high_as_high=high_as_high,high_as_low=high_as_low,low_as_low=low_as_low,low_as_high=low_as_high))
 }
 
 
