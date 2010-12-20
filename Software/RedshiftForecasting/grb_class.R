@@ -113,20 +113,24 @@ source('./algorithm1/algorithm1.R')
 library(foreign)
 library(fields)
 
-filename = './algorithm1/uvot_no_error.arff'
-data1 = read.arff(filename)
-Z = data1$Z
+read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
+   data1 = read.arff(filename)
+   Z = data1$Z
+   ####### define above high_cutoff as high, below as low $ ####### 
+   num_high = length(Z[Z >= high_cutoff])
+   num_low = length(Z[Z < high_cutoff])
+   data1$triggerid_str = NULL # meaningless feature in the data sets
+   data1 = removeErrors(data1)
+   data1 = cleanData(data1,high_cutoff) 
+   classes = data1[,1]
+   features = data1[,-1]
+   confmats = list()  
+   print("Read in:")
+   print(filename)
+   print("with a high-z cutoff value of")
+   print(high_cutoff)
+}
 
-####### define above high_cutoff as high, below as low $ ####### 
-high_cutoff = 4 
-num_high = length(Z[Z >= high_cutoff])
-num_low = length(Z[Z < high_cutoff])
-data1$triggerid_str = NULL # meaningless feature in the data sets
-data1 = removeErrors(data1)
-data1 = cleanData(data1,high_cutoff) 
-classes = data1[,1]
-features = data1[,-1]
-confmats = list()
 
 ####### run rpart CART classifier ####### 
 test_cart = function(seed=1){
@@ -200,7 +204,7 @@ forest_run = function(nfolds=10,alpha=0.3,mtry=4,weight_value=61,n.trees=500){
    # the following might screw things up
    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
    # ff
-   foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=1,mtry=mtry)
+   foresttest = rfc.cv(features,classes,nfolds=nfolds,weights=weights_vec,seed=1,mtry=mtry)
 
    probs = foresttest$predprob[,1]
    num_to_follow = ceiling(alpha*num_of_grbs)
