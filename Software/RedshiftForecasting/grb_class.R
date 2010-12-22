@@ -236,7 +236,7 @@ make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_pr
 
 # PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
 # Calculate the number of GRBs we are allowing ourselves to follow-up
-forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,n.trees=500){
+forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed=1,n.trees=500){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
      data_obj = read_data()
@@ -252,7 +252,7 @@ forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,n.tr
    # the following might screw things up
    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
    # ff
-   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=1,mtry=mtry)
+   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
 
    probs = foresttest$predprob[,1]
    num_to_follow = ceiling(alpha*num_of_grbs)
