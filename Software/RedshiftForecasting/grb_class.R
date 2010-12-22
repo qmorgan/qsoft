@@ -140,7 +140,8 @@ read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
 test_cart = function(data_obj=NULL,seed=1){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
-     data_obj = read_data()
+      print("data_obj not defined; using default values")
+      data_obj = read_data()
    }
    ###########################################################################
    # prior.high = seq(0.1,0.9,0.05)
@@ -156,7 +157,8 @@ test_cart = function(data_obj=NULL,seed=1){
 test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),seed=1){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
-     data_obj = read_data()
+      print("data_obj not defined; using default values")
+      data_obj = read_data()
    }
    ###########################################################################
 	forest_order = NULL # save the probabilities-order output from random forests
@@ -181,7 +183,8 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
 smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),Nseeds=10){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
-     data_obj = read_data()
+      print("data_obj not specified; using default values")
+      data_obj = read_data()
    }
    ###########################################################################
 	Nweights = length(log_weights_try)
@@ -239,7 +242,8 @@ make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_pr
 forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed=1,n.trees=500){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
-     data_obj = read_data()
+      print("data_obj not specified; using default values")
+      data_obj = read_data()
    }
    ###########################################################################
    if(is.null(mtry)){
