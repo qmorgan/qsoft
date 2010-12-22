@@ -172,12 +172,12 @@ smooth_random_forest_weights = function(log_weights_try=seq(0,5,0.5),Nseeds=10){
 		forest_res_loc = test_random_forest_weights(log_weights_try,nseed) # result for this seed
 		forest_res = (1./nseed) * forest_res_loc + ((nseed-1.)/nseed) * forest_res
 	}
-	
+	colnames(forest_res)=paste(log_weights_try)
 	return(forest_res)
 }
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
-make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_probs_pred_bumps.eps",textfile="forest_probs_pred.txt"){
+make_bumps_plot = function(forest_res,n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
    ####### PLOTTING - here and in EPS ####### 
    #######  Set up color for bumps plot ####### 
    color_vec = array(1,dim=length(data1$class))
@@ -206,10 +206,35 @@ make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_pr
    }
    tc = tim.colors(n_colors)
 
+layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
+par(mar=c(4,2,0,0))
    parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
-   postscript(file="forest_probs_pred_bumps.eps",width=10,height=10) # save bumps plot
+   title(xlab="log high-z weight",cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
+   title(ylab="Pr(low-z GRB)",cex.lab=1.25,mgp=c(.25,1,0)) # yaxis
+par(mar=c(4,0,0,1))
+   plot(1, type="n", axes=F, xlab="z (log\n scale)", ylab="",xlim=c(-1,1),ylim=c(-1,1),mgp=c(1,1,0),cex.lab=1.25) # empty plot for colorbar
+   colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
+   text(0,-1,signif(10^min(logz)-1,2)) # add min and max to colorbar
+   text(0,1,signif(10^max(logz)-1,2))
+   abline(h= log10(4+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
+   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z > 4",pos=3)
+   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z < 4",pos=1)
+   
+   pdf(file=imagefile,width=12,height=8) # save bumps plot
+layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
+par(mar=c(4,2,0,0))
    parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
-   write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
+   title(xlab="log high-z weight",cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
+   title(ylab="Pr(low-z GRB)",cex.lab=1.25,mgp=c(.25,1,0)) # yaxis
+par(mar=c(4,0,0,1))
+   plot(1, type="n", axes=F, xlab="z (log\n scale)", ylab="",xlim=c(-1,1),ylim=c(-1,1),mgp=c(1,1,0),cex.lab=1.25) # empty plot for colorbar
+   colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
+   text(0,-1,signif(10^min(logz)-1,2)) # add min and max to colorbar
+   text(0,1,signif(10^max(logz)-1,2))
+   abline(h= log10(4+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
+   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z > 4",pos=3)
+   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z < 4",pos=1)
+     write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
    dev.off()
 }
 
