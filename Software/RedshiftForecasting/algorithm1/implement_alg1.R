@@ -80,30 +80,23 @@ print(names(data1))
 ## outputs of bunch of useful tables in .tex form, see algorithm1.R
 ## comments for exact description
 ##
+table(data1$class,data1$uvot_detection)
 implement(data1,Z)
 
-
-
-###
-### 
-###
-
-table(data1$class,data1$uvot_detection)
 
 
 ###
 ### add some useless features and rerun algorithm
 ###
-
 names(data1)
-number_of_useless_features = 25
+number_of_useless_features = 10
 useless_data = matrix(runif(nrow(data1)*number_of_useless_features),nrow=nrow(data1))
 colnames(useless_data) = paste('f',1:number_of_useless_features,sep="")
 data1 = cbind(data1,useless_data)
 names(data1)
 
+implement(data1,Z,HEAT_MAP=FALSE)
 
-implement(data1,Z)
 
 
 
