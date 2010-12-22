@@ -18,6 +18,9 @@
 # functionality to the "prior" or "loss" functions.  Try to find the link
 # between these!  Weights (or prior) is the only thing to tune here.
 
+# Note: to remove global variables from namespace, use rm(list = ls(all = TRUE))
+
+
 rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(1:10^5,1)){
   require(rpart)
   set.seed(seed)
@@ -129,22 +132,33 @@ read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
    print(filename)
    print("with a high-z cutoff value of")
    print(high_cutoff)
+   return(list(data1=data1,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,high_cutoff=high_cutoff))
 }
 
 
 ####### run rpart CART classifier ####### 
-test_cart = function(seed=1){
+test_cart = function(data_obj=NULL,seed=1){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+     data_obj = read_data()
+   }
+   ###########################################################################
    # prior.high = seq(0.1,0.9,0.05)
    # for(ii in 1:length(prior.high)){
    #   tree.out = rpart.cv(features,classes,prior=c(1-prior.high[ii],prior.high[ii]),nfolds=10,seed=1)
    #   confmats[[ii]]=tree.out$confmat
    # }
-   carttest = rpart.cv(features,classes,prior=c(0.45,0.55),nfolds=10,seed=1)
+   carttest = rpart.cv(data_obj$features,data_obj$classes,prior=c(0.45,0.55),nfolds=10,seed=1)
    # Documentation on rpart commands - mayo.edu/hsr/techrpt/61.pdf
 }
 
 ####### run Random Forest classifier over a vector of weights ####### 
-test_random_forest_weights = function(log_weights_try=seq(0,5,0.5),seed=1){
+test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),seed=1){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+     data_obj = read_data()
+   }
+   ###########################################################################
 	forest_order = NULL # save the probabilities-order output from random forests
 	forest_res = NULL # save the raw-probabilities output from random forests
 
@@ -153,9 +167,9 @@ test_random_forest_weights = function(log_weights_try=seq(0,5,0.5),seed=1){
 	for(nweight in seq(1,Nweights)) {
    		print(paste("*** weight",nweight,"of",Nweights,"***"))
    		whigh = weights_try[nweight]
-   		weights_vec = 1*(data1$class == "low") + whigh*(data1$class == "high")
+   		weights_vec = 1*(data_obj$data1$class == "low") + whigh*(data_obj$data1$class == "high")
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
-   		foresttest = rfc.cv(features,classes,nfolds=10,weights=weights_vec,seed=seed)
+   		foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
    		forest_res = cbind(forest_res,foresttest$predprob[,1])
    		forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
 	}
@@ -164,9 +178,14 @@ test_random_forest_weights = function(log_weights_try=seq(0,5,0.5),seed=1){
 }
 
 ####### smooth weighted random forest classifiers over a number of seeds ####### 
-smooth_random_forest_weights = function(log_weights_try=seq(0,5,0.5),Nseeds=10){
+smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),Nseeds=10){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+     data_obj = read_data()
+   }
+   ###########################################################################
 	Nweights = length(log_weights_try)
-	forest_res = matrix(0,length(Z),Nweights) # average across seeds
+	forest_res = matrix(0,length(data_obj$Z),Nweights) # average across seeds
 	for(nseed in seq(1,Nseeds)) {
    		print(paste("@@@@@@ seed",nseed,"of",Nseeds,"@@@@@@"))
 		forest_res_loc = test_random_forest_weights(log_weights_try,nseed) # result for this seed
@@ -175,6 +194,7 @@ smooth_random_forest_weights = function(log_weights_try=seq(0,5,0.5),Nseeds=10){
 	
 	return(forest_res)
 }
+
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
 make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_probs_pred_bumps.eps",textfile="forest_probs_pred.txt"){
@@ -216,18 +236,23 @@ make_bumps_plot = function(forest_res,n_colors=64,z_width=3,imagefile="forest_pr
 
 # PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
 # Calculate the number of GRBs we are allowing ourselves to follow-up
-forest_run = function(nfolds=10,alpha=0.3,mtry=NULL,weight_value=61,n.trees=500){
-
-   if(mtry==NULL){
-     mtry = ceiling(sqrt(ncol(features)))
+forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,n.trees=500){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+     data_obj = read_data()
    }
-   num_of_grbs = length(Z)
+   ###########################################################################
+   if(is.null(mtry)){
+     mtry = ceiling(sqrt(dim(data_obj$features)[2]))
+   }
+   print(mtry)
+   num_of_grbs = length(data_obj$Z)
 
-   weights_vec = 1*(data1$class == "low") + weight*(data1$class == "high")
+   weights_vec = 1*(data_obj$data1$class == "low") + weight*(data_obj$data1$class == "high")
    # the following might screw things up
    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
    # ff
-   foresttest = rfc.cv(features,classes,nfolds=nfolds,weights=weights_vec,seed=1,mtry=mtry)
+   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=1,mtry=mtry)
 
    probs = foresttest$predprob[,1]
    num_to_follow = ceiling(alpha*num_of_grbs)
@@ -235,16 +260,16 @@ forest_run = function(nfolds=10,alpha=0.3,mtry=NULL,weight_value=61,n.trees=500)
    # a given percentage of bursts
    mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
    # Grab the array of Zs which are less than mid_prob 
-   high_array=sort(Z[foresttest$predprob[,1] <= mid_prob])
+   high_array=sort(data_obj$Z[foresttest$predprob[,1] <= mid_prob])
    # Calculate our objective function and confusion matrices
-   num_actually_high=length(high_array[high_array >= high_cutoff])
+   num_actually_high=length(high_array[high_array >= data_obj$high_cutoff])
    pct_actually_high=num_actually_high/num_of_grbs
    objective = num_actually_high/num_to_follow
 
    high_as_high = num_actually_high
-   high_as_low = num_high - num_actually_high
+   high_as_low = data_obj$num_high - num_actually_high
    low_as_high = num_to_follow - num_actually_high
-   low_as_low = num_low - low_as_high
+   low_as_low = data_obj$num_low - low_as_high
    print(high_as_high)
    print(low_as_high)
    print(low_as_low)
