@@ -103,7 +103,12 @@ confusionCV = function(data1,leftOut,priorHigh){
           # stategy, already investigated this a bit but might want to do more
  		  if(length(fit1$cptable) > 3){
             bestRow = which.min(fit1$cptable[,4])
-			cp = fit1$cptable[bestRow,1]
+            # remove to ** if you want to do pruning without 1-cv feature
+            cv_error_lim = fit1$cptable[bestRow,4] + fit1$cptable[bestRow,5]
+            within_lim = fit1$cptable[,4] < cv_error_lim
+            best_1_cv = which.max(within_lim * (length(within_lim):1))
+			cp = fit1$cptable[best_1_cv,1]
+            # **
 		 	fit1 = prune(fit1,cp=cp)
 		  }
           # make predictions on the test data
@@ -222,7 +227,13 @@ crossValidateAlgorithm = function(data1,priorHigh,alpha,nfolds1,nfolds2,nalgorit
 		  	 fit1 = rpart(class ~ .,parms=list(prior=c(1-bestPrior,bestPrior)),method="class",data=data1train)
 			 if(length(fit1$cptable) > 3){
 		  		bestRow = which.min(fit1$cptable[,4])
-				cp = fit1$cptable[bestRow,1]
+                # remove to ** if you want to do pruning without 1-cv feature
+                cv_error_lim = fit1$cptable[bestRow,4] + fit1$cptable[bestRow,5]
+                within_lim = fit1$cptable[,4] < cv_error_lim
+                best_1_cv = which.max(within_lim * (length(within_lim):1))
+                cp = fit1$cptable[best_1_cv,1]
+                # **
+				#cp = fit1$cptable[bestRow,1]
 		  		fit1 = prune(fit1,cp=cp)
 			 }
 			 theFits[[i]] = fit1
@@ -451,21 +462,30 @@ heatMap = function(data1,ALPHA_RANGE = 1:9 / 10,PRIOR_RANGE = (1:19) / 20,NUMBER
 ### 7. nCV2 is number of folds used by algorithm1
 ### 8. NUMBER_ALG1 = number times we run algorithm1 to choose a prior, 1 is probably okay, but
 ###    running more than 1 time might make it more stable to random choices in CV sets
-
+### 9. HEAT_MAP boolean which determines if a heat map is computed for which priors are chosen
 ### This function outputs:
 ### 1. confusions.tex, a set of CV confusion matrices, one for each element of ALPHA_RANGE
 ### 2. splits.tex, a set of tables letting user know what CART split on, one for each elements of ALPHA_RANGE
 ### 3. first_splits.tex, a set of tables letting the user know what feature CART split on first for each tree
 ### 4. correct.tex, a table which tells user how often bursts were classified correctly
-implement = function(data1,Z=0,ALPHA_RANGE = c(.1,.3,.5),PRIORS = (1:9 / 10),nCV = 10,nCV1 = 10,nCV2 = 10,NUMBER_ALG1 = 1){
+implement = function(data1,Z=0,ALPHA_RANGE = c(.1,.3,.5),PRIORS = (1:19 / 20),nCV = 10,nCV1 = 10,nCV2 = 10,NUMBER_ALG1 = 1,HEAT_MAP= TRUE){
   if(length(Z) != nrow(data1)){
     Z = rep(0,nrow(data1))
   }
+  
+  # compute heat map which tells us which 
+  if(HEAT_MAP){
+    print('computing heat map . . .')
+    heatMap(data1,ALPHA_RANGE = 1:9 / 10,PRIOR_RANGE = (1:19) / 20,NUMBER=10)
+  }
+  
+  # allocate memory
   confusionMatrices = array(0,c(2,2,nCV,length(ALPHA_RANGE))) # for storing CV results
   correct = matrix(0,nrow=length(Z),ncol=(length(ALPHA_RANGE)+1)) # record which redshift we predict correctly
   correct[,1] = Z # store actual redshift
   theFits = list() # record trees we create so we can see which features are split on 
 
+  # majority of work here -> compute comfusion matrices
   print("computing CV error estimates and others . . . part 2 of 2 of the program")
   for(i in 1:length(ALPHA_RANGE)){
     print(paste("outer loop iteration:",i,"of",length(ALPHA_RANGE)))
