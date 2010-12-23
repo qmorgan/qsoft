@@ -179,6 +179,15 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
 	return(forest_res)
 }
 
+order_residuals = function(forest_res,reverse=FALSE){
+   forest_res_ordered=apply(forest_res,2,rank)
+   if(reverse==TRUE){
+      numinstances = length(forest_res[,1])
+      forest_res_ordered = forest_res_order*-1 + numinstances + 1
+   }
+   return(forest_res_ordered)
+}
+
 ####### smooth weighted random forest classifiers over a number of seeds ####### 
 smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),Nseeds=10){
    ##### If data object is not defined, create the default data object ######
@@ -200,21 +209,27 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.
 
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
-make_bumps_plot = function(forest_res,n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
+make_bumps_plot = function(forest_res,data_obj=NULL,n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+      print("data_obj not specified; using default values")
+      data_obj = read_data()
+   }
+   ###########################################################################
    ####### PLOTTING - here and in EPS ####### 
    #######  Set up color for bumps plot ####### 
-   color_vec = array(1,dim=length(data1$class))
-   lwd_vec = array(1,dim=length(data1$class))
-   for(i in seq(1,length(data1$class))) {
-   	if(data1$class[i] == "high") {
+   color_vec = array(1,dim=length(data_obj$data1$class))
+   lwd_vec = array(1,dim=length(data_obj$data1$class))
+   for(i in seq(1,length(data_obj$data1$class))) {
+   	if(data_obj$data1$class[i] == "high") {
    			color_vec[i] = 1
    			lwd_vec[i] = z_width # High-z bursts are thicker
    	} else {
-   			color_vec[i] = ceiling(1+Z[i])
+   			color_vec[i] = ceiling(1+data_obj$Z[i])
    	}
    }
 
-   logz=log10(1+Z)
+   logz=log10(1+data_obj$Z)
 
 
    ####### The next few lines are for coloring ####### 
