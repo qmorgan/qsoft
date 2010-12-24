@@ -1,3 +1,9 @@
+########################
+## random forest code ##
+########################
+# Authors: T. Broderick, J. Long, A. Morgan, J. Richards
+
+
 #############################
 ## classification routines ##
 #############################
@@ -161,7 +167,6 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
       data_obj = read_data()
    }
    ###########################################################################
-	forest_order = NULL # save the probabilities-order output from random forests
 	forest_res = NULL # save the raw-probabilities output from random forests
 
 	weights_try = 10^log_weights_try
@@ -173,7 +178,6 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
    		foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
    		forest_res = cbind(forest_res,foresttest$predprob[,1])
-   		forest_order = cbind(forest_order,order(foresttest$predprob[,1]))
 	}
    
 	return(forest_res)
@@ -189,24 +193,76 @@ order_residuals = function(forest_res,reverse=FALSE){
 }
 
 ####### smooth weighted random forest classifiers over a number of seeds ####### 
-smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),Nseeds=10){
+smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),Nseeds=10,results_dir="redshift-output"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
       data_obj = read_data()
    }
    ###########################################################################
-	Nweights = length(log_weights_try)
-	forest_res = matrix(0,length(data_obj$Z),Nweights) # average across seeds
 	for(nseed in seq(1,Nseeds)) {
    		print(paste("@@@@@@ seed",nseed,"of",Nseeds,"@@@@@@"))
-		forest_res_loc = test_random_forest_weights(log_weights_try,nseed) # result for this seed
-		forest_res = (1./nseed) * forest_res_loc + ((nseed-1.)/nseed) * forest_res
+		forest_res_loc = test_random_forest_weights(data_obj=data_obj,log_weights_try=log_weights_try,seed=nseed) # result for this seed
+		
+		# save results to file
+		results_file = paste(results_dir,"/",nseed,".txt",sep="")
+		write(t(forest_res_loc), results_file, append=FALSE, ncolumns=length(log_weights_try))
 	}
+}
+
+####### extract composite stats from the random forest seeds output ######
+extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res_dir="redshift-output"){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+      print("data_obj not specified; using default values")
+      data_obj = read_data()
+   }
+   ###########################################################################
+	# collect files in directory
+	file_list = dir(forest_res_dir)
+	
+	# read in files
+	Nweights = length(log_weights_try)
+	forest_res = matrix(0,length(data_obj$Z),Nweights) # average across seeds
+	nseed = 1
+	for(file in file_list){
+		forest_res_loc = as.matrix(read.table(paste(forest_res_dir,"/",file,sep=""), header=FALSE))
+		forest_res = (1./nseed) * forest_res_loc + ((nseed-1.)/nseed) * forest_res
+		nseed = nseed + 1
+	}
+	
 	colnames(forest_res)=paste(log_weights_try)
 	return(forest_res)
 }
 
+####### makes objective function plot ####### 
+# forest_order is ordered using "order_residuals" function with high-z at low rank numbers
+make_obj_fcn_plot = function(forest_order,data_obj=NULL,high_cutoff=4,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,5,0.5),imagefile="objective_fcn.pdf"){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+      print("data_obj not specified; using default values")
+      data_obj = read_data(high_cutoff=high_cutoff)
+   }
+   ###########################################################################
+   
+   	Nweights = length(log_weights_try)
+   	Nz = length(data_obj$Z)
+   	Nhigh = sum(data_obj$Z > high_cutoff)
+	pdf(file=imagefile,width=12,height=8) # save obj plot
+	plot(x = c(min(log_weights_try), max(log_weights_try)), y = c(0,1), xlim = c(min(log_weights_try), max(log_weights_try)), ylim=c(0,1), pch="") # initialize plot))
+	Nalpha = length(alpha_vec)
+	col = rainbow(Nalpha)
+	for(nalpha in seq(1,Nalpha)) {
+		alpha = alpha_vec[nalpha]
+		# find number of follow ups for this alpha
+		Nfollow = floor(Nz*alpha)
+		# find high-z (>4) that are in the alpha threshold
+		Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,Nweights) > high_cutoff)&(forest_order<=Nfollow))
+		frac_found_loc = Nfound_loc / (1.*Nhigh)
+		lines(log_weights_try,frac_found_loc,col=col[nalpha])
+	}
+	dev.off()
+}
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
 make_bumps_plot = function(forest_res,data_obj=NULL,n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
@@ -272,8 +328,10 @@ par(mar=c(4,0,0,1))
    abline(h= log10(4+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
    text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z > 4",pos=3)
    text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z < 4",pos=1)
-     write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
    dev.off()
+   
+   # write forest_res vector to text file
+   write(forest_res,"forest_probs_pred.txt")
 }
 
 
