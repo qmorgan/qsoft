@@ -128,10 +128,8 @@ read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
    classes = data1[,1]
    features = data1[,-1]
    confmats = list()
-   print("Read in:")
-   print(filename)
-   print("with a high-z cutoff value of")
-   print(high_cutoff)
+   print(paste("Read in:",filename))
+   print(paste("with a high-z cutoff value of",high_cutoff))
    return(list(data1=data1,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,high_cutoff=high_cutoff))
 }
 
@@ -215,6 +213,7 @@ make_bumps_plot = function(forest_res,data_obj=NULL,n_colors=128,z_width=3,image
       print("data_obj not specified; using default values")
       data_obj = read_data()
    }
+   hc = data_obj$high_cutoff
    ###########################################################################
    ####### PLOTTING - here and in EPS ####### 
    #######  Set up color for bumps plot ####### 
@@ -254,9 +253,9 @@ par(mar=c(4,0,0,1))
    colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
    text(0,-1,signif(10^min(logz)-1,2)) # add min and max to colorbar
    text(0,1,signif(10^max(logz)-1,2))
-   abline(h= log10(4+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
-   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z > 4",pos=3)
-   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z < 4",pos=1)
+   abline(h= log10(hc+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
+   text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z > ",hc),pos=3)
+   text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z < ",hc),pos=1)
    
    pdf(file=imagefile,width=12,height=8) # save bumps plot
 layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
@@ -269,9 +268,9 @@ par(mar=c(4,0,0,1))
    colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
    text(0,-1,signif(10^min(logz)-1,2)) # add min and max to colorbar
    text(0,1,signif(10^max(logz)-1,2))
-   abline(h= log10(4+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
-   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z > 4",pos=3)
-   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z < 4",pos=1)
+   abline(h= log10(hc+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
+   text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z > ",hc),pos=3)
+   text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z < ",hc),pos=1)
      write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
    dev.off()
 }
