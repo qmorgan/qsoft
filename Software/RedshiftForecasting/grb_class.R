@@ -314,6 +314,7 @@ par(mar=c(4,0,0,1))
    text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z < ",hc),pos=1)
    
    pdf(file=imagefile,width=12,height=8) # save bumps plot
+   
 layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
 par(mar=c(4,2,0,0))
    parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
@@ -324,16 +325,10 @@ par(mar=c(4,0,0,1))
    colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
    text(0,-1,signif(10^min(logz)-1,2)) # add min and max to colorbar
    text(0,1,signif(10^max(logz)-1,2))
-<<<<<<< HEAD
-   abline(h= log10(4+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
-   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z > 4",pos=3)
-   text(0,log10(4+1)/(max(logz)-min(logz))/1.9,"z < 4",pos=1)
-=======
    abline(h= log10(hc+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
    text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z > ",hc),pos=3)
    text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z < ",hc),pos=1)
-     write(forest_res,"forest_probs_pred.txt") # write forest_res vector to text file
->>>>>>> b1ec1f565a9317c631436deaa5729559f777f723
+
    dev.off()
    
    # write forest_res vector to text file
@@ -341,7 +336,6 @@ par(mar=c(4,0,0,1))
 }
 
 
-# PUT THE FOLLOWING INTO A FUNCTION TO CALL FOR DIFFERENT RESULTS
 # Calculate the number of GRBs we are allowing ourselves to follow-up
 forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed=1,n.trees=500){
    ##### If data object is not defined, create the default data object ######
