@@ -185,7 +185,7 @@ order_residuals = function(forest_res,reverse=FALSE){
    forest_res_ordered=apply(forest_res,2,rank)
    if(reverse==TRUE){
       numinstances = length(forest_res[,1])
-      forest_res_ordered = forest_res_order*-1 + numinstances + 1
+      forest_res_ordered = forest_res_ordered*-1 + numinstances + 1
    }
    return(forest_res_ordered)
 }
