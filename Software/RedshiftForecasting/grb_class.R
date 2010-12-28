@@ -235,14 +235,14 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res
 
 ####### makes objective function plot ####### 
 # forest_order is ordered using "order_residuals" function with high-z at low rank numbers
-make_obj_fcn_plot = function(forest_order,data_obj=NULL,high_cutoff=4,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,5,0.5),imagefile="objective_fcn.pdf"){
+make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,5,0.5),imagefile="objective_fcn.pdf"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
-      data_obj = read_data(high_cutoff=high_cutoff)
+      data_obj = read_data()
    }
    ###########################################################################
-   
+      high_cutoff=data_obj$high_cutoff
    	Nweights = length(log_weights_try)
    	Nz = length(data_obj$Z)
    	Nhigh = sum(data_obj$Z > high_cutoff)
@@ -250,14 +250,37 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,high_cutoff=4,alpha_vec=
 	plot(x = c(min(log_weights_try), max(log_weights_try)), y = c(0,1), xlim = c(min(log_weights_try), max(log_weights_try)), ylim=c(0,1), pch="") # initialize plot))
 	Nalpha = length(alpha_vec)
 	col = rainbow(Nalpha)
+
+	
+	random_guess_vec = (data_obj$num_high)/Nz*alpha_vec
 	for(nalpha in seq(1,Nalpha)) {
 		alpha = alpha_vec[nalpha]
+		rand_guess = random_guess_vec[nalpha]
 		# find number of follow ups for this alpha
 		Nfollow = floor(Nz*alpha)
 		# find high-z (>4) that are in the alpha threshold
 		Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,Nweights) > high_cutoff)&(forest_order<=Nfollow))
 		frac_found_loc = Nfound_loc / (1.*Nhigh)
-		lines(log_weights_try,frac_found_loc,col=col[nalpha])
+		
+		## Dumb Classifier - based soley on UVOT detection ##
+      uvd=data_obj$data1$uvot_detection
+      N_uvot_yes = length(uvd[uvd=='yes'])
+      N_uvot_no = length(uvd[uvd=='no'])
+      base_objective_uvot_no = 13./17.
+      base_objective_uvot_yes = 4./17.
+      objective_cutoff = N_uvot_no/(N_uvot_no+N_uvot_yes) 
+      if(alpha <= objective_cutoff){
+         dumb_objective = base_objective_uvot_no*alpha/objective_cutoff
+      }
+      if(alpha > objective_cutoff){
+         dumb_objective= base_objective_uvot_no+((alpha-objective_cutoff)*base_objective_uvot_yes)/(1-objective_cutoff)
+      }
+      print(dumb_objective)
+   	## End dumb Classifier
+		
+		lines(log_weights_try,frac_found_loc,lty=1,lwd=2,col=col[nalpha])
+		yline(alpha,lty=1,col=col[nalpha])
+		yline(dumb_objective,lty=3,lwd=2,col=col[nalpha])
 	}
 	dev.off()
 }
