@@ -278,10 +278,14 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
       print(dumb_objective)
    	## End dumb Classifier
 		
-		lines(log_weights_try,frac_found_loc,lty=1,lwd=2,col=col[nalpha])
+		lines(log_weights_try,frac_found_loc,lty=1,lwd=4,col=col[nalpha])
 		yline(alpha,lty=1,col=col[nalpha])
-		yline(dumb_objective,lty=3,lwd=2,col=col[nalpha])
+		yline(dumb_objective,lty=3,lwd=3,col=col[nalpha])
+		
+		
 	}
+	legend(4.8,0.19,c("0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9"), cex=0.6,col=col,lty=1:1)
+	
 	dev.off()
 }
 
