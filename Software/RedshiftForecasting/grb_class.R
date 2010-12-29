@@ -322,20 +322,6 @@ make_bumps_plot = function(forest_res,data_obj=NULL,n_colors=128,z_width=3,image
    }
    tc = tim.colors(n_colors)
 
-layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
-par(mar=c(4,2,0,0))
-   parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
-   title(xlab="log high-z weight",cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
-   title(ylab="Pr(low-z GRB)",cex.lab=1.25,mgp=c(.25,1,0)) # yaxis
-par(mar=c(4,0,0,1))
-   plot(1, type="n", axes=F, xlab="z (log\n scale)", ylab="",xlim=c(-1,1),ylim=c(-1,1),mgp=c(1,1,0),cex.lab=1.25) # empty plot for colorbar
-   colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
-   text(0,-1,signif(10^min(logz)-1,2)) # add min and max to colorbar
-   text(0,1,signif(10^max(logz)-1,2))
-   abline(h= log10(hc+1)/(max(logz)-min(logz))/1.9,lwd=4) # plot z=4 cutoff (the 1.9 is a hack)
-   text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z > ",hc),pos=3)
-   text(0,log10(hc+1)/(max(logz)-min(logz))/1.9,paste("z < ",hc),pos=1)
-   
    pdf(file=imagefile,width=12,height=8) # save bumps plot
    
 layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
