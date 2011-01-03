@@ -25,6 +25,7 @@ from MiscBin import qPickle
 import pylab
 import scipy
 import numpy
+import matplotlib.pyplot as plt
 from Plotting.ColorScatter import ColorScatter
 from Plotting.Annote import AnnotatedSubPlot
 from Phot import extinction
@@ -405,7 +406,8 @@ class GRBdb:
     
     def update_class(self):
         '''
-        Given conditions, assign and update the redshift class
+        Given conditions, assign and update the redshift class and create 
+        new meta-attributes based on the already existing ones
         
         '''
         for grb in self.dict:
@@ -521,7 +523,7 @@ class GRBdb:
                 if key in self.dict[grb]:
                     newname = 'log_'+key
                     try:
-                        self.dict[grb][newname] = numpy.log(self.dict[grb][key])
+                        self.dict[grb][newname] = numpy.log10(self.dict[grb][key])
                         self.MakeAttrArr(newname)
                     except:
                         print 'Cannot take the log of GRB %s %s' % (grb,key)
@@ -624,12 +626,16 @@ class GRBdb:
     
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
-        xjitter=0.0,discrete=0,marker='o'):
+        xjitter=0.0,discrete=0,marker='o', **kwargs):
         '''Plot two keys against each other, with an optional third key as 
         the colorbar parameter.  Specify xjitter or yjitter to add a bit 
         of scatter to the plot for visualization reasons.  This replaces the
         old grbplot function which read from the dictionaries, and instead
         uses the arrays created by MakeAllAttr.
+        
+        To plot, e.g., thick red rings around bursts of interest, 
+        pylab.scatter(a,b,s=80,marker='o',edgecolors='r',facecolors='none',linewidths=2)
+        
         '''
         # list_tup = self.ret_list(x,y)
         xlist = getattr(self,x_key)['array']
@@ -639,7 +645,7 @@ class GRBdb:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
             ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
-                discrete=discrete,marker=marker)
+                discrete=discrete,marker=marker, **kwargs)
         if logx and not logy:
             pylab.semilogx()
         if logy and not logx:
@@ -735,32 +741,6 @@ class GRBdb:
         else:
             self.grbannotesubplot(x_keys=xkeys,y_keys=ykeys,z_keys=zkeys)
 
-
-    def test_log_update(self,plot=True,hist=True):
-        # Remove the shorts before removing outliers so as to not bias the sample
-        self.removeShort(remove_no_redshift=False)
-        
-        if not self.class_updated:
-            self.update_class()
-        self.MakeAllAttr()
-        
-        
-        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
-        self.log_update_class(keys_to_log)
-        keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
-        self.norm_update_class(keys_to_norm)
-        keys_to_plot = ['Z', 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90','v_mag_isupper_binary','wh_mag_isupper_binary','bat_is_rate_trig_binary']
-        keys_to_hist = [ 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
-        
-        remove_outliers = True
-        if remove_outliers:
-            for attr in keys_to_log:
-                self.removeOutliers(attr,threshold=0.32)
-        
-        if plot:
-            self.plotallvall(keylist=keys_to_plot,zval='Z')
-        if hist:
-            self.DistHist(keylist=keys_to_hist)
     
     def MakeAllAttr(self):
         self.MakeAttrArr('A',negerrkey='A1',poserrkey='A2',DeltaErr=False)
@@ -969,6 +949,11 @@ class GRBdb:
     
     
     def removeValues(self,key,argument):
+       '''Catch-all function to remove all values in the CollectObject which
+        obey the given argument.  It removes it from the dictionary, and then
+        re-runs the makeallattr function to create new arrays.  
+       
+       '''
         remove_list = []
         # Quick check to see if the argument is kind of formatted correctly
         allowed_arguments = ['>','<','=','!']
@@ -1204,6 +1189,39 @@ class GRBdb:
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
+    def Set_up_new_DB(self,plot=False,hist=False,outlier_threshold=0.32):
+        '''A wrapper around the above functions to create a new DB object:
+        * Remove the short GRBs
+        * Crete new meta attributes with update_class
+        * Remove outliers
+        * Make the attribute arrays with MakeAllAttr
+        * log and normalize the desired keys
+        * Plot and make histograms if desired
+        
+        '''
+        # Remove the shorts before removing outliers so as to not bias the sample
+        self.removeShort(remove_no_redshift=False)
+        
+        if not self.class_updated:
+            self.update_class()
+        self.MakeAllAttr()
+        
+        remove_outliers = True
+        if remove_outliers:
+            for attr in keys_to_log:
+                self.removeOutliers(attr,threshold=outlier_threshold)
+        
+        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
+        self.log_update_class(keys_to_log)
+        keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
+        self.norm_update_class(keys_to_norm)
+        keys_to_plot = ['Z', 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90','v_mag_isupper_binary','wh_mag_isupper_binary','bat_is_rate_trig_binary']
+        keys_to_hist = [ 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
+
+        if plot:
+            self.plotallvall(keylist=keys_to_plot,zval='Z')
+        if hist:
+            self.DistHist(keylist=keys_to_hist)
 
 
 if __name__ == '__main__':
