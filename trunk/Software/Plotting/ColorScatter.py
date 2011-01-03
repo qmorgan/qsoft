@@ -21,8 +21,8 @@ def ColorScatterExample():
     ColorScatter(x,y,z,cmap='jet',colorbar=True,xjitter=2)
 
 
-def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=0.0,\
-    xjitter=0.0,marker='o',retjitter=False, **kwargs):
+def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=None,\
+    xjitter=None,marker='o',retjitter=False, **kwargs):
     '''set discrete to N for splitting up into N values
     yjitter sets a percent random jitter in the y direction to help distinguish
     overlapping values.  
@@ -39,6 +39,20 @@ def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=0.0,\
     values first as a normal scatter plot, then the special values as a normal 
     scatter plot (but save the jitter values with retjitter), and then overplot a 
     ring around the same values.
+    
+    COLORBAR STUFF: if you want to include a single colorbar for multiple sets
+    of data on a single plot; set the vmin and vmax kwargs for each set of data
+    to be the same.  This will set the range of acceptible colors. 
+    
+    In [158]: a1 = [1,3,5]
+    In [159]: b1 = [1,3,5]
+    In [160]: a2 = [2,4,6]
+    In [161]: b2 = [2,4,6]
+    In [162]: z1 = [1,5,10]
+    In [163]: z2 = [15,20,25]
+    In [164]: sc = pylab.scatter(a1,b1,c=z1,cmap=cmap,vmin=0,vmax=25)
+    In [165]: sc = pylab.scatter(a2,b2,c=z2,cmap=cmap,vmin=0,vmax=25)
+    In [166]: pylab.colorbar(sc)
     
     '''
         
