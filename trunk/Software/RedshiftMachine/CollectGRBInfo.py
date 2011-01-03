@@ -14,6 +14,7 @@ to output a .arff file for machine learning with Weka.
 import sys
 import os
 import time
+import copy
 from RedshiftMachine import ParseSwiftCat
 from RedshiftMachine import LoadGCN
 from AutoRedux import Signal
@@ -435,11 +436,16 @@ class GRBdb:
             # Make new attribute grabbing the extinction column.  
             # Might want to change the observation epoch.
             if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
-                best_position = dec2sex((self.dict[grb]['best_ra'],self.dict[grb]['best_dec']))
-                ext_list = extinction.extinction(lon=best_position[0],\
-                    lat=best_position[1],system_in='Equatorial',\
-                    system_out='Galactic',obs_epoch="2005.0")
-                gal_EB_V = ext_list[0]
+                try:
+                    best_position = dec2sex((self.dict[grb]['best_ra'],self.dict[grb]['best_dec']))
+                    ext_list = extinction.extinction(lon=best_position[0],\
+                        lat=best_position[1],system_in='Equatorial',\
+                        system_out='Galactic',obs_epoch="2005.0")
+                    gal_EB_V = ext_list[0]
+                except:
+                    print 'Cannot grab extinction values for %s' % (grb)
+                    print self.dict[grb]['best_ra'],self.dict[grb]['best_dec'] 
+                    gal_EB_V = numpy.NAN
             self.dict[grb]['gal_EB_V'] = gal_EB_V
             self.class_updated = True
             
@@ -626,7 +632,7 @@ class GRBdb:
     
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
-        xjitter=0.0,discrete=0,marker='o', **kwargs):
+        xjitter=0.0, retjitter=False, discrete=0,marker='o', **kwargs):
         '''Plot two keys against each other, with an optional third key as 
         the colorbar parameter.  Specify xjitter or yjitter to add a bit 
         of scatter to the plot for visualization reasons.  This replaces the
@@ -636,6 +642,10 @@ class GRBdb:
         To plot, e.g., thick red rings around bursts of interest, 
         pylab.scatter(a,b,s=80,marker='o',edgecolors='r',facecolors='none',linewidths=2)
         
+        to set standard colorbar, set vmin and vmax kwargs
+        db_highz.grbplot('log_MAX_SNR','log_FL',z_key='Z',vmin=0,vmax=8.2)
+        
+        
         '''
         # list_tup = self.ret_list(x,y)
         xlist = getattr(self,x_key)['array']
@@ -644,8 +654,8 @@ class GRBdb:
         if z_key:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
-            ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
-                discrete=discrete,marker=marker, **kwargs)
+            jitter=ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
+                discrete=discrete,marker=marker,retjitter=retjitter,**kwargs)
         if logx and not logy:
             pylab.semilogx()
         if logy and not logx:
@@ -654,6 +664,8 @@ class GRBdb:
             pylab.loglog()
         pylab.ylabel(y_key)
         pylab.xlabel(x_key)
+        if retjitter:
+            return jitter
 
 
     def grbannotesubplot(self,\
@@ -838,6 +850,7 @@ class GRBdb:
         for key in keys_to_binary:
             self.MakeBinArr(key,'yes')
         
+        
     def DistHist(self,keylist):
         self.MakeAttrArr('T90',negerrkey='DT90',poserrkey='DT90')
         long_ind=numpy.nonzero(self.T90['array'] > 2.0) #indeces of long bursts
@@ -887,7 +900,10 @@ class GRBdb:
             
             keydict = getattr(self,key)
             if 'poserrarr' in keydict and 'negerrarr' in keydict:
-            
+                
+                # Grab array of grb names to remove the outliers from the dictionary
+                array_of_grb_names = numpy.array(self.dict.keys())
+                
                 begin_num = len(RemoveNaN(keydict['array']))
                 print "%s: Beginning with %i non-NaN values" % (key,begin_num)
             
@@ -931,6 +947,10 @@ class GRBdb:
                 print "Ending with %i non-NaN values" % (end_num)
                 print "%i outliers removed." % (begin_num-end_num)
                 print ''
+                
+                # Now remove the outliers from the dictionary
+                for grb_name in array_of_grb_names:
+                    self.dict[grb_name][key] = numpy.nan
             
                 setattr(self,key,keydict)
             else:
@@ -1016,7 +1036,7 @@ class GRBdb:
             if remove_no_redshift and not z and not already_removed:
                 remove_list.append(i)
         print 'initial length of dictionary: ' + str(len(self.dict))
-        print ' removing ' + str(len(remove_list)) + ' GRBs'
+        print ' removing ' + str(len(remove_list)) + 'short GRBs'
         for key in remove_list:
             self.dict.pop(key)
         print 'new length of dictionary: ' + str(len(self.dict))
@@ -1189,7 +1209,7 @@ class GRBdb:
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-    def Set_up_new_DB(self,plot=False,hist=False,outlier_threshold=0.32):
+    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32):
         '''A wrapper around the above functions to create a new DB object:
         * Remove the short GRBs
         * Crete new meta attributes with update_class
@@ -1206,12 +1226,14 @@ class GRBdb:
             self.update_class()
         self.MakeAllAttr()
         
+        
+        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
+        
         remove_outliers = True
         if remove_outliers:
             for attr in keys_to_log:
                 self.removeOutliers(attr,threshold=outlier_threshold)
         
-        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
         self.log_update_class(keys_to_log)
         keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
         self.norm_update_class(keys_to_norm)
@@ -1223,7 +1245,25 @@ class GRBdb:
         if hist:
             self.DistHist(keylist=keys_to_hist)
 
-
+        
+def TestMakeNicePlot():
+    # TODO: Use proper plt.axes
+    # TODO: Label colorbar
+    db_full = LoadDB('101116_short+outliers+noZ_removed')
+    db_full.Reload_DB() # remove all the outliers before splitting
+    db_highz = copy.deepcopy(db_full)
+    db_lowz = copy.deepcopy(db_full)
+    db_highz.removeValues('Z','<4')
+    db_lowz.removeValues('Z','>=4')
+    db_highz.Reload_DB()
+    db_lowz.Reload_DB()
+    db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
+    jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
+    db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=jitter[1],vmin=0,vmax=8.2,colorbar=False,s=80, marker='o', edgecolors='r', facecolors='none', linewidths=2)
+    pylab.yticks((0,1),('no','yes'))
+    pylab.ylabel("UVOT Detection?")
+    pylab.xlabel("log(BAT SNR) (Normalized)")
+    
 if __name__ == '__main__':
     collect()
     sys.exit(0)     
