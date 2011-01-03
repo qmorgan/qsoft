@@ -949,11 +949,11 @@ class GRBdb:
     
     
     def removeValues(self,key,argument):
-       '''Catch-all function to remove all values in the CollectObject which
+        '''Catch-all function to remove all values in the CollectObject which
         obey the given argument.  It removes it from the dictionary, and then
         re-runs the makeallattr function to create new arrays.  
        
-       '''
+        '''
         remove_list = []
         # Quick check to see if the argument is kind of formatted correctly
         allowed_arguments = ['>','<','=','!']
