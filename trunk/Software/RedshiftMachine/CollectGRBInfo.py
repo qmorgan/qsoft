@@ -654,7 +654,7 @@ class GRBdb:
         if z_key:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
-            jitter=ColorScatter(xlist,ylist,zlist,yjitter=yjitter,xjitter=xjitter,\
+            jitter=ColorScatter(xlist,ylist,zlist,zlabel=z_key,yjitter=yjitter,xjitter=xjitter,\
                 discrete=discrete,marker=marker,retjitter=retjitter,**kwargs)
         if logx and not logy:
             pylab.semilogx()

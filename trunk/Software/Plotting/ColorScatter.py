@@ -18,10 +18,10 @@ def ColorScatterExample():
     x=list(arange(20))
     y=list(arange(20))
     z=scipy.rand(20)*50
-    ColorScatter(x,y,z,cmap='jet',colorbar=True,xjitter=2)
+    ColorScatter(x,y,z,zlabel='Test Label',cmap='jet',colorbar=True,xjitter=2)
 
 
-def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=None,\
+def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjitter=None,\
     xjitter=None,marker='o',retjitter=False, **kwargs):
     '''set discrete to N for splitting up into N values
     yjitter sets a percent random jitter in the y direction to help distinguish
@@ -91,7 +91,10 @@ def ColorScatter(x,y,z=None,cmap='jet',colorbar=True,discrete=0,yjitter=None,\
                 N = 2
             cmap = cmap_discretize(pylab.cm.cool_r,N)
         sc = pylab.scatter(x,y,c=z,cmap=cmap,marker=marker,**kwargs)
-        if colorbar: pylab.colorbar(sc)
+        if colorbar: 
+            cb = pylab.colorbar(sc)
+            if zlabel:
+                cb.set_label(zlabel)
     else:
         sc = pylab.scatter(x,y,marker=marker,**kwargs)
         
