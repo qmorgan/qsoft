@@ -16,6 +16,9 @@ that they were set to Zero in the catalog because the true value was unknown.
 import cPickle as pickle
 import os
 import sys
+import urllib2
+import numpy 
+
 try: 
     import pyfits
 except:
@@ -28,6 +31,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 
 loadpath = os.environ.get("Q_DIR") + '/load/'
+storepath = os.environ.get("Q_DIR") + '/store/'
 
 default_bat_catlist = [loadpath+'bat_catalog_apj.671.656.fits',\
                     loadpath+'bat_catalog_apj.711.495.fits',\
@@ -107,4 +111,69 @@ def load_natcats(bat_catlist,xrt_catlist):
     batcat = combine_natcats(bat_catlist,remove_zeros=True)
     print "length of bat nat cat: ", len(batcat)
     batxrtcat = combine_natbatxrt(batcat,xrtcat)
+    # Update to grab Nat's redshift probabilities
+    batxrtcat = grab_nat_web_data(batxrtcat,filename='/bat/zprob.txt')
     return batxrtcat
+
+def download_file(url,outfile):
+    response = urllib2.urlopen(url)
+    html = response.read()
+    f = file(outfile,'w')
+    f.write(html)
+    f.close()
+
+def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
+    base_url = 'http://astro.berkeley.edu/~nat/swift/'
+    outpath = storepath + 'grbs/'
+    for grbname in natcatdict.keys():
+        fullurl = base_url + grbname + filename
+        fullout = outpath + grbname + filename
+        if not os.path.exists(os.path.dirname(fullout)):
+            os.makedirs(os.path.dirname(fullout))
+            download_file(fullurl,fullout)
+        elif clobber == True:
+            try:
+                os.remove(fullout)
+                download_file(fullurl,fullout)
+            except:
+                pass
+        else:
+            pass
+        #try:
+        # Grab probabilities if we're looking at that filename
+        if filename == '/bat/zprob.txt':
+            response = f = open(fullout,'r')
+            html = f.readlines()
+            z_pred_arr = []
+            prob_arr = []
+            ind = 0 # Grab the index to mark where redshifts are for summing probs
+            for line in html:
+                if line[0] == '#':
+                    continue
+                z_prob = line.rstrip('\n').split(' ')
+                z_pred_arr.append(z_prob[0])
+                prob_arr.append(float(z_prob[1]))
+                # What follows is very embarassing but I am lazy today
+                if line[0:3] == '1.0': ind1 = ind
+                if line[0:3] == '2.0': ind2 = ind
+                if line[0:3] == '3.0': ind3 = ind
+                if line[0:3] == '4.0': ind4 = ind
+                if line[0:3] == '5.0': ind5 = ind
+                ind += 1
+            # Now sum up the probabilities to get the prob that lt some value
+            norm_total = numpy.sum(numpy.array(prob_arr))
+            
+            prob_gt_1 = 1 - numpy.sum(numpy.array(prob_arr[0:ind1]))/norm_total
+            prob_gt_2 = 1 - numpy.sum(numpy.array(prob_arr[0:ind2]))/norm_total
+            prob_gt_3 = 1 - numpy.sum(numpy.array(prob_arr[0:ind3]))/norm_total
+            prob_gt_4 = 1 - numpy.sum(numpy.array(prob_arr[0:ind4]))/norm_total
+            prob_gt_5 = 1 - numpy.sum(numpy.array(prob_arr[0:ind5]))/norm_total
+            
+            natcatdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
+            natcatdict[grbname].update({'PROB_Z_GT_2':prob_gt_2})
+            natcatdict[grbname].update({'PROB_Z_GT_3':prob_gt_3})
+            natcatdict[grbname].update({'PROB_Z_GT_4':prob_gt_4})
+            natcatdict[grbname].update({'PROB_Z_GT_5':prob_gt_5})
+    return natcatdict
+        # except:
+        #             print 'Cannot download %s to %s' % (fullurl,fullout)
