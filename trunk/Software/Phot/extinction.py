@@ -8,6 +8,10 @@ extinction
     http://nedwww.ipac.caltech.edu/forms/calculator.html
     See also 
     http://www.astro.princeton.edu/~schlegel/dust/dustpub/CodeC/README.C
+    
+    UPDATE  - 11-01-19 - problems with formatting.  need to explicitly
+    specify string '123.35d', etc.  not sure how to get sexagesimal to work.
+    
 """
 
 __version__ = "0.2"
