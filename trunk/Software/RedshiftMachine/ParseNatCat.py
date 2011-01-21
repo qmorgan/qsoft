@@ -130,50 +130,58 @@ def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
         fullout = outpath + grbname + filename
         if not os.path.exists(os.path.dirname(fullout)):
             os.makedirs(os.path.dirname(fullout))
-            download_file(fullurl,fullout)
+            
+            # Try to download the file, if can't, skip to the next one
+            try:
+                download_file(fullurl,fullout)
+            except:
+                print 'Cannot download %s to %s' % (fullurl,fullout)
+                continue 
         elif clobber == True:
             try:
                 os.remove(fullout)
                 download_file(fullurl,fullout)
             except:
-                pass
+                print 'Cannot download %s to %s' % (fullurl,fullout)
+                continue
         else:
             pass
-        #try:
         # Grab probabilities if we're looking at that filename
         if filename == '/bat/zprob.txt':
-            response = f = open(fullout,'r')
-            html = f.readlines()
-            z_pred_arr = []
-            prob_arr = []
-            ind = 0 # Grab the index to mark where redshifts are for summing probs
-            for line in html:
-                if line[0] == '#':
-                    continue
-                z_prob = line.rstrip('\n').split(' ')
-                z_pred_arr.append(z_prob[0])
-                prob_arr.append(float(z_prob[1]))
-                # What follows is very embarassing but I am lazy today
-                if line[0:3] == '1.0': ind1 = ind
-                if line[0:3] == '2.0': ind2 = ind
-                if line[0:3] == '3.0': ind3 = ind
-                if line[0:3] == '4.0': ind4 = ind
-                if line[0:3] == '5.0': ind5 = ind
-                ind += 1
-            # Now sum up the probabilities to get the prob that lt some value
-            norm_total = numpy.sum(numpy.array(prob_arr))
+            try:
+                response = f = open(fullout,'r')
+                html = f.readlines()
+                z_pred_arr = []
+                prob_arr = []
+                ind = 0 # Grab the index to mark where redshifts are for summing probs
+                for line in html:
+                    if line[0] == '#':
+                        continue
+                    z_prob = line.rstrip('\n').split(' ')
+                    z_pred_arr.append(z_prob[0])
+                    prob_arr.append(float(z_prob[1]))
+                    # What follows is very embarassing but I am lazy today
+                    if line[0:3] == '1.0': ind1 = ind
+                    if line[0:3] == '2.0': ind2 = ind
+                    if line[0:3] == '3.0': ind3 = ind
+                    if line[0:3] == '4.0': ind4 = ind
+                    if line[0:3] == '5.0': ind5 = ind
+                    ind += 1
+                # Now sum up the probabilities to get the prob that lt some value
+                norm_total = numpy.sum(numpy.array(prob_arr))
             
-            prob_gt_1 = 1 - numpy.sum(numpy.array(prob_arr[0:ind1]))/norm_total
-            prob_gt_2 = 1 - numpy.sum(numpy.array(prob_arr[0:ind2]))/norm_total
-            prob_gt_3 = 1 - numpy.sum(numpy.array(prob_arr[0:ind3]))/norm_total
-            prob_gt_4 = 1 - numpy.sum(numpy.array(prob_arr[0:ind4]))/norm_total
-            prob_gt_5 = 1 - numpy.sum(numpy.array(prob_arr[0:ind5]))/norm_total
+                prob_gt_1 = 1 - numpy.sum(numpy.array(prob_arr[0:ind1]))/norm_total
+                prob_gt_2 = 1 - numpy.sum(numpy.array(prob_arr[0:ind2]))/norm_total
+                prob_gt_3 = 1 - numpy.sum(numpy.array(prob_arr[0:ind3]))/norm_total
+                prob_gt_4 = 1 - numpy.sum(numpy.array(prob_arr[0:ind4]))/norm_total
+                prob_gt_5 = 1 - numpy.sum(numpy.array(prob_arr[0:ind5]))/norm_total
             
-            natcatdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
-            natcatdict[grbname].update({'PROB_Z_GT_2':prob_gt_2})
-            natcatdict[grbname].update({'PROB_Z_GT_3':prob_gt_3})
-            natcatdict[grbname].update({'PROB_Z_GT_4':prob_gt_4})
-            natcatdict[grbname].update({'PROB_Z_GT_5':prob_gt_5})
+                natcatdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
+                natcatdict[grbname].update({'PROB_Z_GT_2':prob_gt_2})
+                natcatdict[grbname].update({'PROB_Z_GT_3':prob_gt_3})
+                natcatdict[grbname].update({'PROB_Z_GT_4':prob_gt_4})
+                natcatdict[grbname].update({'PROB_Z_GT_5':prob_gt_5})
+            except:
+                print 'Cannot load %s ' % (fullout)
+                continue
     return natcatdict
-        # except:
-        #             print 'Cannot download %s to %s' % (fullurl,fullout)
