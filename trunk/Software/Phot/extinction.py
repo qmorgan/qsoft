@@ -37,10 +37,10 @@ def extinction(lon="12:12:12",lat="-12:12:12",\
                system_out="Galactic",obs_epoch="2005.0"):
 
     ind = 0
-    for u in urls:
+    for url in urls:
         # try to connect
-        conn = httplib.HTTPConnection(u[0])
-        conn.request("GET", u[1])
+        conn = httplib.HTTPConnection(url[0])
+        conn.request("GET", url[1])
         r1 = conn.getresponse()
         if (r1.status == 200) and (r1.reason == "OK"):
             # this site is active
@@ -62,12 +62,13 @@ def extinction(lon="12:12:12",lat="-12:12:12",\
          'pa': 0.0, 'out_csys': system_out, \
          'out_equinox': out_equinox})
     
-    conn = httplib.HTTPConnection(u[0])
-    conn.request("POST", u[2], params, headers)
+    
+    conn = httplib.HTTPConnection(url[0])
+    conn.request("POST", url[2], params, headers)
     response = conn.getresponse()
     data = response.read()
     extfield = \
-             (((data.split(u[3]))[u[4]]).splitlines())[u[5]]
+             (((data.split(url[3]))[url[4]]).splitlines())[url[5]]
     ebv = float(((extfield.split("=")[1]).split("mag."))[0])
     dlines = data.splitlines()
 
