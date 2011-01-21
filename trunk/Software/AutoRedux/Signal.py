@@ -76,13 +76,13 @@ def MonitorRSS(feed_url):
                     xml_file = entry.link  # apparently the entry.link is the address I wanted
 #                    print xml_file
                     shortened_link = xml_file
- #                   try:
-                    sql_entry = (entry.link, entry.title, entry.summary, shortened_link)
-                    print sql_entry
-                    c.execute('insert into RSSContent (`url`, `title`, `content`, `xml_location`) values (?,?,?,?)', sql_entry)
-                    sql_entry_list.append(sql_entry)
-#                   except:
-               #     print "Could not update RSS database for entry %s" % (entry.title)
+                    try:
+                        sql_entry = (entry.link, entry.title, entry.summary, shortened_link)
+                        print sql_entry
+                        c.execute('insert into RSSContent (`url`, `title`, `content`, `xml_location`) values (?,?,?,?)', sql_entry)
+                        sql_entry_list.append(sql_entry)
+                    except:
+                        print "Could not update RSS database for entry %s" % (entry.title)
             conn.commit()
             
     return sql_entry_list
@@ -105,40 +105,49 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 triggerid = splittitle[-1].split('-')[0]
                 # If the length of the triggerid is 6, know it is a GRB and not ToO
                 # May want to revisit this conditionality to actually parse the VOEvent
-            elif feed_type.lower() == 'talons' and entry_title[2] == 'swift':
+            elif feed_type.lower() == 'talons' and entry_title.split()[1] == 'swift':
                 # first six characters of 4th value in split link is the triggerid
                 splittitle = entry_title.split(' ')
                 triggerid = str(splittitle[3])
             else:
                 triggerid = '0'
             if len(triggerid) == 6:
-                triggerid = triggerid.lstrip('0')
-                print 'Loading GCN for trigger %s' % (triggerid)
-                gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
-                # Eventually want to depreciate the following function
-                # and make a generic ds9 region file creating function
-#                    reg_file_path = gcn.get_positions(create_reg_file=True)
-                if incl_reg:
-                    try:
-                        reg_path = _incl_reg(gcn)
-                        if not reg_path: print '\nCOULDNT FIND REG PATH\n'
-                    except: qErr.qErr()
-                if incl_fc:
-                    try:
-                        fc_path = _incl_fc(gcn,last_pos_check=True)
-                        if not fc_path: print '\nCOULDNT FIND FC PATH\n'
-                    except: qErr.qErr()
-                if mail_reg:
-                    try:
-                        mail_grb_region(gcn,mail_to,reg_path)
-                    except: qErr.qErr()
-                if make_html:
-                    try:
-                        grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
-                        if mail_html and grbhtml.successful_export:
-                            _mail_html(gcn,mail_to,tweet=tweet)
-                    except: qErr.qErr()
+                _do_all_trigger_actions(triggerid **kwargs)
+
         time.sleep(60)
+
+def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
+                        mail_reg=False, mail_to='amorgan@berkeley.edu',\
+                        make_html=True, html_path='/o/amorgan/public_html/Swift/',\
+                        mail_html=True, feed_type = 'talons', tweet = True, \
+                        feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"):
+    
+    triggerid = triggerid.lstrip('0')
+    print 'Loading GCN for trigger %s' % (triggerid)
+    gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
+    # Eventually want to depreciate the following function
+    # and make a generic ds9 region file creating function
+            #reg_file_path = gcn.get_positions(create_reg_file=True)
+    if incl_reg:
+        try:
+            reg_path = _incl_reg(gcn)
+            if not reg_path: print '\nCOULDNT FIND REG PATH\n'
+        except: qErr.qErr()
+    if incl_fc:
+        try:
+            fc_path = _incl_fc(gcn,last_pos_check=True)
+            if not fc_path: print '\nCOULDNT FIND FC PATH\n'
+        except: qErr.qErr()
+    if mail_reg:
+        try:
+            mail_grb_region(gcn,mail_to,reg_path)
+        except: qErr.qErr()
+    if make_html:
+        try:
+            grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
+            if mail_html and grbhtml.successful_export:
+                _mail_html(gcn,mail_to,tweet=tweet)
+        except: qErr.qErr()
 
 def _mail_html(gcn,mail_to,clobber=False,tweet=True):
     if not hasattr(gcn,'mailed_web'):
