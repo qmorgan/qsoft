@@ -117,6 +117,11 @@ def whatis(keyword):
     'NU': {'definition':'BAT Spectral Fit Degrees Of Freedom','type':'double','source':'NatBat Spectra','speed':'processed','sample':54.0},
     'OBS': {'definition':'Swift Trigger Number','type':'string','source':'NatBat','speed':'processed','sample':'00228581'},
     'PK_O_CTS': {'definition':'Ratio of the peak rate Rate_p (in a time bin of width 0.01 dt_(S/N)) over the total source counts (cts).  Used to approximately relate the burst fluences to peak fluxes.','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_GT_1': {'definition':'Prob that redshift is greater than 1 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_GT_2': {'definition':'Prob that redshift is greater than 2 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_GT_3': {'definition':'Prob that redshift is greater than 3 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_GT_4': {'definition':'Prob that redshift is greater than 4 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_GT_5': {'definition':'Prob that redshift is greater than 5 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
     'RT45': {'definition':'BAT rT0.45 (Defined in Reichart et al. 2001) - yet another way of defining the duration of the initial burst of gamma-rays','type':'double','source':'NatBat Timing','speed':'processed','sample':5.2800000000000002},
     'T0': {'definition':'Lower BAT Spectral Time Region','type':'string','source':'NatBat Spectra','speed':'processed','sample':'-9.615'},
     'T1': {'definition':'Upper BAT Spectral Time Region','type':'string','source':'NatBat Spectra','speed':'processed','sample':'13.815'},
@@ -437,7 +442,9 @@ class GRBdb:
             # Might want to change the observation epoch.
             if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
                 try:
-                    best_position = dec2sex((self.dict[grb]['best_ra'],self.dict[grb]['best_dec']))
+                    ra_str = str(self.dict[grb]['best_ra'])+'d'
+                    dec_str = str(self.dict[grb]['best_dec'])+'d'
+                    best_position = (ra_str,dec_str)
                     ext_list = extinction.extinction(lon=best_position[0],\
                         lat=best_position[1],system_in='Equatorial',\
                         system_out='Galactic',obs_epoch="2005.0")
@@ -792,6 +799,11 @@ class GRBdb:
         self.MakeNomArr('T_PC_LATE')
         self.MakeNomArr('T_WT')
         self.MakeAttrArr('Z')
+        self.MakeAttrArr('PROB_Z_GT_1')
+        self.MakeAttrArr('PROB_Z_GT_2')
+        self.MakeAttrArr('PROB_Z_GT_3')
+        self.MakeAttrArr('PROB_Z_GT_4')
+        self.MakeAttrArr('PROB_Z_GT_5')
         
         # From the BAT Position GCN
         self.MakeAttrArr('bat_bkg_dur')
@@ -1209,7 +1221,7 @@ class GRBdb:
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32):
+    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_no_redshift=True):
         '''A wrapper around the above functions to create a new DB object:
         * Remove the short GRBs
         * Crete new meta attributes with update_class
@@ -1220,7 +1232,7 @@ class GRBdb:
         
         '''
         # Remove the shorts before removing outliers so as to not bias the sample
-        self.removeShort(remove_no_redshift=False)
+        self.removeShort(remove_no_redshift=remove_no_redshift)
         
         if not self.class_updated:
             self.update_class()
@@ -1245,6 +1257,9 @@ class GRBdb:
         if hist:
             self.DistHist(keylist=keys_to_hist)
 
+def TestReload110119db():
+    db_full = LoadDB('110119')
+    db_full.Reload_DB()
         
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
