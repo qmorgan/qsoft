@@ -1258,7 +1258,7 @@ class GRBdb:
             self.DistHist(keylist=keys_to_hist)
 
 def TestReload110119db():
-    db_full = LoadDB('110119')
+    db_full = LoadDB('110119', clobber=True)
     db_full.Reload_DB()
         
 def TestMakeNicePlot():
