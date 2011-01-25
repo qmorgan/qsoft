@@ -11,9 +11,10 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, picklename, triggerid = None, globit = False):
+def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
     
-    '''temporary comment: Plot magnitudes of calibration stars, needs q_phot and t_mid.'''
+    '''temporary comment: Plot magnitudes of calibration stars, 
+    needs q_phot and t_mid.'''
 
     if globit == True:
         globstr1 = str(filelist) + '_coadd_?-?.fits'
@@ -29,7 +30,7 @@ def magplot(reg, filelist, picklename, triggerid = None, globit = False):
     matplotlib.pyplot.clf()
     regpath = storepath + reg
     temppath = storepath + 'temp.reg'
-    picklepath = storepath + picklename +'.data'
+    picklepath = storepath + out_pickle +'.data'
     regfile = open(regpath, 'r')
     reglist = regfile.readlines()
     callist = []
@@ -58,11 +59,11 @@ def magplot(reg, filelist, picklename, triggerid = None, globit = False):
                  'delete=1 include=1 source=1\n'
         tempreg.write(secondstr)
         tempreg.write('fk5\n')
-        tmp_str = star_reg[:-37]
+        tmp_str = star_reg
         tempreg.write(tmp_str)
         tempreg.close()
 
-        star_str = star_reg[:-38].strip('circle').split(',')
+        star_str = star_reg.strip('circle').split(',')
         ra_str = star_str[0].strip('(')
         dec_str = star_str[1]
         ra_round = ra_str[0:8]
@@ -143,16 +144,27 @@ def star_stdv(stardict):
     return stdv_dict
 
 
-def getstar(reg, picklename, filename_h, filename_j, filename_k, ap_h,ap_j,ap_k,triggerid=None, calibration_reg=None):
+def getstar(reg, out_pickle, filename_h, filename_j, filename_k, ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None):
     
     '''temporary comment: Do photomotery of all calibration stars in the 
-    region file, and outputs a pickle file. Needs q_phot and qPickle. The keyword calibration_reg is for the calibration stars used to calibrate these calibration stars.
+    region file, and outputs a pickle file. Needs q_phot and qPickle. 
+    
+    note:
+    The keyword calibration_reg is for the calibration stars used to 
+    calibrate these calibration stars.  For now, just leave as 'none'
     '''
 
     stardict = {}
     stardict_h = {}
     stardict_j = {}
     stardict_k = {}
+    if not ap_h:
+        ap_h = raw_input('Enter H aperture: ')
+    if not ap_j:
+        ap_j = raw_input('Enter J aperture: ')
+    if not ap_k:
+        ap_k = raw_input('Enter K aperture: ')
+        
     regpath = storepath + reg
     regfile = open(regpath, 'r')
     reglist = regfile.readlines()
@@ -164,8 +176,8 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, ap_h,ap_j,ap_k,
 
     for line in reglist:
         if 'circle' in line:
-            star_str = line[:-38].strip('circle').split(',')
-            ra_str = star_str[0].strip('(')
+            star_str = line.strip('circle').strip().strip('")').strip('(').split(',')
+            ra_str = star_str[0]
             dec_str = star_str[1]
             star_pos = (float(ra_str), float(dec_str))
             star_pos_list += [star_pos]
@@ -194,12 +206,12 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, ap_h,ap_j,ap_k,
                  'delete=1 include=1 source=1\n'
         tempreg.write(secondstr)
         tempreg.write('fk5\n')
-        tmp_str = star_reg[:-37]
+        tmp_str = star_reg
         tempreg.write(tmp_str)
         tempreg.close()
         
-        star_str = star_reg[:-38].strip('circle').split(',')
-        ra_str = star_str[0].strip('(')
+        star_str = line.strip('circle').strip().strip('")').strip('(').split(',')
+        ra_str = star_str[0]
         dec_str = star_str[1]
         ra_round = ra_str[0:8]
         dec_round =dec_str[0:7]
@@ -240,7 +252,7 @@ def getstar(reg, picklename, filename_h, filename_j, filename_k, ap_h,ap_j,ap_k,
     stardict.update(j_dict)
     stardict.update(k_dict)
 
-    picklepath = storepath + picklename + '.data'
+    picklepath = storepath + out_pickle + '.data'
     qPickle.save(stardict, picklepath, clobber = True)
 
     return stardict
