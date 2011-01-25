@@ -14,7 +14,11 @@ loadpath = os.environ.get("Q_DIR") + '/load/'
 def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
     
     '''temporary comment: Plot magnitudes of calibration stars, 
-    needs q_phot and t_mid.'''
+    needs q_phot and t_mid.
+    
+    Do once for EACH BAND
+    
+    '''
 
     if globit == True:
         globstr1 = str(filelist) + '_coadd_?-?.fits'
@@ -124,19 +128,24 @@ def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
 
     F.savefig(filepath)
     
-def star_stdv(stardict):
+def star_stdv(magplotdict):
 
-    '''temporary comment: later'''
+    '''Find the standard deviation of the reference stars using the output 
+    picklefile from mag_plot.
+    
+    Load the pickle file saved from magplot, calculate the standard deviation 
+    for each star in here.
+    '''
     
     stdv_dict = {}
 
-    for star in stardict:
+    for star in magplotdict:
         maglist = []
         magerrlist = []
         
-        for image in stardict[star]:
-            maglist += [stardict[star][image]['targ_mag'][0]]
-            magerrlist += [stardict[star][image]['targ_mag'][1]]
+        for image in magplotdict[star]:
+            maglist += [magplotdict[star][image]['targ_mag'][0]]
+            magerrlist += [magplotdict[star][image]['targ_mag'][1]]
         
         star_stdv = numpy.std(maglist)
         star_stdv_dict = {star:star_stdv}
