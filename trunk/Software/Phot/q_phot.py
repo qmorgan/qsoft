@@ -1275,7 +1275,9 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, \
     star_dict=None, clobber=False):
-    '''temporary looping 1232'''
+    '''Run photreturn on every file in a directory; return a dictionary
+    with the keywords as each filename that was observed with photreturn
+    '''
     import glob
     GRBlist = []
     GRBlistwweight = glob.glob('*.fits')
@@ -1361,7 +1363,8 @@ def plotzp(photdict):
 
 
 def plots2n(photdict):
-    '''Plots a graph of s/n versus duration from the pickle output of the photreturn function'''
+    '''Plots a graph of s/n versus duration from the pickle output of the 
+    photreturn function'''
     import matplotlib
     import glob
     
@@ -1567,7 +1570,7 @@ def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
     j_delta_med_list = []
     h_delta_med_list = []
     k_delta_med_list = []
-    aplist = [7.0,7.2,7.4,7.6,7.8,8.0,8.2,8.4,8.6,8.8,9.0,9.2,9.4,9.6,9.8,10]
+    aplist = [2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0]
     for ap in aplist:
     
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
