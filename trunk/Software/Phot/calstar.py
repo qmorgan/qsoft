@@ -18,6 +18,14 @@ def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
     
     Do once for EACH BAND
     
+    Arguments: 
+        reg: region file of calibration stars to test and plot
+        filelist: EITHER: list of files to run photometry on, or a string
+                  to do a glob search of files in a directory (if globit=True)
+        out_pickle: filename of the pickle file to write to
+        triggerid: Swift trigger id of the GRB (if applicable; otherwise None)
+        globit: if True, do a glob search to get a list of filenames to run 
+                photometry on instead of specifying an explicit list.
     '''
 
     if globit == True:
