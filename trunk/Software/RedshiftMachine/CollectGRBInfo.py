@@ -440,7 +440,18 @@ class GRBdb:
             
             # Make new attribute grabbing the extinction column.  
             # Might want to change the observation epoch.
-            if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
+            # load a pickle file containing the extinction information
+            # if it already has been loaded, in order to save some time.
+            
+            extdictpath = storepath+'GRBextinction.pkl'
+            ext_dict = qPickle.load(extdictpath)
+            if not ext_dict:
+                ext_dict = {}
+                
+            if grb in ext_dict:
+                gal_EB_V = ext_dict[grb]
+            
+            elif 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
                 try:
                     ra_str = str(self.dict[grb]['best_ra'])+'d'
                     dec_str = str(self.dict[grb]['best_dec'])+'d'
@@ -453,9 +464,11 @@ class GRBdb:
                     print 'Cannot grab extinction values for %s' % (grb)
                     print self.dict[grb]['best_ra'],self.dict[grb]['best_dec'] 
                     gal_EB_V = numpy.NAN
+                ext_dict.update({grb:gal_EB_V})
+                qPickle.save(ext_dict,extdictpath,clobber=True)
             self.dict[grb]['gal_EB_V'] = gal_EB_V
             self.class_updated = True
-            
+
       
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
@@ -1056,16 +1069,36 @@ class GRBdb:
         self.length=len(self.dict)
                     
                     
-    def makeArffFromArray(self,time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT','CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC','FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT','MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT','NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten','bat_image_signif','bat_img_peak','bat_inten','bat_is_rate_trig','bat_rate_signif','bat_trigger_dur','xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0','xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux','t90','v_mag_isupper','wh_mag_isupper','xrt_column'],inclerr=True):
+    def makeArffFromArray(self,
+            time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
+            attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT',
+                      'CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
+                      'FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT',
+                      'MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
+                      'NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten',
+                      'bat_image_signif','bat_img_peak','bat_inten',
+                      'bat_is_rate_trig','bat_rate_signif','bat_trigger_dur',
+                      'xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0',
+                      'xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux',
+                      't90','v_mag_isupper','wh_mag_isupper','xrt_column'],
+                      arff_append='',inclerr=True):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
-        reduced_attr_list = ['A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR','NH_PC','T90','bat_image_signif','bat_img_peak','bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+        reduced_attr_list = ['A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                            'NH_PC','T90','bat_image_signif','bat_img_peak',
+                            'bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+        
+        arff_append is a string to include after the filename:
+            storepath + db_name + arff_append .arff
+        inclerr = True includes the uncertainty values for the parameters that
+            have them
+        
         
         '''
         
         # Open file
-        arffpath = storepath+self.name+'.arff'
+        arffpath = storepath+self.name+arff_append+'.arff'
         arffpathpartial = arffpath + '_part'
         subpath = storepath+'redshiftdata'+'.txt'
         
@@ -1221,7 +1254,34 @@ class GRBdb:
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_no_redshift=True):
+    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_no_redshift=True,
+        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 
+                       'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 
+                       'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 
+                       'DT_MAX_SNR','peakflux','bat_inten','xrt_column',
+                       'FL_over_SQRT_T90'],
+        keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif',
+                        'log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 
+                        'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 
+                        'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 
+                        'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90'],
+        keys_to_plot = ['Z', 'log_uvot_time_delta','norm_log_xrt_signif', 
+                        'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 
+                        'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 
+                        'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 
+                        'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 
+                        'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 
+                        'norm_log_xrt_column','norm_log_FL_over_SQRT_T90',
+                        'v_mag_isupper_binary','wh_mag_isupper_binary',
+                        'bat_is_rate_trig_binary'],
+        keys_to_hist = ['log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 
+                        'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 
+                        'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 
+                        'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 
+                        'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 
+                        'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column',
+                        'norm_log_FL_over_SQRT_T90']
+                        ):        
         '''A wrapper around the above functions to create a new DB object:
         * Remove the short GRBs
         * Crete new meta attributes with update_class
@@ -1236,22 +1296,13 @@ class GRBdb:
         
         if not self.class_updated:
             self.update_class()
-        self.MakeAllAttr()
-        
-        
-        keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 'DT_MAX_SNR','peakflux','bat_inten','xrt_column','FL_over_SQRT_T90']
-        
+        self.MakeAllAttr()                
         remove_outliers = True
         if remove_outliers:
             for attr in keys_to_log:
-                self.removeOutliers(attr,threshold=outlier_threshold)
-        
+                self.removeOutliers(attr,threshold=outlier_threshold)        
         self.log_update_class(keys_to_log)
-        keys_to_norm = ['log_xrt_signif', 'log_bat_rate_signif', 'log_bat_image_signif','log_EP', 'log_EP0', 'log_FL', 'log_NH_PC', 'log_NH_WT', 'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90']
         self.norm_update_class(keys_to_norm)
-        keys_to_plot = ['Z', 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90','v_mag_isupper_binary','wh_mag_isupper_binary','bat_is_rate_trig_binary']
-        keys_to_hist = [ 'log_uvot_time_delta','norm_log_xrt_signif', 'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 'norm_log_T90', 'norm_log_RT45', 'norm_log_MAX_SNR', 'norm_log_DT_MAX_SNR', 'norm_log_peakflux', 'norm_log_bat_inten', 'norm_log_xrt_column','norm_log_FL_over_SQRT_T90']
-
         if plot:
             self.plotallvall(keylist=keys_to_plot,zval='Z')
         if hist:
@@ -1259,8 +1310,22 @@ class GRBdb:
 
 def TestReload110119db():
     db_full = LoadDB('110119', clobber=True)
-    db_full.Reload_DB()
-        
+    db_full.Reload_DB(outlier_threshold=0.32,remove_no_redshift=True)    
+    reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+    single_list = ['Z','uvot_detection']
+    nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
+    db_full.makeArffFromArray(arff_append='_Full',inclerr=False)
+    db_full.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    db_full.makeArffFromArray(attrlist=nat_z_pred_list,
+                                arff_append='_Zprediction', inclerr=False)
+    db_full.makeArffFromArray(attrlist=single_list,
+                                arff_append='_UVOTonly', inclerr=False)
+
+                                
+    return db_full
+
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
     # TODO: Label colorbar
