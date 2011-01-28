@@ -91,7 +91,7 @@ def MonitorRSS(feed_url):
 def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 mail_reg=False, mail_to='amorgan@berkeley.edu',\
                 make_html=True, html_path='/o/amorgan/public_html/Swift/',\
-                mail_html=True, feed_type = 'talons', tweet = True, \
+                mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                 feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"):
     while(True):
         sql_tuple_list = MonitorRSS(feed_url)
@@ -112,14 +112,14 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
             else:
                 triggerid = '0'
             if len(triggerid) == 6:
-                _do_all_trigger_actions(triggerid **kwargs)
+                _do_all_trigger_actions(triggerid, incl_reg=incl_reg, incl_fc=incl_fc, mail_reg=mail_reg,mail_to=mail_to, make_html=make_html, html_path=html_path, mail_html=mail_html, feed_type=feed_type, force_mail=force_mail, tweet=tweet, feed_url=feed_url)
 
         time.sleep(60)
 
 def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_reg=False, mail_to='amorgan@berkeley.edu',\
                         make_html=True, html_path='/o/amorgan/public_html/Swift/',\
-                        mail_html=True, feed_type = 'talons', tweet = True, \
+                        mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"):
     
     triggerid = triggerid.lstrip('0')
@@ -146,7 +146,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
         try:
             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
             if mail_html and grbhtml.successful_export:
-                _mail_html(gcn,mail_to,tweet=tweet)
+                _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet)
         except: qErr.qErr()
 
 def _mail_html(gcn,mail_to,clobber=False,tweet=True):
