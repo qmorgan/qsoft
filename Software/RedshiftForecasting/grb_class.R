@@ -392,6 +392,38 @@ forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed
    return(list(objective=objective,high_as_high=high_as_high,high_as_low=high_as_low,low_as_low=low_as_low,low_as_high=low_as_high))
 }
 
+# fit and return forest on training data (using optimal tuning parameters)
+forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+  require(party)
+  set.seed(seed)
+  
+  n = length(y)
+  p = length(table(y))
+  if(is.null(mtry)){ # default for mtry
+    mtry = ceiling(sqrt(dim(x)[2]))
+  }
+  train = cbind(y,x) # set up data to read into cforest
+  names(train)[1] = "y"
+  # fit random forest
+  rf.fit = cforest(y~.,data=train,weights=weights,controls=cforest_classical(mtry=mtry,ntree=n.trees))
 
+  return(rf.fit)
+}
 
+# Predict redshift (alpha-hat) for new GRBs
+forest.pred = function(forest,xnew){
+  xnew = as.data.frame(xnew)
+  n.new = dim(xnew)[1]
+  n.old = length(predict(forest))
+  # predictions for training data (to compute alpha-hats)
+  pred.train = matrix(unlist(treeresponse(forest)),n.old,2,byrow=T) # CV this?
+  # predict post. probs. for new data, with input forest
+  predictions = matrix(unlist(treeresponse(forest,newdata=xnew)),n.new,2,byrow=T)
+  alpha.hat = NULL # compute alpha-hat values
+  for(ii in 1:n.new){
+    alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
+  }
+
+  return(list(alpha.hat = alpha.hat,prob.high=predictions[,2],prob.low=predictions[,1]))
+}
 
