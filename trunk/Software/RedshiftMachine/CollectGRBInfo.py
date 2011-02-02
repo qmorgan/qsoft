@@ -1254,7 +1254,7 @@ class GRBdb:
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_no_redshift=True,
+    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=True,remove_no_redshift=True,
         keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 
                        'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 
                        'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 
@@ -1292,7 +1292,8 @@ class GRBdb:
         
         '''
         # Remove the shorts before removing outliers so as to not bias the sample
-        self.removeShort(remove_no_redshift=remove_no_redshift)
+        if remove_short:
+            self.removeShort(remove_no_redshift=remove_no_redshift)
         
         if not self.class_updated:
             self.update_class()
