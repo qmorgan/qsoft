@@ -36,3 +36,11 @@ pred.val = forest.pred(rf,features[validate,])
 pdf("grb_pred_test.pdf")
 plot(pred.val$alpha.hat,pred.val$prob.high,col=classes[validate],pch=19)
 dev.off()
+
+# To Load new GRBs into the classifier and test them:
+# data_obj = read_data()
+# features = data_obj$features
+# newdata = read_data(filename='./algorithm1/testdata.arff')
+# nbursts = dim(newdata$features)[1]
+# allfeatures = rbind(newdata$features,features)
+# newfeatures = data.frame(allfeatures[1:nbursts,])
