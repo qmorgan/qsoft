@@ -1,0 +1,35 @@
+% 1. Title: Redshift Predictor for Swift GRBs
+% 
+% 2. Sources:
+%     (a) Creator: Adam N. Morgan
+%     (b) Data From: GCN Notices (http://gcn.gsfc.nasa.gov/),
+%                    http://astro.berkeley.edu/~nat/Swift/
+%                    http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/
+%     (c) Date: Mon Nov 15 14:32:29 2010
+% 
+% 3. This file was created automatically. 
+%    CHECK THE ATTRIBUTES before running Weka. 
+% 
+@RELATION swift_redshift
+
+% !CHECK ME:
+% !CHECK ME:
+@ATTRIBUTE Z NUMERIC
+@ATTRIBUTE A NUMERIC
+@ATTRIBUTE B NUMERIC
+@ATTRIBUTE EP0 NUMERIC
+@ATTRIBUTE FL NUMERIC
+@ATTRIBUTE FLX_PC_LATE NUMERIC
+@ATTRIBUTE GAM_PC NUMERIC
+@ATTRIBUTE MAX_SNR NUMERIC
+@ATTRIBUTE NH_PC NUMERIC
+@ATTRIBUTE T90 NUMERIC
+@ATTRIBUTE bat_image_signif NUMERIC
+@ATTRIBUTE bat_img_peak NUMERIC
+@ATTRIBUTE bat_trigger_dur NUMERIC
+@ATTRIBUTE bat_is_rate_trig {yes, no}
+@ATTRIBUTE uvot_detection {yes, no}
+
+@DATA
+5.03000e-01,-9.95700e-01,?,?,2.28060e-06,1.26100e-05,2.13990e+00,2.42000e+01,?,1.11040e+02,7.28000e+00,2.22000e+02,4.22000e-01,yes,yes
+7.03000e-01,-8.95700e-01,?,?,2.88060e-06,1.16100e-05,1.13990e+00,2.42000e+01,?,1.11040e+02,7.68000e+00,2.62000e+02,4.12000e-01,yes,yes
