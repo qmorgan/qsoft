@@ -122,7 +122,7 @@ source('./algorithm1/algorithm1.R')
 library(foreign)
 library(fields)
 
-read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
+read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4){
    data1 = read.arff(filename)
    Z = data1$Z
    ####### define above high_cutoff as high, below as low $ ####### 
