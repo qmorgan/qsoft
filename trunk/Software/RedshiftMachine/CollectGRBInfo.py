@@ -1254,7 +1254,8 @@ class GRBdb:
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=True,remove_no_redshift=True,
+    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
+        remove_outliers = False, remove_no_redshift=False,
         keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 
                        'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 
                        'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 
@@ -1298,7 +1299,7 @@ class GRBdb:
         if not self.class_updated:
             self.update_class()
         self.MakeAllAttr()                
-        remove_outliers = True
+        
         if remove_outliers:
             for attr in keys_to_log:
                 self.removeOutliers(attr,threshold=outlier_threshold)        
@@ -1309,35 +1310,76 @@ class GRBdb:
         if hist:
             self.DistHist(keylist=keys_to_hist)
 
-def TestReload110119db():
-    db_full = LoadDB('110119', clobber=True)
-    db_full.Reload_DB(outlier_threshold=0.32,remove_no_redshift=True)    
+def TestReloadAlldb():
+    db_full = LoadDB('GRB_full', clobber=True)
+    SaveDB(db_full)
+    
+    db_full.Reload_DB(remove_short=True)   
+    db_full.name = 'GRB_short_removed'
+    SaveDB(db_full)
+    
+    db_full.Reload_DB(remove_short=True, remove_outliers=True,outlier_threshold=0.32)
+    db_full.name = 'GRB_short+outliers_removed' 
+    SaveDB(db_full)
+    
+    db_onlyz = copy.deepcopy(db_full)
+    db_onlyz.Reload_DB(remove_short=True, remove_no_redshift=True)
+    db_onlyz.name = 'GRB_short+outliers+noZ_removed'
+    SaveDB(db_onlyz)
+    
+    db_noz = copy.deepcopy(db_full)
+    db_noz.removeValues('Z','>=0.0') #remove all bursts with known redshifts
+    db_noz.Reload_DB()
+    db_noz.name = 'GRB_short+outliers+Z_removed'
+    SaveDB(db_noz)
+    
+    db_highz = copy.deepcopy(db_onlyz)
+    db_lowz = copy.deepcopy(db_onlyz)
+    db_highz.removeValues('Z','<4')
+    db_lowz.removeValues('Z','>=4')
+    db_highz.Reload_DB()
+    db_lowz.Reload_DB()
+    db_lowz.name = 'GRB_short+outliers+noZ+z>4_removed'
+    db_highz.name = 'GRB_short+outliers+noZ+z<4_removed'
+    SaveDB(db_lowz)
+    SaveDB(db_highz)
+    
+    db_onlyz.makeArffFromArray(arff_append='_Full',inclerr=False)
+    db_onlyz.makeArffFromArray(arff_append='_Full_with_errors',inclerr=True)
+    
+    
     reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
-                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
+    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    # May need to remove 'Z' from the attr list for use with R code.
+                        
     single_list = ['Z','uvot_detection']
-    nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
-    db_full.makeArffFromArray(arff_append='_Full',inclerr=False)
-    db_full.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
-    db_full.makeArffFromArray(attrlist=nat_z_pred_list,
-                                arff_append='_Zprediction', inclerr=False)
-    db_full.makeArffFromArray(attrlist=single_list,
+    db_onlyz.makeArffFromArray(attrlist=single_list,
                                 arff_append='_UVOTonly', inclerr=False)
-
+                                
+    nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
+    db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
+                                arff_append='_Nat_Zprediction', inclerr=False)
                                 
     return db_full
 
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
     # TODO: Label colorbar
-    db_full = LoadDB('101116_short+outliers+noZ_removed')
-    db_full.Reload_DB() # remove all the outliers before splitting
-    db_highz = copy.deepcopy(db_full)
-    db_lowz = copy.deepcopy(db_full)
-    db_highz.removeValues('Z','<4')
-    db_lowz.removeValues('Z','>=4')
-    db_highz.Reload_DB()
-    db_lowz.Reload_DB()
+    # db_full = LoadDB('101116_short+outliers+noZ_removed')
+    # db_full.Reload_DB() # remove all the outliers before splitting
+    # db_highz = copy.deepcopy(db_full)
+    # db_lowz = copy.deepcopy(db_full)
+    # db_highz.removeValues('Z','<4')
+    # db_lowz.removeValues('Z','>=4')
+    # db_highz.Reload_DB()
+    # db_lowz.Reload_DB()
+    db_lowz = LoadDB('GRB_short+outliers+noZ+z>4_removed')
+    db_highz = LoadDB('GRB_short+outliers+noZ+z<4_removed')
+    
     db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
     jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
     db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=jitter[1],vmin=0,vmax=8.2,colorbar=False,s=80, marker='o', edgecolors='r', facecolors='none', linewidths=2)
