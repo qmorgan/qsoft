@@ -258,38 +258,47 @@ class qImage:
     
 
 
-def stealStuff(file_name,file_mode,base_url):
-	from urllib2 import Request, urlopen, URLError, HTTPError
+
+def stealStuff(file_name,file_mode,base_url, timeout=30):
+    from urllib2 import Request, urlopen, URLError, HTTPError
     
-	#create the url and the request
-	url = base_url + file_name
-	req = Request(url)
-
-	# Open the url
-	try:
-		f = urlopen(req)
-		print "downloading " + url
-
-		# Open our local file for writing
-		local_file = open(file_name, "w" + file_mode)
-		#Write to our local file
-		local_file.write(f.read())
-		local_file.close()
-
-	#handle errors
-	except HTTPError, e:
-		print "HTTP Error:",e.code , url
-	except URLError, e:
-		print "URL Error:",e.reason , url
-
-
-def downloadImage(img_url,out_name='qImage.jpg'):
+    #create the url and the request
+    url = base_url + file_name
+    req = Request(url)
+    successful_download = False
+    count = 0
     
-	#create file name based on known pattern
-	# Now download the image. If these were text files,
-	# or other ascii types, just pass an empty string
-	# for the second param ala stealStuff(file_name,'',base_url)
-	stealStuff(out_name,"b",img_url)
+    # Open the url:
+    while not successful_download and count < 6:
+        count += 1
+        trys_left = 5-count
+        try:
+            f = urlopen(req, timeout=timeout)
+            print "downloading " + url
+
+            # Open our local file for writing
+            local_file = open(file_name, "w" + file_mode)
+            #Write to our local file
+            local_file.write(f.read())
+            local_file.close()
+            successful_download = True
+
+        #handle errors
+        except HTTPError, e:
+            print "HTTP Error:",e.code , url
+            print "Trying again: %i attempts remaining" % (trys_left)
+        except URLError, e:
+            print "URL Error:",e.reason , url
+            print "Trying again: %i attempts remaining" % (trys_left)
+
+
+def downloadImage(img_url,out_name='qImage.jpg', timeout=30):
+    
+    #create file name based on known pattern
+    # Now download the image. If these were text files,
+    # or other ascii types, just pass an empty string
+    # for the second param ala stealStuff(file_name,'',base_url)
+    stealStuff(out_name,"b",img_url, timeout=timeout)
 
 def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True):
     fc = qImage()
