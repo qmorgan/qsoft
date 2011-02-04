@@ -346,7 +346,7 @@ par(mar=c(4,0,0,1))
    dev.off()
    
    # write forest_res vector to text file
-   write(forest_res,"forest_probs_pred.txt")
+   write(forest_res,textfile)
 }
 
 
