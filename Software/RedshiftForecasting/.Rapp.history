@@ -1,0 +1,279 @@
+help("INSTALL")
+INSTALL plotrix
+R CMD INSTALL plotrix
+LIBRARY
+library(plotrix)
+library(party)
+cd
+source(grb_class.r)
+source(grb_class.R)
+source(grb_class.R)
+source('grb_class.R')
+length(data1$class)
+Z
+length(Z)
+data1$class
+# Do bumps plot#
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 1#
+			lwd_vec[i] = 2#
+	} else {#
+			color_vec[i] = round(1+Z[i])#
+	}#
+}
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec[5] = 2
+lwd_vec[5] = 6
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+lwd_vec[5] = 3
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+lwd_vec[5] = 6
+color_vec[5] = 3
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec[5] = 4
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec[5] = 5
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec[5] = 6
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec[5] = 7
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+# Do bumps plot#
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 1#
+			lwd_vec[i] = 2#
+	} else {#
+			color_vec[i] = round(1+Z[i])#
+			# Z = 0-0.49: red#
+			# Z = 0.5-1.49: green#
+			# Z = 1.5-2.49: blue#
+			# Z = 2.5-3.49: cyan#
+			# Z = 3.5-4.49: magenta#
+	}#
+}#
+# plot here---as well as in eps file below#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+# Do bumps plot#
+color_vec = array('',dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 'black'#
+			lwd_vec[i] = 2#
+	} else {#
+			if(Z[i] < 1.25){#
+			    color_vec[i] = 'blue'}#
+			if(1.25 < Z[i] < 2.75){#
+			    color_vec[i] = 'green'}#
+			if(Z[i] > 2.75){#
+			    color_vec[i] = 'red'}#
+	}#
+}
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 'black'#
+			lwd_vec[i] = 2#
+	} else {#
+			if(Z[i] < 1.25){#
+			    color_vec[i] = 'blue'#
+			    }#
+			if(1.25 < Z[i] < 2.75){#
+			    color_vec[i] = 'green'#
+			    }#
+			if(Z[i] > 2.75){#
+			    color_vec[i] = 'red'#
+			    }#
+	}#
+}#
+# plot here-
+# Do bumps plot#
+color_vec = array('',dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 'black'#
+			lwd_vec[i] = 2#
+	} else {#
+			if(Z[i] < 1.25){#
+			    color_vec[i] = 'blue'#
+			}#
+			if(1.25 < Z[i] < 2.75){#
+			    color_vec[i] = 'green'#
+			}#
+			if(Z[i] > 2.75){#
+			    color_vec[i] = 'red'#
+			}#
+	}#
+}
+# Do bumps plot#
+color_vec = array('',dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 'black'#
+			lwd_vec[i] = 2#
+	} else {#
+			if(Z[i] < 1.25) {#
+			    color_vec[i] = 'blue'#
+			}#
+			if(1.25 < Z[i] < 2.75) {#
+			    color_vec[i] = 'green'#
+			}#
+			if(Z[i] > 2.75) {#
+			    color_vec[i] = 'red'#
+			}#
+	}#
+}
+# Do bumps plot#
+color_vec = array('',dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 'black'#
+			lwd_vec[i] = 2#
+	} else {#
+			if(Z[i] =< 1.25) {#
+			    color_vec[i] = 'blue'#
+			}#
+			if(1.25 =< Z[i] < 2.75) {#
+			    color_vec[i] = 'green'#
+			}#
+			if(Z[i] => 2.75) {#
+			    color_vec[i] = 'red'#
+			}#
+	}#
+}
+ceil(0.5)
+ceiling(0.5)
+# Do bumps plot#
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 1#
+			lwd_vec[i] = 2#
+	} else {#
+			color_vec[i] = ceiling(Z[i])#
+			# Z = 0-1: red#
+			# Z = 1-2: green#
+			# Z = 2-3: blue#
+			# Z = 3-4: cyan
+}
+}
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 9#
+			lwd_vec[i] = 3#
+	} else {#
+			color_vec[i] = ceiling(Z[i])#
+			# Z = 0-1: red#
+			# Z = 1-2: green#
+			# Z = 2-3: blue#
+			# Z = 3-4: cyan#
+	}#
+}
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 7#
+			lwd_vec[i] = 3#
+	} else {#
+			color_vec[i] = ceiling(Z[i])#
+			# Z = 0-1: red#
+			# Z = 1-2: green#
+			# Z = 2-3: blue#
+			# Z = 3-4: cyan#
+	}#
+}
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 7#
+			lwd_vec[i] = 3#
+	} else {#
+			color_vec[i] = ceiling(Z[i])#
+			# Z = 0-1: red#
+			# Z = 1-2: green#
+			# Z = 2-3: blue#
+			# Z = 3-4: cyan#
+	}#
+}
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 1#
+			lwd_vec[i] = 3#
+	} else {#
+			color_vec[i] = ceiling(Z[i])#
+			# Z = 0-1: red#
+			# Z = 1-2: green#
+			# Z = 2-3: blue#
+			# Z = 3-4: cyan#
+	}#
+}#
+# plot here---as well as in eps file below#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+# Do bumps plot#
+color_vec = array(1,dim=length(data1$class))#
+lwd_vec = array(1,dim=length(data1$class))#
+for(i in seq(1,length(data1$class))) {#
+	if(data1$class[i] == "high") {#
+			color_vec[i] = 1#
+			lwd_vec[i] = 3#
+	} else {#
+			color_vec[i] = ceiling(1+Z[i])#
+			# Z = 0-1: red#
+			# Z = 1-2: green#
+			# Z = 2-3: blue#
+			# Z = 3-4: cyan#
+	}#
+}#
+# plot here---as well as in eps file below#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)
+forest_res
+# plot here---as well as in eps file below#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)#
+forest_res_out = cbind(Z,forest_res)#
+# write output#
+write(forest_res_out,"forest_probs_pred.txt") # write forest_res vector to text file#
+postscript(file="forest_probs_pred_bumps.eps",width=10,height=10) # save bumps plot#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)#
+dev.off()
+Z
+Z[,1]
+Z[,0]
+Z[]
+Z[0]
+Z[2]
+Z[1]
+foresttest$predprob[,1]
+Z
+# plot here---as well as in eps file below#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)#
+forest_res_out = cbind(forest_res,Z)#
+# write output#
+write(forest_res_out,"forest_probs_pred.txt") # write forest_res vector to text file#
+postscript(file="forest_probs_pred_bumps.eps",width=10,height=10) # save bumps plot#
+parcoord(forest_res,color_vec,lwd=lwd_vec,var.label=TRUE)#
+dev.off()
+data1$
+class
+data1$feat
+data1$features
+data1
