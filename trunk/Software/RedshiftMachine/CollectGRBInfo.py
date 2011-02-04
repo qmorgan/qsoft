@@ -153,6 +153,8 @@ def whatis(keyword):
     'burst_time_str': {'definition':'Burst time in HH:MM:SS format, read directly from Swift Catalog (less precise than grb_time_str)','type':'string','source':'SwiftCat','speed':'bat_prompt','sample':'08:57:22'},
     'fluence': {'definition':'BAT fluence (15-150 keV) [10^-7 erg/cm^2] (see FL for full definition) - trust less than FL?','type':'double','source':'SwiftCat','speed':'processed','sample':28.0},
     'fluence_str': {'definition':'BAT Fluence String, read from Swift catalog','type':'string','source':'SwiftCat','speed':'processed','sample':'28.00'},
+    'FL_over_SQRT_T90':{'definition':'Fluence over sqrt t90','type':'float','source':'NatBat','speed':'processed','sample':1.302},
+    'gal_EB_V': {'definition':'Galactic Extincition derived from position (Schelgel)','type':'float','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':0.01},
     'grb_date_doy': {'definition':'Day of Year of GRB','type':'integer','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':251},
     'grb_date_str': {'definition':'UT String Date in YY/MM/DD format','type':'string','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':'06/09/08'},
     'grb_date_tjd': {'definition':'Truncated Julian Date of GRB','type':'integer','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':13986},
@@ -1071,16 +1073,18 @@ class GRBdb:
                     
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
-            attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT',
+            attrlist=['Z','A','B','CHI2','CHI2_PC','CHI2_WT',
                       'CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
                       'FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT',
-                      'MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
+                      'MAX_SNR','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
                       'NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten',
                       'bat_image_signif','bat_img_peak','bat_inten',
                       'bat_is_rate_trig','bat_rate_signif','bat_trigger_dur',
-                      'xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0',
-                      'xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux',
-                      't90','v_mag_isupper','wh_mag_isupper','xrt_column'],
+                      'xrt_inten','xrt_signif','fluence','peakflux',
+                      'xrt_column','gal_EB_V','uvot_time_delta',
+                      'DT_MAX_SNR','FL_over_SQRT_T90','uvot_detection',
+                      'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1'
+                      ],
                       arff_append='',inclerr=True):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
@@ -1347,14 +1351,18 @@ def TestReloadAlldb():
     db_onlyz.makeArffFromArray(arff_append='_Full',inclerr=False)
     db_onlyz.makeArffFromArray(arff_append='_Full_with_errors',inclerr=True)
     
-    
     reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
-                        'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
-    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+                        'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']    
+    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
+    
+    reduced_nozpredict_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']    
+    db_onlyz.makeArffFromArray(attrlist=reduced_nozpredict_attr_list,arff_append='_reduced_nozpredict',inclerr=False)
                         
     single_list = ['Z','uvot_detection']
     db_onlyz.makeArffFromArray(attrlist=single_list,
@@ -1363,7 +1371,12 @@ def TestReloadAlldb():
     nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
-                                
+    
+    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']                           
+                   
+    
+    db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
+                                arff_append='_UVOTandZpred', inclerr=False)                     
     return db_full
 
 def TestMakeNicePlot():
