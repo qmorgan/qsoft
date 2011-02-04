@@ -26,6 +26,7 @@
 
 # Note: to remove global variables from namespace, use rm(list = ls(all = TRUE))
 
+library(MASS)
 
 rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(1:10^5,1)){
   require(rpart)
