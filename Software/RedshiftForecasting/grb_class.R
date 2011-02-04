@@ -429,15 +429,18 @@ forest.pred = function(forest,xnew){
 }
 
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced"){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE){
+   # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("smooth_weights_",data_string,sep="")
-   obj_func_name = paste("objective_fcn_",data_string,".pdf",sep="")
-   bumps_plot_name = paste("forest_order_bumps_",data_string,".pdf",sep="")
+   obj_func_name = paste("./Plots/objective_fcn_",data_string,".pdf",sep="")
+   bumps_plot_name = paste("./Plots/forest_order_bumps_",data_string,".pdf",sep="")
    bumps_text_name = paste("forest_order_bumps_",data_string,".txt",sep="")
 
    mydata = read_data(filename=data_filename,high_cutoff=4)
-   smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+   if(generate_data == TRUE){
+      smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+   }
    fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
    fres_ordered = order_residuals(fres)
    make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
