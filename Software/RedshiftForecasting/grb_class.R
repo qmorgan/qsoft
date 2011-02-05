@@ -428,6 +428,47 @@ forest.pred = function(forest,xnew){
   return(list(alpha.hat = alpha.hat,prob.high=predictions[,2],prob.low=predictions[,1]))
 }
 
+
+# roc curves
+# 1. true class is n length vector of high / low
+# 2. prediction_matrix is n x c matrix of probabiliti
+# the 
+make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filename="roc_curve.pdf"){
+
+  # check to make sure data is in correct form
+  require(ROCR)
+  if(!is.factor(true_class)){
+    print("true_class must be a factor")
+    return(0)
+  }
+  if(!is.matrix(prediction_matrix)){
+    print("prediction_matrix must be a matrix")
+    return(0)
+  }
+  if(nrow(prediction_matrix) != length(true_class)){
+    print("the number of obs you are predicting != number of true classes")
+    return(0)
+  }
+  
+  # if colors not specified, get some
+  if(curve_colors == NULL){
+    curve_colors = 1:ncol(prediction_matrix)
+  }
+
+  # use functions in ROCR package to make objects for plotting
+  class_labels = matrix(rep(true_class,ncol(predictions)),nrow=length(predictions),byrow=F)
+  pred <- prediction(predictions,class_labels)
+  # see ROCR user guide on CRAN p.2 for definition of "tpr", "pcfall", ect.
+  performance1 = performance(pred,"tpr","pcfall")
+
+  # make the plot
+  pdf(filename)
+  plot(performance1,col=as.list(curve_colors),xlab="False Discovery Rate = Contamination = False High / Total Predicted High",ylab="True Positive Rate = Efficiency = True High / Total Actual High)")
+  dev.off()
+}
+
+
+
 # Wrapper to make all representative plots for a given dataset
 make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
