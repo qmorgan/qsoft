@@ -1070,7 +1070,47 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-                    
+    def makeDeluxeTable(self,attrlist=['triggerid_str','Z'],tab_append='',inclerr=True):
+        '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
+        
+        grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
+        
+        '''
+        time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed']
+                  
+        # set up paths
+        tab_path = storepath+self.name+tab_append+'.ta'
+        tab_path_2 = tab_path + 'b'
+        arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr)
+        datapath = arffpath + '_data'
+        headpath = arffpath + '_head'
+        
+        ### CONVERT DATA SECTION
+        # ## replace ',' with ' & '
+        # cmd = "sed -e 's/\,/ \& /g' %s > %s" % (datapath,tab_path)
+        # os.system(cmd)
+        # ## replace '_' with '\_'
+        # cmd =  "sed -e 's/\_/\\_/g' %s > %s" % (tab_path,tab_path)
+        # os.system(cmd)
+        
+        f = open(datapath,'r')
+        f_new = open(tab_path_2,'w')
+        lines = f.readlines()
+        newlines = []
+        for line in lines:
+            new_line = line.replace(',','\t&\t')
+            new_line = new_line.replace('\n',' // \n')
+            f_new.write(new_line)
+            
+                
+        f.close()
+        f_new.close()
+        
+        # do these replacements on the data part of the arff file and make a new header
+        ### CONVERT HEADER SECTION 
+        
+        #for line in headlines:
+        
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
             attrlist=['Z','A','B','CHI2','CHI2_PC','CHI2_WT',
@@ -1103,7 +1143,8 @@ class GRBdb:
         
         # Open file
         arffpath = storepath+self.name+arff_append+'.arff'
-        arffpathpartial = arffpath + '_part'
+        arffpathpartial = arffpath + '_head'
+        arffpathdata = arffpath + '_data'
         subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
@@ -1254,9 +1295,14 @@ class GRBdb:
         inputt.close()
         output.close()
         
+        # copy the data part to a more reasonable format
+        cmd = 'cp %s %s' % (subpath2, arffpathdata)
+        os.system(cmd)
+        
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
+        return arffpath
         
     def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
         remove_outliers = False, remove_no_redshift=False,
@@ -1317,6 +1363,8 @@ class GRBdb:
 def TestReloadAlldb():
     db_full = LoadDB('GRB_full', clobber=True)
     SaveDB(db_full)
+    
+    # Remove all bursts newer than 100621A
     
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
