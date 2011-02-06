@@ -431,8 +431,8 @@ forest.pred = function(forest,xnew){
 
 # roc curves
 # 1. true class is n length vector of high / low
-# 2. prediction_matrix is n x c matrix of probabiliti
-# the 
+# 2. prediction_matrix is n x c matrix of probabilities (of low, this needs
+#    to be thought about, otherwise curve goes down)
 make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filename="roc_curve.pdf"){
 
   # check to make sure data is in correct form
@@ -451,19 +451,19 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   }
   
   # if colors not specified, get some
-  if(curve_colors == NULL){
+  if(is.null(curve_colors)){
     curve_colors = 1:ncol(prediction_matrix)
   }
 
   # use functions in ROCR package to make objects for plotting
-  class_labels = matrix(rep(true_class,ncol(predictions)),nrow=length(predictions),byrow=F)
-  pred <- prediction(predictions,class_labels)
+  true_class = matrix(rep(true_class,ncol(prediction_matrix)),nrow=nrow(prediction_matrix),byrow=F)
+  pred <- prediction(prediction_matrix,true_class,label.ordering=c("low","high"))
   # see ROCR user guide on CRAN p.2 for definition of "tpr", "pcfall", ect.
   performance1 = performance(pred,"tpr","pcfall")
 
   # make the plot
   pdf(filename)
-  plot(performance1,col=as.list(curve_colors),xlab="False Discovery Rate = Contamination = False High / Total Predicted High",ylab="True Positive Rate = Efficiency = True High / Total Actual High)")
+  plot(performance1,col=as.list(curve_colors),xlab="False Discovery Rate = Contamination = False High / Total Predicted High",ylab="True Positive Rate = Efficiency = True High / Total Actual High)",main="ROC Curve for Classifiers")
   dev.off()
 }
 
