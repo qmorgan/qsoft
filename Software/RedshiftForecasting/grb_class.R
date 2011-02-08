@@ -80,7 +80,7 @@ rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(
 # properly take weights into account.  Here there are two things to tune - 
 # the weights and the total number of allowed trees.
 
-rfc.cv = function(x,y,nfolds=5,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+rfc.cv = function(x,y,nfolds=5,folds=NULL,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   # don't train on any of the data in testset
   # this is to use in the hierarchical classifier
   require(party)
@@ -88,7 +88,12 @@ rfc.cv = function(x,y,nfolds=5,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,s
   
   n = length(y)
   p = length(table(y))
-  folds = sample(1:nfolds,n,replace=TRUE)
+  if(is.null(folds)){
+    folds = sample(1:nfolds,n,replace=TRUE)
+  }
+  else{
+    nfolds = length(unique(folds))
+  }
   predictions = matrix(0,nrow=n,ncol=p)
 
   if(is.null(mtry)){
@@ -175,7 +180,12 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
    		whigh = weights_try[nweight]
    		weights_vec = 1*(data_obj$data1$class == "low") + whigh*(data_obj$data1$class == "high")
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
-   		foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
+   	#	foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
+                # stratified folds (for high-z bursts)
+                n.high = sum(data_obj$classes=="high")
+                folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
+                folds[data_obj$classes=="high"]=1:n.high
+   		foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed)
    		forest_res = cbind(forest_res,foresttest$predprob[,1])
 	}
    
@@ -368,7 +378,12 @@ forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed
    # the following might screw things up
    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
    # ff
-   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
+#   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
+                # stratified folds (for high-z bursts)
+   n.high = sum(data_obj$classes=="high")
+   folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
+   folds[data_obj$classes=="high"]=1:n.high
+   foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed,mtry=mtry)
 
    probs = foresttest$predprob[,1]
    num_to_follow = ceiling(alpha*num_of_grbs)
