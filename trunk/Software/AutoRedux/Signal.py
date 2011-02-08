@@ -172,13 +172,17 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True):
             send_gmail.domail(mail_to,email_subject,email_body)
             if tweet:
                 try:
-                    import twitter # requires http://code.google.com/p/python-twitter/
+                    # python-twitter requires some kind of oAuth authentication now which is a pain
+                    # so just use tweetymail, linked to the q.mailbot account.
+                    tweetymail = tweet@tweetymail.com
+                    # import twitter # requires http://code.google.com/p/python-twitter/
                     import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
                     bigurl = 'http://astro.berkeley.edu/~amorgan/Swift/%i/' % int(gcn.triggerid)
                     littleurl = tinyurl.create_one(bigurl)
                     twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
-                    api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
-                    status = api.PostUpdate(twittext)
+                    # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
+                    # status = api.PostUpdate(twittext)
+                    send_gmail.domail(tweetymail,'',twittext)
                 except:
                     print 'Cannot post Twitter Message.'
                 
