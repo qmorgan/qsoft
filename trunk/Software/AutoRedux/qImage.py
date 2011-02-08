@@ -259,7 +259,7 @@ class qImage:
 
 
 
-def stealStuff(file_name,file_mode,base_url, timeout=10):
+def stealStuff(file_name,file_mode,base_url, timeout=20):
     from urllib2 import Request, urlopen, URLError, HTTPError
     
     #create the url and the request
@@ -290,9 +290,11 @@ def stealStuff(file_name,file_mode,base_url, timeout=10):
         except URLError, e:
             print "URL Error:",e.reason , url
             print "Trying again: %i attempts remaining" % (trys_left)
+        except:
+            print "Couldn't Download!"
+            print "Trying again: %i attempts remaining" % (trys_left)
 
-
-def downloadImage(img_url,out_name='qImage.jpg', timeout=10):
+def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
     
     #create file name based on known pattern
     # Now download the image. If these were text files,
