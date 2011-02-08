@@ -153,6 +153,8 @@ def whatis(keyword):
     'burst_time_str': {'definition':'Burst time in HH:MM:SS format, read directly from Swift Catalog (less precise than grb_time_str)','type':'string','source':'SwiftCat','speed':'bat_prompt','sample':'08:57:22'},
     'fluence': {'definition':'BAT fluence (15-150 keV) [10^-7 erg/cm^2] (see FL for full definition) - trust less than FL?','type':'double','source':'SwiftCat','speed':'processed','sample':28.0},
     'fluence_str': {'definition':'BAT Fluence String, read from Swift catalog','type':'string','source':'SwiftCat','speed':'processed','sample':'28.00'},
+    'FL_over_SQRT_T90':{'definition':'Fluence over sqrt t90','type':'float','source':'NatBat','speed':'processed','sample':1.302},
+    'gal_EB_V': {'definition':'Galactic Extincition derived from position (Schelgel)','type':'float','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':0.01},
     'grb_date_doy': {'definition':'Day of Year of GRB','type':'integer','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':251},
     'grb_date_str': {'definition':'UT String Date in YY/MM/DD format','type':'string','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':'06/09/08'},
     'grb_date_tjd': {'definition':'Truncated Julian Date of GRB','type':'integer','source':'Swift-BAT GRB Position','speed':'bat_prompt','sample':13986},
@@ -1068,19 +1070,61 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-                    
+    def makeDeluxeTable(self,attrlist=['triggerid_str','Z'],tab_append='',inclerr=True):
+        '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
+        
+        grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
+        
+        '''
+        time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed']
+                  
+        # set up paths
+        tab_path = storepath+self.name+tab_append+'.ta'
+        tab_path_2 = tab_path + 'b'
+        arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr)
+        datapath = arffpath + '_data'
+        headpath = arffpath + '_head'
+        
+        ### CONVERT DATA SECTION
+        # ## replace ',' with ' & '
+        # cmd = "sed -e 's/\,/ \& /g' %s > %s" % (datapath,tab_path)
+        # os.system(cmd)
+        # ## replace '_' with '\_'
+        # cmd =  "sed -e 's/\_/\\_/g' %s > %s" % (tab_path,tab_path)
+        # os.system(cmd)
+        
+        f = open(datapath,'r')
+        f_new = open(tab_path_2,'w')
+        lines = f.readlines()
+        newlines = []
+        for line in lines:
+            new_line = line.replace(',','\t&\t')
+            new_line = new_line.replace('\n',' // \n')
+            f_new.write(new_line)
+            
+                
+        f.close()
+        f_new.close()
+        
+        # do these replacements on the data part of the arff file and make a new header
+        ### CONVERT HEADER SECTION 
+        
+        #for line in headlines:
+        
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
-            attrlist=['triggerid_str','Z','A','B','CHI2','CHI2_PC','CHI2_WT',
+            attrlist=['Z','A','B','CHI2','CHI2_PC','CHI2_WT',
                       'CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
                       'FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT',
-                      'MAX_SNR','MODEL','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
+                      'MAX_SNR','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
                       'NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten',
                       'bat_image_signif','bat_img_peak','bat_inten',
                       'bat_is_rate_trig','bat_rate_signif','bat_trigger_dur',
-                      'xrt_inten','xrt_signif','xrt_amplifier','xrt_tam0',
-                      'xrt_tam1','xrt_tam2','xrt_tam3','fluence','peakflux',
-                      't90','v_mag_isupper','wh_mag_isupper','xrt_column'],
+                      'xrt_inten','xrt_signif','fluence','peakflux',
+                      'xrt_column','gal_EB_V','uvot_time_delta',
+                      'DT_MAX_SNR','FL_over_SQRT_T90','uvot_detection',
+                      'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1'
+                      ],
                       arff_append='',inclerr=True):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
@@ -1099,7 +1143,8 @@ class GRBdb:
         
         # Open file
         arffpath = storepath+self.name+arff_append+'.arff'
-        arffpathpartial = arffpath + '_part'
+        arffpathpartial = arffpath + '_head'
+        arffpathdata = arffpath + '_data'
         subpath = storepath+'redshiftdata'+'.txt'
         
         fmt = ''
@@ -1250,11 +1295,17 @@ class GRBdb:
         inputt.close()
         output.close()
         
+        # copy the data part to a more reasonable format
+        cmd = 'cp %s %s' % (subpath2, arffpathdata)
+        os.system(cmd)
+        
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
+        return arffpath
         
-    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=True,remove_no_redshift=True,
+    def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
+        remove_outliers = False, remove_no_redshift=False,
         keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 
                        'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 
                        'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 
@@ -1298,7 +1349,7 @@ class GRBdb:
         if not self.class_updated:
             self.update_class()
         self.MakeAllAttr()                
-        remove_outliers = True
+        
         if remove_outliers:
             for attr in keys_to_log:
                 self.removeOutliers(attr,threshold=outlier_threshold)        
@@ -1309,35 +1360,87 @@ class GRBdb:
         if hist:
             self.DistHist(keylist=keys_to_hist)
 
-def TestReload110119db():
-    db_full = LoadDB('110119', clobber=True)
-    db_full.Reload_DB(outlier_threshold=0.32,remove_no_redshift=True)    
+def TestReloadAlldb():
+    db_full = LoadDB('GRB_full', clobber=True)
+    SaveDB(db_full)
+    
+    # Remove all bursts newer than 100621A
+    
+    db_full.Reload_DB(remove_short=True)   
+    db_full.name = 'GRB_short_removed'
+    SaveDB(db_full)
+    
+    db_full.Reload_DB(remove_short=True, remove_outliers=True,outlier_threshold=0.32)
+    db_full.name = 'GRB_short+outliers_removed' 
+    SaveDB(db_full)
+    
+    db_onlyz = copy.deepcopy(db_full)
+    db_onlyz.Reload_DB(remove_short=True, remove_no_redshift=True)
+    db_onlyz.name = 'GRB_short+outliers+noZ_removed'
+    SaveDB(db_onlyz)
+    
+    db_noz = copy.deepcopy(db_full)
+    db_noz.removeValues('Z','>=0.0') #remove all bursts with known redshifts
+    db_noz.Reload_DB()
+    db_noz.name = 'GRB_short+outliers+Z_removed'
+    SaveDB(db_noz)
+    
+    db_highz = copy.deepcopy(db_onlyz)
+    db_lowz = copy.deepcopy(db_onlyz)
+    db_highz.removeValues('Z','<4')
+    db_lowz.removeValues('Z','>=4')
+    db_highz.Reload_DB()
+    db_lowz.Reload_DB()
+    db_lowz.name = 'GRB_short+outliers+noZ+z>4_removed'
+    db_highz.name = 'GRB_short+outliers+noZ+z<4_removed'
+    SaveDB(db_lowz)
+    SaveDB(db_highz)
+    
+    db_onlyz.makeArffFromArray(arff_append='_Full',inclerr=False)
+    db_onlyz.makeArffFromArray(arff_append='_Full_with_errors',inclerr=True)
+    
     reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
-                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']    
+    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
+    db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    # May need to remove 'Z' from the attr list for use with R code.
+    
+    reduced_nozpredict_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']    
+    db_onlyz.makeArffFromArray(attrlist=reduced_nozpredict_attr_list,arff_append='_reduced_nozpredict',inclerr=False)
+                        
     single_list = ['Z','uvot_detection']
-    nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
-    db_full.makeArffFromArray(arff_append='_Full',inclerr=False)
-    db_full.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
-    db_full.makeArffFromArray(attrlist=nat_z_pred_list,
-                                arff_append='_Zprediction', inclerr=False)
-    db_full.makeArffFromArray(attrlist=single_list,
+    db_onlyz.makeArffFromArray(attrlist=single_list,
                                 arff_append='_UVOTonly', inclerr=False)
-
                                 
+    nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
+    db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
+                                arff_append='_Nat_Zprediction', inclerr=False)
+    
+    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']                           
+                   
+    
+    db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
+                                arff_append='_UVOTandZpred', inclerr=False)                     
     return db_full
 
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
     # TODO: Label colorbar
-    db_full = LoadDB('101116_short+outliers+noZ_removed')
-    db_full.Reload_DB() # remove all the outliers before splitting
-    db_highz = copy.deepcopy(db_full)
-    db_lowz = copy.deepcopy(db_full)
-    db_highz.removeValues('Z','<4')
-    db_lowz.removeValues('Z','>=4')
-    db_highz.Reload_DB()
-    db_lowz.Reload_DB()
+    # db_full = LoadDB('101116_short+outliers+noZ_removed')
+    # db_full.Reload_DB() # remove all the outliers before splitting
+    # db_highz = copy.deepcopy(db_full)
+    # db_lowz = copy.deepcopy(db_full)
+    # db_highz.removeValues('Z','<4')
+    # db_lowz.removeValues('Z','>=4')
+    # db_highz.Reload_DB()
+    # db_lowz.Reload_DB()
+    db_lowz = LoadDB('GRB_short+outliers+noZ+z>4_removed')
+    db_highz = LoadDB('GRB_short+outliers+noZ+z<4_removed')
+    
     db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
     jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
     db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=jitter[1],vmin=0,vmax=8.2,colorbar=False,s=80, marker='o', edgecolors='r', facecolors='none', linewidths=2)

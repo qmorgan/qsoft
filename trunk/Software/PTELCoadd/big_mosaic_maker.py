@@ -15,7 +15,7 @@ Dependencies:
     pyfits (python module)
 
 Example Usage: 
-    python mosaic_maker.py -o PULSE.33.
+    python big_mosaic_maker.py -o PULSE.33.
         [Then user edits the newly created j_long_triplestacks.txt, 
         h_long_triplestacks.txt, and k_long_triplestacks.txt files to exclude 
         unwanted triplestacks from the final mosaics]
@@ -134,12 +134,12 @@ k_start_list = []
 for item in globlist:
     obsid = item.split('-reduction_output')[-2]
     realpath = os.path.realpath(item)
-    j_path = realpath + '/' + obsid + '_mosaics/j_long_' + obsid + '_coadd.fits'
-    j_w_path = realpath + '/' + obsid + '_mosaics/j_long_' + obsid + '_coadd.weight.fits'
-    h_path = realpath + '/' + obsid + '_mosaics/h_long_' + obsid + '_coadd.fits'
-    h_w_path = realpath + '/' + obsid + '_mosaics/h_long_' + obsid + '_coadd.weight.fits'
-    k_path = realpath + '/' + obsid + '_mosaics/k_long_' + obsid + '_coadd.fits'
-    k_w_path = realpath + '/' + obsid + '_mosaics/k_long_' + obsid + '_coadd.weight.fits'
+    j_path = realpath + '/' + obsid.split('_')[0] + '_mosaics/j_long_' + obsid.split('_')[0] + '_coadd.fits'
+    j_w_path = realpath + '/' + obsid.split('_')[0] + '_mosaics/j_long_' + obsid.split('_')[0] + '_coadd.weight.fits'
+    h_path = realpath + '/' + obsid.split('_')[0] + '_mosaics/h_long_' + obsid.split('_')[0] + '_coadd.fits'
+    h_w_path = realpath + '/' + obsid.split('_')[0] + '_mosaics/h_long_' + obsid.split('_')[0] + '_coadd.weight.fits'
+    k_path = realpath + '/' + obsid.split('_')[0] + '_mosaics/k_long_' + obsid.split('_')[0] + '_coadd.fits'
+    k_w_path = realpath + '/' + obsid.split('_')[0] + '_mosaics/k_long_' + obsid.split('_')[0] + '_coadd.weight.fits'
     j_long_list.write(j_path+'\n')
     h_long_list.write(h_path+'\n')
     k_long_list.write(k_path+'\n')

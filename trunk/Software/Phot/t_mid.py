@@ -43,13 +43,15 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None):
 
         if 'days' in t_mid_str:
             t_mid_days = float(t_mid_str.split(' days')[0]) * (24.)
+        elif 'day' in t_mid_str:
+            t_mid_days = float(t_mid_str.split(' day')[0]) * (24.)
         else:
             t_mid_days = 0.
 
 
     #edited for photloop-------
-
-        t_mid_time_list = t_mid_str.split(':')
+        t_mid_str_2 = t_mid_str.split()[-1]
+        t_mid_time_list = t_mid_str_2.split(':')
 
         #print t_mid_time_list
         t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)

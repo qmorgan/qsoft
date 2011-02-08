@@ -26,6 +26,7 @@
 
 # Note: to remove global variables from namespace, use rm(list = ls(all = TRUE))
 
+library(MASS)
 
 rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(1:10^5,1)){
   require(rpart)
@@ -79,7 +80,7 @@ rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(
 # properly take weights into account.  Here there are two things to tune - 
 # the weights and the total number of allowed trees.
 
-rfc.cv = function(x,y,nfolds=5,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+rfc.cv = function(x,y,nfolds=5,folds=NULL,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   # don't train on any of the data in testset
   # this is to use in the hierarchical classifier
   require(party)
@@ -87,7 +88,12 @@ rfc.cv = function(x,y,nfolds=5,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,s
   
   n = length(y)
   p = length(table(y))
-  folds = sample(1:nfolds,n,replace=TRUE)
+  if(is.null(folds)){
+    folds = sample(1:nfolds,n,replace=TRUE)
+  }
+  else{
+    nfolds = length(unique(folds))
+  }
   predictions = matrix(0,nrow=n,ncol=p)
 
   if(is.null(mtry)){
@@ -122,7 +128,7 @@ source('./algorithm1/algorithm1.R')
 library(foreign)
 library(fields)
 
-read_data = function(filename='./algorithm1/uvot_no_error.arff',high_cutoff=4){
+read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4){
    data1 = read.arff(filename)
    Z = data1$Z
    ####### define above high_cutoff as high, below as low $ ####### 
@@ -174,7 +180,12 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
    		whigh = weights_try[nweight]
    		weights_vec = 1*(data_obj$data1$class == "low") + whigh*(data_obj$data1$class == "high")
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
-   		foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
+   	#	foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
+                # stratified folds (for high-z bursts)
+                n.high = sum(data_obj$classes=="high")
+                folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
+                folds[data_obj$classes=="high"]=1:n.high
+   		foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed)
    		forest_res = cbind(forest_res,foresttest$predprob[,1])
 	}
    
@@ -345,7 +356,7 @@ par(mar=c(4,0,0,1))
    dev.off()
    
    # write forest_res vector to text file
-   write(forest_res,"forest_probs_pred.txt")
+   write(forest_res,textfile)
 }
 
 
@@ -367,7 +378,12 @@ forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed
    # the following might screw things up
    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
    # ff
-   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
+#   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
+                # stratified folds (for high-z bursts)
+   n.high = sum(data_obj$classes=="high")
+   folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
+   folds[data_obj$classes=="high"]=1:n.high
+   foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed,mtry=mtry)
 
    probs = foresttest$predprob[,1]
    num_to_follow = ceiling(alpha*num_of_grbs)
@@ -427,3 +443,66 @@ forest.pred = function(forest,xnew){
   return(list(alpha.hat = alpha.hat,prob.high=predictions[,2],prob.low=predictions[,1]))
 }
 
+
+# roc curves
+# 1. true class is n length vector of high / low
+# 2. prediction_matrix is n x c matrix of probabilities (of low, this needs
+#    to be thought about, otherwise curve goes down)
+make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filename="roc_curve.pdf"){
+
+  # check to make sure data is in correct form
+  require(ROCR)
+  if(!is.factor(true_class)){
+    print("true_class must be a factor")
+    return(0)
+  }
+  if(!is.matrix(prediction_matrix)){
+    print("prediction_matrix must be a matrix")
+    return(0)
+  }
+  if(nrow(prediction_matrix) != length(true_class)){
+    print("the number of obs you are predicting != number of true classes")
+    return(0)
+  }
+  
+  # if colors not specified, get some
+  if(is.null(curve_colors)){
+    curve_colors = 1:ncol(prediction_matrix)
+  }
+
+  # use functions in ROCR package to make objects for plotting
+  true_class = matrix(rep(true_class,ncol(prediction_matrix)),nrow=nrow(prediction_matrix),byrow=F)
+  pred <- prediction(prediction_matrix,true_class,label.ordering=c("low","high"))
+  # see ROCR user guide on CRAN p.2 for definition of "tpr", "pcfall", ect.
+  performance1 = performance(pred,"tpr","pcfall")
+
+  # make the plot
+  pdf(filename)
+  plot(performance1,col=as.list(curve_colors),xlab="False Discovery Rate = Contamination = False High / Total Predicted High",ylab="True Positive Rate = Efficiency = True High / Total Actual High)",main="ROC Curve for Classifiers")
+  dev.off()
+}
+
+
+
+# Wrapper to make all representative plots for a given dataset
+make_forest_plots = function(data_string="reduced",generate_data=FALSE){
+   # generate_data will re-do the smooth_random_forest_weights function, which takes a while
+   data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
+   data_results_dir = paste("smooth_weights_",data_string,sep="")
+   obj_func_name = paste("./Plots/objective_fcn_",data_string,".pdf",sep="")
+   bumps_pred_plot_name = paste("./Plots/forest_pred_bumps_",data_string,".pdf",sep="")
+   bumps_plot_name = paste("./Plots/forest_order_bumps_",data_string,".pdf",sep="")
+   bumps_pred_text_name = paste("forest_pred_bumps_",data_string,".txt",sep="")
+   bumps_text_name = paste("forest_order_bumps_",data_string,".txt",sep="")
+
+   mydata = read_data(filename=data_filename,high_cutoff=4)
+   if(generate_data == TRUE){
+      smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+   }
+   fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
+   fres_ordered = order_residuals(fres)
+   make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
+   fres_ordered = order_residuals(fres,reverse=TRUE)
+   make_bumps_plot(fres_ordered, data_obj = mydata, imagefile=bumps_plot_name,textfile=bumps_text_name)
+}
