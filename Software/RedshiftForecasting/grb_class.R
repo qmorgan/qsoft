@@ -185,8 +185,9 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
                 n.high = sum(data_obj$classes=="high")
                 folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
                 folds[data_obj$classes=="high"]=1:n.high
-   		foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed)
-   		forest_res = cbind(forest_res,foresttest$predprob[,1])
+                folds[data_obj$classes=="low"]=rep(1:n.high,length.out=sum(data_obj$classes=="low"))       
+   		foresttest = forest.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed)
+   		forest_res = cbind(forest_res,foresttest)
 	}
    
 	return(forest_res)
@@ -217,7 +218,8 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.
 		results_file = paste(results_dir,"/",nseed,".txt",sep="")
 		write(t(forest_res_loc), results_file, append=FALSE, ncolumns=length(log_weights_try))
 	}
-}
+   return(forest_res_loc)
+ }
 
 ####### extract composite stats from the random forest seeds output ######
 extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res_dir="redshift-output"){
@@ -343,7 +345,7 @@ layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # mak
 par(mar=c(4,2,0,0))
    parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
    title(xlab="log high-z weight",cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
-   title(ylab="Pr(low-z GRB)",cex.lab=1.25,mgp=c(.25,1,0)) # yaxis
+   title(ylab=expression(widehat(alpha)),cex.lab=1.5,mgp=c(.25,1,0)) # yaxis
 par(mar=c(4,0,0,1))
    plot(1, type="n", axes=F, xlab="z (log\n scale)", ylab="",xlim=c(-1,1),ylim=c(-1,1),mgp=c(1,1,0),cex.lab=1.25) # empty plot for colorbar
    colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
@@ -443,6 +445,33 @@ forest.pred = function(forest,xnew){
   return(list(alpha.hat = alpha.hat,prob.high=predictions[,2],prob.low=predictions[,1]))
 }
 
+forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+  require(party)
+  set.seed(seed)
+  
+  n = length(y)
+  p = length(table(y))
+  if(is.null(folds)){
+    folds = sample(1:nfolds,n,replace=TRUE)
+  }
+  else{
+    nfolds = length(unique(folds))
+  }
+  predictions = rep(0,p)
+
+  if(is.null(mtry)){
+    mtry = ceiling(sqrt(dim(x)[2]))
+  }
+
+  for(ii in 1:nfolds){
+    print(paste("fold",ii,"of",nfolds))
+    leaveout = which(folds==ii)
+    rf.tmp = forest.fit(x[-leaveout,],y[-leaveout],mtry=mtry,weights=weights[-leaveout],n.trees=n.trees,seed=seed)
+    predictions[leaveout] = forest.pred(rf.tmp,x[leaveout,])$alpha.hat
+  }
+  return(predictions)
+}
+
 
 # roc curves
 # 1. true class is n length vector of high / low
@@ -497,12 +526,13 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
 
    mydata = read_data(filename=data_filename,high_cutoff=4)
    if(generate_data == TRUE){
-      smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+      alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
    }
-   fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
-   make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
-   fres_ordered = order_residuals(fres)
-   make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
-   fres_ordered = order_residuals(fres,reverse=TRUE)
-   make_bumps_plot(fres_ordered, data_obj = mydata, imagefile=bumps_plot_name,textfile=bumps_text_name)
-}
+   ## fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   ## make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
+   ## fres_ordered = order_residuals(fres)
+   ## make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
+   ## fres_ordered = order_residuals(fres,reverse=TRUE)
+   ## make_bumps_plot(fres_ordered, data_obj = mydata, imagefile=bumps_plot_name,textfile=bumps_text_name)
+   make_bumps_plot(alphas.cv)
+ }
