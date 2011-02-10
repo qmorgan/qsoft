@@ -80,42 +80,43 @@ rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(
 # properly take weights into account.  Here there are two things to tune - 
 # the weights and the total number of allowed trees.
 
-rfc.cv = function(x,y,nfolds=5,folds=NULL,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
-  # don't train on any of the data in testset
-  # this is to use in the hierarchical classifier
-  require(party)
-  set.seed(seed)
-  
-  n = length(y)
-  p = length(table(y))
-  if(is.null(folds)){
-    folds = sample(1:nfolds,n,replace=TRUE)
-  }
-  else{
-    nfolds = length(unique(folds))
-  }
-  predictions = matrix(0,nrow=n,ncol=p)
-
-  if(is.null(mtry)){
-    mtry = ceiling(sqrt(dim(x)[2]))
-  }
-
-  for(ii in 1:nfolds){
-    print(paste("fold",ii,"of",nfolds))
-    leaveout = which(folds==ii)
-    train = cbind(y[-union(leaveout,testset)],x[-union(leaveout,testset),])
-    test = cbind(y[leaveout],x[leaveout,])
-    names(train)[1] = names(test)[1] = "y"
-    rf.tmp = cforest(y~.,data=train,weights=weights[-leaveout],controls=cforest_classical(mtry=mtry,ntree=n.trees))
-    predictions[leaveout,] = matrix(unlist(treeresponse(rf.tmp,newdata=test)),length(leaveout),p,byrow=T)
-  }
-  pred = levels(y)[apply(predictions,1,which.max)]
-  pred = factor(pred,levels=levels(y))
-  confmat = table(pred,y)
-  err.rate = 1-sum(diag(confmat))/n
-
-  return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
-}
+## OUTDATED -  Problems with our dataset.  Use rforest.cv
+# rfc.cv = function(x,y,nfolds=5,folds=NULL,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+#   # don't train on any of the data in testset
+#   # this is to use in the hierarchical classifier
+#   require(party)
+#   set.seed(seed)
+#   
+#   n = length(y)
+#   p = length(table(y))
+#   if(is.null(folds)){
+#     folds = sample(1:nfolds,n,replace=TRUE)
+#   }
+#   else{
+#     nfolds = length(unique(folds))
+#   }
+#   predictions = matrix(0,nrow=n,ncol=p)
+# 
+#   if(is.null(mtry)){
+#     mtry = ceiling(sqrt(dim(x)[2]))
+#   }
+# 
+#   for(ii in 1:nfolds){
+#     print(paste("fold",ii,"of",nfolds))
+#     leaveout = which(folds==ii)
+#     train = cbind(y[-union(leaveout,testset)],x[-union(leaveout,testset),])
+#     test = cbind(y[leaveout],x[leaveout,])
+#     names(train)[1] = names(test)[1] = "y"
+#     rf.tmp = cforest(y~.,data=train,weights=weights[-leaveout],controls=cforest_classical(mtry=mtry,ntree=n.trees))
+#     predictions[leaveout,] = matrix(unlist(treeresponse(rf.tmp,newdata=test)),length(leaveout),p,byrow=T)
+#   }
+#   pred = levels(y)[apply(predictions,1,which.max)]
+#   pred = factor(pred,levels=levels(y))
+#   confmat = table(pred,y)
+#   err.rate = 1-sum(diag(confmat))/n
+# 
+#   return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
+# }
 
 ##########################################
 ####### GRB high-z classification #######
@@ -164,7 +165,7 @@ test_cart = function(data_obj=NULL,seed=1){
 }
 
 ####### run Random Forest classifier over a vector of weights ####### 
-test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),seed=1){
+test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),seed=1,stratified=FALSE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not defined; using default values")
@@ -180,15 +181,19 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
    		whigh = weights_try[nweight]
    		weights_vec = 1*(data_obj$data1$class == "low") + whigh*(data_obj$data1$class == "high")
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
-   	#	foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
                 # stratified folds (for high-z bursts)
                 # The number of folds is determined by the number of high z bursts
                 # As of 2-9-11, this should no longer be important; could go down to regular CV?
-                n.high = sum(data_obj$classes=="high")
-                folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
-                folds[data_obj$classes=="high"]=1:n.high
-                folds[data_obj$classes=="low"]=rep(1:n.high,length.out=sum(data_obj$classes=="low"))       
-   		foresttest = forest.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed)
+         if(stratified==TRUE){
+            n.high = sum(data_obj$classes=="high")
+            folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
+            folds[data_obj$classes=="high"]=1:n.high
+            folds[data_obj$classes=="low"]=rep(1:n.high,length.out=sum(data_obj$classes=="low"))       
+   		   foresttest = forest.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed)
+   		}
+   		else{
+   		   foresttest = forest.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
+      	}
    		forest_res = cbind(forest_res,foresttest)
 	}
    
@@ -241,7 +246,9 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res
 	
 	# read in files
 	Nweights = length(log_weights_try)
-	forest_res = matrix(0,length(data_obj$Z),Nweights) # average across seeds
+	# initialize matrix of zeros to average across seeds
+	forest_res = matrix(0,length(data_obj$Z),Nweights) 
+	# get ready to loop over all seeds
 	nseed = 1
 	for(file in file_list){
 		forest_res_loc = as.matrix(read.table(paste(forest_res_dir,"/",file,sep=""), header=FALSE))
@@ -519,6 +526,17 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   pdf(filename)
   plot(performance1,col=as.list(curve_colors),xlab="False Discovery Rate = Contamination = False High / Total Predicted High",ylab="True Positive Rate = Efficiency = True High / Total Actual High)",main="ROC Curve for Classifiers")
   dev.off()
+}
+
+efficiency_vs_alpha = function(order_array,iterations=100){
+   alpha_try_array = c(1:iterations)/iterations
+   for(alpha_try in alpha_try_array){
+      a=5
+   }
+   pdf('test.pdf')
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), pch="") # initialize plot))
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=4)
+   dev.off()
 }
 
 # Wrapper to make all representative plots for a given dataset
