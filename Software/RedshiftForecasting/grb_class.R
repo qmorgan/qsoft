@@ -182,6 +182,8 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
    	#	foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
                 # stratified folds (for high-z bursts)
+                # The number of folds is determined by the number of high z bursts
+                # As of 2-9-11, this should no longer be important; could go down to regular CV?
                 n.high = sum(data_obj$classes=="high")
                 folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
                 folds[data_obj$classes=="high"]=1:n.high
@@ -191,6 +193,11 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
 	}
    
 	return(forest_res)
+}
+
+noisify_residuals = function(forest_res){
+   forest_res_rand = forest_res + matrix(runif(11*151,1E-6,1E-5),151,11)
+   return(forest_res_rand)
 }
 
 order_residuals = function(forest_res,reverse=FALSE){
@@ -264,7 +271,6 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
 	Nalpha = length(alpha_vec)
 	col = rainbow(Nalpha)
 
-	
 	random_guess_vec = (data_obj$num_high)/Nz*alpha_vec
 	for(nalpha in seq(1,Nalpha)) {
 		alpha = alpha_vec[nalpha]
@@ -282,13 +288,17 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
       base_objective_uvot_no = 13./17.
       base_objective_uvot_yes = 4./17.
       objective_cutoff = N_uvot_no/(N_uvot_no+N_uvot_yes) 
+      if(N_uvot_yes == 0 && N_uvot_no ==0){
+         print('UVOT DATA NOT INCLUDED IN SAMPLE')
+         print('Using 49/151 = 0.3245033 as objective cutoff for dumb classifier')
+         objective_cutoff = 0.3245033
+      }
       if(alpha <= objective_cutoff){
          dumb_objective = base_objective_uvot_no*alpha/objective_cutoff
       }
       if(alpha > objective_cutoff){
          dumb_objective= base_objective_uvot_no+((alpha-objective_cutoff)*base_objective_uvot_yes)/(1-objective_cutoff)
       }
-      print(dumb_objective)
    	## End dumb Classifier
 		
 		lines(log_weights_try,frac_found_loc,lty=1,lwd=4,col=col[nalpha])
@@ -303,7 +313,7 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
 }
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
-make_bumps_plot = function(forest_res,data_obj=NULL,n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
+make_bumps_plot = function(forest_res,data_obj=NULL,xlabel="log high-z weight",ylabel=expression(widehat(alpha)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -344,8 +354,8 @@ make_bumps_plot = function(forest_res,data_obj=NULL,n_colors=128,z_width=3,image
 layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
 par(mar=c(4,2,0,0))
    parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
-   title(xlab="log high-z weight",cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
-   title(ylab=expression(widehat(alpha)),cex.lab=1.5,mgp=c(.25,1,0)) # yaxis
+   title(xlab=xlabel,cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
+   title(ylab=ylabel,cex.lab=1.5,mgp=c(.25,1,0)) # yaxis
 par(mar=c(4,0,0,1))
    plot(1, type="n", axes=F, xlab="z (log\n scale)", ylab="",xlim=c(-1,1),ylim=c(-1,1),mgp=c(1,1,0),cex.lab=1.25) # empty plot for colorbar
    colorbar.plot(0,0,strip=seq(min(logz),max(logz),length.out=n_colors),col=tc,horizontal=FALSE,strip.width=.6,strip.length=7.25) # plot colorbar
@@ -361,54 +371,54 @@ par(mar=c(4,0,0,1))
    write(forest_res,textfile)
 }
 
-
-# Calculate the number of GRBs we are allowing ourselves to follow-up
-forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed=1,n.trees=500){
-   ##### If data object is not defined, create the default data object ######
-   if(is.null(data_obj)){
-      print("data_obj not specified; using default values")
-      data_obj = read_data()
-   }
-   ###########################################################################
-   if(is.null(mtry)){
-     mtry = ceiling(sqrt(dim(data_obj$features)[2]))
-   }
-   print(mtry)
-   num_of_grbs = length(data_obj$Z)
-
-   weights_vec = 1*(data_obj$data1$class == "low") + weight*(data_obj$data1$class == "high")
-   # the following might screw things up
-   #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
-   # ff
-#   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
-                # stratified folds (for high-z bursts)
-   n.high = sum(data_obj$classes=="high")
-   folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
-   folds[data_obj$classes=="high"]=1:n.high
-   foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed,mtry=mtry)
-
-   probs = foresttest$predprob[,1]
-   num_to_follow = ceiling(alpha*num_of_grbs)
-   # Grab the probability above which a GRB is considered low for following up
-   # a given percentage of bursts
-   mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
-   # Grab the array of Zs which are less than mid_prob 
-   high_array=sort(data_obj$Z[foresttest$predprob[,1] <= mid_prob])
-   # Calculate our objective function and confusion matrices
-   num_actually_high=length(high_array[high_array >= data_obj$high_cutoff])
-   pct_actually_high=num_actually_high/num_of_grbs
-   objective = num_actually_high/num_to_follow
-
-   high_as_high = num_actually_high
-   high_as_low = data_obj$num_high - num_actually_high
-   low_as_high = num_to_follow - num_actually_high
-   low_as_low = data_obj$num_low - low_as_high
-   print(high_as_high)
-   print(low_as_high)
-   print(low_as_low)
-   print(high_as_low)
-   return(list(objective=objective,high_as_high=high_as_high,high_as_low=high_as_low,low_as_low=low_as_low,low_as_high=low_as_high))
-}
+## OUTDATED?
+# # Calculate the number of GRBs we are allowing ourselves to follow-up
+# forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed=1,n.trees=500){
+#    ##### If data object is not defined, create the default data object ######
+#    if(is.null(data_obj)){
+#       print("data_obj not specified; using default values")
+#       data_obj = read_data()
+#    }
+#    ###########################################################################
+#    if(is.null(mtry)){
+#      mtry = ceiling(sqrt(dim(data_obj$features)[2]))
+#    }
+#    print(mtry)
+#    num_of_grbs = length(data_obj$Z)
+# 
+#    weights_vec = 1*(data_obj$data1$class == "low") + weight*(data_obj$data1$class == "high")
+#    # the following might screw things up
+#    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
+#    # ff
+# #   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
+#                 # stratified folds (for high-z bursts)
+#    n.high = sum(data_obj$classes=="high")
+#    folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
+#    folds[data_obj$classes=="high"]=1:n.high
+#    foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed,mtry=mtry)
+# 
+#    probs = foresttest$predprob[,1]
+#    num_to_follow = ceiling(alpha*num_of_grbs)
+#    # Grab the probability above which a GRB is considered low for following up
+#    # a given percentage of bursts
+#    mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
+#    # Grab the array of Zs which are less than mid_prob 
+#    high_array=sort(data_obj$Z[foresttest$predprob[,1] <= mid_prob])
+#    # Calculate our objective function and confusion matrices
+#    num_actually_high=length(high_array[high_array >= data_obj$high_cutoff])
+#    pct_actually_high=num_actually_high/num_of_grbs
+#    objective = num_actually_high/num_to_follow
+# 
+#    high_as_high = num_actually_high
+#    high_as_low = data_obj$num_high - num_actually_high
+#    low_as_high = num_to_follow - num_actually_high
+#    low_as_low = data_obj$num_low - low_as_high
+#    print(high_as_high)
+#    print(low_as_high)
+#    print(low_as_low)
+#    print(high_as_low)
+#    return(list(objective=objective,high_as_high=high_as_high,high_as_low=high_as_low,low_as_low=low_as_low,low_as_high=low_as_high))
+# }
 
 # fit and return forest on training data (using optimal tuning parameters)
 forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
@@ -511,8 +521,6 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   dev.off()
 }
 
-
-
 # Wrapper to make all representative plots for a given dataset
 make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
@@ -520,6 +528,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    data_results_dir = paste("smooth_weights_",data_string,sep="")
    obj_func_name = paste("./Plots/objective_fcn_",data_string,".pdf",sep="")
    bumps_pred_plot_name = paste("./Plots/forest_pred_bumps_",data_string,".pdf",sep="")
+   bumps_rand_plot_name = paste("./Plots/forest_rand_bumps_",data_string,".pdf",sep="")
    bumps_plot_name = paste("./Plots/forest_order_bumps_",data_string,".pdf",sep="")
    bumps_pred_text_name = paste("forest_pred_bumps_",data_string,".txt",sep="")
    bumps_text_name = paste("forest_order_bumps_",data_string,".txt",sep="")
@@ -528,11 +537,13 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    if(generate_data == TRUE){
       alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
    }
-   ## fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
-   ## make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
-   ## fres_ordered = order_residuals(fres)
-   ## make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
-   ## fres_ordered = order_residuals(fres,reverse=TRUE)
-   ## make_bumps_plot(fres_ordered, data_obj = mydata, imagefile=bumps_plot_name,textfile=bumps_text_name)
-   make_bumps_plot(alphas.cv)
+   fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
+   fres_rand = noisify_residuals(fres)
+   make_bumps_plot(fres_rand, data_obj = mydata, imagefile=bumps_rand_plot_name)
+   fres_ordered = order_residuals(fres_rand)
+   make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
+   fres_ordered = order_residuals(fres_rand,reverse=TRUE)
+   make_bumps_plot(fres_ordered, data_obj = mydata, ylabel=paste(expression(widehat(alpha)),' (Normalized)'),imagefile=bumps_plot_name,textfile=bumps_text_name)
+   ## make_bumps_plot(alphas.cv)
  }
