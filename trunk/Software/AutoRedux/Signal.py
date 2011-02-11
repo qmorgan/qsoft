@@ -182,7 +182,8 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True):
                     twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
                     # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
                     # status = api.PostUpdate(twittext)
-                    send_gmail.domail(tweetymail,'',twittext)
+                    print 'Sending Tweet - %s' % (twittext)
+                    send_gmail.domail(tweetymail,'',twittext,sig=False)
                 except:
                     print 'Cannot post Twitter Message.'
                 

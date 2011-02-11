@@ -69,7 +69,7 @@ def getAttachment(path, filename):
 			filename=filename)
      return attach
 
-def domail(mailto, mailsub, mailbody, attach_files=[], undisclosed=False ,fromaddr = from_address):
+def domail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=False ,fromaddr = from_address):
 
     ## here we want to thread so that we dont block
     t = threading.Timer(0.01,intdomail,args=[mailto,mailsub,mailbody],\
@@ -77,7 +77,7 @@ def domail(mailto, mailsub, mailbody, attach_files=[], undisclosed=False ,fromad
     t.start()
     return
 
-def intdomail(mailto, mailsub, mailbody, attach_files=[], undisclosed=False, fromaddr = from_address):
+def intdomail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=False, fromaddr = from_address):
 
     mailto = mailto.split()
     # print mailto
@@ -109,7 +109,8 @@ def intdomail(mailto, mailsub, mailbody, attach_files=[], undisclosed=False, fro
     msg['From'] = fromaddr
     msg['To'] = tolist
     msg['Subject'] = mailsub
-    mailbody += '\n\n----\nThis message was sent automatically.  If you feel you received this message in error, please contact Adam Morgan at qmorgan@gmail.com'
+    if sig:
+        mailbody += '\n\n----\nThis message was sent automatically.  If you feel you received this message in error, please contact Adam Morgan at qmorgan@gmail.com'
     msg.attach( MIMEText(mailbody) )
     for attachpath in attach_files:
         # Re-write if you want to attach the files with a different file name
