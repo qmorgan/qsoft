@@ -5,7 +5,7 @@
 CATALOG_NAME     photometry_cat.txt     # name of the output catalog
 CATALOG_TYPE     ASCII      # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,
                                 # ASCII_VOTABLE, FITS_1.0 or FITS_LDAC
-PARAMETERS_NAME  /Users/amorgan/q_soft/load/pairitel_photo.param
+PARAMETERS_NAME  $Q_DIR/load/pairitel_photo.param
                                 # name of the file containing catalog contents
  
 #------------------------------- Extraction ----------------------------------
