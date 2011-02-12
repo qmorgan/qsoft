@@ -38,8 +38,9 @@ import os, sys
 import shutil
 import glob
 pypath = "python"
+mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
 
-def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=False):
+def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', regfile='j.reg', wcs=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_phot is needed.
     '''
@@ -66,7 +67,7 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=F
         raise ValueError
     ## END PHOTOMETRY PARAM ##
     
-    prep(obsidlist)
+    prep(obsidlist, path=path, date=date)
     firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
     
     # Assume no modifications have been made between j,h, and k files
@@ -148,7 +149,19 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=F
                 break
             
             if s2n >= mins2n:
-                print 'Minimum S/N Reached. Moving on to the next images set.'  
+                print 'Minimum S/N Reached. Moving on to the next images set.'
+                print 'Renaming images.'
+                basename = photdict['FileName'].rstrip('fits')[1:]
+                base_split = basename.split('coadd')
+                newbasename = base_split[0] + str(obs_num_i) + '-' + str(obs_num_f) + '_coadd' + base_split[1]
+                filt_list = ['j','h','k']
+                for filt in filt_list:
+                    mvname = 'mv %s%sfits %s%sfits' % (filt, basename, filt, newbasename)
+                    mvwtname = 'mv %s%sweight.fits %s%sweight.fits' % (filt, basename, filt, newbasename)
+                    mvcatname = 'mv %s%sfinalcat.txt %s%sfinalcat.txt' % (filt, basename, filt, newbasename)
+                    os.system(mvname)
+                    os.system(mvwtname)
+                    os.system(mvcatname)
             else:
                 # If not reached, add one more to the coaddlist and try again.
                 basename = photdict['FileName'].rstrip('fits')[1:]
@@ -167,7 +180,7 @@ def smartStackRefine(obsidlist, mins2n=10, minfilter='j', regfile='j.reg', wcs=F
     cleanup(firstid)
     
 
-def smartStackDoubling(obsidlist, doubling_time):
+def smartStackDoubling(obsidlist, doubling_time, path=None):
     '''I need to comment this more.  This is a rough first go at doing 
     smart coaddition using a doubling technique. 
     '''
@@ -220,12 +233,21 @@ def smartStackDoubling(obsidlist, doubling_time):
 
     cleanup(firstid)
 
-def prep(obsid, exclude=False, single=False):
+def prep(obsid, date='', path=None, exclude=False, single=False):
     '''Given a string or list of obsids, combine them into a text file
     containing all of the observations to coadd. Exclude keyword will 
     exclude triplestacks which times are specified 
     (eg:['06h10m32s', '06h11m08s', '06h11m44s']).  
     '''
+    makername = '/mosaic_maker.py'
+    
+    # find path:
+    if not path:
+        path = './'
+    outputdir = os.path.abspath(path) + makername
+    if not os.path.exists(outputdir):
+        copyit = "cp %s %s" % (mosaic_maker_path, outputdir)
+        os.system(copyit)
     # first, remove old text files
     rmstr = 'rm ?_long_triplestacks_full.txt'
     os.system(rmstr)
@@ -236,14 +258,19 @@ def prep(obsid, exclude=False, single=False):
     if not isinstance(obsid,list):
         raise TypeError('obsid is of invalid type; needs to be list or str')
     for oid in obsid:
-        globstr = oid + '-reduction_output'
+        globstr = path + oid +'_'+ date + '-reduction_output'
         if not glob.glob(globstr):
             printstr = 'Search directory does not exist: %s' % (globstr)
             sys.exit(printstr)
         if not single:
-            prepstr = pypath + " mosaic_maker.py -o " + oid + " -p"
-        else:
-            prepstr = pypath + " mosaic_maker.py -r -o " + oid + " -p"	
+            prepstr = pypath + ' ' + outputdir + " -o " + oid + " -p"
+        if date and not single:
+            prepstr = pypath + ' ' + outputdir + " -o " + oid + " -d " + date + " -p"
+        if single and not date:
+            prepstr = pypath + ' ' + outputdir + " -r -o " + oid + " -p"	
+        if single and date:
+            prepstr = pypath + ' ' + outputdir + " -r -o " + oid + " -d " + date + " -p"
+            
         os.system(prepstr)
         globstr = '?_long_triplestacks.txt'
         text_list = glob.glob(globstr)
@@ -262,11 +289,11 @@ def prep(obsid, exclude=False, single=False):
                 f.write(line)
             f.close()
             new_item = item.replace('stacks.txt','stacks_full.txt')
-            syscmd = 'cat %s >> %s' % (sorted_item,new_item)
+            syscmd = 'cat %s/%s >> %s/%s' % (path,sorted_item,path,new_item)
             os.system(syscmd)
-            syscmd = 'rm %s' % (item)
+            syscmd = 'rm %s/%s' % (path,item)
             os.system(syscmd)
-            syscmd = 'rm %s' % (sorted_item)
+            syscmd = 'rm %s/%s' % (path,sorted_item)
             os.system(syscmd)
             
 #            shutil.move(item,new_item)
@@ -283,7 +310,7 @@ def prep(obsid, exclude=False, single=False):
                 os.rename('j_temp.txt', globname)
 
 
-def cleanup(obsid,opt_str=''):
+def cleanup(obsid,path=None,opt_str=''):
     dirname = obsid + opt_str + '_mosaics'
     if not os.path.exists(dirname):
         os.mkdir(dirname)
@@ -306,7 +333,7 @@ def cleanup(obsid,opt_str=''):
     print "Files moved to %s" % dirout
         
     
-def coadd(obsid,max_sum=None,dowcs=False,coadd_range=None, single=False):
+def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=False):
     
     mosaic_list = []
     fj = open('j_mosaics.txt' , 'w')
