@@ -106,6 +106,10 @@ parser.add_option("-p", "--prep",
 parser.add_option("-w", "--wcs", "--do-wcs",
                   action="store_true", dest="do_wcs", default=False,
                   help=("Attempt to do wcs fitting after coaddition"))
+# AMorgan adds option
+parser.add_option("-d", "--date",
+                  action="store", type="string", dest="date_str", default=False,
+                  help=("Give the date in case the formatting requires it"))
 
 # Option for use in single reduced image
 parser.add_option("-r", "--single",
@@ -115,6 +119,7 @@ parser.add_option("-r", "--single",
 (options, args) = parser.parse_args()
 
 obs_string = options.obs_string
+date_str = options.date_str
 if not obs_string:
     print "No obs_string specified, exiting."
     sys.exit()
@@ -124,7 +129,7 @@ do_wcs = options.do_wcs
 do_single = options.do_single
 
 # OBTAIN WORKING DIRECTORIES 
-reduction_output_directory = str(obs_string) + "-reduction_output"
+reduction_output_directory = str(obs_string) +'_'+ str(date_str) + "-reduction_output"
 triplestacks_path = (reduction_output_directory + "/" + str(obs_string) + 
     "_triplestacks")
 triplestackweights_path = (reduction_output_directory + "/" + str(obs_string) + 
