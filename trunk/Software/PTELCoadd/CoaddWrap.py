@@ -40,9 +40,20 @@ import glob
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
 
-def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', regfile='j.reg', wcs=False):
+def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', \
+                exclude=False, regfile='j.reg', wcs=False, mincoadd=1,fibonacci=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_phot is needed.
+    
+    obsidlist: list of observation IDs 
+    date: string date of the observation; required for the new pipleine3 naming scheme
+    mins2n: the minimum signal to noise of the source to coadd to (as determined by sextractor; might be underestimate)
+    minfilter: which filter the minimum s2n must correspond to
+    regfile: the region file containing the location of the source
+    wcs: apply wcs fitting at the end of the coaddition? 
+    mincoadd: the minimum number of observations to add together at each refinement step
+    fibonacci: if true, increase the number of observations to add together according to the fibonacci sequence
+    
     '''
     from Phot import q_phot
     
@@ -108,6 +119,7 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', re
     # Do the loop until mins2n is reached 
     while obs_num_f < total_length:
         s2n = 0
+        coadd_increment = mincoadd
                 
         while s2n < mins2n:
         # If the s/n was not reached in the previous iteration,
@@ -117,8 +129,13 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', re
             # print 'added: ' + str(coaddlist)
             # print 'remaining: ' + str(copyidlist)
                         
-            obs_num_f += 1 
-
+            # increment the observation number; either mincoadd value or an
+            # increasing value due to fibonacci add
+            obs_num_f += coadd_increment
+            # Don't try to add more observations than we have: 
+            if obs_num_f > total_length:
+                obs_num_f = total_length
+            
             myrange = (obs_num_i, obs_num_f)
             
             dobreak = False
@@ -171,6 +188,9 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', re
                 print 'performing system command ' + rmname
                 os.system(rmname)
                 os.system(rmcatname)
+                
+                if fibonacci:
+                    coadd_increment += obs_num_f - obs_num_i
             
             # Update the initial obs number for the NEXT observation
         obs_num_i = obs_num_f + 1
