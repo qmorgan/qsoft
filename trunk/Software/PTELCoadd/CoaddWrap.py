@@ -40,8 +40,9 @@ import glob
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
 
-def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', \
-                exclude=False, regfile='j.reg', wcs=False, mincoadd=1,fibonacci=False):
+def smartStackRefine(obsidlist, path=None, date='', mins2n=15, minfilter='j', \
+                exclude=False, regfile='j.reg', wcs=False, mincoadd=1, \
+                maxcoadd=150, fibonacci=True):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_phot is needed.
     
@@ -98,7 +99,6 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', \
     sum_length = initial_sum_length
     obs_num_i = initial_obs_number
     obs_num_f = 0
-
     
     coaddlist = []
     copyidlist = obsidlist[:]
@@ -134,9 +134,10 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', \
             obs_num_f += coadd_increment
             # Don't try to add more observations than we have: 
             if obs_num_f > total_length:
-                obs_num_f = total_length
+                obs_num_f = total_length+1
             
             myrange = (obs_num_i, obs_num_f)
+            num_of_obs = obs_num_f - obs_num_i
             
             dobreak = False
             # if we're running out of observations, tack the rest on to the end
@@ -165,8 +166,12 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=10, minfilter='j', \
             if dobreak:
                 break
             
-            if s2n >= mins2n:
-                print 'Minimum S/N Reached. Moving on to the next images set.'
+            if s2n >= mins2n or num_of_obs >= maxcoadd:
+                if s2n >= mins2n:
+                    print 'Minimum S/N Reached! '
+                if num_of_obs >= maxcoadd:
+                    print 'Maximum allowed number of obs reached.'
+                print 'Moving on to the next images set.'
                 print 'Renaming images.'
                 basename = photdict['FileName'].rstrip('fits')[1:]
                 base_split = basename.split('coadd')
