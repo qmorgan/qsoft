@@ -576,15 +576,19 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   dev.off()
 }
 
-efficiency_vs_alpha = function(order_array,iterations=100){
-   alpha_try_array = c(1:iterations)/iterations
-   for(alpha_try in alpha_try_array){
-      a=5
-   }
-   pdf('test.pdf')
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), pch="") # initialize plot))
-   lines(alpha_try_array,alpha_try_array,lty=1,lwd=4)
+efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
+   # Take the fifth weight for now 
+   avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+   Zlen_1 = length(avg_obj) - 1
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   alpha_tries = seq(0,1,1/Zlen_1)
+   pdf(imagefile)
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression(" "~alpha), ylab=expression('N_{high_as_high}/N_{Actual High}'), pch="") # initialize plot))
+   title(main=expression("Efficiency vs"~alpha), sub=data_obj$data_string)
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   lines(alpha_tries, avg_obj, lty=1, lwd=4, col='red')
    dev.off()
+   
 }
 
 # Wrapper to make all representative plots for a given dataset
@@ -598,12 +602,14 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    bumps_plot_name = paste("./Plots/forest_order_bumps_",data_string,".pdf",sep="")
    bumps_pred_text_name = paste("forest_pred_bumps_",data_string,".txt",sep="")
    bumps_text_name = paste("forest_order_bumps_",data_string,".txt",sep="")
-
+   roc_plot_name = paste("./Plots/ROC_",data_string,".pdf",sep="")
    mydata = read_data(filename=data_filename,high_cutoff=4)
+   mydata$data_string = data_string
    if(generate_data == TRUE){
       alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
    }
    mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   efficiency_vs_alpha(mydata,imagefile=roc_plot_name)
    fres = mydata$fres$avg_over_seeds
    make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
    fres_rand = noisify_residuals(fres)
