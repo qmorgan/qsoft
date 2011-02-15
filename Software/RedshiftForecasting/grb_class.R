@@ -251,6 +251,8 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res
 	Nweights = length(log_weights_try)
 	# initialize matrix of zeros to average across seeds
 	res_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
+	ord_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
+	objective_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights)
 	
 	####### Grab info
 	high_cutoff=data_obj$high_cutoff
@@ -278,11 +280,29 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res
 	# the following should be the same as the old forest res function
 	for(weight_index in seq(1,Nweights)){
 	   res_avg_over_seeds[,weight_index] = rowSums(big_forest_res[,weight_index,])/num_of_seeds
+	   res_ordered = order_residuals(noisify_residuals(big_forest_res[,weight_index,]))
+	   ord_avg_over_seeds[,weight_index] = rowSums(res_ordered)/num_of_seeds
+	   
+	   # populate the objective_avg_over_seeds array
+	   # each row in this array is an ALPHA*Nz value (not a grb instance like the others)
+	   # if we observe alpha% of events, how many high-as-high/actual_high can we expect?
+	   for(nalpha in seq(1,Nalpha)) {
+   		alpha = alpha_vec[nalpha]
+   		rand_guess = random_guess_vec[nalpha]
+   		# find number of follow ups for this alpha
+   		Nfollow = floor(Nz*alpha)
+   		# find high-z (>4) that are in the alpha threshold
+   		Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,num_of_seeds) > high_cutoff)&(res_ordered<=Nfollow))
+   		avg_frac_found= sum(Nfound_loc / (1.*Nhigh))/num_of_seeds
+   		objective_avg_over_seeds[nalpha,weight_index] = avg_frac_found
+		}
+		
+	   
 	}
 	
 	colnames(res_avg_over_seeds)=paste(log_weights_try)
 	
-	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds)
+	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds)
    data_obj$fres = forest_res_obj
 	
 	return(data_obj)
