@@ -79,7 +79,7 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=15, minfilter='j', \
         raise ValueError
     ## END PHOTOMETRY PARAM ##
     
-    prep(obsidlist, path=path, date=date)
+    prep(obsidlist, path=path, exclude=exclude, date=date)
     firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
     
     # Assume no modifications have been made between j,h, and k files
