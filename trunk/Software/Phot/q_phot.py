@@ -1,13 +1,11 @@
 """
-This program is the bee's knees. I'll add more explanatory text and usage 
-examples to this space as the program gets closer to completion.
+Photometry Package for PAIRITEL Data
 
-It is super important that you have the files
+The following files are required in the $Q_DIR/load directory:
     pairitel_photo.sex
     pairitel_photo.param
     default.nnw
     star_find.param
-in the same directory as this program file.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,9 +16,8 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-Author: Christopher Klein
-Contact: cklein@berkeley.edu
-Date: began 2010/02/11
+Authors: Christopher Klein & Adam Morgan
+Contact: cklein@berkeley.edu, amorgan@berkeley.edu
 """
 
 

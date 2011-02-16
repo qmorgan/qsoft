@@ -201,7 +201,9 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5)
 }
 
 noisify_residuals = function(forest_res){
-   forest_res_rand = forest_res + matrix(runif(11*151,1E-6,1E-5),151,11)
+   numZ = dim(forest_res)[1]
+   numTrials = dim(forest_res)[2]
+   forest_res_rand = forest_res + matrix(runif(numTrials*numZ,1E-6,1E-5),numZ,numTrials)
    return(forest_res_rand)
 }
 
@@ -233,9 +235,10 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.
    return(forest_res_loc)
  }
 
-####### extract composite stats from the random forest seeds output ######
-extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res_dir="redshift-output"){
+
+extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res_dir="smooth_weights_reduced"){
    ##### If data object is not defined, create the default data object ######
+   ##### Results are then stored in the fres list within the data object ####
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
       data_obj = read_data()
@@ -247,17 +250,62 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res
 	# read in files
 	Nweights = length(log_weights_try)
 	# initialize matrix of zeros to average across seeds
-	forest_res = matrix(0,length(data_obj$Z),Nweights) 
+	res_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
+	ord_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
+	objective_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	
+	####### Grab info
+	high_cutoff=data_obj$high_cutoff
+	Nweights = length(log_weights_try)
+	Nz = length(data_obj$Z)
+	Nhigh = sum(data_obj$Z > high_cutoff)
+	alpha_vec=seq(0,Nz-1)/(Nz-1)
+	Nalpha = length(alpha_vec)
+	col = rainbow(Nalpha)
+	random_guess_vec = (data_obj$num_high)/Nz*alpha_vec
+
+	#######
+	num_of_seeds = length(file_list)
+	big_forest_res = array(0,dim=c(Nz,Nweights,num_of_seeds))
 	# get ready to loop over all seeds
 	nseed = 1
 	for(file in file_list){
 		forest_res_loc = as.matrix(read.table(paste(forest_res_dir,"/",file,sep=""), header=FALSE))
-		forest_res = (1./nseed) * forest_res_loc + ((nseed-1.)/nseed) * forest_res
+		# forest_res_loc_ordered = order_residuals(forest_res_loc)
+		# forest_res = (1./nseed) * forest_res_loc + ((nseed-1.)/nseed) * forest_res
+		big_forest_res[,,nseed] = forest_res_loc
 		nseed = nseed + 1
 	}
 	
-	colnames(forest_res)=paste(log_weights_try)
-	return(forest_res)
+	# the following should be the same as the old forest res function
+	for(weight_index in seq(1,Nweights)){
+	   res_avg_over_seeds[,weight_index] = rowSums(big_forest_res[,weight_index,])/num_of_seeds
+	   res_ordered = order_residuals(noisify_residuals(big_forest_res[,weight_index,]))
+	   ord_avg_over_seeds[,weight_index] = rowSums(res_ordered)/num_of_seeds
+	   
+	   # populate the objective_avg_over_seeds array
+	   # each row in this array is an ALPHA*Nz value (not a grb instance like the others)
+	   # if we observe alpha% of events, how many high-as-high/actual_high can we expect?
+	   for(nalpha in seq(1,Nalpha)) {
+   		alpha = alpha_vec[nalpha]
+   		rand_guess = random_guess_vec[nalpha]
+   		# find number of follow ups for this alpha
+   		Nfollow = floor(Nz*alpha)
+   		# find high-z (>4) that are in the alpha threshold
+   		Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,num_of_seeds) > high_cutoff)&(res_ordered<=Nfollow))
+   		avg_frac_found= sum(Nfound_loc / (1.*Nhigh))/num_of_seeds
+   		objective_avg_over_seeds[nalpha,weight_index] = avg_frac_found
+		}
+		
+	   
+	}
+	
+	colnames(res_avg_over_seeds)=paste(log_weights_try)
+	
+	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds)
+   data_obj$fres = forest_res_obj
+	
+	return(data_obj)
 }
 
 ####### makes objective function plot ####### 
@@ -320,7 +368,7 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
 }
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
-make_bumps_plot = function(forest_res,data_obj=NULL,xlabel="log high-z weight",ylabel=expression(widehat(alpha)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
+make_bumps_plot = function(res_avg_over_seeds,data_obj=NULL,xlabel="log high-z weight",ylabel=expression(widehat(alpha)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -360,7 +408,7 @@ make_bumps_plot = function(forest_res,data_obj=NULL,xlabel="log high-z weight",y
    
 layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # make a separate plot for colorbar
 par(mar=c(4,2,0,0))
-   parcoord(forest_res,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
+   parcoord(res_avg_over_seeds,lwd=lwd_vec,var.label=TRUE,col=tc[col.vec])
    title(xlab=xlabel,cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
    title(ylab=ylabel,cex.lab=1.5,mgp=c(.25,1,0)) # yaxis
 par(mar=c(4,0,0,1))
@@ -374,8 +422,8 @@ par(mar=c(4,0,0,1))
 
    dev.off()
    
-   # write forest_res vector to text file
-   write(forest_res,textfile)
+   # write res_avg_over_seeds vector to text file
+   write(res_avg_over_seeds,textfile)
 }
 
 ## OUTDATED?
@@ -528,15 +576,19 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   dev.off()
 }
 
-efficiency_vs_alpha = function(order_array,iterations=100){
-   alpha_try_array = c(1:iterations)/iterations
-   for(alpha_try in alpha_try_array){
-      a=5
-   }
-   pdf('test.pdf')
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), pch="") # initialize plot))
-   lines(alpha_try_array,alpha_try_array,lty=1,lwd=4)
+efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
+   # Take the fifth weight for now 
+   avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+   Zlen_1 = length(avg_obj) - 1
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   alpha_tries = seq(0,1,1/Zlen_1)
+   pdf(imagefile)
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression(" "~alpha), ylab=expression('N_{high_as_high}/N_{Actual High}'), pch="") # initialize plot))
+   title(main=expression("Efficiency vs"~alpha), sub=data_obj$data_string)
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   lines(alpha_tries, avg_obj, lty=1, lwd=4, col='red')
    dev.off()
+   
 }
 
 # Wrapper to make all representative plots for a given dataset
@@ -550,12 +602,15 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    bumps_plot_name = paste("./Plots/forest_order_bumps_",data_string,".pdf",sep="")
    bumps_pred_text_name = paste("forest_pred_bumps_",data_string,".txt",sep="")
    bumps_text_name = paste("forest_order_bumps_",data_string,".txt",sep="")
-
+   roc_plot_name = paste("./Plots/ROC_",data_string,".pdf",sep="")
    mydata = read_data(filename=data_filename,high_cutoff=4)
+   mydata$data_string = data_string
    if(generate_data == TRUE){
       alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
    }
-   fres = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   efficiency_vs_alpha(mydata,imagefile=roc_plot_name)
+   fres = mydata$fres$avg_over_seeds
    make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
    fres_rand = noisify_residuals(fres)
    make_bumps_plot(fres_rand, data_obj = mydata, imagefile=bumps_rand_plot_name)
