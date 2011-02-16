@@ -583,12 +583,41 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
    pdf(imagefile)
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression(" "~alpha), ylab=expression('N_{high_as_high}/N_{Actual High}'), pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up: "~alpha), ylab=expression('Fraction of high (z>4) GRBs observed'), pch="") # initialize plot))
    title(main=expression("Efficiency vs"~alpha), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(alpha_tries, avg_obj, lty=1, lwd=4, col='red')
    dev.off()
    
+}
+
+multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=5,imagefile='./Plots/ROC_multi.pdf'){
+   pdf(imagefile)
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up: "~alpha), ylab=expression('Fraction of high (z>4) GRBs observed'), pch="") # initialize plot))
+   title(main=expression("Efficiency vs"~alpha))
+   n_curves = length(data_obj_list)
+   col = rainbow(n_curves)
+   name_list = c()
+   curve_index = 1
+   for(data_obj_name in ls(data_obj_list)){
+      print(data_obj_name)
+      data_obj = get(data_obj_name,pos=data_obj_list)
+      avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+      Zlen_1 = length(avg_obj) - 1
+      print(Zlen_1)
+      alpha_tries = seq(0,1,1/Zlen_1)
+      lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col[curve_index])
+      curve_index = curve_index + 1
+      name_list = c(name_list,data_obj$data_string)
+   }
+   # now print diagonal line for reference
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   
+   print(name_list)
+   legend(0.5,0.39, name_list, cex=1.2,col=col,lty=1)
+	
+   dev.off()
 }
 
 # Wrapper to make all representative plots for a given dataset
@@ -620,3 +649,39 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    make_bumps_plot(fres_ordered, data_obj = mydata, ylabel=paste(expression(widehat(alpha)),' (Normalized)'),imagefile=bumps_plot_name,textfile=bumps_text_name)
    ## make_bumps_plot(alphas.cv)
  }
+ 
+make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','Full','reduced_nozpredict')){
+   roc_plot_name = paste("./Plots/ROC_Multi.pdf",sep="")
+   
+   curve_index = 1
+   data_obj_list = list()
+   
+   for(data_string in data_string_list){
+      data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
+      data_results_dir = paste("smooth_weights_",data_string,sep="")
+      
+      mydata = read_data(filename=data_filename,high_cutoff=4)
+      mydata$data_string = data_string
+      print(data_string)
+      if(generate_data == TRUE){
+         alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+      }
+      objname = paste('o',curve_index,sep="")
+      mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+     # data_obj_list$data_string = mydata
+      # assign(data_string, mydata)
+      # append(data_obj_list,mydata)
+      # WOW this is poor programming.  but it's late and I couldn't get it to work otherwise.
+      if(curve_index==1){data_obj_list$l1 = mydata}
+      if(curve_index==2){data_obj_list$l2 = mydata}
+      if(curve_index==3){data_obj_list$l3 = mydata}
+      if(curve_index==4){data_obj_list$l4 = mydata}
+      if(curve_index==5){data_obj_list$l5 = mydata}
+      if(curve_index==6){data_obj_list$l6 = mydata}
+      if(curve_index==7){data_obj_list$l7 = mydata}
+      if(curve_index==8){data_obj_list$l8 = mydata}
+      curve_index = curve_index + 1
+      print(curve_index)
+   }
+   multiple_efficiency_vs_alpha(data_obj_list)
+}
