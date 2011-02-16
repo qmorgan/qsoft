@@ -3,21 +3,19 @@
 #  autoastrometry.py - a fast astrometric solver
 #
 #    author: Daniel Perley (dperley@astro.berkeley.edu)
-#    last significant modifications 2010-05-17
+#    last significant modifications 2010-12-30
 #  
 #  Installation:
 #     Save this file anywhere on disk, and call it from the command 
 #       line: "python autoastrometry.py"
 #     Required python packages:  numpy, pyfits, and optionally ephem.
-#     You must also have sextractor and wcstools installed: if their
-#       paths are not standard, edit the global variables below to
-#       specify.  
+#     You must also have sextractor installed: if the path is
+#       nonstandard, edit the global variable below to specify. 
 #     For help, type "python autoastrometry.py -help"
 
 sexpath = ''  # if "sex" works in any directory, leave blank
-scatpath = '' # if "scat" ....    
-              # (on astro cluster, set to '/apps2/linux-apps/wcstools/bin/')
-defaulttolerance = 0.01
+
+defaulttolerance = 0.01  # these defaults should generally not be altered.
 defaultpatolerance = 1.4   
 defaultminfwhm = 1.5
 defaultmaxfwhm = 40
@@ -32,6 +30,7 @@ import glob, math
 from math import sin, cos, tan, asin, sqrt, pi
 import time, datetime
 import string
+import urllib
 try:
    import ephem
 except:
@@ -250,6 +249,7 @@ def stdev(l):
    return numpy.std(a)
 
 def mode(l):
+   if len(l) == 0: return
    s = numpy.array(sorted(l))
    d = s[1:] - s[:-1]
    nd = len(d)
@@ -297,6 +297,8 @@ def unique(inlist):
 
 def sextract(sexfilename, nxpix, nypix, border=3, corner=12, minfwhm=1.5, maxfwhm=25, maxellip=0.5):
 
+    if maxellip == -1: maxellip = 0.5
+
     try:
        # Sextract the image !
        os.system(sexpath+"sex " + sexfilename + " -c sex.config")
@@ -314,12 +316,18 @@ def sextract(sexfilename, nxpix, nypix, border=3, corner=12, minfwhm=1.5, maxfwh
        print 'Cannot load sextractor output file!'
        sys.exit(1)
 
+    if len(catlines) == 0:
+       print 'Sextractor catalog is empty: try a different catalog?'
+       sys.exit(1)
+
     minx = border
     miny = border
     maxx = nxpix - border    # This should be generalized
     maxy = nypix - border
     
     l = -1
+    xlist = []
+    ylist = []
     sexlist = []
     fwhmlist = []
     elliplist = []
@@ -344,9 +352,58 @@ def sextract(sexfilename, nxpix, nypix, border=3, corner=12, minfwhm=1.5, maxfwh
         if (nxpix-iobj.x) + (nypix-iobj.y) < corner: continue
         
         sexlist.append(iobj)
-        
+        xlist.append(iobj.x)
+        ylist.append(iobj.y)
         fwhmlist.append(iobj.fwhm)
         elliplist.append(iobj.ellip)
+
+     # Remove detections along bad columns
+
+    threshprob = 0.0001
+    ctbadcol = 0
+    for i in range(5):
+        txp = 1.0
+        xthresh = 1
+        while txp > threshprob: 
+          txp *= (len(sexlist)*1.0/nxpix) #only valid for n_sources < n_x
+          xthresh += 1
+        removelist = []
+        modex = mode(xlist)
+        for j in range(len(sexlist)):
+           if (sexlist[j].x > modex-1) and (sexlist[j].x < modex+1):
+             removelist.append(j)
+        removelist.reverse()
+        if len(removelist) > xthresh:
+         #print removelist
+         for k in removelist:
+           del xlist[k]
+           del ylist[k]
+           del sexlist[k]
+           del fwhmlist[k]
+           del elliplist[k]
+           ctbadcol += 1
+
+        typ = 1.0
+        ythresh = 1
+        while typ > threshprob: 
+          typ *= (len(sexlist)*1.0/nypix)
+          ythresh += 1
+        removelist = []
+        modey = mode(ylist)
+        for j in range(len(sexlist)):
+           if (sexlist[j].y > modey-1) and (sexlist[j].y < modey+1):
+             removelist.append(j)
+        removelist.reverse()
+        if len(removelist) > ythresh:
+         for k in removelist:
+           del xlist[k]
+           del ylist[k]
+           del sexlist[k]
+           del fwhmlist[k]
+           del elliplist[k]
+           ctbadcol += 1
+    if ctbadcol > 0: print ' Removed ', ctbadcol, ' detections along bad columns.'
+
     
     # Remove galaxies and cosmic rays
 
@@ -356,18 +413,28 @@ def sextract(sexfilename, nxpix, nypix, border=3, corner=12, minfwhm=1.5, maxfwh
     fwhm50 = fwhmlist[len(fwhmlist)/2]     #percentile values
     fwhm75 = fwhmlist[len(fwhmlist)*3/4]
     fwhmmode = mode(fwhmlist)
+    #hifwhmlist = []
+    #for f in fwhmlist:
+    #   if f > fwhmmode*1.5: hifwhmlist.append(f)
+    #fwhmhimode = mode(hifwhmlist)
 
-    ellipmode = mode(elliplist)
+    ellipmode = mode(elliplist)   # in theory, if this is large we could use a theta cut, too.  (THETA_IMAGE)
     ellipstdev = stdev(elliplist)
-    elliptol = min(0.2, 2*ellipstdev)
+    elliptol = min(0.25, 2.5*ellipstdev)
     
     #print fwhmlist
     #print fwhmmode #commonly CR's have their own cluster which can be tigheter than the real cluster?
 
     #print fwhmlist
-    #print fwhm25, fwhm50, fwhm75, fwhmmode
+    #print fwhm25, fwhm50, fwhm75, fwhmmode, fwhmhimode
+
+    #print elliplist
+    #print ellipmode, elliptol
     
-    refinedminfwhm = max(0.75*fwhmmode,0.9*fwhm20,minfwhm) # if CR's are bigger and more common than stars, this is dangerous...
+    #print fwhmmode, fwhm20, minfwhm
+
+    # formerly a max, but occasionally a preponderance of long CR's could cause fwhmmode to be bigger than the stars
+    refinedminfwhm = median([0.75*fwhmmode,0.9*fwhm20,minfwhm]) # if CR's are bigger and more common than stars, this is dangerous...
     print 'Refined min FWHM:', refinedminfwhm, 'pix'
     #refinedmaxfwhm = 35
     
@@ -421,25 +488,18 @@ def getcatalog(catalog, ra, dec, boxsize, minmag=8.0, maxmag=-1, maxpm=60.):
         racolumn = 1
         deccolumn = 2
         magcolumn = 6
+        if catalog=='tmc': magcolumn=3
         pmracolumn = 10
         pmdeccolumn = 11    
-        print scatpath+'scat -wtc '+catalog+' -r '+str(-boxsize)+' -o temp -j '+ str(ra) + ' ' + str(dec) + ' J2000 -d -s m4 -n 1600'
-        try:
-           os.system(scatpath+'scat -wtc '+catalog+' -r '+str(-boxsize)+' -o temp -j '+ str(ra) + ' ' + str(dec) + ' J2000 -d -s m4 -n 1600')
-        except:
-           print ' Error: Problem running scat (wcstools)'
-           print ' Check that program is installed and runs at command line using ' + scatpath+'scat'
-           sys.exit(1)
-        catfile = "temp."+catalog
-        try:
-           cat = open(catfile,'r')
-        except:
-           print ' Error: Cannot open catalog file', catfile
-           sys.exit(1)
+        queryurl = "http://tdc-www.harvard.edu/cgi-bin/scat?catalog=" + catalog +  "&ra=" + str(ra) + "&dec=" + str(dec) + "&system=J2000&rad=" + str(-boxsize) + "&sort=mag&epoch=2000.00000&nstar=1600"
+        cat = urllib.urlopen(queryurl)
+        catlines = cat.readlines()
+        cat.close()
     else:
         usercat = 1
         try:
            cat = open(catalog,'r')
+           print 'Reading user catalog ', catalog
         except:
            print 'Failed to open user catalog ', catalog
            print 'File not found or invalid online catalog.  Specify ub2, sdss, or tmc.'
@@ -447,9 +507,8 @@ def getcatalog(catalog, ra, dec, boxsize, minmag=8.0, maxmag=-1, maxpm=60.):
         racolumn = 0
         deccolumn = 1   # defaults
         magcolumn = -1    #  (to override, specify in first line using format #:0,1,2)  
-
-    catlines = cat.readlines()
-    cat.close()
+        catlines = cat.readlines()
+        cat.close()
     
     l = -1
     catlist = []
@@ -460,19 +519,29 @@ def getcatalog(catalog, ra, dec, boxsize, minmag=8.0, maxmag=-1, maxpm=60.):
         if len(inline) <= 2: continue
         if inline[0:2] == '#:':
              inlinearg = inline[2:].split(',')
-             racolumn = int(inlinearg[0])
-             deccolumn = int(inlinearg[1])
-             if len(inlinearg) > 2: magcolumn = int(inlinearg[2])
+             racolumn = int(inlinearg[0])-1
+             deccolumn = int(inlinearg[1])-1
+             if len(inlinearg) > 2: magcolumn = int(inlinearg[2])-1
              continue
         if inline[0] < '0' or inline[0] >= '9': continue
+        if inline[1] < '0' or inline[1] >= '9': continue
 
         inlinearg = inline.split()
         narg = len(inlinearg)
     
-        ra = float(inlinearg[racolumn])
-        dec = float(inlinearg[deccolumn])
+        if inlinearg[racolumn].find(':') == -1:
+           ra = float(inlinearg[racolumn])
+        else:
+           ra = rasex2deg(inlinearg[racolumn])
+        if inlinearg[deccolumn].find(':') == -1:
+           dec = float(inlinearg[deccolumn])
+        else:
+           dec = decsex2deg(inlinearg[deccolumn])
         if magcolumn >= 0 and narg > magcolumn: 
-            mag = float(inlinearg[magcolumn])
+            try:
+               mag = float(inlinearg[magcolumn])
+            except:
+               mag = float(inlinearg[magcolumn][0:-2])
         else:
             mag = maxmag
         if usercat == 0 and narg > pmracolumn and narg > pmdeccolumn:
@@ -597,10 +666,11 @@ def distmatch(sexlist, catlist, maxrad=180, minrad=10, tolerance=0.010, reqmatch
                 for cj in range(len(catdistarr)):
                     catdist = catdistarr[cj]
                     if abs((sexdist/catdist)-1.0) < tolerance:
-                        #print si, ci, sj, cj
-                        ##print catmatchids[ci]
-                        ##print catdists[ci]
+                        #print si, ci, sexidarr[sj], catidarr[cj]
+                        #print catmatchids[ci]
+                        #print catdists[ci]
                         #print sexdist, catdist
+                        #print '----'
                         match += newmatch
                         newmatch = 0 #further matches before the next sj loop indicate degeneracies
                         smatchin.append(sexmatchids[si][sj])
@@ -619,6 +689,7 @@ def distmatch(sexlist, catlist, maxrad=180, minrad=10, tolerance=0.010, reqmatch
                     ddpa = posangle(sexlist[si],sexlist[smatchin[i]]) - posangle(catlist[ci],catlist[cmatchin[i]])
                     while ddpa > 200: ddpa  -= 360.
                     while ddpa < -160: ddpa += 360.
+                    #print smatchin[i], '-', cmatchin[i], ': ', posangle(sexlist[si],sexlist[smatchin[i]]), '-', posangle(catlist[ci],catlist[cmatchin[i]]), '=', ddpa
                     dpa.append(ddpa)
 
                 #If user was confident the initial PA was right, remove bad PA's right away
@@ -662,21 +733,22 @@ def distmatch(sexlist, catlist, maxrad=180, minrad=10, tolerance=0.010, reqmatch
                 if (len(smatchin)-ndegeneracies > 6): countgreatmatches += 1
         if countgreatmatches > 16 and fastmatch == 1: break #save processing time
 
-                #print '   ', sexdistarr
-                #print '   ', catdistarr
-                #print '   ', sexlist[si].ra, sexlist[si].dec, sexlist[si].mag
-                #print '   ', catlist[ci].ra, catlist[ci].dec, catlist[ci].mag
-                #print '   ', distance(sexlist[si], catlist[ci])
+        #print '   ', sexdistarr
+        #print '   ', catdistarr
+        #print '   ', sexlist[si].ra, sexlist[si].dec, sexlist[si].mag
+        #print '   ', catlist[ci].ra, catlist[ci].dec, catlist[ci].mag
+        #print '   ', distance(sexlist[si], catlist[ci])
                 
     #print 'All done (in', time.clock()-mtime0, 's)'
     
     nmatches = len(smatch)
     if (nmatches == 0):
         print 'Found no potential matches of any sort (including pairs).'
-        print 'This is an unusual error.  Check that a parameter is not set to a highly nonstandard value?'
+        print 'The algorithm is probably not finding enough real stars to solve the field.  Check seeing.'
+        #print 'This is an unusual error.  Check that a parameter is not set to a highly nonstandard value?'
         return [], [], []
     
-    
+
     # Kill the bad matches
     rejects = 0
     
@@ -780,8 +852,11 @@ def distmatch(sexlist, catlist, maxrad=180, minrad=10, tolerance=0.010, reqmatch
                 catdistij = distance(catlist[ci], catlist[cj])
                 #print i, j, sexdistij, catdistij
     
-                if abs((sexdistij/catdistij)-1.0) > tolerance:
-                   ndistflags[i] += 1
+                try:
+                   if abs((sexdistij/catdistij)-1.0) > tolerance:
+                      ndistflags[i] += 1
+                except:  # (occasionally will get divide by zero)
+                   pass
 
          # delete bad clusters
         ntestmatches = len(primarymatchs)
@@ -903,11 +978,12 @@ def writeregionfile(filename, objlist, color="green",sys=''):
 
 ############################################
 
-def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,maxfwhm=20,boxsize=-1,maxrad=-1,tolerance=0.010,catalog=''):
+def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,maxfwhm=20,maxellip=0.5,boxsize=-1,maxrad=-1,tolerance=0.010,catalog='',nosolve=0):
   
     # Get some basic info from the header  
     try: 
        fits = pyfits.open(filename)
+       fits.verify('silentfix')
     except:
        print 'Error opening', filename
        if os.path.isfile(filename)==False: print 'File does not exist.'
@@ -918,6 +994,31 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     
     if pixelscale > 0 and pa == -999: pa = 0
 
+    # Check for old-style WCS header
+    if pixelscale < 0:
+       hkeys = h.ascardlist().keys()
+       oldwcstype = 0
+       for hkey in hkeys:
+          if hkey.find('CDELT1')==0 or hkey.find('CDELT2')==0: oldwcstype=1
+       if oldwcstype:
+          key = 'CDELT1'
+          cdelt1 = h[key]
+          key = 'CDELT2'
+          cdelt2 = h[key]
+          try:
+             crot = 0
+             key = 'CROTA1'
+             crot = h[key]
+             key = 'CROTA2'
+             crot = h[key]
+          except:
+             pass
+          h.update("CD1_1", cdelt1 * cos(crot*math.pi/180.))
+          h.update("CD1_2",-cdelt2 * sin(crot*math.pi/180.))
+          h.update("CD2_1", cdelt1 * sin(crot*math.pi/180.))
+          h.update("CD2_2", cdelt2 * cos(crot*math.pi/180.))
+
+
     if pixelscale > 0 and pa > -360:
        # Create WCS header information if pixel scale is specified
        parad = pa * math.pi / 180.
@@ -926,23 +1027,31 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
            parity = -1
        else:
            parity = 1
-       ra = rasex2deg(h['RA'])
-       dec = decsex2deg(h['DEC'])
+       try:
+          ra = rasex2deg(h['RA'])
+       except:
+          ra = rasex2deg(h['CRVAL1'])
+
+       try:
+          dec = decsex2deg(h['DEC'])
+       except:
+          dec = decsex2deg(h['CRVAL2'])
        
        epoch = float(h.get('EPOCH', 2000))
        equinox = float(h.get('EQUINOX', epoch)) #If RA and DEC are not J2000 then convert
 
        if abs(equinox-2000) > 0.5:
+           print 'Converting equinox from', equinox, 'to J2000'
            try:
               j2000 = ephem.Equatorial(ephem.Equatorial(str(ra/15), str(dec), epoch=str(equinox)),epoch=ephem.J2000)
               [ra, dec] = [rasex2deg(j2000.ra), decsex2deg(j2000.dec)]
            except:
               print 'PyEphem is not installed but is required to precess this image.'
               return -1
-       h.update("CD1_1",  pxscaledeg * cos(parad))
-       h.update("CD1_2", -pxscaledeg * sin(parad)*parity)
-       h.update("CD2_1",  pxscaledeg * sin(parad))
-       h.update("CD2_2",  pxscaledeg * cos(parad)*parity)
+       h.update("CD1_1",  pxscaledeg * cos(parad)*parity)
+       h.update("CD1_2",  pxscaledeg * sin(parad))
+       h.update("CD2_1", -pxscaledeg * sin(parad)*parity)
+       h.update("CD2_2",  pxscaledeg * cos(parad))
        h.update("CRPIX1", h['NAXIS1']/2)
        h.update("CRPIX2", h['NAXIS2']/2)
        h.update("CRVAL1", ra)
@@ -959,7 +1068,7 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
            pass
        
        fits[0].header = h
-       fits.writeto('temp.fits') #,clobber=True
+       fits.writeto('temp.fits',output_verify='silentfix') #,clobber=True
        fits.close()
        fits = pyfits.open('temp.fits')
        h = fits[0].header
@@ -970,28 +1079,34 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     try:
         # no longer drawing RA and DEC from here.
         key = 'NAXIS1'
-        nxpix = h['NAXIS1']
+        nxpix = h[key]
         key = 'NAXIS2'
-        nypix = h['NAXIS2']
+        nypix = h[key]
     except:
         print 'Cannot find necessary WCS header keyword', key
         sys.exit(1)
     try:
-        key = 'CD1_1'
-        cd11 = h['CD1_1']
-        key = 'CD2_2'
-        cd22 = h['CD2_2']
-        key = 'CD1_2'
-        cd12 = h['CD1_2'] # deg / pix
-        key = 'CD2_1'
-        cd21 = h['CD2_1']
         key = 'CRVAL1'
-        cra =  h['CRVAL1']  # check CRPIX?
+        cra =  h[key] 
         key = 'CRVAL2'
-        cdec = h['CRVAL2']
+        cdec = h[key]
+
+        key = 'CRPIX1'
+        crpix1 =  h[key]  
+        key = 'CRPIX2'
+        crpix2 = h[key]
+
+        key = 'CD1_1'
+        cd11 = h[key]
+        key = 'CD2_2'
+        cd22 = h[key]
+        key = 'CD1_2'
+        cd12 = h[key] # deg / pix
+        key = 'CD2_1'
+        cd21 = h[key]
     except:
         if pixelscale == -1:
-            #print 'Cannot find necessary WCS header keyword', key
+            print 'Cannot find necessary WCS header keyword', key
             print 'Must specify pixel scale (-px VAL) or provide provisional basic WCS info via CD matrix.'
             #Some images might use CROT parameters, could try to be compatible with this too...?
             sys.exit(1)
@@ -1000,6 +1115,7 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     hkeys = h.ascardlist().keys()
     irafkeys = []
     highkeys = []
+    oldkeys = []
     for hkey in hkeys:
        if hkey=='RADECSYS' or hkey == 'WCSDIM' or hkey.find('WAT')==0 or hkey.find('LTV')>=0 or hkey.find('LTM')==0:
           del h[hkey]
@@ -1007,6 +1123,9 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
        if hkey.find('CO1_')==0 or hkey.find('CO2_')==0 or hkey.find('PV1_')==0 or hkey.find('PV2_')==0 or hkey.find('PC00')==0:
           del h[hkey]
           highkeys.append(hkey)
+       if hkey.find('CDELT1')==0 or hkey.find('CDELT2')==0 or hkey.find('CROTA1')==0 or hkey.find('CROTA2')==0:
+          del h[hkey]
+          oldkeys.append(hkey)
     if len(irafkeys) > 0:
        print 'Removed nonstandard WCS keywords: ',
        for key in irafkeys: print key,
@@ -1015,7 +1134,14 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
        print 'Removed higher-order WCS keywords: ',
        for key in highkeys: print key,
        print
+    if len(oldkeys) > 0:
+       print 'Removed old-style WCS keywords: ',
+       for key in oldkeys: print key,
+       print
     
+    
+
+
     # Get image info from header (even if we put it there in the first place)
     if cd11 * cd22 < 0 or cd12 * cd21 > 0:
        parity = -1
@@ -1023,19 +1149,30 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
        parity = 1
     xscale = sqrt(cd11**2 + cd21**2)
     yscale = sqrt(cd12**2 + cd22**2)
-    initpa = numpy.arctan2(cd21 * yscale, cd22 * xscale) * 180 / math.pi
+    initpa = -parity * numpy.arctan2(cd21 * yscale, cd22 * xscale) * 180 / math.pi
     xscale = abs(xscale)
     yscale = abs(yscale)
     fieldwidth = max(xscale * nxpix, yscale * nypix) * 3600.
     area_sqdeg = xscale * nxpix * yscale * nypix
     area_sqmin = area_sqdeg * 3600. 
+    area_sqsec = area_sqmin * 3600. 
     pixscale = sqrt(xscale*yscale) * 3600.
   
     print 'Initial WCS info:'
-    print '   pixel scale:     x=%.3f"/pix,   y=%.3f"/pix' % (xscale*3600, yscale*3600)
+    print '   pixel scale:     x=%.4f"/pix,   y=%.4f"/pix' % (xscale*3600, yscale*3600)
     print '   position angle: PA=%.2f' % initpa
     if parity == 1: print '   normal parity'
-    if parity ==-1: print '   negative parity'
+    if parity ==-1: print '   inverse parity'
+
+    centerx = nxpix/2
+    centery = nypix/2
+    centerdx = centerx - crpix1
+    centerdy = centery - crpix2
+    centerra  = cra  -        centerdx*xscale*cos(initpa*math.pi/180.) + centerdy*yscale*sin(initpa*math.pi/180.)
+    centerdec = cdec + parity*centerdx*xscale*sin(initpa*math.pi/180.) + centerdy*yscale*cos(initpa*math.pi/180.)
+    # this has only been checked for a PA of zero.
+
+    print '   center:        RA=%10.6f, dec=%9.6f' % (centerra, centerdec)
   
     #catalog = 'ub2' #ub2
     #mincatmag = 8.0
@@ -1045,27 +1182,35 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
   
     # Sextract stars to produce image star catalog
 
-    goodsexlist = sextract(sfilename, nxpix, nypix, 3, 12, minfwhm=minfwhm, maxfwhm=maxfwhm)
+    goodsexlist = sextract(sfilename, nxpix, nypix, 3, 12, minfwhm=minfwhm, maxfwhm=maxfwhm, maxellip=maxellip)
     
     ngood = len(goodsexlist)
-    if ngood < 6:
-       print 'Only ', ngood, ' good stars were found in the image.  Decrease the threshold and try again.  If that does not work, the image may be too shallow for this method (or may be a flatfield, etc.).'
-       sys.exit(1)
+    if ngood < 4:
+       print 'Only ', ngood, ' good stars were found in the image.  The image is too small or shallow, the detection'
+       print 'threshold is set too high, or stars and cosmic rays are being confused.'
+       #print '  If that does not work, the image may be too shallow for this method (or may be a flatfield, etc.).'
+       writetextfile('det.init.txt', goodsexlist)
+       writeregionfile('det.im.reg', goodsexlist, 'red', 'img')
+       return -1
+       #sys.exit(1)
 
     #print ngood , 'good stars found in frame.'
     density = len(goodsexlist) / area_sqmin
     print 'Source density of %f4 /arcmin^2' % density
     
+    if nosolve == 1: 
+       if catalog == '': catalog = 'det.ref.txt'
+       writetextfile(catalog, goodsexlist)
+       return
 
     # If no catalog specified, check availability of SDSS
     if catalog == '':
         trycats = ['sdss', 'ub2', 'tmc']
         for trycat in trycats:
-            os.system(scatpath+'scat -wtc ' + trycat + ' -r -60 -o check -j ' + str(cra) + ' ' + str(cdec) + ' J2000')
-            check = open('check.' + trycat,'r')
+            queryurl = "http://tdc-www.harvard.edu/cgi-bin/scat?catalog=" + trycat +  "&ra=" + str(centerra) + "&dec=" + str(centerdec) + "&system=J2000&rad=" + str(-90)
+            check = urllib.urlopen(queryurl)
             checklines = check.readlines()
             check.close()
-            os.remove('check.' + trycat)
             if len(checklines) > 15:
                 catalog = trycat
                 print 'Using catalog', catalog
@@ -1074,10 +1219,11 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
             print 'No catalog is available.  Check your internet connection.'
             return -1
 
+
     # Load in reference star catalog
     if (boxsize == -1):
         boxsize = fieldwidth
-    catlist = getcatalog(catalog, cra, cdec, boxsize)
+    catlist = getcatalog(catalog, centerra, centerdec, boxsize)
     
     ncat = len(catlist)
     catdensity = ncat / (2*boxsize/60.)**2
@@ -1104,9 +1250,9 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
             catdensity = ncat / (2*boxsize/60.)**2
         
     #If the image is way deeper than USNO, trim the image catalog down
-    if ngood > 16 and density > 4 * catdensity:
+    if ngood > 16 and density > 4 * catdensity and ngood > 8:
         print 'Image is deep.  Trimming image catalog...'
-        while density > 4 * catdensity:
+        while density > 4 * catdensity and ngood > 8:
             goodsexlist = goodsexlist[0:len(goodsexlist)*4/5]
             ngood = len(goodsexlist)
             density = ngood / area_sqmin
@@ -1156,7 +1302,7 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     for d in deletelist:
         del catlist[d]
     
-    writetextfile('det.txt', goodsexlist)
+    writetextfile('det.init.txt', goodsexlist)
     writeregionfile('det.im.reg', goodsexlist, 'red', 'img')
     writetextfile('cat.txt', catlist)
     writeregionfile('cat.wcs.reg', catlist, 'green', 'wcs')
@@ -1165,8 +1311,7 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     
     
     # Now start getting into the actual astrometry.
-       
-    
+           
     minrad = 5.0
     #if (maxrad == -1): maxrad = 180
     if (maxrad == -1):                                            
@@ -1176,8 +1321,10 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
              minrad = 10.0   # in theory could scale this up further to reduce #comparisons
         maxrad = min(maxrad, fieldwidth*3./4)                
 
-    circdensity =       density * (math.pi*(maxrad/60.)**2 - math.pi*(minrad/60)**2)
-    circcatdensity = catdensity * (math.pi*(maxrad/60.)**2 - math.pi*(minrad/60)**2)
+    #note that density is per arcmin^2, while the radii are in arcsec, hence the conversion factor.
+    circdensity =       density * min([area_sqmin, (math.pi*(maxrad/60.)**2 - math.pi*(minrad/60)**2)])
+    circcatdensity = catdensity *                  (math.pi*(maxrad/60.)**2 - math.pi*(minrad/60)**2)
+    catperimage    = catdensity * area_sqmin
 
     print 'After trimming: '
     print '   ', len(goodsexlist), 'detected objects (%.2f/arcmin^2, %.1f/searchzone)' % (density, circdensity)
@@ -1197,6 +1344,9 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     reqmatch = 3
     if expectfalsetrios > 30 and truematchesperstar >= 4: reqmatch = 4   
        #should check that this will actually work for the catalog, too.
+    if catperimage <= 6 or ngood <= 6: reqmatch = 2 
+    if catperimage <= 3 or ngood <= 3: reqmatch = 1
+        #for an extremely small or shallow image
 
     print 'Pair comparison search radius: %.2f"'%maxrad
     print 'Using reqmatch =', reqmatch
@@ -1221,9 +1371,11 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     offpa = median(mpa)  #get average PA from the excellent values
     stdevpa = stdev(mpa)
     
+    skyoffpa = -parity*offpa # This appears to be necessary for the printed value to agree with our normal definition.
+
     #if abs(offpa) < 0.2: offpa = 0.0
     print 'PA offset:'
-    print '  dPA = %.3f  (unc. %.3f)' % (offpa, stdevpa)
+    print '  dPA = %.3f  (unc. %.3f)' % (skyoffpa, stdevpa)
 
     # Rotate the image to the new, correct PA
     #  NOTE: when CRPIX don't match CRVAL this shifts the center and screws things up.  
@@ -1244,7 +1396,7 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
         #print "%11.7f %11.7f %5.2f" % (goodsexlist[i].ra, goodsexlist[i].dec, goodsexlist[i].mag)
     #print 
     
-    writetextfile('out.imr.cat',goodsexlist)
+    writetextfile('det.wcs.txt',goodsexlist)
     
     #print
     #imoffsets = []
@@ -1287,6 +1439,8 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     h.update("CRVAL1", cra + raoffset)
     h.update("CRVAL2", cdec + decoffset)
     
+    #h.update("ASTRMTCH", catalog)
+    h.update("ASTRCAT", catalog)
 
 
     #Write out a match list to allow doing a formal fit with WCStools.
@@ -1310,7 +1464,7 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
     except:
         i = 0
     fits[0].header = h
-    fits.writeto(outfile) #,clobber=True
+    fits.writeto(outfile,output_verify='silentfix') #,clobber=True
     print 'Written to '+outfile
     
     if (warning == 0):
@@ -1329,46 +1483,138 @@ def autoastrometry(filename,pixelscale=-1,pa=-999,inv=0,uncpa=-1, minfwhm=1.5,ma
 
     fits.close()
     
-    return (nmatch, offpa, stdevpa, raoffset*3600*cos(cdec*math.pi/180), decoffset*3600, stdoffset*3600)      #stdoffset*3600
-
-
+    return (nmatch, skyoffpa, stdevpa, raoffset*3600*cos(cdec*math.pi/180), decoffset*3600, stdoffset*3600)      #stdoffset*3600
 
 
 #####################################################
 def help():
+#          12345678901234567890123456789012345678901234567890123456789012345678901234567890
     print "autoastrometry.py - A fast astrometric solver"
     print "Command-line options:"
     print "   Automatic WCS information:"
-    print "      -px pixelscale:  The pixel scale in arcsec/pix.  Must be within ~1 percent."
+    print "      -px pixelscale:  The pixel scale in arcsec/pix.  Must be within ~1%."
     print "      -pa PA:          The position angle in degrees.  Not usually needed."
-    print "      -inv:            Reverse parity.  Needed to verify matches and correct image."
-    print "   If your image has provisional WCS already, you do not need the above information."
+    print "      -inv:            Reverse(=positive) parity."
+    print "   If your image has provisional WCS already, you do not need this information."
     #print "   If your image has detailed WCS, you need to flush it for this code to work."
     print "   Options:"
-    print "      -b  boxsize:     Half-width of box for reference star catalog query (arcsec)"
+    print "      -b  boxsize:     Half-width of box for reference catalog query (arcsec)"
     print "      -s  seeing:      Approximate seeing in pixels for CR/star/galaxy ID'ing."
-    print "      -upa PAdiff:     Uncertainty of the position angle"
+    print "      -upa PAdiff:     Uncertainty of the position angle (degrees)"
     print "   Additional options:"
-    print "      -c  catalog:     Catalog to use (ub2, tmc, sdss, or a file on disk)"
-    print "      -r  searchrad:   Maximum distance to look for star pairs."
+    print "      -c  catalog:     Catalog to use (ub2, tmc, sdss, or file: see --catalog)"
+    print "      -d  searchdist:  Maximum distance to look for star pairs."
     print "      -t  tolerance:   Amount of slack allowed in match determination"
+    print "      -n:              Do not attempt to solve astrometry; just write catalog."
+    print "   More help:"
+    print "      --examples:      Some examples for running at the command line."
+    print "      --trouble:       Troubleshooting info if you can't get a field to solve."
+    print "      --catalog:       More information on catalogs."
+    print "      --algorithm:     Description of the program runtime steps."
+    print "      --output:        Information on the output files."
+    print "      --input:         Information on the input files."
+
+def algorithmhelp():
+    print "Algorithm info:"
+    print "  The code uses a combination of pair-distance matching and asterism matching to"
+    print "  solve a field without knowing the position angle.  The full list of steps is:"
+    print " 1 - Extract all stars from the image.  Attempts to filter out cosmic rays,"
+    print "     galaxies, bad columns, and so on."
+    print " 2 - Query a catalog to get a list of known star positions."
+    print " 3 - Trim the catalogs if necessary and try to optimize the search strategy"
+    print "     based on the relative catalog densities and areas."
+    print " 4 - Calculate the distance from every star to its neighbors, both in the"
+    print "     image and the catalog.  Stars too far apart are ignored."
+    print "     If the distance between a star and a neighbor matches the distance between"
+    print "     some catalog star and one of its neighbors, calculate that PA too and store"
+    print "     as a potential match."
+    print " 5 - Look for stars that seem to have a lot of distance matches with catalog"
+    print "     stars.  If the PA's also match, store the list as an asterism match."
+    print " 6 - Prune out asterisms whose matches seem least useful."
+    print " 7 - Calculate analytically the PA shift and offset by averaging asterism"
+    print "     centers."
+    print " 8 - Update the header and write to disk."
+
+
+def troublehelp():
+#          12345678901234567890123456789012345678901234567890123456789012345678901234567890
     print "Troubleshooting info:"
-    print "      Supplying the correct pixel scale (within 1%) and correct parity is critical."
-    print "      If you have difficulty solving a field correctly, double-check these values."
-    print "      If still having trouble, try opening temp.fits and an archival image of the"
-    print "      field (from DSS, etc.) and loading the .reg files in DS9.  The problem might"
-    print "      be in the telescope pointing/header info (in this case, increase the boxsize)"
-    print "      or good matching stars may be thrown away or confused by artifacts (in this"
-    print "      case, specify a seeing value).  If the PA is known, restricting it can also"
-    print "      help (try -upa 0.5); by default all orientations are searched."
-    print "      If still having issues, e-mail dperley@astro.berkeley.edu for help."
+    print "   Supplying the correct pixel scale (within 1%) and correct parity is critical"
+    print "   if the image does not already contain this information in the FITS header."
+    print "   If you have difficulty solving a field correctly, double-check these values."
+    print "   If still having trouble, try opening temp.fits and an archival image of the"
+    print "   field (from DSS, etc.) and loading the .reg files in DS9.  The problem might"
+    print "   be in the telescope pointing/header info (in this case, increase the boxsize)"
+    print "   or good matching stars may be thrown away or confused by artifacts (in this"
+    print "   case, specify a seeing value).  If the PA is known, restricting it can also"
+    print "   help (try -upa 0.5); by default all orientations are searched."
+    print "   If still having issues, e-mail dperley@astro.berkeley.edu for help."
+
+def cataloghelp():
+   print "Catalog info:"
+   print "   Leave the catalog field blank will use SDSS if available and USNO otherwise."
+   print "   The catalog query uses wcstools (tdc-www.harvard.edu/wcstools).  However, you"
+   print "   can also use your own catalog file on disk if you prefer using -c [filename]"
+   print "   The default format is a text file with the first three columns indicating"
+   print "   ra, dec, magnitude.  However, you can change the order of the columns by"
+   print "   adding, e.g."
+   print "              #:1,2,6"
+   print "   to the first line.  In this case, thisw ould indicate that the RA is in the" 
+   print "   1st column, dec in the 2nd, and magnitude in the 6th.   The mag column can be"
+   print "   omitted completely, although if the catalog is not the same depth as the"
+   print "   image this may compromise the search results."
+
+def examplehelp():
+#         12345678901234567890123456789012345678901234567890123456789012345678901234567890
+   print "Examples:"
+   print " For an image with provisional WCS header but possibly incorrect PA:"
+   print "    autoastrometry image.fits   "
+   print " For an image with provisional WCS, definitely correct PA:"
+   print "    autoastrometry image.fits -upa 0.5"
+   print ' For an image with no WCS (or bad WCS) and a pixel scale of 0.35"/pixel:'
+   print "    autoastrometry image.fits -px 0.35"
+   print ' For an image with no WCS, pixel scale of 0.35", and PA of 121 degrees:'
+   print "    autoastrometry image.fits -px 0.35 -pa 121 -upa 0.5"
+   print " For an image with no WCS, pixel scale of 0.35, and positive parity:"    
+   print "    autoastrometry image.fits -px 0.35 -inv"
+   print " Use a catalog on disk instead of wcstools query:"    
+   print "    autoastrometry image.fits -c catalog.txt"
+   print " Widen the catalog search to 12x12 arcminutes if the pointing is bad:"
+   print "    autoastrometry image.fits -b 720"
+   print " Specify seeing (7 pixels) to better exclude cosmic rays and galaxies:"
+   print "    autoastrometry image.fits -s 7"
+   print " Combine lots of options for a maximally directed solution:"
+   print "    autoastrometry image.fits -px 0.35 -pa 121 -upa 0.5 -inv -b 600 -s 7"
+   print " (Substitute 'autoastrometry' with 'python autoastrometry.py' if not aliased.)"
+
+def outputhelp():
+   print "Explanation of output files:"
+   print " DS9 region files -"
+   print "   cat.wcs.reg        - WCS positions of all objects in the catalog."
+   print "   det.im.reg         - XY positions of all non-flagged detected objects."
+   print "   matchlines.im.reg  - spoke lines for matched asterisms from XY positions."
+   print "   matchlines.wcs.reg - spoke lines for matched asterisms from WCS positions."
+   print " Text output -"
+   print "   cat.txt            - objects in the catalog as a text file (RA, dec, mag)"
+   print "   det.init.txt       - objects in the image as a text file ('RA', 'dec', mag)"
+   print "   det.final.txt      - objects in the image as a text file (RA, dec, mag)"
+   print "   match.list         - list of matched stars: (X Y RA dec)"
+   print " Image output -"
+   print "   a[image.fits]      - output image with astrometry"
+   print "   temp.fits          - image with provisional WCS from your -px and -pa inputs"
+
+def inputhelp():
+   print "Sextractor input files:"
+   print "  You can modify the following sextractor inputs if you choose.  This should"
+   print "  rarely be necessary, if ever."
+   print "     sex.config - Overall input file"
+   print "     sex.conv   - Convolution matrix for detection"
+   print "  These files are written to disk using internal defaults if not present."
+
 
 #Some other conceivable options for the future:
   #noncircular PSF
   #instrument defaults
-  #catalog system!
-  #sextract options - write to file automatically
-  #retain all temporary files instead of overwrite
 
 ######################################################################
 def usage():
@@ -1393,9 +1639,11 @@ def main():
     inv = 0
     boxsize = -1
     maxrad = -1
+    maxellip = -1
     seeing = -1
     tolerance = defaulttolerance
     catalog = ''
+    nosolve = 0
     
     # nickel : 0.371"/pix, PA=177.7
     # lick Geminicam:  A=0.697"/pix  B=0.672"/pix
@@ -1407,6 +1655,24 @@ def main():
         isarg=0
         if (arg.find("-h") > -1):
             help()
+            sys.exit(1)
+        if (arg.find("-examp") > -1):
+            examplehelp()
+            sys.exit(1)
+        if (arg.find("-troub") > -1):
+            troublehelp()
+            sys.exit(1)
+        if (arg.find("-catal") > -1):
+            cataloghelp()
+            sys.exit(1)
+        if (arg.find("-output") > -1):
+            outputhelp()
+            sys.exit(1)
+        if (arg.find("-input") > -1):
+            inputhelp()
+            sys.exit(1)
+        if (arg.find("-algor") > -1):
+            inputhelp()
             sys.exit(1)
         if (arg.find("-pi") > -1 or arg.find("-px") > -1):
             pixelscale=float(sys.argv[i+1])
@@ -1427,7 +1693,7 @@ def main():
             boxsize = float(sys.argv[i+1])
             i+=1
             isarg = 1
-        if (arg.find("-r") > -1):
+        if (arg.find("-d") > -1):
             maxrad = float(sys.argv[i+1])
             i+=1
             isarg = 1
@@ -1439,9 +1705,20 @@ def main():
             tolerance = float(sys.argv[i+1])
             i+=1
             isarg = 1
+        if (arg.find("-e") > -1):
+            maxellip = float(sys.argv[i+1])
+            i+=1
+            isarg = 1
         if (arg.find("-c") > -1):
             catalog = sys.argv[i+1]
             i+=1
+            isarg = 1
+        if (arg.find("-n") > -1):
+            nosolve = 1
+            if len(sys.argv) > i+1:
+               if (sys.argv[i+1]).find('-') != 0: 
+                  catalog = sys.argv[i+1] #output
+                  i+=1
             isarg = 1
         if (not isarg):
             if (len(files) > 0):
@@ -1473,7 +1750,9 @@ def main():
 
     for filename in filenames:
         if len(filenames) > 1: print 'Processing', filename
-        fitinfo = autoastrometry(filename,pixelscale=pixelscale,pa=pa,inv=inv,uncpa=uncpa,minfwhm=minfwhm,maxfwhm=maxfwhm,boxsize=boxsize, maxrad=maxrad, tolerance=tolerance, catalog=catalog)
+        if nosolve and catalog=='': catalog = filename+'.cat'
+        fitinfo = autoastrometry(filename,pixelscale=pixelscale,pa=pa,inv=inv,uncpa=uncpa,minfwhm=minfwhm,maxfwhm=maxfwhm,maxellip=maxellip,boxsize=boxsize, maxrad=maxrad, tolerance=tolerance, catalog=catalog, nosolve=nosolve)
+        if nosolve: continue
         if type(fitinfo)==int: 
            fitinfo = (0,0,0,0,0,0)
         
@@ -1485,7 +1764,7 @@ def main():
             questionable.append(filename)
         if nimage > 1: print
             
-    if nimage > 1:
+    if nimage > 1 and nosolve==0:
 
         if len(failures) == 0 and len(questionable) == 0:
             print 'Successfully processed all images!'
@@ -1526,4 +1805,11 @@ if __name__=='__main__':
 ######################################################################
 
 
+# some possible future improvements:
+# verification to assess low-confidence solutions
+# full automatic retry mode (parity detection, etc.)
+# dealing with unknown pixel scale
+# run wcstools for distortion parameters
+# merge catalog check with catalog search to save a query
+# improve the CR rejection further... maybe think about recognizing elliptical "seeing"?
 
