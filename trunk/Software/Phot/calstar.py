@@ -11,12 +11,18 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
+def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False):
     
-    '''temporary comment: Plot magnitudes of calibration stars, 
-    needs q_phot and t_mid.
+    '''
+    Plot magnitudes of calibration stars as a function of time.
+    
+    Do after the initial coaddition of triplestacks to plot the magnitudes of 
+    calibration stars as a function of time for each science image.
     
     Do once for EACH BAND
+    
+    Requirements: q_phot and t_mid.
+    
     
     Arguments: 
         reg: region file of calibration stars to test and plot
@@ -29,18 +35,17 @@ def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
     '''
 
     if globit == True:
-        globstr1 = str(filelist) + '_coadd_?-?.fits'
-        globstr2 = str(filelist) + '_coadd_??-??.fits'
+        globstr1 = str(filelist) + '*coadd*[0-9].fits'
+        globstr2 = str(filelist) + '*coadd.fits'
         globlist1 = glob.glob(globstr1)
         globlist2 = glob.glob(globstr2)
-        globlist3 = globlist1+globlist2
-        filelist = globlist3
+        filelist = globlist1 + globlist2
         print 'globit actiavated'
         print filelist
 
     caldict = {}
     matplotlib.pyplot.clf()
-    regpath = storepath + reg
+    regpath = reg
     temppath = storepath + 'temp.reg'
     picklepath = storepath + out_pickle +'.data'
     regfile = open(regpath, 'r')
@@ -89,7 +94,7 @@ def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
             print '**************************************'
             print 'Photometry of star' + str(index) 
             print 'doing image ' + image
-            data = q_phot.dophot(image, temppath)
+            data = q_phot.dophot(image, temppath, ap=ap)
             if 'targ_mag' in data:
                 datalist += [data['targ_mag'][0]] 
                 dataerrlist += [data['targ_mag'][1]]
@@ -109,7 +114,7 @@ def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
         timarr = array(timelist)
         timerrarr = array(timeerrlist)
         
-        pylab.plot(timarr,datarr,'o',label=star_pos_str)
+        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=star_pos_str)
         
         caldict.update({star_pos_str:precal_dict})
 
@@ -136,6 +141,8 @@ def magplot(reg, filelist, out_pickle, triggerid = None, globit = False):
 
     F.savefig(filepath)
     
+    return caldict
+    
 def star_stdv(magplotdict):
 
     '''Find the standard deviation of the reference stars using the output 
@@ -161,10 +168,16 @@ def star_stdv(magplotdict):
     return stdv_dict
 
 
-def getstar(reg, out_pickle, filename_h, filename_j, filename_k, ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None):
+def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
+    ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None):
     
-    '''temporary comment: Do photomotery of all calibration stars in the 
-    region file, and outputs a pickle file. Needs q_phot and qPickle. 
+    '''
+    After creating a calibration deep-stack for all images, use this function
+    to perform photomotery of all calibration stars in the calibration region 
+    file, and outputs a pickle file which is to be used as a photometry 
+    dictionary which is to be used to replace 2mass.
+    
+    Requirements: q_phot and qPickle. 
     
     note:
     The keyword calibration_reg is for the calibration stars used to 
