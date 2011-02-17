@@ -146,7 +146,34 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
    return(list(data1=data1,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,high_cutoff=high_cutoff))
 }
 
+##### adds useless features to an arff file - very simple
+add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff', output_filename=NULL, number_useless_features=1){
+  # need read.arff and write.arff
+  require(foreign)
 
+  # if the output file name is not specified, create name
+  if(is.null(output_filename)){
+    if( grepl(".arff",input_filename,fixed=TRUE) ){
+      to_add = paste("_num_useless",number_useless_features,".arff",
+                     sep="")
+      output_filename = sub(".arff",to_add,input_filename,fixed=TRUE)
+    }
+    else {
+      print('input file must be .arff')
+      return()
+    }
+  }
+
+  # get data, add useless features, write data to arff  
+  input_data = read.arff(input_filename)
+  useless_features = matrix(runif(nrow(input_data) * number_useless_features),nrow=nrow(input_data))
+  colnames(useless_features) = paste("useless",1:number_useless_features,sep="")
+  input_data = data.frame(input_data,useless_features)
+  write.arff(input_data,output_filename)
+  
+}
+
+  
 ####### run rpart CART classifier ####### 
 test_cart = function(data_obj=NULL,seed=1){
    ##### If data object is not defined, create the default data object ######
