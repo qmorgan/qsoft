@@ -168,7 +168,24 @@ def Coadd(filelist, outname):
     total_time = end_time - start_time
     print "Program finished, execution time %f seconds." % total_time
 
-def smartStackRefine(obsidlist, path=None, date='', mins2n=15, minfilter='j', \
+def MakeDeepStack(path='./'):
+    '''Coadd all like-filter images together in a particular folder.  Used
+    after SmartStackRefine (or some other coadding scheme) to make a deep stack
+    of every available image.  Assumes a format of [j,h,k]_*coadd[0-9].fits or
+    [j,h,k]_*coadd.fits
+    '''
+    filt_list = ['j','h','k']
+    for filt in filt_list:
+        globstr1 = path + filt + '_*coadd*[0-9].fits'
+        globstr2 = path + filt + '*coadd.fits'
+        globlist1 = glob.glob(globstr1)
+        globlist2 = glob.glob(globstr2)
+        filelist = globlist1 + globlist2
+        outname = filt + '_deepstack.fits'
+        Coadd(filelist,outname)
+
+
+def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 exclude=False, regfile='j.reg', wcs=False, mincoadd=1, \
                 maxcoadd=150, fibonacci=True):
     '''Here we continually coadd each observation in the obs list until 
