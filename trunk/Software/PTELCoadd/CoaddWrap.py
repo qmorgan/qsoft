@@ -37,10 +37,155 @@ Start python, then do the following:
 import os, sys
 import shutil
 import glob
+import pyfits
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
+swarp_bin = "swarp"
+sethead_bin = "sethead"
 
-def smartStackRefine(obsidlist, path=None, date='', mins2n=15, minfilter='j', \
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have Q_DIR installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
+# Simple function allowing parallelization of mosaicing with SWarp.
+def run_swarp(command):
+    os.system(command)
+    return
+#-------------------------------------------------------------------------------
+### ADAM - PUT THE COADD STUFF IN HERE
+### RECORD INFORMATION ABOUT CHANGING THE SEXTRACTOR PARAM FILES
+### NOTE - TEST HOW CALIB STAR TRENDS CHANGE WITH APERTURE SIZE
+
+def Coadd(filelist, outname):
+    try:
+        from multiprocessing import Pool
+        from multiprocessing import cpu_count as cpuCount
+        doparallel = 1
+    except:
+        print "Parallel processing library not installed. Not paralellizing."
+        doparallel = 0
+        
+    if doparallel == 1:
+        numprocessors = cpuCount()
+    else:
+        numprocessors = 1
+        
+    from time import time
+    # Begin program execution timing.
+    start_time = time()
+    
+    # OBTAIN WORKING DIRECTORIES 
+    # reduction_output_directory = str(obs_string) + "-reduction_output"
+    # 
+    # ## Obtain Obs String
+    # globlist = glob.glob(obs_string+'*-reduction_output')
+    j_long_list = file("j_long_mosaics.txt", "w")
+
+    j_long_list_weights = file("j_long_mosaic_weights.txt", "w")
+
+
+    j_stop_list = []
+    j_start_list = []
+
+    for item in filelist:
+        # Requires filename to be something.fits, and the weight file to be something.weight.fits
+        j_path = item
+        if j_path.find('.fits') == -1:
+            print j_path
+            raise ValueError('File must end in .fits')
+        if j_path.find('.weight.fits') != -1:
+            print j_path
+            raise ValueError('Cannot coadd weight files')
+        j_w_path = item.split('.fits')[0] + '.weight.fits'
+        j_long_list.write(j_path+'\n')
+        j_long_list_weights.write(j_w_path+'\n')
+    
+        # Obtain the start and stop times of the image
+        j_hdulist = pyfits.open(j_path)
+        j_header = j_hdulist[0].header
+        j_stop_list.append(str(j_header["STOP_CPU"]))
+        j_start_list.append(str(j_header["STRT_CPU"]))
+        j_hdulist.close()
+    
+    ## Sort the lists of start and stop times
+    j_start_list.sort()
+    j_stop_list.sort()
+
+    ## Take the first start time and the last stop time
+    j_earliest_start = j_start_list[0]
+    j_latest_stop = j_stop_list[-1]
+
+    # Close the relevant files
+    j_long_list.close()
+    j_long_list_weights.close()
+    
+    if outname.find('.fits') == -1:
+        print outname
+        raise ValueError('Output file must end in .fits')
+    outweightname = outname.split('.fits')[0] + '.weight.fits'
+    
+    # Run the mosaicing. 
+    # Make list of swarp_commands.
+    swarp_commands = [
+        swarp_bin + " @j_long_mosaics.txt " + 
+        "-c " + loadpath + "pairitel_redux.swarp " + 
+        "-WEIGHT_IMAGE @j_long_mosaic_weights.txt " + 
+        "-IMAGEOUT_NAME " + outname +
+        " -WEIGHTOUT_NAME "+ outweightname
+        ]
+
+    if doparallel == 1:
+        # Run the mosaicing with parallel processing.
+        p = Pool(numprocessors)
+        result = p.map_async(run_swarp, swarp_commands)
+        poolresult = result.get()
+    else:
+        # Run the mosaicing without parallel processing.
+        for command in swarp_commands:
+            run_swarp(command)
+
+    # We insert the STRT_CPU of the first triplestack and the STOP_CPU of 
+    # the last triplestack used to make the mosaic.
+
+    j_hdulist = pyfits.open(outname,mode='update')
+
+    j_header = j_hdulist[0].header
+
+    j_header.update('STRT_CPU',j_earliest_start)
+    j_header.update('STOP_CPU',j_latest_stop)
+    
+    j_hdulist.flush()
+    j_hdulist.close()
+
+    # Remove extraneous text files
+    #system('rm ?_long*mosaic*.txt')
+
+    # End program execution timing.
+    end_time = time()
+    total_time = end_time - start_time
+    print "Program finished, execution time %f seconds." % total_time
+
+def MakeDeepStack(path='./'):
+    '''Coadd all like-filter images together in a particular folder.  Used
+    after SmartStackRefine (or some other coadding scheme) to make a deep stack
+    of every available image.  Assumes a format of [j,h,k]_*coadd[0-9].fits or
+    [j,h,k]_*coadd.fits
+    '''
+    filt_list = ['j','h','k']
+    for filt in filt_list:
+        globstr1 = path + filt + '_*coadd*[0-9].fits'
+        globstr2 = path + filt + '*coadd.fits'
+        globlist1 = glob.glob(globstr1)
+        globlist2 = glob.glob(globstr2)
+        filelist = globlist1 + globlist2
+        outname = filt + '_deepstack.fits'
+        Coadd(filelist,outname)
+
+
+def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 exclude=False, regfile='j.reg', wcs=False, mincoadd=1, \
                 maxcoadd=150, fibonacci=True):
     '''Here we continually coadd each observation in the obs list until 

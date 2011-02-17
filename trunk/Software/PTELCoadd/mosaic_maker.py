@@ -54,17 +54,17 @@ start_time = time()
 # Scisoft probably won't work properly on Intel 64-bit Macs. It is strongly 
 # advised that you recompile and install SWarp from source if SWarp's coadd 
 # mosaics are null images.
-swarp_bin = "/usr/local/bin/swarp"
+swarp_bin = "swarp"
 # We'll also be using some WCSTools. There should be no problem with the Scisoft
 # version of thses.
-sethead_bin = "/usr/bin/sethead"
+sethead_bin = "sethead"
 # For parallel processing we need the number of available CPUs. You could hard-
 # code this value to something else, but it would result in non-optimal 
 # performance.
 
 # AMORGAN ADDS for WCS FITTING  Change if your python version is different.
 # Will want to avoid having to load this in future versions.
-pypath = "~/Programs/epd-6.1-1-rh5-x86/bin/"
+pypath = ""
 
 if doparallel == 1:
     numprocessors = cpuCount()

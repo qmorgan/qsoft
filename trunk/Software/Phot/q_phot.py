@@ -1271,7 +1271,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, \
-    star_dict=None, clobber=False):
+    star_dict=None, clobber=False, auto_upper=True):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1285,7 +1285,8 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, \
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
-            aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict)
+            aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict,
+            auto_upper=auto_upper)
     return photout
     
 def plotzp(photdict):
@@ -1561,17 +1562,18 @@ def photplot(photdict):
 def findOptimalAperture(GRBname, regfile, calregion, tger_id = None):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
-    we loop around images in a directory and measure the photometry of the 
-    calibration stars.
+    we loop around images in a directory using PhotLoop and measure the 
+    photometry of the calibration stars.
     '''
     j_delta_med_list = []
     h_delta_med_list = []
     k_delta_med_list = []
     aplist = [2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0]
     for ap in aplist:
-    
+        
+        # Can set auto_upper = False since dont care if source is detected or not
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
-            clobber=True, tger_id=tger_id) 
+            clobber=True, tger_id=tger_id, auto_upper=False) 
     
         k_delta_list = []
         h_delta_list = []
