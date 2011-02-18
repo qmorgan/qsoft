@@ -770,9 +770,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     # Define the obj_string and band_type from the progenitor_image_name. If the 
     # progenitor_image_name is not in the format used by PARITIEL reduction
     # pipeline 3, these will not work properly.
-    obj_string = progenitor_image_name.split("_")[2]
-    band_type = (progenitor_image_name.split("_")[0] + "_" + 
-        progenitor_image_name.split("_")[1])
+    try:
+        obj_string = progenitor_image_name.split("_")[2]
+        band_type = (progenitor_image_name.split("_")[0] + "_" + 
+            progenitor_image_name.split("_")[1])
+    except:
+        raise ValueError('Image name misformatted; needs to be in standard Pipeline3 file format')
     # Run source extractor on the science image.
     sexcat = make_sex_cat(progenitor_image_name, weight_image_name, aperture_size)
     # Store placehold values for the target photometry.
@@ -1505,45 +1508,47 @@ def photplot(photdict):
         time = photdict[mosaics]['t_mid'][0]
         terr = photdict[mosaics]['t_mid'][1]
         
-        valu = float(photdict[mosaics]['targ_mag'][0])
-        verr = float(photdict[mosaics]['targ_mag'][1])
+        if 'targ_mag' in photdict[mosaics]: 
+            valu = float(photdict[mosaics]['targ_mag'][0])
+            verr = float(photdict[mosaics]['targ_mag'][1])
 
-        #there's probably a prettier way to do this, the second if statements 
-        #are there so that only 1 label per filter is on the legend
+            #there's probably a prettier way to do this, the second if statements 
+            #are there so that only 1 label per filter is on the legend
 
-        if 'h_' in mosaics:
-            if h == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
-                    ecolor = 'red')
-            else:
-                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
-                    ecolor = 'red', label = 'h')
-                h = True
+            if 'h_' in mosaics:
+                if h == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'h')
+                    h = True
 
-        elif 'j_' in mosaics:            
-            if j == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
-                    ecolor = 'blue')
-            else:
-                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
-                    ecolor = 'blue', label = 'j')
-                j = True
+            elif 'j_' in mosaics:            
+                if j == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'j')
+                    j = True
 
-        elif 'k_' in mosaics:
-            if k == True: 
-                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
-                    ecolor = 'yellow')
-            else:
-                matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                    marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
-                    ecolor = 'yellow', label = 'k')
-                k = True
-
+            elif 'k_' in mosaics:
+                if k == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
+                        ecolor = 'yellow')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
+                        ecolor = 'yellow', label = 'k')
+                    k = True
+        else:
+            print 'UPPER LIMIT PLOTTING NOT IMPLEMENTED YET, SKIPPING %s' % (mosaics)
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1])
     
