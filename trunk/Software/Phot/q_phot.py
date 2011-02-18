@@ -1234,7 +1234,7 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
 
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, cal = None, trigger_id = None, str_dict = None):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1259,10 +1259,10 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath)
-            data = dophot(filename, reg, ap=aper, calreg = cal, stardict=str_dict)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True, stardict=str_dict)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1273,8 +1273,8 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             return photdict
             break
     
-def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, \
-    star_dict=None, clobber=False, auto_upper=True):
+def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
+    stardict=None, clobber=False, auto_upper=True):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1288,7 +1288,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, tger_id = None, \
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
-            aper=ap, cal = calregion, trigger_id=tger_id, str_dict=star_dict,
+            aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
             auto_upper=auto_upper)
     return photout
     
@@ -1564,7 +1564,7 @@ def photplot(photdict):
     savefig(savepath)    
     matplotlib.pyplot.close()
 
-def findOptimalAperture(GRBname, regfile, calregion, tger_id = None, plot=True):
+def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
     we loop around images in a directory using PhotLoop and measure the 
@@ -1578,7 +1578,7 @@ def findOptimalAperture(GRBname, regfile, calregion, tger_id = None, plot=True):
         
         # Can set auto_upper = False since dont care if source is detected or not
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
-            clobber=True, tger_id=tger_id, auto_upper=False) 
+            clobber=True, trigger_id=trigger_id, auto_upper=False) 
     
         k_delta_list = []
         h_delta_list = []
