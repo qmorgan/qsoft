@@ -181,7 +181,7 @@ def MakeDeepStack(path='./'):
         globlist1 = glob.glob(globstr1)
         globlist2 = glob.glob(globstr2)
         filelist = globlist1 + globlist2
-        outname = filt + '_deepstack.fits'
+        outname = filt + '_long_deepstack.fits'
         Coadd(filelist,outname)
 
 
