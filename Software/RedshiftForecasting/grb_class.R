@@ -192,7 +192,7 @@ test_cart = function(data_obj=NULL,seed=1){
 }
 
 ####### run Random Forest classifier over a vector of weights ####### 
-test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),seed=1,stratified=FALSE){
+test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4),seed=1,stratified=FALSE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not defined; using default values")
@@ -244,7 +244,7 @@ order_residuals = function(forest_res,reverse=FALSE){
 }
 
 ####### smooth weighted random forest classifiers over a number of seeds ####### 
-smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.5),Nseeds=10,results_dir="redshift-output"){
+smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4),Nseeds=10,results_dir="redshift-output"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -263,7 +263,7 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,5,0.
  }
 
 
-extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res_dir="smooth_weights_reduced"){
+extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res_dir="./smooth_weights_results/smooth_weights_reduced"){
    ##### If data object is not defined, create the default data object ######
    ##### Results are then stored in the fres list within the data object ####
    if(is.null(data_obj)){
@@ -337,7 +337,7 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,5,0.5), forest_res
 
 ####### makes objective function plot ####### 
 # forest_order is ordered using "order_residuals" function with high-z at low rank numbers
-make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,5,0.5),imagefile="objective_fcn.pdf"){
+make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,4,0.4),imagefile="objective_fcn.pdf"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -648,10 +648,10 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=5,imagefile='
 }
 
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, Nseeds=10){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
-   data_results_dir = paste("smooth_weights_",data_string,sep="")
+   data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,sep="")
    obj_func_name = paste("./Plots/objective_fcn_",data_string,".pdf",sep="")
    bumps_pred_plot_name = paste("./Plots/forest_pred_bumps_",data_string,".pdf",sep="")
    bumps_rand_plot_name = paste("./Plots/forest_rand_bumps_",data_string,".pdf",sep="")
@@ -662,7 +662,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE){
    mydata = read_data(filename=data_filename,high_cutoff=4)
    mydata$data_string = data_string
    if(generate_data == TRUE){
-      alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+      alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,Nseeds=Nseeds)
    }
    mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
    efficiency_vs_alpha(mydata,imagefile=roc_plot_name)
@@ -685,7 +685,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
    
    for(data_string in data_string_list){
       data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
-      data_results_dir = paste("smooth_weights_",data_string,sep="")
+      data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,sep="")
       
       mydata = read_data(filename=data_filename,high_cutoff=4)
       mydata$data_string = data_string
@@ -711,4 +711,12 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       print(curve_index)
    }
    multiple_efficiency_vs_alpha(data_obj_list)
+}
+
+make_all_plots = function(generate_data=FALSE,Nseeds=10){
+   make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds)
+   make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds)
+   make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds)
+   make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds)
+   make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds)
 }
