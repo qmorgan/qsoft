@@ -143,11 +143,11 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
    confmats = list()
    print(paste("Read in:",filename))
    print(paste("with a high-z cutoff value of",high_cutoff))
-   return(list(data1=data1,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,high_cutoff=high_cutoff))
+   return(list(data1=data1,filename=filename,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,high_cutoff=high_cutoff))
 }
 
 ##### adds useless features to an arff file - very simple
-add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff', output_filename=NULL, number_useless_features=1){
+add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_removed_UVOTonly.arff', output_filename=NULL, number_useless_features=1){
   # need read.arff and write.arff
   require(foreign)
 
@@ -173,6 +173,14 @@ add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_re
   
 }
 
+remake_all_useless = function(input_filename='./Data/GRB_short+outliers+noZ_removed_UVOTonly.arff'){
+   # 
+   add_useless_features(number_useless_features=10)
+   add_useless_features(number_useless_features=20)
+   add_useless_features(number_useless_features=30)
+   add_useless_features(number_useless_features=40)
+   add_useless_features(number_useless_features=50)
+}
   
 ####### run rpart CART classifier ####### 
 test_cart = function(data_obj=NULL,seed=1){
@@ -244,15 +252,26 @@ order_residuals = function(forest_res,reverse=FALSE){
 }
 
 ####### smooth weighted random forest classifiers over a number of seeds ####### 
-smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4),Nseeds=10,results_dir="redshift-output"){
+smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4),first_seed=1,Nseeds=10,results_dir="redshift-output", redo_useless=FALSE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
       data_obj = read_data()
    }
+   # Create the results directory if it doesn't exist
+   if(file.exists(results_dir) == FALSE){
+      dir.create(results_dir)
+   }
    ###########################################################################
-	for(nseed in seq(1,Nseeds)) {
+	for(nseed in seq(first_seed,Nseeds)) {
    		print(paste("@@@@@@ seed",nseed,"of",Nseeds,"@@@@@@"))
+   	
+   	# Remake the useless datasets for better randomness
+   	if(redo_useless == TRUE){
+   	   remake_all_useless()
+   	   data_obj=read_data(filename=data_obj$filename)
+   	}
+   	
 		forest_res_loc = test_random_forest_weights(data_obj=data_obj,log_weights_try=log_weights_try,seed=nseed) # result for this seed
 		
 		# save results to file
@@ -275,7 +294,8 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 	file_list = dir(forest_res_dir)
 	
 	# read in files
-	Nweights = length(log_weights_try)
+	testloc = as.matrix(read.table(paste(forest_res_dir,"/",'1.txt',sep="")))
+	Nweights = dim(testloc)[2]
 	# initialize matrix of zeros to average across seeds
 	res_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
 	ord_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
@@ -283,7 +303,7 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 	
 	####### Grab info
 	high_cutoff=data_obj$high_cutoff
-	Nweights = length(log_weights_try)
+
 	Nz = length(data_obj$Z)
 	Nhigh = sum(data_obj$Z > high_cutoff)
 	alpha_vec=seq(0,Nz-1)/(Nz-1)
@@ -326,8 +346,8 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 		
 	   
 	}
-	
-	colnames(res_avg_over_seeds)=paste(log_weights_try)
+	# is this necessary?
+	#colnames(res_avg_over_seeds)=paste(log_weights_try)
 	
 	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds)
    data_obj$fres = forest_res_obj
@@ -618,7 +638,7 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    
 }
 
-multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=5,imagefile='./Plots/ROC_multi.pdf'){
+multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,imagefile='./Plots/ROC_multi.pdf'){
    pdf(imagefile)
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up: "~alpha), ylab=expression('Fraction of high (z>4) GRBs observed'), pch="") # initialize plot))
    title(main=expression("Efficiency vs"~alpha))
@@ -648,7 +668,7 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=5,imagefile='
 }
 
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE, Nseeds=10){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(0,4,0.4), Nseeds=10, roc_weight=5,redo_useless=FALSE){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,sep="")
@@ -662,22 +682,22 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, Nseeds=1
    mydata = read_data(filename=data_filename,high_cutoff=4)
    mydata$data_string = data_string
    if(generate_data == TRUE){
-      alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,Nseeds=Nseeds)
+      alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,log_weights_try=log_weights_try,Nseeds=Nseeds,redo_useless=redo_useless)
    }
-   mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
-   efficiency_vs_alpha(mydata,imagefile=roc_plot_name)
+   mydata = extract_stats(data_obj = mydata, log_weights_try=log_weights_try, forest_res_dir=data_results_dir)
+   efficiency_vs_alpha(mydata,imagefile=roc_plot_name,weight_index=roc_weight)
    fres = mydata$fres$avg_over_seeds
    make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
    fres_rand = noisify_residuals(fres)
    make_bumps_plot(fres_rand, data_obj = mydata, imagefile=bumps_rand_plot_name)
    fres_ordered = order_residuals(fres_rand)
-   make_obj_fcn_plot(fres_ordered, data_obj = mydata, imagefile=obj_func_name)
+   make_obj_fcn_plot(fres_ordered, data_obj = mydata,log_weights_try=log_weights_try, imagefile=obj_func_name)
    fres_ordered = order_residuals(fres_rand,reverse=TRUE)
    make_bumps_plot(fres_ordered, data_obj = mydata, ylabel=paste(expression(widehat(alpha)),' (Normalized)'),imagefile=bumps_plot_name,textfile=bumps_text_name)
    ## make_bumps_plot(alphas.cv)
  }
  
-make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','Full','reduced_nozpredict')){
+make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','Full','reduced_nozpredict'), log_weights_try=seq(0,4,0.4),roc_weight=5){
    roc_plot_name = paste("./Plots/ROC_Multi.pdf",sep="")
    
    curve_index = 1
@@ -691,10 +711,10 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       mydata$data_string = data_string
       print(data_string)
       if(generate_data == TRUE){
-         alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir)
+         alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,log_weights_try=log_weights_try)
       }
       objname = paste('o',curve_index,sep="")
-      mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+      mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir,log_weights_try=log_weights_try)
      # data_obj_list$data_string = mydata
       # assign(data_string, mydata)
       # append(data_obj_list,mydata)
@@ -710,7 +730,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       curve_index = curve_index + 1
       print(curve_index)
    }
-   multiple_efficiency_vs_alpha(data_obj_list)
+   multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight)
 }
 
 make_all_plots = function(generate_data=FALSE,Nseeds=10){
@@ -719,4 +739,13 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10){
    make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds)
    make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds)
    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds)
+}
+
+make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(2,2.4,0.4)){
+   make_forest_plots(data_string='UVOTonly_num_useless10',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless20',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless30',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless40',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless50',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+
 }
