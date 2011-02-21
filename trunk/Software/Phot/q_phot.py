@@ -846,6 +846,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
+    # [ra, dec, 2massmag, 2masserr instmag, insterr, sexflags, 'calib'/'target']
     combined_starlist = []
     for sexcat_star in sexcat_starlist:
         sexcat_star_ra_rad = sexcat_star[0] * 0.01745329252
@@ -859,7 +860,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             combined_starlist.append([sexcat_star[0], sexcat_star[1], 
                 999, 999, 
                 sexcat_star[2], sexcat_star[3], 
-                sexcat_star[4]])
+                sexcat_star[4],'target'])
             src_flux = sexcat_star[6]
             src_flux_err = sexcat_star[7]
             src_s2n = src_flux/src_flux_err
@@ -877,13 +878,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 combined_starlist.append([calibcat_star[0], calibcat_star[1], 
                     calibcat_star[2], calibcat_star[3], 
                     sexcat_star[2], sexcat_star[3], 
-                    sexcat_star[4]])
+                    sexcat_star[4],'calib'])
 
     print 'length of combined_starlist is'
     print len(combined_starlist)
 
     # Deleting stars in combined_starlist that is not in the inputted region file (if not calreg == False)
-
     if not calreg:
         pass
     else:
@@ -897,11 +897,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             else:
                 pass
         
-        token = False
+        keep_it = False
         indexlist = []
 
         for index, calstar_old in enumerate(combined_starlist):
-            token = False
+            keep_it = False
             for calstar_new in callist:
                 calstar_list = calstar_new.split(',')
                 caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*\
@@ -909,10 +909,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     (float(calstar_old[1]))),((numpy.pi)*(1/180.)*\
                     (float(calstar_list[0])), (numpy.pi)*(1/180.)*\
                     (float(calstar_list[1]))))))
-                # only remove the calstar entry if it is not our target; i.e. it does not have [2]=999
-                if caldist < 5: # and calstar_old[2] != 999:
-                    token = True
-            if not token:
+                # only remove the calstar entry if it is not our target;
+                # i.e. it is not identified as 'target' above
+                # Remove the calstar entry if distance is small
+                if caldist < 5 or calstar_old[7] == 'target':
+                    keep_it = True
+            if not keep_it:
                 indexlist += [index]
 
         indexlist.sort()
@@ -922,6 +924,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         print len(indexlist)
         revindex = indexlist[::-1]
         for ind in revindex:
+            print "REMOVING %s" % str(combined_starlist[ind])
             del combined_starlist[ind]
             
     # Use the combined_starlist to calculate a zeropoint for the science image.
@@ -956,6 +959,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         if ((target_separation_arcsec > 5) and 
             ((ptel_flag == 0) or (ptel_flag == 2))):
             zeropoint_list.append(tmass_mag - ptel_mag)
+            if star[7] != 'calib': # sanity check that different target matching works
+                raise ValueError('Calib Star identification mismatch somewhere in the code; squash this bug')
             zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
                         + (base_dither_error/sqrt(num_triplestacks))**2)
     print 'zp list is'
@@ -989,6 +994,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             (star[0] * 0.01745329252, star[1] * 0.01745329252)))) < 5 and
             ((star[6] == 0) or (star[6] == 2) or (star[6] == 4) or (star[6] == 6) or 
             (star[6] == 7))):
+            if star[7] != 'target': # sanity check that different target matching works
+                raise ValueError('Target identification mismatch somewhere in the code; squash this bug')
             ra = star[0]
             dec = star[1] 
             tmass_mag = star[2]
@@ -1016,6 +1023,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
+            print ''
+            print '******'
+            print '!!!!YAY our target!!!!'
+            print star
+            print ''
             continue
         # If the star is just a field 2MASS star . . .
         elif star[6] == 0:
