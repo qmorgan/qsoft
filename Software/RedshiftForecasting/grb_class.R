@@ -180,6 +180,10 @@ remake_all_useless = function(input_filename='./Data/GRB_short+outliers+noZ_remo
    add_useless_features(number_useless_features=30)
    add_useless_features(number_useless_features=40)
    add_useless_features(number_useless_features=50)
+   add_useless_features(number_useless_features=60)
+   add_useless_features(number_useless_features=70)
+   add_useless_features(number_useless_features=80)
+   add_useless_features(number_useless_features=90)
 }
   
 ####### run rpart CART classifier ####### 
@@ -282,7 +286,7 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.
  }
 
 
-extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res_dir="./smooth_weights_results/smooth_weights_reduced"){
+extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results/smooth_weights_reduced"){
    ##### If data object is not defined, create the default data object ######
    ##### Results are then stored in the fres list within the data object ####
    if(is.null(data_obj)){
@@ -298,8 +302,11 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 	Nweights = dim(testloc)[2]
 	# initialize matrix of zeros to average across seeds
 	res_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
+	res_sd_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
+	res_median_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
 	ord_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
 	objective_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	objective_median_over_seeds = matrix(0,length(data_obj$Z),Nweights)
 	
 	####### Grab info
 	high_cutoff=data_obj$high_cutoff
@@ -307,6 +314,7 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 	Nz = length(data_obj$Z)
 	Nhigh = sum(data_obj$Z > high_cutoff)
 	alpha_vec=seq(0,Nz-1)/(Nz-1)
+	#alpha_vec=seq(1,Nz)/(Nz)
 	Nalpha = length(alpha_vec)
 	col = rainbow(Nalpha)
 	random_guess_vec = (data_obj$num_high)/Nz*alpha_vec
@@ -327,6 +335,9 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 	# the following should be the same as the old forest res function
 	for(weight_index in seq(1,Nweights)){
 	   res_avg_over_seeds[,weight_index] = rowSums(big_forest_res[,weight_index,])/num_of_seeds
+	   # DOUBLE CHECK THAT THIS IS CORRECT WAY TO DO ROW MEDIAN AND SD
+	   res_median_over_seeds[,weight_index] = apply(big_forest_res[,weight_index,],1,median)
+	   res_sd_over_seeds[,weight_index] = apply(big_forest_res[,weight_index,],1,sd)
 	   res_ordered = order_residuals(noisify_residuals(big_forest_res[,weight_index,]))
 	   ord_avg_over_seeds[,weight_index] = rowSums(res_ordered)/num_of_seeds
 	   
@@ -341,6 +352,8 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
    		# find high-z (>4) that are in the alpha threshold
    		Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,num_of_seeds) > high_cutoff)&(res_ordered<=Nfollow))
    		avg_frac_found= sum(Nfound_loc / (1.*Nhigh))/num_of_seeds
+   		median_frac_found = median(Nfound_loc/(1.*Nhigh))
+   		objective_median_over_seeds[nalpha,weight_index] = median_frac_found
    		objective_avg_over_seeds[nalpha,weight_index] = avg_frac_found
 		}
 		
@@ -349,7 +362,7 @@ extract_stats = function(data_obj=NULL, log_weights_try=seq(0,4,0.4), forest_res
 	# is this necessary?
 	#colnames(res_avg_over_seeds)=paste(log_weights_try)
 	
-	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds)
+	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, sd_over_seeds=res_sd_over_seeds, median_over_seeds=res_median_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds,objective_median_over_seeds=objective_median_over_seeds)
    data_obj$fres = forest_res_obj
 	
 	return(data_obj)
@@ -409,7 +422,7 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
 		
 		
 	}
-	legend(4.8,0.19,c("0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9"), cex=0.6,col=col,lty=1:1)
+	legend("bottomright", c("0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9"), cex=0.6,col=col,lty=1:1)
 	
 	dev.off()
 }
@@ -684,7 +697,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    if(generate_data == TRUE){
       alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,log_weights_try=log_weights_try,Nseeds=Nseeds,redo_useless=redo_useless)
    }
-   mydata = extract_stats(data_obj = mydata, log_weights_try=log_weights_try, forest_res_dir=data_results_dir)
+   mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
    efficiency_vs_alpha(mydata,imagefile=roc_plot_name,weight_index=roc_weight)
    fres = mydata$fres$avg_over_seeds
    make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
@@ -714,7 +727,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
          alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,log_weights_try=log_weights_try)
       }
       objname = paste('o',curve_index,sep="")
-      mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir,log_weights_try=log_weights_try)
+      mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
      # data_obj_list$data_string = mydata
       # assign(data_string, mydata)
       # append(data_obj_list,mydata)
@@ -733,6 +746,9 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
    multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight)
 }
 
+# make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless10','UVOTonly_num_useless30','UVOTonly_num_useless50','UVOTonly_num_useless70','UVOTonly_num_useless90'),log_weights_try=seq(2,2.4,0.4), roc_weight=1)
+
+
 make_all_plots = function(generate_data=FALSE,Nseeds=10){
    make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds)
    make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds)
@@ -742,10 +758,10 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10){
 }
 
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(2,2.4,0.4)){
-   make_forest_plots(data_string='UVOTonly_num_useless10',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless20',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless30',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless40',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless50',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless70',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless90',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   # make_forest_plots(data_string='UVOTonly_num_useless30',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   # make_forest_plots(data_string='UVOTonly_num_useless40',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   # make_forest_plots(data_string='UVOTonly_num_useless50',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
 
 }
