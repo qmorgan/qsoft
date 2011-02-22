@@ -1297,6 +1297,8 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     for item in GRBlistwweight:
         if item.find('weight') == -1:
             GRBlist.append(item)
+    if not GRBlist:
+        raise ValueError('No files to perform photometry on. In right directory?')
     for mosaic in GRBlist:
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
@@ -1463,8 +1465,12 @@ def textoutput(dict):
     for tup in timelist:
         values = dict[tup[1]]
         if 'targ_mag' not in values:
-            mag = 'not found'
-            magerr = 'not found'
+            try:
+                mag = str(values['upper_green'])
+            except:
+                print 'Neither Targ Mag nor Upper limit found!'
+                print tup                
+            magerr = '3sig'
         else:
             mag = str(values['targ_mag'][0]) 
             magerr = str(values['targ_mag'][1])
@@ -1497,7 +1503,7 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 
-def photplot(photdict):
+def photplot(photdict,ylim=None,xlim=None):
     '''Plots a graph from photdict'''
     import matplotlib
     import glob
@@ -1530,39 +1536,53 @@ def photplot(photdict):
             if 'h_' in mosaics:
                 if h == True: 
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
-                        ecolor = 'red')
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
                 else:
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 's', linestyle ='None', mfc = 'red', mec = 'green', \
-                        ecolor = 'red', label = 'h')
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green', label = 'h')
                     h = True
 
             elif 'j_' in mosaics:            
                 if j == True: 
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
                         ecolor = 'blue')
                 else:
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
                         ecolor = 'blue', label = 'j')
                     j = True
 
             elif 'k_' in mosaics:
                 if k == True: 
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
-                        ecolor = 'yellow')
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
                 else:
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 's', linestyle ='None', mfc = 'yellow', mec = 'green', \
-                        ecolor = 'yellow', label = 'k')
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'k')
                     k = True
+        elif 'upper_green' in photdict[mosaics]: 
+                valu = float(photdict[mosaics]['upper_green'])
+                if photdict[mosaics]['filter'] == 'h':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                if photdict[mosaics]['filter'] == 'j':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                if photdict[mosaics]['filter'] == 'k':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
         else:
-            print 'UPPER LIMIT PLOTTING NOT IMPLEMENTED YET, SKIPPING %s' % (mosaics)
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
     ax = matplotlib.pyplot.gca()
-    ax.set_ylim(ax.get_ylim()[::-1])
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
     matplotlib.pyplot.ylabel('Mag')
@@ -1572,6 +1592,12 @@ def photplot(photdict):
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
     savepath = storepath + uniquename + '_lightcurve.png'
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+    
     print 'lightcurve saved to ' + savepath
     savefig(savepath)    
     matplotlib.pyplot.close()
