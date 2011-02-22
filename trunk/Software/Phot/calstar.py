@@ -131,7 +131,9 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     F = pylab.gcf()
     DefaultSize = F.get_size_inches()
     DPI = F.get_dpi()
-    F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+    # was getting incresingly larger with multiple runs
+    F.set_size_inches((20, 15))
 
     unique_name = (filelist[0].split('_'))[2]
     filepath = storepath + unique_name + '_calibration_stars.png'
