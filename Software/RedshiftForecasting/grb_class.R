@@ -679,7 +679,11 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
 
 efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    # Take the fifth weight for now 
+   
    avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+   avg_obj_high = avg_obj + data_obj$fres$objective_stdev_over_seeds[,weight_index]
+   avg_obj_low = avg_obj - data_obj$fres$objective_stdev_over_seeds[,weight_index]
+   
    Zlen_1 = length(avg_obj) - 1
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
@@ -688,16 +692,26 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    title(main=expression("Efficiency vs"~alpha), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(alpha_tries, avg_obj, lty=1, lwd=4, col='red')
+   xx = c(alpha_tries, rev(alpha_tries))
+   yy = c(avg_obj_high, rev(avg_obj_low))
+   col=rainbow(1)
+   col_alpha = rainbow(1,alpha=0.3)
+   polygon(xx,yy, col=col_alpha)
+   
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col)
+   
    dev.off()
    
 }
 
-multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,imagefile='./Plots/ROC_multi.pdf'){
+multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf'){
    pdf(imagefile)
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up: "~alpha), ylab=expression('Fraction of high (z>4) GRBs observed'), pch="") # initialize plot))
    title(main=expression("Efficiency vs"~alpha))
    n_curves = length(data_obj_list)
    col = rainbow(n_curves)
+   col_alpha = rainbow(n_curves,alpha=0.3)
    name_list = c()
    curve_index = 1
    for(data_obj_name in ls(data_obj_list)){
@@ -708,6 +722,14 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,imagefile='
       print(Zlen_1)
       alpha_tries = seq(0,1,1/Zlen_1)
       lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col[curve_index])
+      
+      if(ploterr == TRUE){
+         avg_obj_high = avg_obj + data_obj$fres$objective_stdev_over_seeds[,weight_index]
+         avg_obj_low = avg_obj - data_obj$fres$objective_stdev_over_seeds[,weight_index]
+         xx = c(alpha_tries, rev(alpha_tries))
+         yy = c(avg_obj_high, rev(avg_obj_low))
+         polygon(xx,yy, col=col_alpha[curve_index])         
+      }
       curve_index = curve_index + 1
       name_list = c(name_list,data_obj$data_string)
    }
@@ -716,7 +738,7 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,imagefile='
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    
    print(name_list)
-   legend(0.5,0.39, name_list, cex=1.2,col=col,lty=1)
+   legend("bottomright", name_list, cex=1.2,col=col,lty=1)
 	
    dev.off()
 }
@@ -751,7 +773,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    ## make_bumps_plot(alphas.cv)
  }
  
-make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','Full','reduced_nozpredict'), log_weights_try=seq(0,4,0.4),roc_weight=5){
+make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','Full','reduced_nozpredict'), log_weights_try=seq(0,4,0.4),roc_weight=5, ploterr=FALSE){
    roc_plot_name = paste("./Plots/ROC_Multi.pdf",sep="")
    
    curve_index = 1
@@ -784,7 +806,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       curve_index = curve_index + 1
       print(curve_index)
    }
-   multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight)
+   multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr)
 }
 
 # make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless10','UVOTonly_num_useless30','UVOTonly_num_useless50','UVOTonly_num_useless70','UVOTonly_num_useless90'),log_weights_try=seq(2,2.4,0.4), roc_weight=1)
@@ -799,10 +821,10 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10){
 }
 
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(2,2.4,0.4)){
+   make_forest_plots(data_string='UVOTonly_num_useless10',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless30',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
+   make_forest_plots(data_string='UVOTonly_num_useless50',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
    make_forest_plots(data_string='UVOTonly_num_useless70',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
    make_forest_plots(data_string='UVOTonly_num_useless90',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   # make_forest_plots(data_string='UVOTonly_num_useless30',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   # make_forest_plots(data_string='UVOTonly_num_useless40',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
-   # make_forest_plots(data_string='UVOTonly_num_useless50',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=1,redo_useless=TRUE)
 
 }
