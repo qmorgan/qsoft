@@ -1446,11 +1446,19 @@ def plots2n(photdict):
     savefig(savepath)           
     matplotlib.pyplot.close()
 
-def textoutput(dict):
-    '''outputs a text file from photdict'''
-    
+def textoutput(dict,filt=None):
+    '''outputs a text file from photdict.  If filt specified, only output that
+    particular filter.
+    '''
+    filts = ['j','h','k']
+    if filt:
+        if not filt in filts:
+            raise ValueError('Unacceptable value for filt. Needs to be j, h, or k')
+            
     uniquename = dict.keys()[0].split('_')[2]
-    savepath = storepath + uniquename + '_text.txt'
+    if filt:
+        uniquename = uniquename + '_' + filt
+    savepath = storepath + uniquename + '_lightcurve.txt'
     text = file(savepath, "w")
     namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
         'targ_mag', 'targ_mag error']
@@ -1464,6 +1472,9 @@ def textoutput(dict):
     
     for tup in timelist:
         values = dict[tup[1]]
+        if filt:
+            if filt != values['filter']:
+                continue
         if 'targ_mag' not in values:
             try:
                 mag = str(values['upper_green'])
