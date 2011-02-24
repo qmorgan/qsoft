@@ -306,7 +306,7 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	res_median_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
 	ord_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
 	objective_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights)
-	objective_median_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	objective_stdev_over_seeds = matrix(0,length(data_obj$Z),Nweights)
 	
 	####### Grab info
 	high_cutoff=data_obj$high_cutoff
@@ -335,10 +335,12 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	# the following should be the same as the old forest res function
 	for(weight_index in seq(1,Nweights)){
 	   res_avg_over_seeds[,weight_index] = rowSums(big_forest_res[,weight_index,])/num_of_seeds
-	   # DOUBLE CHECK THAT THIS IS CORRECT WAY TO DO ROW MEDIAN AND SD
+	   # DOUBLE CHECK THAT THIS IS CORRECT WAY TO DO ROW MEDIAN AND SD - it is.
 	   res_median_over_seeds[,weight_index] = apply(big_forest_res[,weight_index,],1,median)
 	   res_sd_over_seeds[,weight_index] = apply(big_forest_res[,weight_index,],1,sd)
+	   # res_ordered is an (N_bursts x N_seeds) array; each column is the ranking of each burst against the others from 1 to N_bursts
 	   res_ordered = order_residuals(noisify_residuals(big_forest_res[,weight_index,]))
+	   
 	   ord_avg_over_seeds[,weight_index] = rowSums(res_ordered)/num_of_seeds
 	   
 	   # populate the objective_avg_over_seeds array
@@ -349,11 +351,50 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
    		rand_guess = random_guess_vec[nalpha]
    		# find number of follow ups for this alpha
    		Nfollow = floor(Nz*alpha)
+
    		# find high-z (>4) that are in the alpha threshold
-   		Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,num_of_seeds) > high_cutoff)&(res_ordered<=Nfollow))
-   		avg_frac_found= sum(Nfound_loc / (1.*Nhigh))/num_of_seeds
-   		median_frac_found = median(Nfound_loc/(1.*Nhigh))
-   		objective_median_over_seeds[nalpha,weight_index] = median_frac_found
+         # Old method: Changed because this code was opaque to me and I couldn't extract the stdev
+         # Nfound_loc = colSums((as.matrix(data_obj$Z)%*%matrix(1,1,num_of_seeds) > high_cutoff)&(res_ordered<=Nfollow))
+         # avg_frac_found= sum(Nfound_loc / (1.*Nhigh))/num_of_seeds
+   		
+   		
+   		# printing for testing purposes
+         # if(weight_index==5 & nalpha == 35){
+         #    as_high_all_seeds = (res_ordered<=Nfollow)
+         #    high_as_high_all_seeds = as_high_all_seeds[data_obj$Z >= high_cutoff,1:num_of_seeds]
+         #    summed_as_high_all_seeds = rowSums(as_high_all_seeds)
+         #    summed_high_as_high = summed_as_high_all_seeds[data_obj$Z >= high_cutoff]
+         #    average_high_as_high = sum(summed_high_as_high/1700)
+         #    mean_as_high_all_seeds = apply(as_high_all_seeds,1,mean)
+         #    mean_high_as_high_all_seeds = apply(high_as_high_all_seeds,1,mean) # [1xNalpha array]
+         #    mean_high_as_high_all_seeds_dim2 = apply(high_as_high_all_seeds,2,mean) # [1xNseeds array]
+         #    print(mean_high_as_high_all_seeds_dim2)
+         #             
+         #             # the following 3 are the same
+         #    print(mean_as_high_all_seeds[data_obj$Z >= high_cutoff])
+         #    print(mean_high_as_high_all_seeds)
+         #    print(summed_high_as_high/num_of_seeds)
+         #    
+         #    # the following 3 are the same; though we can get the std from the last
+         #    print(average_high_as_high)
+         #    print(avg_frac_found)
+         #    print(mean(mean_high_as_high_all_seeds_dim2))
+         #    print(sd(mean_high_as_high_all_seeds_dim2))
+         #    
+         # }
+         
+   		# Find bursts classified as high
+   		as_high_all_seeds = (res_ordered<=Nfollow)
+         # Grab the ones that were actually high
+   		high_as_high_all_seeds = as_high_all_seeds[data_obj$Z >= high_cutoff,1:num_of_seeds]
+         # average these 17 bursts together
+   		mean_high_as_high_all_seeds_dim2 = apply(high_as_high_all_seeds,2,mean) # [1xNseeds array]
+         # Take the mean of these 100 averages
+		   avg_frac_found = mean(mean_high_as_high_all_seeds_dim2)
+         # Take the stdev of these 100 averages
+		   stdev_frac_found = sd(mean_high_as_high_all_seeds_dim2)
+		   
+   		objective_stdev_over_seeds[nalpha,weight_index] = stdev_frac_found
    		objective_avg_over_seeds[nalpha,weight_index] = avg_frac_found
 		}
 		
@@ -362,7 +403,7 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	# is this necessary?
 	#colnames(res_avg_over_seeds)=paste(log_weights_try)
 	
-	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, sd_over_seeds=res_sd_over_seeds, median_over_seeds=res_median_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds,objective_median_over_seeds=objective_median_over_seeds)
+	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, sd_over_seeds=res_sd_over_seeds, median_over_seeds=res_median_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds,objective_stdev_over_seeds=objective_stdev_over_seeds)
    data_obj$fres = forest_res_obj
 	
 	return(data_obj)
