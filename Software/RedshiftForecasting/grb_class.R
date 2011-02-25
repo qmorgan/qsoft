@@ -240,6 +240,7 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4)
 }
 
 noisify_residuals = function(forest_res){
+# Add a very small random number to the residuals to avoid duplicates when ordering
    numZ = dim(forest_res)[1]
    numTrials = dim(forest_res)[2]
    forest_res_rand = forest_res + matrix(runif(numTrials*numZ,1E-6,1E-5),numZ,numTrials)
@@ -247,6 +248,7 @@ noisify_residuals = function(forest_res){
 }
 
 order_residuals = function(forest_res,reverse=FALSE){
+# Return the index order of the residuals from low to high
    forest_res_ordered=apply(forest_res,2,rank)
    if(reverse==TRUE){
       numinstances = length(forest_res[,1])
