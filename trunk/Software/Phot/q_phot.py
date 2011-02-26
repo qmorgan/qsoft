@@ -806,8 +806,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     snr = float(data_list[11])
                 vizcat_starlist.append([ra, dec, mag, e_mag, snr])
         vizcat_file.close()
-    print 'first entry in vizquery starlist [ra, dec, mag, e_mag, snr]:'
-    print vizcat_starlist[0]
+
         
     # Using deepstack of calibration stars as the catalog, instead of 2MASS
     else:
@@ -823,7 +822,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 star_e_mag = caldict[star]['targ_mag'][1]
                 star_snr = caldict[star]['targ_s2n']
                 vizcat_starlist.append([star_ra, star_dec, star_mag, star_e_mag, star_snr])
-        
+    
+    print 'first entry in vizquery starlist [ra, dec, mag, e_mag, snr]:'
+    print vizcat_starlist[0]    
+    
     # Create the sexcat_starlist from the Source Extractor output catalog. Also fill
     # in the sex_inst_mag_list which will be used as a diagnostic check on the 
     # computed upper limit.
