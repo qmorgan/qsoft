@@ -806,6 +806,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     snr = float(data_list[11])
                 vizcat_starlist.append([ra, dec, mag, e_mag, snr])
         vizcat_file.close()
+    print 'first entry in vizquery starlist [ra, dec, mag, e_mag, snr]:'
+    print vizcat_starlist[0]
         
     # Using deepstack of calibration stars as the catalog, instead of 2MASS
     else:
