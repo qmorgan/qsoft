@@ -234,7 +234,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
-        do_upper = False, calstar_reg_output = True, calreg = None, stardict = None
+        do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
         cleanup=True):
     '''
     Do photometry on a given image file given a region file with the coordinates.
