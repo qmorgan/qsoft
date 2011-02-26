@@ -843,7 +843,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             sex_inst_mag_list.append([mag, mag_err, ra, dec])
             sex_inst_flux_list.append([flux,flux_err, ra, dec])
     sexcat_file.close()
-
+    
+    print "Length of pre-truncated sextractor starlist is %s" % str(length(sexcat_starlist))
+    print "Length of vizquery 2mass starlist is %s" % str(length(vizcat_starlist))
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
@@ -881,8 +883,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     sexcat_star[2], sexcat_star[3], 
                     sexcat_star[4],'calib'])
 
-    print 'length of combined_starlist is'
-    print len(combined_starlist)
+    print 'length of combined_starlist is %s' % str(len(combined_starlist))
 
     # Deleting stars in combined_starlist that is not in the inputted region file (if not calreg == False)
     if not calreg:
