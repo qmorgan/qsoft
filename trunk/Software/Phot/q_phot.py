@@ -234,7 +234,8 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
-        do_upper = False, calstar_reg_output = True, calreg = None, stardict = None):
+        do_upper = False, calstar_reg_output = True, calreg = None, stardict = None
+        cleanup=True):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -1191,10 +1192,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     photdict.update(ditherdict)
 
     # Clean up the photometry catalog files.
-    system("rm viz_output.txt")
-    #system("rm viz_output_cropped.txt")
-    system("rm " + progenitor_image_name.replace(".fits", ".sex"))
-    system("rm " + weight_image_name.replace(".fits", ".sex"))
+    
+    if cleanup:
+        system("rm viz_output.txt")
+        #system("rm viz_output_cropped.txt")
+        system("rm " + progenitor_image_name.replace(".fits", ".sex"))
+        system("rm " + weight_image_name.replace(".fits", ".sex"))
     
      # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
 
