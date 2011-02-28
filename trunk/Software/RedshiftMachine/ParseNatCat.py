@@ -148,6 +148,11 @@ def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
             pass
         # Grab probabilities if we're looking at that filename
         if filename == '/bat/zprob.txt':
+            ##z prob
+            #0.0 0.0
+            #0.1 0.0173421269984
+            #0.201000005007 0.0346842539969
+            #0.300999999046 0.0685398958379
             try:
                 response = f = open(fullout,'r')
                 html = f.readlines()
@@ -158,7 +163,7 @@ def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
                     if line[0] == '#':
                         continue
                     z_prob = line.rstrip('\n').split(' ')
-                    z_pred_arr.append(z_prob[0])
+                    z_pred_arr.append(float(z_prob[0]))
                     prob_arr.append(float(z_prob[1]))
                     # What follows is very embarassing but I am lazy today
                     if line[0:3] == '1.0': ind1 = ind
@@ -175,12 +180,31 @@ def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
                 prob_gt_3 = 1 - numpy.sum(numpy.array(prob_arr[0:ind3]))/norm_total
                 prob_gt_4 = 1 - numpy.sum(numpy.array(prob_arr[0:ind4]))/norm_total
                 prob_gt_5 = 1 - numpy.sum(numpy.array(prob_arr[0:ind5]))/norm_total
-            
+                
+                # Prob less than is just 1-prob greater than, since these are normalized to 1
+                prob_lt_1 = 1 - prob_gt_1
+                prob_lt_2 = 1 - prob_gt_2
+                prob_lt_3 = 1 - prob_gt_3
+                prob_lt_4 = 1 - prob_gt_4
+                prob_lt_5 = 1 - prob_gt_5
+                
+                # get the most probable z (maximum of the probability array)
+                most_prob_z = z_pred_arr[prob_arr.index(max(prob_arr))]
+                
                 natcatdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
                 natcatdict[grbname].update({'PROB_Z_GT_2':prob_gt_2})
                 natcatdict[grbname].update({'PROB_Z_GT_3':prob_gt_3})
                 natcatdict[grbname].update({'PROB_Z_GT_4':prob_gt_4})
                 natcatdict[grbname].update({'PROB_Z_GT_5':prob_gt_5})
+                
+                natcatdict[grbname].update({'PROB_Z_LT_1':prob_lt_1})
+                natcatdict[grbname].update({'PROB_Z_LT_2':prob_lt_2})
+                natcatdict[grbname].update({'PROB_Z_LT_3':prob_lt_3})
+                natcatdict[grbname].update({'PROB_Z_LT_4':prob_lt_4})
+                natcatdict[grbname].update({'PROB_Z_LT_5':prob_lt_5})
+                
+                natcatdict[grbname].update({'MOST_PROB_Z':most_prob_z})
+                
             except:
                 print 'Cannot load %s ' % (fullout)
                 continue
