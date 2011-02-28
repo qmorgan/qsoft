@@ -226,7 +226,9 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
             callist += [line]
         else:
             pass
-
+    
+    keylist = []
+    
     for index, star_reg in enumerate(callist):
         if os.path.exists(temppath):
             os.remove(temppath)
@@ -242,7 +244,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         tempreg.write(tmp_str)
         tempreg.close()
         
-        star_str = line.strip('circle').strip().strip('")').strip('(').split(',')
+        star_str = star_reg.strip('circle').strip().strip('")').strip('(').split(',')
         ra_str = star_str[0]
         dec_str = star_str[1]
         ra_round = ra_str[0:8]
@@ -258,6 +260,8 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         data_h.update({'t_mid':timetuple})
         this_star_dict_h = {parent_label:data_h}
         stardict_h.update(this_star_dict_h)
+        
+        keylist.append(parent_label)
         
         data_j = q_phot.dophot(filename_j, temppath, calreg=calibration_reg, ap=ap_j)
         parent_label = star_pos_str
@@ -286,7 +290,10 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
 
     picklepath = storepath + out_pickle + '.data'
     qPickle.save(stardict, picklepath, clobber = True)
-
+    
+    print 'Created a dictionary for the following star locations:'
+    print keylist
+    
     return stardict
 
 
