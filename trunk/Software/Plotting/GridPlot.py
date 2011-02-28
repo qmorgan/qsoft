@@ -31,6 +31,8 @@ def GridPlot(data,labels=None,no_tick_labels=False):
     fig = figure()
 
     point_size = numpy.ceil(500/(len(matr[0])*N))
+    if point_size < 1:
+        point_size = 1
 
     horiz_width = 1.0 - right_buffer - left_buffer
     vert_width = 1.0 - top_buffer - bottom_buffer

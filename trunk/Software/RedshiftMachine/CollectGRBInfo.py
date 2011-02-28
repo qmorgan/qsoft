@@ -29,6 +29,7 @@ import numpy
 import matplotlib.pyplot as plt
 from Plotting.ColorScatter import ColorScatter
 from Plotting.Annote import AnnotatedSubPlot
+from Plotting.GridPlot import GridPlot
 from Phot import extinction
 
 
@@ -701,7 +702,15 @@ class GRBdb:
         pylab.xlabel(x_key)
         if retjitter:
             return jitter
-
+    
+    def gridplot(self,\
+        keys=['Z','A','B','MAX_SNR','PROB_Z_GT_4'],\
+        z_keys=['Z','Z']):
+        keylist = [getattr(self,key)['array'] for key in keys]
+        data = numpy.array(keylist)
+        
+        from Plotting import GridPlot
+        GridPlot.GridPlot(data,labels=keys,no_tick_labels=True)
 
     def grbannotesubplot(self,\
         x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
@@ -1443,7 +1452,7 @@ def TestReloadAlldb():
                                 
     #nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
     #                    'PROB_Z_LT_1','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']
-    nat_z_pred_list = ['Z','PROB_Z_GT_4']               
+    nat_z_pred_list = ['Z','PROB_Z_GT_5']               
                         
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
