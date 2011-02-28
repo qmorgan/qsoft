@@ -101,6 +101,7 @@ def whatis(keyword):
     'GAM_WT2': {'definition':'WT Gamma upper Limit','type':'double','source':'NatXRT','speed':'processed','sample':2.5615999999999999},
     'MAX_SNR': {'definition':'Maximum BAT S/N Ratio','type':'double','source':'NatBat','speed':'processed','sample':47.399999999999999},
     'MODEL': {'definition':'BAT Spectral Fit Model Used for Frequentist approach: Either Simple Power Law Model (PLM), powerlaw times an exponetial cutoff (PLEXP), or smoothly connected broken powerlaw - the Band GRB Model (GRBM)','type':'string','source':'NatBat Spectra','speed':'processed','sample':'PLEXP'},
+    'MOST_PROB_Z': {'definition':'Most probable redshift from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},    
     'NH_GAL': {'definition':'Galactic Neutral Hydrogen Column at GRB Location (cm^-2)','type':'double','source':'NatXRT','speed':'processed','sample':0.023400000000000001},
     'NH_PC': {'definition':'Excess N_H Column inferred from XRT PC Data (10^22 cm^-2) using PC (Photon-counting Mode) data - see T_PC for time range','type':'double','source':'NatXRT','speed':'processed','sample':0.017999999999999999},
     'NH_PC1': {'definition':'Excess PC N_H Column Lower Limit (10^22 cm^-2)','type':'double','source':'NatXRT','speed':'processed','sample':-0.0080000000000000002},
@@ -117,6 +118,11 @@ def whatis(keyword):
     'NU': {'definition':'BAT Spectral Fit Degrees Of Freedom','type':'double','source':'NatBat Spectra','speed':'processed','sample':54.0},
     'OBS': {'definition':'Swift Trigger Number','type':'string','source':'NatBat','speed':'processed','sample':'00228581'},
     'PK_O_CTS': {'definition':'Ratio of the peak rate Rate_p (in a time bin of width 0.01 dt_(S/N)) over the total source counts (cts).  Used to approximately relate the burst fluences to peak fluxes.','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_LT_1': {'definition':'Prob that redshift is less than 1 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_LT_2': {'definition':'Prob that redshift is less than 2 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_LT_3': {'definition':'Prob that redshift is less than 3 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_LT_4': {'definition':'Prob that redshift is less than 4 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
+    'PROB_Z_LT_5': {'definition':'Prob that redshift is less than 5 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
     'PROB_Z_GT_1': {'definition':'Prob that redshift is greater than 1 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
     'PROB_Z_GT_2': {'definition':'Prob that redshift is greater than 2 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
     'PROB_Z_GT_3': {'definition':'Prob that redshift is greater than 3 from butler world model','type':'double','source':'NatBat','speed':'processed','sample':0.114758},
@@ -202,6 +208,7 @@ def whatis(keyword):
     'xrt_waveform': {'definition':'XRT Waveform?','type':'integer','source':'Swift-XRT Position','speed':'nfi_prompt','sample':134},
     'z': {'definition':'Redshift','type':'double','source':'SwiftCat','speed':'na','sample':2.4300000000000002},
     'z_class': {'definition':'Redshift class (high_z,medium_z,low_z) derived from actual redshift value','type':'string','source':'Derived','speed':'na','sample':'medium_z'},
+    'Z_LT_1_OVER_Z_GT_4':{'definition':'Ratio of Nats probability functions','type':'float','source':'NatBat','speed':'processed','sample':1.302},
     'z_isupper': {'definition':'Was the redshift value reported an upper limit?','type':'string','source':'SwiftCat','speed':'na','sample':'no'},
     'z_str': {'definition':'Redshift String','type':'string','source':'SwiftCat','speed':'na','sample':'2.43 (Gemini-North: absorption)'}}
 
@@ -439,6 +446,12 @@ class GRBdb:
                 if self.dict[grb]['v_mag_isupper'] == 'no':
                     UVOT_Detection = 'yes'                
             self.dict[grb]['uvot_detection'] = UVOT_Detection
+            
+            # Make attribute from ratio of nat Z prediction
+            
+            if 'PROB_Z_GT_4' in self.dict[grb] and 'PROB_Z_LT_1' in self.dict[grb]:
+                z_lt_1_over_z_gt_4 = self.dict[grb]['PROB_Z_LT_1']/self.dict[grb]['PROB_Z_GT_4']
+                self.dict[grb]['Z_LT_1_OVER_Z_GT_4'] = z_lt_1_over_z_gt_4
             
             # Make new attribute grabbing the extinction column.  
             # Might want to change the observation epoch.
@@ -814,11 +827,18 @@ class GRBdb:
         self.MakeNomArr('T_PC_LATE')
         self.MakeNomArr('T_WT')
         self.MakeAttrArr('Z')
+        self.MakeAttrArr('PROB_Z_LT_1')
+        self.MakeAttrArr('PROB_Z_LT_2')
+        self.MakeAttrArr('PROB_Z_LT_3')
+        self.MakeAttrArr('PROB_Z_LT_4')
+        self.MakeAttrArr('PROB_Z_LT_5')
         self.MakeAttrArr('PROB_Z_GT_1')
         self.MakeAttrArr('PROB_Z_GT_2')
         self.MakeAttrArr('PROB_Z_GT_3')
         self.MakeAttrArr('PROB_Z_GT_4')
         self.MakeAttrArr('PROB_Z_GT_5')
+        self.MakeAttrArr('MOST_PROB_Z')
+        
         
         # From the BAT Position GCN
         self.MakeAttrArr('bat_bkg_dur')
@@ -870,6 +890,7 @@ class GRBdb:
         self.MakeAttrArr('FL_over_SQRT_T90')
         self.MakeNomArr('uvot_detection')
         self.MakeAttrArr('gal_EB_V')
+        self.MakeAttrArr('Z_LT_1_OVER_Z_GT_4')
         
         # Make the following Binary attributes
         keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig',
@@ -1123,7 +1144,9 @@ class GRBdb:
                       'xrt_inten','xrt_signif','fluence','peakflux',
                       'xrt_column','gal_EB_V','uvot_time_delta',
                       'DT_MAX_SNR','FL_over_SQRT_T90','uvot_detection',
-                      'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1'
+                      'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
+                      'PROB_Z_GT_1','PROB_Z_LT_1','PROB_Z_LT_2','PROB_Z_LT_3',
+                      'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4'
                       ],
                       arff_append='',inclerr=True):
         '''Create .arff file from array of attributes
@@ -1402,7 +1425,9 @@ def TestReloadAlldb():
     reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
-                        'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']    
+                        'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
+                        'PROB_Z_GT_1','PROB_Z_LT_1','PROB_Z_LT_2','PROB_Z_LT_3',
+                        'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']    
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
@@ -1416,11 +1441,17 @@ def TestReloadAlldb():
     db_onlyz.makeArffFromArray(attrlist=single_list,
                                 arff_append='_UVOTonly', inclerr=False)
                                 
-    nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']
+    #nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
+    #                    'PROB_Z_LT_1','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']
+    nat_z_pred_list = ['Z','PROB_Z_GT_4']               
+                        
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
     
-    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1']                           
+    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_5','PROB_Z_GT_4',
+                        'PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1','PROB_Z_LT_1',
+                        'PROB_Z_LT_2','PROB_Z_LT_3','PROB_Z_LT_4','PROB_Z_LT_5',
+                        'MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']                           
                    
     
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
