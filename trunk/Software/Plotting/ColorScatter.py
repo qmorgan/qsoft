@@ -89,7 +89,7 @@ def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjit
                 N = int(discrete)
             except:
                 N = 2
-            cmap = cmap_discretize(pylab.cm.cool_r,N)
+            cmap = cmap_discretize(pylab.cm.flag,N)
         sc = pylab.scatter(x,y,c=z,cmap=cmap,marker=marker,**kwargs)
         if colorbar: 
             cb = pylab.colorbar(sc)

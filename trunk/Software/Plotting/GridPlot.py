@@ -11,7 +11,7 @@ from Plotting.q_hist import histOutline
 # plt.colorbar(sc,cax=plt.gcf().add_axes((0.90,0.1,0.02,0.8)))
 
 
-def GridPlot(data,labels=None,no_tick_labels=False,hist=True,incl_histtext=True):
+def GridPlot(data,zdata=None,labels=None,no_tick_labels=False,hist=True,incl_histtext=True,colorbar=None, **kwargs):
     
     ## EDITABLE
     right_buffer = 0.1
@@ -31,9 +31,9 @@ def GridPlot(data,labels=None,no_tick_labels=False,hist=True,incl_histtext=True)
 
     fig = figure()
     n_datapoints = len(matr[0])
-    point_size = numpy.ceil(500/((n_datapoints)*N))
+    point_size = numpy.ceil(500/((n_datapoints)*N)) + 3
     if point_size < 1:
-        point_size = 1
+        point_size = 4
 
     horiz_width = 1.0 - right_buffer - left_buffer
     vert_width = 1.0 - top_buffer - bottom_buffer
@@ -64,7 +64,7 @@ def GridPlot(data,labels=None,no_tick_labels=False,hist=True,incl_histtext=True)
                         transform=ax1.transAxes,
                         bbox=dict(color='black',facecolor='white', alpha=0.7))
             else:    
-                scatter(matr[ii],matr[jj],s=point_size)
+                scatter(matr[ii],matr[jj],z=zdata,s=point_size,colorbar=colorbar, **kwargs)
             
             if jj == N-1 and labels:
                 ax1.set_xlabel(labels[ii])
