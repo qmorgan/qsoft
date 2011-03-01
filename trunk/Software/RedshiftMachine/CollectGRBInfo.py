@@ -705,12 +705,13 @@ class GRBdb:
     
     def gridplot(self,\
         keys=['Z','A','B','MAX_SNR','PROB_Z_GT_4'],\
-        z_keys=['Z','Z']):
+        z_keys=['Z']):
         keylist = [getattr(self,key)['array'] for key in keys]
+        zlist = [getattr(self,key)['array'] for key in z_keys]
         data = numpy.array(keylist)
         
         from Plotting import GridPlot
-        GridPlot.GridPlot(data,labels=keys,no_tick_labels=True)
+        GridPlot.GridPlot(data,zdata=zlist,labels=keys,no_tick_labels=True,edgecolor='none',discrete=2)
 
     def grbannotesubplot(self,\
         x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
@@ -1457,10 +1458,7 @@ def TestReloadAlldb():
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
     
-    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_5','PROB_Z_GT_4',
-                        'PROB_Z_GT_3','PROB_Z_GT_2','PROB_Z_GT_1','PROB_Z_LT_1',
-                        'PROB_Z_LT_2','PROB_Z_LT_3','PROB_Z_LT_4','PROB_Z_LT_5',
-                        'MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']                           
+    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_5']                           
                    
     
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
