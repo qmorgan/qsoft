@@ -703,16 +703,21 @@ class GRBdb:
         if retjitter:
             return jitter
     
-    def gridplot(self,\
-        keys=['Z','A','B','MAX_SNR','PROB_Z_GT_4'],\
-        z_keys=['Z']):
+    def gridplot(self,fig=None,\
+        keys=['log_T90','log_FL','log_MAX_SNR','PROB_Z_GT_4'],
+        labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/N_{BAT})$','$P_{z>4}$'],\
+        z_key=['Z'], hist=True, color='black',discrete=None):
         keylist = [getattr(self,key)['array'] for key in keys]
-        zlist = [getattr(self,key)['array'] for key in z_keys]
+        if z_key:
+            zlist = [getattr(self,z_key)['array']]
+        else:
+            zlist=None
         data = numpy.array(keylist)
         
         from Plotting import GridPlot
-        GridPlot.GridPlot(data,zdata=zlist,labels=keys,no_tick_labels=True,edgecolor='none',discrete=2)
-
+        fig = GridPlot.GridPlot(data,fig=fig,zdata=zlist,labels=labels,hist=hist,no_tick_labels=True,edgecolor='none',color=color)
+        return fig
+        
     def grbannotesubplot(self,\
         x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
         y_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
@@ -1338,7 +1343,7 @@ class GRBdb:
         return arffpath
         
     def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
-        remove_outliers = False, remove_no_redshift=False,
+        remove_outliers = False, remove_no_redshift=False, re_norm = True,
         keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 
                        'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 
                        'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 
@@ -1383,11 +1388,12 @@ class GRBdb:
             self.update_class()
         self.MakeAllAttr()                
         
-        if remove_outliers:
+        if remove_outliers: # WANT TO REMOVE OUTLIERS FOR MORE THAN JUST KEYS TO LOG
             for attr in keys_to_log:
-                self.removeOutliers(attr,threshold=outlier_threshold)        
+                self.removeOutliers(attr,threshold=outlier_threshold)     
         self.log_update_class(keys_to_log)
-        self.norm_update_class(keys_to_norm)
+        if re_norm:   
+            self.norm_update_class(keys_to_norm)
         if plot:
             self.plotallvall(keylist=keys_to_plot,zval='Z')
         if hist:
@@ -1402,6 +1408,22 @@ def TestReloadAlldb():
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
     SaveDB(db_full)
+    
+    db_onlyz = copy.deepcopy(db_full)
+    db_onlyz.Reload_DB(remove_short=True, remove_no_redshift=True)
+    db_onlyz.name = 'GRB_short+noZ_removed'
+    SaveDB(db_onlyz)
+    
+    db_highz = copy.deepcopy(db_onlyz)
+    db_lowz = copy.deepcopy(db_onlyz)
+    db_highz.removeValues('Z','<4')
+    db_lowz.removeValues('Z','>=4')
+    db_highz.Reload_DB()
+    db_lowz.Reload_DB()
+    db_lowz.name = 'GRB_short+noZ+z>4_removed'
+    db_highz.name = 'GRB_short+noZ+z<4_removed'
+    SaveDB(db_lowz)
+    SaveDB(db_highz)
     
     db_full.Reload_DB(remove_short=True, remove_outliers=True,outlier_threshold=0.32)
     db_full.name = 'GRB_short+outliers_removed' 
@@ -1485,7 +1507,15 @@ def TestMakeNicePlot():
     pylab.yticks((0,1),('no','yes'))
     pylab.ylabel("UVOT Detection?")
     pylab.xlabel("log(BAT SNR) (Normalized)")
+ 
+def TestMakeGridPlot():
+    db_full = LoadDB('GRB_short+noZ_removed')
+    fig = db_full.gridplot(z_key=None,color='black')
+    db_highz= LoadDB('GRB_short+noZ+z<4_removed')
+    fig2 = db_highz.gridplot(z_key=None,color='red',fig=fig,hist=False)
     
+    
+       
 if __name__ == '__main__':
     collect()
     sys.exit(0)     
