@@ -706,7 +706,8 @@ class GRBdb:
     def gridplot(self,fig=None,\
         keys=['log_T90','log_FL','log_MAX_SNR','PROB_Z_GT_4'],
         labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/N_{BAT})$','$P_{z>4}$'],\
-        z_key=['Z'], hist=True, color='black',discrete=None):
+        z_key='Z', hist=True, histbins=None, histloc=None, color='black',
+        discrete=None, gethistrangelist=False, histrangelist=None, **kwargs):
         keylist = [getattr(self,key)['array'] for key in keys]
         if z_key:
             zlist = [getattr(self,z_key)['array']]
@@ -714,8 +715,15 @@ class GRBdb:
             zlist=None
         data = numpy.array(keylist)
         
+        # if we just want to get the hist range list, return it
+        if gethistrangelist:
+            histrangelist = [(numpy.nanmin(dat),numpy.nanmax(dat)) for dat in data]
+            return histrangelist
+            
         from Plotting import GridPlot
-        fig = GridPlot.GridPlot(data,fig=fig,zdata=zlist,labels=labels,hist=hist,no_tick_labels=True,edgecolor='none',color=color)
+        fig = GridPlot.GridPlot(data,fig=fig,zdata=zlist,labels=labels,
+                histbins=histbins, histloc=histloc, histrangelist=histrangelist,
+                hist=hist,no_tick_labels=True,edgecolor='none',color=color)
         return fig
         
     def grbannotesubplot(self,\
@@ -1509,10 +1517,13 @@ def TestMakeNicePlot():
     pylab.xlabel("log(BAT SNR) (Normalized)")
  
 def TestMakeGridPlot():
+    db = LoadDB('GRB_short_removed')
+    histrangelist = db.gridplot(gethistrangelist=True)
+    fig = db.gridplot(z_key=None,color='grey',histbins=80,histrangelist=histrangelist,histloc='tl')
     db_full = LoadDB('GRB_short+noZ_removed')
-    fig = db_full.gridplot(z_key=None,color='black')
+    fig = db_full.gridplot(z_key=None,color='black',histbins=80,histrangelist=histrangelist,fig=fig,histloc='tr')
     db_highz= LoadDB('GRB_short+noZ+z<4_removed')
-    fig2 = db_highz.gridplot(z_key=None,color='red',fig=fig,hist=False)
+    fig2 = db_highz.gridplot(z_key=None,color='red',histbins=80,histrangelist=histrangelist,fig=fig,histloc='br')
     
     
        
