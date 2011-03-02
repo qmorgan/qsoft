@@ -1,7 +1,7 @@
 # Adapted from http://www.scipy.org/Cookbook/Matplotlib/MultilinePlots
 
 import math
-from pylab import figure, show, setp
+from pylab import figure, show, setp, hist
 from numpy import sin, cos, exp, pi, arange
 from Plotting.ColorScatter import ColorScatter as scatter
 import numpy
@@ -15,6 +15,8 @@ def GridPlot(data,fig=None,zdata=None,labels=None,no_tick_labels=False,hist=True
             histbins=None, histrangelist=None, histloc='tl',color='black',
             colorbar=None, show=True, **kwargs):
     '''hist text: tr, br, tl, bl, ce'''
+    
+    histfill = True
     
     ## EDITABLE
     right_buffer = 0.1
@@ -81,8 +83,12 @@ def GridPlot(data,fig=None,zdata=None,labels=None,no_tick_labels=False,hist=True
                 # get histogram
                 if not histbins:
                     histbins = numpy.ceil(n_datapoints/4)
+                
                 (bins,nn) = histOutline(matr[ii],bins=histbins,range=histrange)
-                ax1.plot(bins,nn,'k-',color=color)
+                if histfill:
+                    ax1.hist(matr[ii],bins=histbins,range=histrange,histtype='stepfilled',color=color)
+                else:    
+                    ax1.plot(bins,nn,'k-',color=color)
                 
                 if not oldfig:
                     ax1.set_ylim((0,max(nn)))
@@ -151,6 +157,7 @@ def TestPlot(fig=None):
     C = numpy.array([6,3,4,7,2,1,1,7,8,4,3,2])
     D = numpy.array([5,2,4,5,3,8,2,5,3,5,6,8])
     
+    # A work around to get the histograms overplotted with each other to overlap correctly;
     histrangelist = [(numpy.nanmin(A),numpy.nanmax(A)),(numpy.nanmin(B),numpy.nanmax(B)),
                 (numpy.nanmin(C),numpy.nanmax(C)),(numpy.nanmin(D),numpy.nanmax(D))]
     
