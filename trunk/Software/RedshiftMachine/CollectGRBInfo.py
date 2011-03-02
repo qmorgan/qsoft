@@ -668,7 +668,7 @@ class GRBdb:
     
 
     def grbplot(self,x_key,y_key,z_key=None,logx=False,logy=False,yjitter=0.0,\
-        xjitter=0.0, retjitter=False, discrete=0,marker='o', **kwargs):
+        xjitter=0.0, retjitter=False, discrete=0,marker='o',axis=None, **kwargs):
         '''Plot two keys against each other, with an optional third key as 
         the colorbar parameter.  Specify xjitter or yjitter to add a bit 
         of scatter to the plot for visualization reasons.  This replaces the
@@ -687,21 +687,29 @@ class GRBdb:
         xlist = getattr(self,x_key)['array']
         ylist = getattr(self,y_key)['array']
         zlist = None
+        if axis:
+            ax1=axis
+        else:            
+            fig = pylab.figure()
+            ax1 = fig.add_axes([0.1,0.1,0.8,0.8])
+            
         if z_key:
             zlist = getattr(self,z_key)['array']
         if not logx and not logy:
             jitter=ColorScatter(xlist,ylist,zlist,zlabel=z_key,yjitter=yjitter,xjitter=xjitter,\
-                discrete=discrete,marker=marker,retjitter=retjitter,**kwargs)
+                discrete=discrete,marker=marker,retjitter=retjitter,axis=ax1, **kwargs)
+            if retjitter:
+                return jitter
         if logx and not logy:
-            pylab.semilogx()
+            ax1.semilogx()
         if logy and not logx:
-            pylab.semilogy()
+            ax1.semilogy()
         if logy and logx:
-            pylab.loglog()
-        pylab.ylabel(y_key)
-        pylab.xlabel(x_key)
-        if retjitter:
-            return jitter
+            ax1.loglog()
+        ax1.set_ylabel(y_key)
+        ax1.set_xlabel(x_key)
+
+        return ax1
     
     def gridplot(self,fig=None,\
         keys=['log_T90','log_FL','log_MAX_SNR','PROB_Z_GT_4'],
@@ -1509,9 +1517,9 @@ def TestMakeNicePlot():
     db_lowz = LoadDB('GRB_short+outliers+noZ+z>4_removed')
     db_highz = LoadDB('GRB_short+outliers+noZ+z<4_removed')
     
-    db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
-    jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
-    db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=jitter[1],vmin=0,vmax=8.2,colorbar=False,s=80, marker='o', edgecolors='r', facecolors='none', linewidths=2)
+    ax = db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
+    jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
+    db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=jitter[1],vmin=0,vmax=8.2,colorbar=False,s=80, marker='o', edgecolors='r', facecolors='none', linewidths=2)
     pylab.yticks((0,1),('no','yes'))
     pylab.ylabel("UVOT Detection?")
     pylab.xlabel("log(BAT SNR) (Normalized)")
@@ -1519,11 +1527,11 @@ def TestMakeNicePlot():
 def TestMakeGridPlot():
     db = LoadDB('GRB_short_removed')
     histrangelist = db.gridplot(gethistrangelist=True)
-    fig = db.gridplot(z_key=None,color='grey',histbins=80,histrangelist=histrangelist,histloc='tl')
+    fig = db.gridplot(z_key=None,color='grey',histbins=20,histrangelist=histrangelist,histloc='tl')
     db_full = LoadDB('GRB_short+noZ_removed')
-    fig = db_full.gridplot(z_key=None,color='black',histbins=80,histrangelist=histrangelist,fig=fig,histloc='tr')
+    fig = db_full.gridplot(z_key=None,color='black',histbins=20,histrangelist=histrangelist,fig=fig,histloc='tr')
     db_highz= LoadDB('GRB_short+noZ+z<4_removed')
-    fig2 = db_highz.gridplot(z_key=None,color='red',histbins=80,histrangelist=histrangelist,fig=fig,histloc='br')
+    fig2 = db_highz.gridplot(z_key=None,color='red',histbins=20,histrangelist=histrangelist,fig=fig,histloc='br')
     
     
        

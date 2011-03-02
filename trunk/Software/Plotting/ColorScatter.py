@@ -69,7 +69,7 @@ def ColorScatter(x,y,z=None,axis=None,zlabel=None,cmap='jet',colorbar=True,discr
             assert(len(yjitter)==len(y))
             y = y + yjitter
         except:
-            y_lim_len = ax1.ylim()[1] - ax1.ylim()[0]
+            y_lim_len = ax1.get_ylim()[1] - ax1.get_ylim()[0]
             yjitter = (pylab.random(len(y))-0.5)*yjitter*y_lim_len
             y = y + yjitter
     else:
@@ -107,6 +107,8 @@ def ColorScatter(x,y,z=None,axis=None,zlabel=None,cmap='jet',colorbar=True,discr
     if retjitter:
         return((list(xjitter),list(yjitter)))
 
+    return ax1
+    
 def cmap_discretize(cmap, N):
     """Return a discrete colormap from the continuous colormap cmap.
     
