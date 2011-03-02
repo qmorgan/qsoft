@@ -18,10 +18,10 @@ def ColorScatterExample():
     x=list(arange(20))
     y=list(arange(20))
     z=scipy.rand(20)*50
-    ColorScatter(x,y,z,zlabel='Test Label',cmap='jet',colorbar=True,xjitter=2)
+    ColorScatter(x,y,z=z,zlabel='Test Label',cmap='jet',colorbar=True,xjitter=2)
 
 
-def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjitter=None,\
+def ColorScatter(x,y,z=None,axis=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjitter=None,\
     xjitter=None,marker='o',retjitter=False, **kwargs):
     '''set discrete to N for splitting up into N values
     yjitter sets a percent random jitter in the y direction to help distinguish
@@ -55,7 +55,13 @@ def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjit
     In [166]: pylab.colorbar(sc)
     
     '''
-        
+       
+    if axis:
+        ax1 = axis
+    else:
+        fig = pylab.figure()
+        ax1 = fig.add_axes([0.1,0.1,0.8,0.8])
+         
     if yjitter:
         try:
             list(yjitter) # check if a list or array
@@ -63,7 +69,7 @@ def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjit
             assert(len(yjitter)==len(y))
             y = y + yjitter
         except:
-            y_lim_len = pylab.ylim()[1] - pylab.ylim()[0]
+            y_lim_len = ax1.ylim()[1] - ax1.ylim()[0]
             yjitter = (pylab.random(len(y))-0.5)*yjitter*y_lim_len
             y = y + yjitter
     else:
@@ -76,7 +82,7 @@ def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjit
             assert(len(xjitter)==len(x))
             x = x + xjitter
         except:
-            x_lim_len = pylab.xlim()[1] - pylab.xlim()[0]
+            x_lim_len = ax1.get_xlim()[1] - ax1.get_xlim()[0]
             xjitter = (pylab.random(len(x))-0.5)*xjitter*x_lim_len
             x = x + xjitter
     else:
@@ -90,13 +96,13 @@ def ColorScatter(x,y,z=None,zlabel=None,cmap='jet',colorbar=True,discrete=0,yjit
             except:
                 N = 2
             cmap = cmap_discretize(pylab.cm.flag,N)
-        sc = pylab.scatter(x,y,c=z,cmap=cmap,marker=marker,**kwargs)
+        sc = ax1.scatter(x,y,c=z,cmap=cmap,marker=marker,**kwargs)
         if colorbar: 
             cb = pylab.colorbar(sc)
             if zlabel:
                 cb.set_label(zlabel)
     else:
-        sc = pylab.scatter(x,y,marker=marker,**kwargs)
+        sc = ax1.scatter(x,y,marker=marker,**kwargs)
         
     if retjitter:
         return((list(xjitter),list(yjitter)))
