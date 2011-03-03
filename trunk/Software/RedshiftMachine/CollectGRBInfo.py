@@ -1023,12 +1023,22 @@ class GRBdb:
                 
             
                 end_num = len(RemoveNaN(keydict['array']))
+                num_outliers_removed = begin_num - end_num
                 print "Ending with %i non-NaN values" % (end_num)
-                print "%i outliers removed." % (begin_num-end_num)
+                print "%i outliers removed." % (num_outliers_removed)
                 print ''
                 
+                grbs_to_remove = list(array_of_grb_names[up_ind])
+                for grb_rem in array_of_grb_names[lo_ind]:
+                    if grb_rem not in grbs_to_remove:
+                        grbs_to_remove.append(grb_rem)
+                
+                if len(grbs_to_remove) != num_outliers_removed:
+                    exception_str = 'Num outliers removed from dict (%i) != num removed from array (%i)!' % (len(array_of_grb_names), num_outliers_removed)
+                     
+                    raise Exception(exception_str)
                 # Now remove the outliers from the dictionary
-                for grb_name in array_of_grb_names:
+                for grb_name in grbs_to_remove:
                     self.dict[grb_name][key] = numpy.nan
             
                 setattr(self,key,keydict)
