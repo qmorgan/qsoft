@@ -333,18 +333,29 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/MyPassport/D
         pass
 
 
-def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1',newdirs=True):
+def RenameRaw(inpaths,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1',newdirs=True):
     '''Copy all files in a directory (such as created by copyraw) into 
     a new folder elsewhere, renaming all files to a common GRB ID.  Useful
     when needing to tack observations together for a common reduction
     
-    When two observations should be combined, put the raw files from them into
-    a common folder.  Then run this code on them and output the results into a
-    new folder.
+    Put a list of all raw observation folders to be combined into inpaths
     
     If newdirs = True, it will further split on days and create folders for each one.
     '''
-    rawfilelist = glob.glob(inpath+'/*')
+    if isinstance(inpaths,str):
+        inpaths = [inpaths]
+
+    if not isinstance(inpaths,list):
+        raise ValueError('inpaths needs to be of type "list"')
+    
+    rawfilelist = []
+    for inpath in inpaths:
+        if not os.path.exists(inpath):
+            verr = "Path %s does not exist. Exiting." % (inpath)
+            raise ValueError(verr)
+        else:
+            rawfilelist += glob.glob(inpath+'/*')
+
     newfilelist = []
     # extract 
     datelist=[]
