@@ -411,7 +411,7 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	return(data_obj)
 }
 
-pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL){
+pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj_train)){
       print("data_obj_test not specified; using default values")
@@ -426,6 +426,27 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL){
 	
 	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features)
 	data_obj_test$pred_vals = pred_vals
+	
+	if(plot==TRUE){
+	   Zlen_1 = length(pred_vals$alpha.hat) - 1
+	   alpha_try_array = c(0:Zlen_1)/Zlen_1
+	   ordered_alpha_hats = sort(pred_vals$alpha.hat)
+	   frac_followed_up = ordered_alpha_hats*0.0
+	   
+	   count = 0
+	   for(alpha in alpha_try_array){
+	      count = count+1
+	      frac_followed_up[count] = sum(ordered_alpha_hats < alpha)/Zlen_1
+	   }
+	   
+	   imagefile='unknownbursts.pdf'
+	   pdf(imagefile)
+   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression("Fraction of GRBs Followed Up (alpha^hat < alpha)"), xlab=expression('alpha'), pch="") # initialize plot))
+      title(main=expression("Performance on bursts with unknown Z"))
+      lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
+      dev.off()
+	}
+	
 	return(data_obj_test)
 }
 
