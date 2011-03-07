@@ -411,6 +411,44 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	return(data_obj)
 }
 
+pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj_train)){
+      print("data_obj_test not specified; using default values")
+      data_obj_train = read_data()
+      data_obj_train = add_forest_to_obj(data_obj_train)
+   }
+   if(is.null(data_obj_test)){
+      print("data_obj_test not specified; using default values")
+      data_obj_test = read_data(filename='./Data/GRB_short+outliers+Z_removed_reduced.arff')
+   }
+   ###########################################################################
+	
+	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features)
+	data_obj_test$pred_vals = pred_vals
+	return(data_obj_test)
+}
+
+add_forest_to_obj = function(data_obj=NULL,log_weight_try=2){
+   # This function adds the full forest to the data object for later usage on 
+   # new data.
+    
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj)){
+      print("data_obj not specified; using default values")
+      data_obj = read_data()
+   }
+   ###########################################################################
+   weight_try = 10^log_weight_try
+   weights_vec = 1*(data_obj$data1$class == "low") + weight_try*(data_obj$data1$class == "high")
+	forest = forest.fit(data_obj$features,data_obj$classes,mtry=NULL,weights=weights_vec,n.trees=500,seed=sample(1:10^5,1))
+   data_obj$forest = forest
+   
+   return(data_obj)
+}
+
+
+
 ####### makes objective function plot ####### 
 # forest_order is ordered using "order_residuals" function with high-z at low rank numbers
 make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,4,0.4),imagefile="objective_fcn.pdf"){
@@ -529,54 +567,6 @@ par(mar=c(4,0,0,1))
    write(res_avg_over_seeds,textfile)
 }
 
-## OUTDATED?
-# # Calculate the number of GRBs we are allowing ourselves to follow-up
-# forest_run = function(data_obj=NULL,nfolds=10,alpha=0.3,mtry=NULL,weight=61,seed=1,n.trees=500){
-#    ##### If data object is not defined, create the default data object ######
-#    if(is.null(data_obj)){
-#       print("data_obj not specified; using default values")
-#       data_obj = read_data()
-#    }
-#    ###########################################################################
-#    if(is.null(mtry)){
-#      mtry = ceiling(sqrt(dim(data_obj$features)[2]))
-#    }
-#    print(mtry)
-#    num_of_grbs = length(data_obj$Z)
-# 
-#    weights_vec = 1*(data_obj$data1$class == "low") + weight*(data_obj$data1$class == "high")
-#    # the following might screw things up
-#    #weights_vec = length(weights_vec) * weights_vec / sum(weights_vec)
-#    # ff
-# #   foresttest = rfc.cv(data_obj$features,data_obj$classes,nfolds=nfolds,weights=weights_vec,seed=seed,mtry=mtry)
-#                 # stratified folds (for high-z bursts)
-#    n.high = sum(data_obj$classes=="high")
-#    folds = sample(1:n.high,length(data_obj$classes),replace=TRUE)
-#    folds[data_obj$classes=="high"]=1:n.high
-#    foresttest = rfc.cv(data_obj$features,data_obj$classes,folds=folds,weights=weights_vec,seed=seed,mtry=mtry)
-# 
-#    probs = foresttest$predprob[,1]
-#    num_to_follow = ceiling(alpha*num_of_grbs)
-#    # Grab the probability above which a GRB is considered low for following up
-#    # a given percentage of bursts
-#    mid_prob=sort(foresttest$predprob[,1])[num_to_follow]
-#    # Grab the array of Zs which are less than mid_prob 
-#    high_array=sort(data_obj$Z[foresttest$predprob[,1] <= mid_prob])
-#    # Calculate our objective function and confusion matrices
-#    num_actually_high=length(high_array[high_array >= data_obj$high_cutoff])
-#    pct_actually_high=num_actually_high/num_of_grbs
-#    objective = num_actually_high/num_to_follow
-# 
-#    high_as_high = num_actually_high
-#    high_as_low = data_obj$num_high - num_actually_high
-#    low_as_high = num_to_follow - num_actually_high
-#    low_as_low = data_obj$num_low - low_as_high
-#    print(high_as_high)
-#    print(low_as_high)
-#    print(low_as_low)
-#    print(high_as_low)
-#    return(list(objective=objective,high_as_high=high_as_high,high_as_low=high_as_low,low_as_low=low_as_low,low_as_high=low_as_high))
-# }
 
 # fit and return forest on training data (using optimal tuning parameters)
 forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
