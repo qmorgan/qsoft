@@ -1,5 +1,4 @@
 import os, sys
-import pyfits
 import glob
 import time
 from Phot import extinction
@@ -53,6 +52,7 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     with GRB string; this still may be thousands of files..
     
     '''
+    import pyfits
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
     if swiftcatdict=={}:
