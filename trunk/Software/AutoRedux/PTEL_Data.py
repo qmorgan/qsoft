@@ -333,7 +333,7 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/MyPassport/D
         pass
 
 
-def RenameRaw(inpaths,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1',newdirs=True):
+def RenameRaw(inpaths,outpath='~/Data/PAIRITEL/tmpraw/',id_list=[],newid='GRB.999.1',newdirs=True):
     '''Copy all files in a directory (such as created by copyraw) into 
     a new folder elsewhere, renaming all files to a common GRB ID.  Useful
     when needing to tack observations together for a common reduction
@@ -354,7 +354,8 @@ def RenameRaw(inpaths,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1',newdir
             verr = "Path %s does not exist. Exiting." % (inpath)
             raise ValueError(verr)
         else:
-            rawfilelist += glob.glob(inpath+'/*')
+            for grbid in id_list:
+                rawfilelist += glob.glob(inpath+'/*'+str(grbid)+'*')
 
     newfilelist = []
     # extract 
