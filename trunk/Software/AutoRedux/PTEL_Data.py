@@ -348,6 +348,9 @@ def RenameRaw(inpaths,outpath='~/Data/PAIRITEL/tmpraw/',id_list=[],newid='GRB.99
     if not isinstance(inpaths,list):
         raise ValueError('inpaths needs to be of type "list"')
     
+    if not id_list:
+        print 'No ids provided...'
+        
     rawfilelist = []
     for inpath in inpaths:
         if not os.path.exists(inpath):
