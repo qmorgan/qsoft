@@ -443,6 +443,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	   pdf(imagefile)
    	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression("Fraction of GRBs Followed Up (alpha^hat < alpha)"), xlab=expression('alpha'), pch="") # initialize plot))
       title(main=expression("Performance on bursts with unknown Z"))
+      lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
       dev.off()
 	}
@@ -701,8 +702,8 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
    pdf(imagefile)
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up: "~alpha), ylab=expression('Fraction of high (z>4) GRBs observed'), pch="") # initialize plot))
-   title(main=expression("Efficiency vs"~alpha), sub=data_obj$data_string)
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=expression('Fraction of high (z>4) GRBs observed'), pch="") # initialize plot))
+   title(main=expression("Efficiency"), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(alpha_tries, avg_obj, lty=1, lwd=4, col='red')
    xx = c(alpha_tries, rev(alpha_tries))
