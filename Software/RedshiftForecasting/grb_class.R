@@ -799,7 +799,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    ## make_bumps_plot(alphas.cv)
  }
  
-make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','reduced_nozpredict'), log_weights_try=seq(0,4,0.4),roc_weight=5, ploterr=FALSE, high_cutoff=4){
+make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','reduced_nozpredict','Full'), log_weights_try=seq(0,4,0.4),roc_weight=5, ploterr=FALSE, high_cutoff=4){
    roc_plot_name = paste("./Plots/ROC_Multi.pdf",sep="")
    
    curve_index = 1
@@ -807,7 +807,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
    
    for(data_string in data_string_list){
       data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
-      data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,sep="")
+      data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
       
       mydata = read_data(filename=data_filename,high_cutoff=high_cutoff)
       mydata$log_weights_try=log_weights_try
