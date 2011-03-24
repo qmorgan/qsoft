@@ -887,7 +887,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 combined_starlist.append([calibcat_star[0], calibcat_star[1], 
                     calibcat_star[2], calibcat_star[3], 
                     sexcat_star[2], sexcat_star[3], 
-                    sexcat_star[4],'calib'])
+                    sexcat_star[4],'calib',separation_arcsec])
 
     print 'length of combined_starlist is %s' % str(len(combined_starlist))
     if len(combined_starlist) == 0:
@@ -966,6 +966,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         target_separation_arcsec = 206264.806247*(float(ephem.separation(
                 (target_ra_rad, target_dec_rad), 
                 (star_ra_rad, star_dec_rad))))
+        # Don't add it to the zeropoint if it is our target
         if ((target_separation_arcsec > 5) and 
             ((ptel_flag == 0) or (ptel_flag == 2))):
             zeropoint_list.append(tmass_mag - ptel_mag)
@@ -973,6 +974,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 raise ValueError('Calib Star identification mismatch somewhere in the code; squash this bug')
             zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
                         + (base_dither_error/sqrt(num_triplestacks))**2)
+            
+            #Sanity check on target separation
+            if star[8] > 1:
+                raise Exception("Investigate why the calib star/2mass separation is so large")
+            
     print 'zp list is'
     print zeropoint_list
     # zeropoint = average(zeropoint_list) # average is not very robust
@@ -1049,6 +1055,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             ptel_e_mag = star[5]
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
+            delta_pos = star[8]
             delta_mag = abs(new_mag-tmass_mag) # difference between our magnitude and 2mass
             new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
                             + (base_dither_error/sqrt(num_triplestacks))**2))
@@ -1057,7 +1064,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             photdict['calib_stars'].update({str(ra):{'ra':ra,'dec':dec,
                 '2mass_mag':tmass_mag,'2mass_e_mag':tmass_e_mag,
                 'inst_mag':ptel_mag,'inst_e_mag':ptel_e_mag,'new_mag':new_mag,
-                'new_e_mag':new_e_mag, 'delta_mag':delta_mag}})
+                'new_e_mag':new_e_mag, 'delta_mag':delta_mag, 'delta_pos':delta_pos}})
             print ''
             print '******'
             print 'yay good star'
