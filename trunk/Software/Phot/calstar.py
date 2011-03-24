@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False):
+def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, testind=1):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -74,7 +74,9 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
 
     # Grab the calib stars we will be looping over:
     calregion =  '/calstarregs/' + os.path.basename(reg) 
-    testimage = filelist[1]
+    print "Using image #%i to get the calib stars; if not all are present \
+            in final plot, try a different image" % (testind)
+    testimage = filelist[testind]
     photdict = q_phot.dophot(testimage, temppath, calreg=calregion, ap=ap, do_upper=False)
     
     for index, ra_str in enumerate(photdict['calib_stars'].keys()):
@@ -98,6 +100,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             calregion =  '/calstarregs/' + os.path.basename(reg) 
             data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
             image_data = data[image]
+            raise Exception
             if ra_str in image_data['calib_stars']:
                 datalist += [image_data['calib_stars'][ra_str]['new_mag']] 
                 dataerrlist += [image_data['calib_stars'][ra_str]['new_e_mag']]
@@ -107,6 +110,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
                 image_data.update({'t_mid':timetuple})
                 timelist += [time]
                 timeerrlist += [terr]
+                dec_str = image_data['calib_stars'][ra_str]['dec'][0:7]
                 parent_label = image
                 precal_dict.update({parent_label:image_data})
             else:
@@ -117,7 +121,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         timarr = array(timelist)
         timerrarr = array(timeerrlist)
         
-        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=ra_str) #star_pos_str)
+        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=str((ra_str,dec_str)) #star_pos_str)
         
         caldict.update({ra_str:precal_dict})
 
