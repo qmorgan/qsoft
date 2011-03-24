@@ -348,8 +348,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         stop_cpu = str(imagefile_header["STOP_CPU"])
         exptime = str(imagefile_header["EXPTIME"])
     except:
+        raise Exception()
         strt_cpu = 999
         stop_cpu = 999
+        exptime = 1
+        
     band = str(imagefile_header["FILTER"])
     imagefile_hdulist.close()
     
