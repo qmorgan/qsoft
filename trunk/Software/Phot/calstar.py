@@ -100,7 +100,6 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             calregion =  '/calstarregs/' + os.path.basename(reg) 
             data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
             image_data = data[image]
-            raise Exception
             if ra_str in image_data['calib_stars']:
                 datalist += [image_data['calib_stars'][ra_str]['new_mag']] 
                 dataerrlist += [image_data['calib_stars'][ra_str]['new_e_mag']]
