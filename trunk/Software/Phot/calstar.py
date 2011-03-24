@@ -109,7 +109,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
                 image_data.update({'t_mid':timetuple})
                 timelist += [time]
                 timeerrlist += [terr]
-                dec_str = image_data['calib_stars'][ra_str]['dec'][0:7]
+                dec_str = str(image_data['calib_stars'][ra_str]['dec'])[0:7]
                 parent_label = image
                 precal_dict.update({parent_label:image_data})
             else:
@@ -120,7 +120,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         timarr = array(timelist)
         timerrarr = array(timeerrlist)
         
-        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=str((ra_str,dec_str)) #star_pos_str)
+        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=str((ra_str,dec_str))) #star_pos_str)
         
         caldict.update({ra_str:precal_dict})
 

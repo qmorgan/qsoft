@@ -976,7 +976,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                         + (base_dither_error/sqrt(num_triplestacks))**2)
             
             #Sanity check on target separation
-            if star[8] > 1:
+            if star[8] > 5:
                 raise Exception("Investigate why the calib star/2mass separation is so large")
             
     print 'zp list is'
