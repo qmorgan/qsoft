@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, testind=1, noerr=False):
+def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, noerr=False):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -46,7 +46,9 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         filelist = globlist1 + globlist2
         print 'globit actiavated'
         print filelist
-
+    
+    calib_star_keys = []
+    testind = 0
     caldict = {}
     matplotlib.pyplot.clf()
     regpath = reg
@@ -63,32 +65,39 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     
     colornumber = len(callist)
     
-    tempreg = open(temppath, 'w')
-    tempreg.write('# Region file format: DS9 version 4.1\n')
-    secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
-             '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
-             'delete=1 include=1 source=1\n'
-    tempreg.write(secondstr)
-    tempreg.write('fk5\n')
-    #tmp_str = star_reg
-    print callist[0]
-    # Add a few arcseconds to the first position to make sure we don't use it as a target
-    test_ra = float(callist[0].lstrip('circle(').split(',')[0]) + 0.005
-    test_dec = float(callist[0].lstrip('circle(').split(',')[1]) + 0.005
+    while((len(calib_star_keys) < len(callist)) and testind < len(filelist)):
+        tempreg = open(temppath, 'w')
+        tempreg.write('# Region file format: DS9 version 4.1\n')
+        secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
+                 '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
+                 'delete=1 include=1 source=1\n'
+        tempreg.write(secondstr)
+        tempreg.write('fk5\n')
+        #tmp_str = star_reg
+        print callist[0]
+        # Add a few arcseconds to the first position to make sure we don't use it as a target
+        test_ra = float(callist[0].lstrip('circle(').split(',')[0]) + 0.005
+        test_dec = float(callist[0].lstrip('circle(').split(',')[1]) + 0.005
 
-    tmp_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (test_ra,test_dec)
+        tmp_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (test_ra,test_dec)
     
-    tempreg.write(tmp_str)
-    tempreg.close()
+        tempreg.write(tmp_str)
+        tempreg.close()
 
-    # Grab the calib stars we will be looping over:
-    calregion =  '/calstarregs/' + os.path.basename(reg) 
-    print "Using image #%i to get the calib stars; if not all are present \
-            in final plot, try a different image" % (testind)
-    testimage = filelist[testind]
-    photdict = q_phot.dophot(testimage, temppath, calreg=calregion, ap=ap, do_upper=False)
+        # Grab the calib stars we will be looping over:
+        calregion =  '/calstarregs/' + os.path.basename(reg) 
+        print "Using image #%i to get the calib stars; if not all are present \
+                in final plot, try a different image" % (testind)
+        testimage = filelist[testind]
+        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
+        
+        for key in photdict[testimage]['calib_stars'].keys():
+            if not key in calib_star_keys:
+                calib_star_keys.append(key)
+                
+        testind += 1
     
-    for index, ra_str in enumerate(photdict['calib_stars'].keys()):
+    for index, ra_str in enumerate(calib_star_keys):
         # if os.path.exists(temppath):
         #     os.remove(temppath)
         datalist = []
