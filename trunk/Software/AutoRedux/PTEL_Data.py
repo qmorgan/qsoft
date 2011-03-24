@@ -1,5 +1,4 @@
 import os, sys
-import pyfits
 import glob
 import time
 from Phot import extinction
@@ -53,6 +52,7 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     with GRB string; this still may be thousands of files..
     
     '''
+    import pyfits
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
     if swiftcatdict=={}:
@@ -333,18 +333,33 @@ def CopyRaw(pteldict,trigid=None,grbname=None,outlocation='/Volumes/MyPassport/D
         pass
 
 
-def RenameRaw(inpath,outpath='~/Data/PAIRITEL/tmpraw/',newid='GRB.999.1',newdirs=True):
+def RenameRaw(inpaths,outpath='~/Data/PAIRITEL/tmpraw/',id_list=[],newid='GRB.999.1',newdirs=True):
     '''Copy all files in a directory (such as created by copyraw) into 
     a new folder elsewhere, renaming all files to a common GRB ID.  Useful
     when needing to tack observations together for a common reduction
     
-    When two observations should be combined, put the raw files from them into
-    a common folder.  Then run this code on them and output the results into a
-    new folder.
+    Put a list of all raw observation folders to be combined into inpaths
     
     If newdirs = True, it will further split on days and create folders for each one.
     '''
-    rawfilelist = glob.glob(inpath+'/*')
+    if isinstance(inpaths,str):
+        inpaths = [inpaths]
+
+    if not isinstance(inpaths,list):
+        raise ValueError('inpaths needs to be of type "list"')
+    
+    if not id_list:
+        print 'No ids provided...'
+        
+    rawfilelist = []
+    for inpath in inpaths:
+        if not os.path.exists(inpath):
+            verr = "Path %s does not exist. Exiting." % (inpath)
+            raise ValueError(verr)
+        else:
+            for grbid in id_list:
+                rawfilelist += glob.glob(inpath+'/*'+str(grbid)+'*')
+
     newfilelist = []
     # extract 
     datelist=[]

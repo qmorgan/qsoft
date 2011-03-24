@@ -504,7 +504,9 @@ def cleanup(obsid,path=None,opt_str=''):
         
     
 def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=False):
-    
+    '''
+    Coadd triplestacks after prep has been done.
+    '''
     mosaic_list = []
     fj = open('j_mosaics.txt' , 'w')
     fh = open('h_mosaics.txt' , 'w')

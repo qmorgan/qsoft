@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False):
+def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, testind=1):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -59,9 +59,29 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     
     colornumber = len(callist)
     
-    for index, star_reg in enumerate(callist):
-        if os.path.exists(temppath):
-            os.remove(temppath)
+    tempreg = open(temppath, 'w')
+    tempreg.write('# Region file format: DS9 version 4.1\n')
+    secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
+             '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
+             'delete=1 include=1 source=1\n'
+    tempreg.write(secondstr)
+    tempreg.write('fk5\n')
+    #tmp_str = star_reg
+    tmp_str = 'circle(164.6415,67.5054,4") # width=2 font="helvetica 16 normal"\n'
+    
+    tempreg.write(tmp_str)
+    tempreg.close()
+
+    # Grab the calib stars we will be looping over:
+    calregion =  '/calstarregs/' + os.path.basename(reg) 
+    print "Using image #%i to get the calib stars; if not all are present \
+            in final plot, try a different image" % (testind)
+    testimage = filelist[testind]
+    photdict = q_phot.dophot(testimage, temppath, calreg=calregion, ap=ap, do_upper=False)
+    
+    for index, ra_str in enumerate(photdict['calib_stars'].keys()):
+        # if os.path.exists(temppath):
+        #     os.remove(temppath)
         datalist = []
         dataerrlist = []
         timelist = []
@@ -69,24 +89,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         colorstr = str(float((1/colornumber))*float(index + 1))
         colortuple = (colorstr, 0.5, 0)
         starname = 'star'+str(index)
-        tempreg = open(temppath, 'w')
-        tempreg.write('# Region file format: DS9 version 4.1\n')
-        secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
-                 '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
-                 'delete=1 include=1 source=1\n'
-        tempreg.write(secondstr)
-        tempreg.write('fk5\n')
-        tmp_str = star_reg
-        tempreg.write(tmp_str)
-        tempreg.close()
 
-        star_str = star_reg.strip('circle').split(',')
-        ra_str = star_str[0].strip('(')
-        dec_str = star_str[1]
-        ra_round = ra_str[0:8]
-        dec_round =dec_str[0:7]
-        star_pos = (ra_round, dec_round)
-        star_pos_str = str(star_pos)
 
         precal_dict = {}
 
@@ -94,29 +97,32 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             print '**************************************'
             print 'Photometry of star' + str(index) 
             print 'doing image ' + image
-            data = q_phot.dophot(image, temppath, ap=ap)
-            if 'targ_mag' in data:
-                datalist += [data['targ_mag'][0]] 
-                dataerrlist += [data['targ_mag'][1]]
+            calregion =  '/calstarregs/' + os.path.basename(reg) 
+            data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
+            image_data = data[image]
+            if ra_str in image_data['calib_stars']:
+                datalist += [image_data['calib_stars'][ra_str]['new_mag']] 
+                dataerrlist += [image_data['calib_stars'][ra_str]['new_e_mag']]
                 time = float(t_mid.t_mid(image, trigger=triggerid))
                 terr = float(t_mid.t_mid(image, trigger=triggerid,delta = True))/2.
                 timetuple = (time, terr)
-                data.update({'t_mid':timetuple})
+                image_data.update({'t_mid':timetuple})
                 timelist += [time]
                 timeerrlist += [terr]
+                dec_str = str(image_data['calib_stars'][ra_str]['dec'])[0:7]
                 parent_label = image
-                precal_dict.update({parent_label:data})
+                precal_dict.update({parent_label:image_data})
             else:
-                pass
+                print 'WARNING: CALIB STAR %s IS NOT USABLE FOR THIS IMAGE' % (ra_str)
 
         datarr = array(datalist)
         daterrarr = array(dataerrlist)
         timarr = array(timelist)
         timerrarr = array(timeerrlist)
         
-        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=star_pos_str)
+        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=str((ra_str,dec_str))) #star_pos_str)
         
-        caldict.update({star_pos_str:precal_dict})
+        caldict.update({ra_str:precal_dict})
 
         #matplotlib.pyplot.errorbar(timarr, datarr, yerr = daterrarr, label = starname, fmt='k.', color = colortuple) 
          
