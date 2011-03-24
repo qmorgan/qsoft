@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, testind=1):
+def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, testind=1, noerr=False):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -32,6 +32,10 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         triggerid: Swift trigger id of the GRB (if applicable; otherwise None)
         globit: if True, do a glob search to get a list of filenames to run 
                 photometry on instead of specifying an explicit list.
+        testind: index of image in the filelist from which to run the initial 
+                photometry on to get the calibration star keywords. make sure
+                all your calib stars are present and viewable in this image.
+        noerr: if True, do not plot error bars
     '''
 
     if globit == True:
@@ -67,7 +71,12 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     tempreg.write(secondstr)
     tempreg.write('fk5\n')
     #tmp_str = star_reg
-    tmp_str = 'circle(164.6415,67.5054,4") # width=2 font="helvetica 16 normal"\n'
+    print callist[0]
+    # Add a few arcseconds to the first position to make sure we don't use it as a target
+    test_ra = float(callist[0].lstrip('circle(').split(',')[0]) + 0.005
+    test_dec = float(callist[0].lstrip('circle(').split(',')[1]) + 0.005
+
+    tmp_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (test_ra,test_dec)
     
     tempreg.write(tmp_str)
     tempreg.close()
@@ -120,7 +129,10 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         timarr = array(timelist)
         timerrarr = array(timeerrlist)
         
-        pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=str((ra_str,dec_str))) #star_pos_str)
+        if noerr==True:
+            pylab.plot(timarr,datarr,'o',label=str((ra_str,dec_str)))
+        else:
+            pylab.errorbar(timarr,datarr,yerr=daterrarr,fmt='o',label=str((ra_str,dec_str))) #star_pos_str)
         
         caldict.update({ra_str:precal_dict})
 
