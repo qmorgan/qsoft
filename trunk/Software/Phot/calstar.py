@@ -71,7 +71,12 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     tempreg.write(secondstr)
     tempreg.write('fk5\n')
     #tmp_str = star_reg
-    tmp_str = 'circle(164.6415,67.5054,4") # width=2 font="helvetica 16 normal"\n'
+    print callist[0]
+    # Add a few arcseconds to the first position to make sure we don't use it as a target
+    test_ra = float(callist[0].lstrip('circle(').split(',')[0]) + 0.005
+    test_dec = float(callist[0].lstrip('circle(').split(',')[1]) + 0.005
+
+    tmp_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (test_ra,test_dec)
     
     tempreg.write(tmp_str)
     tempreg.close()
