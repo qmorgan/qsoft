@@ -288,7 +288,7 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.
  }
 
 
-extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results/smooth_weights_reduced"){
+extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results/smooth_weights_reduced_4"){
    ##### If data object is not defined, create the default data object ######
    ##### Results are then stored in the fres list within the data object ####
    if(is.null(data_obj)){
@@ -309,6 +309,10 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	ord_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights) 
 	objective_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights)
 	objective_stdev_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	purity_avg_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	purity_stdev_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	purity_upper_perc_over_seeds = matrix(0,length(data_obj$Z),Nweights)
+	purity_lower_perc_over_seeds = matrix(0,length(data_obj$Z),Nweights)
 	
 	####### Grab info
 	high_cutoff=data_obj$high_cutoff
@@ -398,6 +402,19 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 		   
    		objective_stdev_over_seeds[nalpha,weight_index] = stdev_frac_found
    		objective_avg_over_seeds[nalpha,weight_index] = avg_frac_found
+   		
+   		sum_high_as_high_all_seeds_dim2 = apply(high_as_high_all_seeds,2,sum) # [1xNseeds array]
+   		avg_sum_found = mean(sum_high_as_high_all_seeds_dim2)
+		   stdev_sum_found = sd(sum_high_as_high_all_seeds_dim2)
+   		
+   		sum_upper=quantile(sum_high_as_high_all_seeds_dim2, c(0.84))
+   		sum_lower=quantile(sum_high_as_high_all_seeds_dim2, c(0.16))
+   		
+   		purity_upper_perc_over_seeds[nalpha,weight_index]=sum_upper/Nfollow
+   		purity_lower_perc_over_seeds[nalpha,weight_index]=sum_lower/Nfollow
+   		purity_avg_over_seeds[nalpha,weight_index] = avg_sum_found/Nfollow
+   		purity_stdev_over_seeds[nalpha,weight_index] = stdev_sum_found/Nfollow
+		   
 		}
 		
 	   
@@ -405,7 +422,12 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	# is this necessary?
 	#colnames(res_avg_over_seeds)=paste(log_weights_try)
 	
-	forest_res_obj = list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, sd_over_seeds=res_sd_over_seeds, median_over_seeds=res_median_over_seeds, ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds,objective_stdev_over_seeds=objective_stdev_over_seeds)
+	forest_res_obj = {list(full=big_forest_res,avg_over_seeds=res_avg_over_seeds, 
+	   sd_over_seeds=res_sd_over_seeds, median_over_seeds=res_median_over_seeds, 
+	   ord_avg_over_seeds = ord_avg_over_seeds, objective_avg_over_seeds = objective_avg_over_seeds,
+	   objective_stdev_over_seeds=objective_stdev_over_seeds,
+	   purity_avg_over_seeds=purity_avg_over_seeds,purity_stdev_over_seeds=purity_stdev_over_seeds,
+	   purity_lower_perc_over_seeds=purity_lower_perc_over_seeds,purity_upper_perc_over_seeds=purity_upper_perc_over_seeds)}
    data_obj$fres = forest_res_obj
 	
 	return(data_obj)
@@ -697,6 +719,40 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   dev.off()
 }
 
+purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
+   # Take the fifth weight for now 
+   pdf(imagefile)
+   
+   high_cutoff = data_obj$high_cutoff
+   newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
+   
+   avg_pur = data_obj$fres$purity_avg_over_seeds[,weight_index]
+   
+   Zlen_1 = length(avg_pur) - 1
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   alpha_tries = seq(0,1,1/Zlen_1)
+   base_purity = c(0:Zlen_1)*0+data_obj$num_high/(data_obj$num_low + data_obj$num_high)
+   
+   avg_pur_high = data_obj$fres$purity_upper_perc_over_seeds[,weight_index]
+   avg_pur_low = data_obj$fres$purity_lower_perc_over_seeds[,weight_index]
+   
+   
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=newylab, pch="") # initialize plot))
+   title(main=expression("Purity"), sub=data_obj$data_string)
+   lines(alpha_tries, avg_pur, lty=1, lwd=4, col='red')
+   xx = c(alpha_tries, rev(alpha_tries))
+   yy = c(avg_pur_high, rev(avg_pur_low))
+   col=rainbow(1)
+   col_alpha = rainbow(1,alpha=0.3)
+   polygon(xx,yy, col=col_alpha)
+   lines(alpha_try_array,base_purity,lty=1,lwd=2)
+   
+   dev.off()
+   
+}
+
+
+
 efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    # Take the fifth weight for now 
    high_cutoff = data_obj$high_cutoff
@@ -780,6 +836,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    bumps_pred_text_name = paste("forest_pred_bumps_",data_string,"_",high_cutoff,".txt",sep="")
    bumps_text_name = paste("forest_order_bumps_",data_string,"_",high_cutoff,".txt",sep="")
    roc_plot_name = paste("./Plots/ROC_",data_string,"_",high_cutoff,".pdf",sep="")
+   purity_plot_name = paste("./Plots/Purity_",data_string,"_",high_cutoff,".pdf",sep="")
    mydata = read_data(filename=data_filename,high_cutoff=high_cutoff)
    mydata$data_string = data_string
    mydata$log_weights_try=log_weights_try
@@ -787,6 +844,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
       alphas.cv = smooth_random_forest_weights(data_obj = mydata,results_dir=data_results_dir,log_weights_try=log_weights_try,Nseeds=Nseeds,redo_useless=redo_useless)
    }
    mydata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   purity_vs_alpha(mydata,imagefile=purity_plot_name,weight_index=roc_weight)
    efficiency_vs_alpha(mydata,imagefile=roc_plot_name,weight_index=roc_weight)
    fres = mydata$fres$avg_over_seeds
    make_bumps_plot(fres, data_obj = mydata, imagefile=bumps_pred_plot_name,textfile=bumps_pred_text_name)
