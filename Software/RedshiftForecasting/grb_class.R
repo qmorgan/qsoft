@@ -495,8 +495,11 @@ add_forest_to_obj = function(data_obj=NULL,log_weight_try=2){
       data_obj = read_data()
    }
    ###########################################################################
-   weight_try = 10^log_weight_try
-   weights_vec = 1*(data_obj$data1$class == "low") + weight_try*(data_obj$data1$class == "high")
+   if(!is.null(log_weight_try)){
+      weight_try = 10^log_weight_try
+      weights_vec = 1*(data_obj$data1$class == "low") + weight_try*(data_obj$data1$class == "high")
+	}
+	else{weights_vec=NULL}
 	forest = forest.fit(data_obj$features,data_obj$classes,mtry=NULL,weights=weights_vec,n.trees=500,seed=sample(1:10^5,1))
    data_obj$forest = forest
    
@@ -657,7 +660,7 @@ cforest.pred = function(forest,xnew){
   pred.train = matrix(unlist(treeresponse(forest)),n.old,2,byrow=T) # CV this?
   # predict post. probs. for new data, with input forest
   predictions = matrix(unlist(treeresponse(forest,newdata=xnew)),n.new,2,byrow=T)
-  print(xnew$bat_is_rate_trig)[1]
+#  print(xnew$bat_is_rate_trig)[1]
   alpha.hat = NULL # compute alpha-hat values
   for(ii in 1:n.new){
     alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
