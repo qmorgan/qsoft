@@ -128,8 +128,9 @@ source('./algorithm1/algorithm1.R')
 ####### read in data: #######
 library(foreign)
 library(fields)
+library(randomForest)
 
-read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4){
+read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4,impute=TRUE){
    data1 = read.arff(filename)
    Z = data1$Z
    ####### define above high_cutoff as high, below as low $ ####### 
