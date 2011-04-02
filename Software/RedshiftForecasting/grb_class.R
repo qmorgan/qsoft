@@ -132,6 +132,9 @@ library(randomForest)
 
 read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4,impute=TRUE){
    data1 = read.arff(filename)
+   if(impute == TRUE){
+     data1 = na.roughfix(data1)
+   }
    Z = data1$Z
    ####### define above high_cutoff as high, below as low $ ####### 
    num_high = length(Z[Z >= high_cutoff])
