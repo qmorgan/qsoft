@@ -657,7 +657,7 @@ forest.pred = function(forest,xnew){
   pred.train = matrix(unlist(treeresponse(forest)),n.old,2,byrow=T) # CV this?
   # predict post. probs. for new data, with input forest
   predictions = matrix(unlist(treeresponse(forest,newdata=xnew)),n.new,2,byrow=T)
-  print(xnew$bat_is_rate_trig)[1]
+#  print(xnew$bat_is_rate_trig)[1]
   alpha.hat = NULL # compute alpha-hat values
   for(ii in 1:n.new){
     alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
