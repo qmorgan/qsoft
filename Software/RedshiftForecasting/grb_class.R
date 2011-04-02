@@ -698,7 +698,7 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
   names(train)[1] = "y"
   # fit random forest
   rf.fit = randomForest(y~.,data=train,
-    classwt=c("low"=weights[0],"high"=weights[1])
+    classwt=c("low"=weights[1],"high"=weights[2]))
   return(rf.fit)
 }
 
@@ -936,7 +936,7 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,ploterr=FAL
 }
 
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(0,4,0.4), Nseeds=10, roc_weight=5,redo_useless=FALSE, high_cutoff=4){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2 ), Nseeds=10, roc_weight=5,redo_useless=FALSE, high_cutoff=4){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
@@ -1009,10 +1009,11 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
 
 
 make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
-    make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    #  make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    #  make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    #  make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    #  make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
     make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
 }
 
