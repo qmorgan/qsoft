@@ -675,6 +675,7 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
   set.seed(seed)
 
   # convert to randomForest weights
+  # this solution is a bit hackish JPL
   if(!is.null(weights)){
     if(sum(weights != 1) > 0){
       high_weight = weights[weights != 1][1]
@@ -693,8 +694,8 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
   train = cbind(y,x) # set up data to read into cforest
   names(train)[1] = "y"
   # fit random forest
-  rf.fit = randomForest(y~.,data=train,classwt=weights)
-
+  rf.fit = randomForest(y~.,data=train,
+    classwt=c("low"=weights[0],"high"=weights[1])
   return(rf.fit)
 }
 
