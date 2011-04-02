@@ -631,7 +631,7 @@ par(mar=c(4,0,0,1))
 
 
 # fit and return forest on training data (using optimal tuning parameters)
-forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+cforest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   require(party)
   set.seed(seed)
   
@@ -649,7 +649,7 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
 }
 
 # Predict redshift (alpha-hat) for new GRBs
-forest.pred = function(forest,xnew){
+cforest.pred = function(forest,xnew){
   xnew = as.data.frame(xnew)
   n.new = dim(xnew)[1]
   n.old = length(predict(forest))
@@ -665,6 +665,54 @@ forest.pred = function(forest,xnew){
 
   return(list(alpha.hat = alpha.hat,prob.high=predictions[,2],prob.low=predictions[,1]))
 }
+
+
+
+# SAME AS cforest.fit but for the randomForest package
+# fit and return forest on training data (using optimal tuning parameters)
+forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
+  require(randomForest)
+  set.seed(seed)
+  
+  n = length(y)
+  p = length(table(y))
+  if(is.null(mtry)){ # default for mtry
+    mtry = ceiling(sqrt(dim(x)[2]))
+  }
+  train = cbind(y,x) # set up data to read into cforest
+  names(train)[1] = "y"
+  # fit random forest
+  rf.fit = randomForest(y~.,data=train)
+
+  return(rf.fit)
+}
+
+
+
+# USE FOR randomForest, use cforest.pred for party
+# Predict redshift (alpha-hat) for test GRBs
+# and returns probabilities of HIGH and LOW
+# for test GRBs (currently not used)
+forest.pred = function(forest,xnew){
+  # xnew in correct format, should be already
+  xnew = as.data.frame(xnew)
+  n.new = nrow(xnew)
+  n.old = length(rf$y)
+  # predictions for training data and test
+  pred.train = predict(forest,type="prob")
+  predictions = predict(forest,newdata=xnew,type="prob")  
+  # compute alpha.hats for the training
+  alpha.hat = vapply(predictions[,2],
+    function(x) { sum(x < pred.train[,2]) / n.old},0)
+  # return everything as a list
+  return(list(alpha.hat = alpha.hat,
+              prob.high=predictions[,2],
+              prob.low=predictions[,1]))
+}
+
+
+
+
 
 forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   require(party)
