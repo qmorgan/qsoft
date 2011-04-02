@@ -676,6 +676,17 @@ cforest.pred = function(forest,xnew){
 forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   require(randomForest)
   set.seed(seed)
+
+  # convert to randomForest weights
+  if(!is.null(weights)){
+    if(sum(weights != 1) > 0){
+      high_weight = weights[weights != 1][1]
+      weights = c(1,high_weight)
+    }
+    else {
+      weights = c(1,1)
+    }
+  }
   
   n = length(y)
   p = length(table(y))
@@ -685,7 +696,7 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
   train = cbind(y,x) # set up data to read into cforest
   names(train)[1] = "y"
   # fit random forest
-  rf.fit = randomForest(y~.,data=train)
+  rf.fit = randomForest(y~.,data=train,classwt=weights)
 
   return(rf.fit)
 }
