@@ -495,8 +495,11 @@ add_forest_to_obj = function(data_obj=NULL,log_weight_try=2){
       data_obj = read_data()
    }
    ###########################################################################
-   weight_try = 10^log_weight_try
-   weights_vec = 1*(data_obj$data1$class == "low") + weight_try*(data_obj$data1$class == "high")
+   if(!is.null(log_weight_try)){
+      weight_try = 10^log_weight_try
+      weights_vec = 1*(data_obj$data1$class == "low") + weight_try*(data_obj$data1$class == "high")
+	}
+	else{weights_vec=NULL}
 	forest = forest.fit(data_obj$features,data_obj$classes,mtry=NULL,weights=weights_vec,n.trees=500,seed=sample(1:10^5,1))
    data_obj$forest = forest
    
