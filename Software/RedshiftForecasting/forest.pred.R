@@ -19,7 +19,7 @@ forest.pred = function(forest,xnew){
   # xnew in correct format, should be already
   xnew = as.data.frame(xnew)
   n.new = nrow(xnew)
-  n.old = length(rf$y)
+  n.old = length(forest$y)
   # predictions for training data and test
   pred.train = predict(forest,type="prob")
   predictions = predict(forest,newdata=xnew,type="prob")  
