@@ -411,6 +411,15 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
    		sum_upper=quantile(sum_high_as_high_all_seeds_dim2, c(0.84))
    		sum_lower=quantile(sum_high_as_high_all_seeds_dim2, c(0.16))
    		
+   		if(weight_index==5 & nalpha == 9){
+   		   print(sum_high_as_high_all_seeds_dim2)
+   		   print(sum_upper)
+   		   print(sum_lower)
+   		   print(avg_sum_found)
+   		   print(stdev_sum_found)
+   		   print(avg_sum_found/Nfollow)
+		   }
+   		
    		purity_upper_perc_over_seeds[nalpha,weight_index]=sum_upper/Nfollow
    		purity_lower_perc_over_seeds[nalpha,weight_index]=sum_lower/Nfollow
    		purity_avg_over_seeds[nalpha,weight_index] = avg_sum_found/Nfollow
@@ -455,7 +464,6 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	   alpha_try_array = c(0:Zlen_1)/Zlen_1
 	   ordered_alpha_hats = sort(pred_vals$alpha.hat)
 	   frac_followed_up = ordered_alpha_hats*0.0
-	   
 	   count = 0
 	   for(alpha in alpha_try_array){
 	      count = count+1
@@ -646,6 +654,7 @@ forest.pred = function(forest,xnew){
   pred.train = matrix(unlist(treeresponse(forest)),n.old,2,byrow=T) # CV this?
   # predict post. probs. for new data, with input forest
   predictions = matrix(unlist(treeresponse(forest,newdata=xnew)),n.new,2,byrow=T)
+  print(xnew$bat_is_rate_trig)[1]
   alpha.hat = NULL # compute alpha-hat values
   for(ii in 1:n.new){
     alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
@@ -734,9 +743,11 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    alpha_tries = seq(0,1,1/Zlen_1)
    base_purity = c(0:Zlen_1)*0+data_obj$num_high/(data_obj$num_low + data_obj$num_high)
    
-   avg_pur_high = data_obj$fres$purity_upper_perc_over_seeds[,weight_index]
-   avg_pur_low = data_obj$fres$purity_lower_perc_over_seeds[,weight_index]
-   
+   # avg_pur_high = data_obj$fres$purity_upper_perc_over_seeds[,weight_index]
+   # avg_pur_low = data_obj$fres$purity_lower_perc_over_seeds[,weight_index]
+   # 
+   avg_pur_high = avg_pur + data_obj$fres$purity_stdev_over_seeds[,weight_index]
+   avg_pur_low = avg_pur - data_obj$fres$purity_stdev_over_seeds[,weight_index]
    
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Purity"), sub=data_obj$data_string)
@@ -781,6 +792,39 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
    lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col)
    
    dev.off()
+   
+}
+
+efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
+   # Take the fifth weight for now 
+   high_cutoff = data_obj$high_cutoff
+   newxlab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
+   newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
+   
+   avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+   avg_obj_high = avg_obj + data_obj$fres$objective_stdev_over_seeds[,weight_index]
+   avg_obj_low = avg_obj - data_obj$fres$objective_stdev_over_seeds[,weight_index]
+   
+   avg_pur = data_obj$fres$purity_avg_over_seeds[,weight_index]
+   
+   
+   Zlen_1 = length(avg_obj) - 1
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   alpha_tries = seq(0,1,1/Zlen_1)
+   pdf(imagefile)
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=newxlab, ylab=newylab, pch="") # initialize plot))
+   title(main=expression("Efficiency vs Purity"), sub=data_obj$data_string)
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   lines(avg_obj, avg_pur, lty=1, lwd=4, col='red')
+   xx = c(alpha_tries, rev(alpha_tries))
+   yy = c(avg_obj_high, rev(avg_obj_low))
+   col=rainbow(1)
+   col_alpha = rainbow(1,alpha=0.3)
+#   polygon(xx,yy, col=col_alpha)
+   
+#   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   
+#   dev.off()
    
 }
 
