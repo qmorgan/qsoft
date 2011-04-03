@@ -217,12 +217,18 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4)
    ###########################################################################
 	forest_res = NULL # save the raw-probabilities output from random forests
 
-	weights_try = 10^log_weights_try
+   # weights_try = c(NA,10^log_weights_try)
+   weights_try = 10^log_weights_try
+   weights_try[1] = NA
+	print(weights_try)
 	Nweights = length(weights_try)
 	for(nweight in seq(1,Nweights)) {
    		print(paste("*** weight",nweight,"of",Nweights,"***"))
    		whigh = weights_try[nweight]
-   		weights_vec = 1*(data_obj$data1$class == "low") + whigh*(data_obj$data1$class == "high")
+   		if(!is.na(whigh)){
+   		   weights_vec = 1*(data_obj$data1$class == "low") + whigh*(data_obj$data1$class == "high")
+   		}
+   		else{weights_vec = NULL}
    		#	weights_vec = length(weights_vec) * weights_vec / sum(weights_vec) # REMOVE? Causing problems
                 # stratified folds (for high-z bursts)
                 # The number of folds is determined by the number of high z bursts
@@ -473,10 +479,10 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	      frac_followed_up[count] = sum(ordered_alpha_hats < alpha)/Zlen_1
 	   }
 	   
-	   imagefile='unknownbursts.pdf'
+	   imagefile=paste('Plots/unknownbursts_',data_obj_train$data_string,'_',data_obj_test$data_string,'.pdf',sep="")
 	   pdf(imagefile)
    	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression("Fraction of GRBs Followed Up (q^hat < q)"), xlab=expression('q'), pch="") # initialize plot))
-      title(main=expression("Performance on bursts with unknown Z"))
+      title(main=expression("Performance on bursts with unknown Z"), sub=data_obj_test$data_string)
       lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
       dev.off()
@@ -1011,10 +1017,10 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
 make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
     #  make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
     #  make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    #  make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
     #  make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    #make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    #make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
 }
 
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(2,2.4,0.4)){
