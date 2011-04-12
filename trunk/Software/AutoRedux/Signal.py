@@ -121,7 +121,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_reg=False, mail_to='amorgan@berkeley.edu',\
                         make_html=True, html_path='/o/amorgan/public_html/Swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
-                        feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"
+                        feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
                         out_url_path='http://qmorgan.com/swift/'):
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
