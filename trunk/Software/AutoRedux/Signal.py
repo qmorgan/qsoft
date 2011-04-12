@@ -149,10 +149,10 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
         try:
             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
             if mail_html and grbhtml.successful_export:
-                _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path)
+                _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
 
-def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift/'):
+def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift/',grbhtml=None):
     if not hasattr(gcn,'mailed_web'):
         gcn.mailed_web = False
     if not gcn.mailed_web:
@@ -175,7 +175,6 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
             send_gmail.domail(mail_to,email_subject,email_body)
             if tweet:
                 try:
-                    grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                     # python-twitter requires some kind of oAuth authentication now which is a pain
                     # so just use tumblr, linked to the q.mailbot account.
                     tumblrmail = '831fezzaup@tumblr.com'
@@ -183,7 +182,16 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                     import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
                     bigurl = '%s/%i/' % (out_url_path,int(gcn.triggerid))
                     littleurl = tinyurl.create_one(bigurl)
-                    twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
+                    if grbhtml:
+                        ra=gcn.best_pos[0]
+                        dec=gcn.best_pos[1]
+                        uncertainty=gcn.best_pos[2]
+                        pos_label=gcn.best_pos_type,
+                        
+                        twittext = '''New GRB!\nSwift Trigger %i\n\nRA = %f, Dec = %f, Uncertainty: %f (%s)\n\nVisit %s for more info''' % (int(gcn.triggerid),ra,dec,uncertainty,pos_label,littleurl)
+                        
+                    else:
+                        twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
                     # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
                     # status = api.PostUpdate(twittext)
                     print 'Sending Tweet - %s' % (twittext)
