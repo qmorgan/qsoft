@@ -188,7 +188,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                         uncertainty=gcn.best_pos[2]
                         pos_label=gcn.best_pos_type,
                         
-                        twittext = '''New GRB!\nSwift Trigger %i\n\nRA = %f, Dec = %f, Uncertainty: %f (%s)\n\nVisit %s for more info''' % (int(gcn.triggerid),ra,dec,uncertainty,pos_label,littleurl)
+                        twittext = '''New GRB! Swift Trigger %i<br><br>RA = %f, Dec = %f, Uncertainty: %f (%s)<br><br>Visit %s for more info''' % (int(gcn.triggerid),ra,dec,uncertainty,pos_label,littleurl)
                         
                     else:
                         twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
