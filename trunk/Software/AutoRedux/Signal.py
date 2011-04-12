@@ -188,8 +188,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                     # status = api.PostUpdate(twittext)
                     print 'Sending Tweet - %s' % (twittext)
                     send_gmail.domail(tumblrmail,'',twittext,sig=False)
-                except:
-                    print 'Cannot post Twitter Message.'
+                except: qErr.qErr()
                 
         else:
             print 'Email has already been sent for this trigger.'
