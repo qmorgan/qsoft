@@ -122,7 +122,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         make_html=True, html_path='/o/amorgan/public_html/Swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
-                        out_url_path='http://qmorgan.com/swift'):
+                        out_url_path='http://qmorgan.com/swift/'):
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
     triggerid = triggerid.lstrip('0')
@@ -152,7 +152,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                 _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
 
-def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift',grbhtml=None):
+def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift/',grbhtml=None):
     if not hasattr(gcn,'mailed_web'):
         gcn.mailed_web = False
     if not gcn.mailed_web:
@@ -188,7 +188,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                         uncertainty=str(gcn.best_pos[2]).rstrip('0')
                         pos_label=gcn.best_pos_type,
                         twitsub = "New GRB! Swift Trigger %i" % (int(gcn.triggerid))
-                        twittext = ''' *  RA = %s\n *  Dec = %s\n *  Uncertainty = %s %s\n *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,littleurl)
+                        twittext = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,littleurl)
                         
                     else:
                         twitsub = ''
