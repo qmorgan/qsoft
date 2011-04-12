@@ -168,7 +168,7 @@ def Coadd(filelist, outname):
     total_time = end_time - start_time
     print "Program finished, execution time %f seconds." % total_time
 
-def MakeDeepStack(path='./'):
+def MakeDeepStack(path='./',outid='GRB.999.999'):
     '''Coadd all like-filter images together in a particular folder.  Used
     after SmartStackRefine (or some other coadding scheme) to make a deep stack
     of every available image.  Assumes a format of [j,h,k]_*coadd[0-9].fits or
@@ -181,7 +181,7 @@ def MakeDeepStack(path='./'):
         globlist1 = glob.glob(globstr1)
         globlist2 = glob.glob(globstr2)
         filelist = globlist1 + globlist2
-        outname = filt + '_long_deepstack.fits'
+        outname = filt +'_long_'+ outid +'_deep_coadd.fits'
         Coadd(filelist,outname)
 
 
