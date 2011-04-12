@@ -183,19 +183,20 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                     bigurl = '%s/%i/' % (out_url_path,int(gcn.triggerid))
                     littleurl = tinyurl.create_one(bigurl)
                     if grbhtml:
-                        ra=gcn.best_pos[0]
-                        dec=gcn.best_pos[1]
-                        uncertainty=gcn.best_pos[2]
+                        ra=str(gcn.best_pos[0]).rstrip('0')
+                        dec=str(gcn.best_pos[1]).rstrip('0')
+                        uncertainty=str(gcn.best_pos[2]).rstrip('0')
                         pos_label=gcn.best_pos_type,
-                        
-                        twittext = '''New GRB! Swift Trigger %i<br><br>RA = %f, Dec = %f, Uncertainty: %f (%s)<br><br>Visit %s for more info''' % (int(gcn.triggerid),ra,dec,uncertainty,pos_label,littleurl)
+                        twitsub = "New GRB! Swift Trigger %i" % (int(gcn.triggerid))
+                        twittext = '''RA = %s, Dec = %s, Uncertainty: %s %s<br><br>Visit %s for more info''' % (int(gcn.triggerid),ra,dec,uncertainty,pos_label,littleurl)
                         
                     else:
+                        twitsub = ''
                         twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
                     # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
                     # status = api.PostUpdate(twittext)
                     print 'Sending Tweet - %s' % (twittext)
-                    send_gmail.domail(tumblrmail,'',twittext,sig=False)
+                    send_gmail.domail(tumblrmail,twitsub,twittext,sig=False)
                 except: qErr.qErr()
                 
         else:
