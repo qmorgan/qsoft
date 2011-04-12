@@ -92,7 +92,8 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 mail_reg=False, mail_to='amorgan@berkeley.edu',\
                 make_html=True, html_path='/o/amorgan/public_html/Swift/',\
                 mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
-                feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"):
+                feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"
+                out_url_path='http://qmorgan.com/swift/'):
     while(True):
         sql_tuple_list = MonitorRSS(feed_url)
         for sql_tuple in sql_tuple_list:
@@ -112,7 +113,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
             else:
                 triggerid = '0'
             if len(triggerid) == 6:
-                _do_all_trigger_actions(triggerid, incl_reg=incl_reg, incl_fc=incl_fc, mail_reg=mail_reg,mail_to=mail_to, make_html=make_html, html_path=html_path, mail_html=mail_html, feed_type=feed_type, force_mail=force_mail, tweet=tweet, feed_url=feed_url)
+                _do_all_trigger_actions(triggerid, incl_reg=incl_reg, incl_fc=incl_fc, mail_reg=mail_reg,mail_to=mail_to, make_html=make_html, html_path=html_path, mail_html=mail_html, feed_type=feed_type, force_mail=force_mail, tweet=tweet, feed_url=feed_url, out_url_path=out_url_path)
 
         time.sleep(60)
 
@@ -120,7 +121,9 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_reg=False, mail_to='amorgan@berkeley.edu',\
                         make_html=True, html_path='/o/amorgan/public_html/Swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
-                        feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"):
+                        feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml"
+                        out_url_path='http://qmorgan.com/swift/'):
+    #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
     triggerid = triggerid.lstrip('0')
     print 'Loading GCN for trigger %s' % (triggerid)
@@ -146,16 +149,16 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
         try:
             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
             if mail_html and grbhtml.successful_export:
-                _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet)
+                _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path)
         except: qErr.qErr()
 
-def _mail_html(gcn,mail_to,clobber=False,tweet=True):
+def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift/'):
     if not hasattr(gcn,'mailed_web'):
         gcn.mailed_web = False
     if not gcn.mailed_web:
         email_subject = 'New Web Page for Swift trigger %i' % int(gcn.triggerid)
-        email_body = '''Please visit http://astro.berkeley.edu/~amorgan/Swift/%i/
-        for information on this event, updated as more information arrives.''' % int(gcn.triggerid) 
+        email_body = '''Please visit %s%i/
+        for information on this event, updated as more information arrives.''' % (out_url_path,int(gcn.triggerid)) 
         
         # Crap, the following doesn't work because of clobber=True when reloading new GCNs
         # EVENTUALL UPDATE SO WE DON'T RELOAD THE ENTIRE GCN EACH TIME, JUST ADD THE NEW NOTICES?
@@ -172,12 +175,13 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True):
             send_gmail.domail(mail_to,email_subject,email_body)
             if tweet:
                 try:
+                    grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
                     # python-twitter requires some kind of oAuth authentication now which is a pain
                     # so just use tumblr, linked to the q.mailbot account.
                     tumblrmail = '831fezzaup@tumblr.com'
                     # import twitter # requires http://code.google.com/p/python-twitter/
                     import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
-                    bigurl = 'http://astro.berkeley.edu/~amorgan/Swift/%i/' % int(gcn.triggerid)
+                    bigurl = '%s/%i/' % (out_url_path,int(gcn.triggerid))
                     littleurl = tinyurl.create_one(bigurl)
                     twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
                     # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
