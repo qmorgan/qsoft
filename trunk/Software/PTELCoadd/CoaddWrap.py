@@ -574,7 +574,8 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
             j_file_new.close()
             h_file_new.close()
             k_file_new.close()
-            
+
+            print '======================================================'
             print 'Now Coadding triplestacks ' + start_seg + '-' + end_seg + ".."
             if not single:
                 coaddstr = pypath + " mosaic_maker.py -o " + obsid 
