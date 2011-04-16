@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, noerr=False):
+def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, noerr=False, magrange=None):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -96,6 +96,9 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
                 calib_star_keys.append(key)
                 
         testind += 1
+    print 'length of stuff'
+    print len(callist)
+    print len(calib_star_keys)
     
     for index, ra_str in enumerate(calib_star_keys):
         # if os.path.exists(temppath):
@@ -154,7 +157,10 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim((ax.get_xlim()[0]),(ax.get_xlim()[1])*1.2)
     matplotlib.pyplot.legend()
-    
+
+    if magrange:
+        ax.set_ylim(magrange)
+        
     F = pylab.gcf()
     DefaultSize = F.get_size_inches()
     DPI = F.get_dpi()
