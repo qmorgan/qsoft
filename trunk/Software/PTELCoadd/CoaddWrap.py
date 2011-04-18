@@ -284,6 +284,10 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             myrange = (obs_num_i, obs_num_f)
             num_of_obs = obs_num_f - obs_num_i
             
+            j_mosaic_list = []
+            h_mosaic_list = []
+            k_mosaic_list = []
+            
             dobreak = False
             # if we're running out of observations, tack the rest on to the end
             if obs_num_f + sum_length > total_length:
@@ -308,8 +312,7 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             print 'The S/N reached is %s from a total of %s images: %s' % (str(s2n), str(obs_num_f - obs_num_i + 1), str(myrange))
             
             # End here if we've run out of observations to stack.  
-            if dobreak:
-                break
+
             
             if s2n >= mins2n or num_of_obs >= maxcoadd:
                 if s2n >= mins2n:
@@ -322,6 +325,10 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 base_split = basename.split('coadd')
                 newbasename = base_split[0] + str(obs_num_i) + '-' + str(obs_num_f) + '_coadd' + base_split[1]
                 filt_list = ['j','h','k']
+                j_mosaic_list.append('j' + newbasename)
+                h_mosaic_list.append('h' + newbasename)
+                k_mosaic_list.append('k' + newbasename)
+                
                 for filt in filt_list:
                     mvname = 'mv %s%sfits %s%sfits' % (filt, basename, filt, newbasename)
                     mvwtname = 'mv %s%sweight.fits %s%sweight.fits' % (filt, basename, filt, newbasename)
@@ -329,6 +336,17 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                     os.system(mvname)
                     os.system(mvwtname)
                     os.system(mvcatname)
+                if dobreak:
+                    # Check if last observation has high enough s/n
+                    # Coadd all obs to previous stack if not high enough.
+                    # Change this naming scheme but for now just test
+                    if s2n >= mins2n and len(j_mosaic_list) >= 2:
+                        Coadd(j_mosaic_list[-2:],'j_last_two.fits')
+                        Coadd(h_mosaic_list[-2:],'h_last_two.fits')
+                        Coadd(k_mosaic_list[-2:],'k_last_two.fits')
+                    break
+                prevbasename = newbasename # save for later use
+                
             else:
                 # If not reached, add one more to the coaddlist and try again.
                 basename = photdict['FileName'].rstrip('fits')[1:]

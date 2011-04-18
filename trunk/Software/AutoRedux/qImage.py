@@ -259,7 +259,7 @@ class qImage:
 
 
 
-def stealStuff(file_name,file_mode,base_url, timeout=20):
+def stealStuff(file_name,file_mode,base_url, timeout=20, verbose=False):
     from urllib2 import Request, urlopen, URLError, HTTPError
     
     #create the url and the request
@@ -274,7 +274,8 @@ def stealStuff(file_name,file_mode,base_url, timeout=20):
         trys_left = 5-count
         try:
             f = urlopen(req, timeout=timeout)
-            print "downloading " + url
+            if verbose: 
+                print "downloading " + url
 
             # Open our local file for writing
             local_file = open(file_name, "w" + file_mode)
@@ -305,6 +306,10 @@ def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
 def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True):
     fc = qImage()
     # define pixel scale from side size
+    uncertainty = float(uncertainty)
+    ra = float(ra)
+    dec = float(dec)
+    size = float(size)
     if size:
         try:
             if size.upper() == 'AUTO' and uncertainty > 0:
@@ -341,18 +346,4 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
     else:
         suppress_scale=False
     
-    svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
-    outname = storepath+src_name+'_fc'
-    outnamesvg = outname+'.svg'
-    outnamepng = outname+'.png'
-    f=open(outnamesvg,'w')
-    f.write(svgout)
-    f.close()
-    magickcommand = "convert %s %s" % (outnamesvg, outnamepng)
-    try:
-        os.system(magickcommand)
-    except:
-        print "Do not have Imagemagick, cannot convert svg to png"
-    print storepath+outname+'*'
-    outlist = glob.glob(outname+'*')
-    return outlist
+    return fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
