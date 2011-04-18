@@ -180,7 +180,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                     tumblrmail = '831fezzaup@tumblr.com'
                     # import twitter # requires http://code.google.com/p/python-twitter/
                     import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
-                    bigurl = '%s/%i/' % (out_url_path,int(gcn.triggerid))
+                    bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
                     littleurl = tinyurl.create_one(bigurl)
                     if grbhtml:
                         ra=str(gcn.best_pos[0]).rstrip('0')
