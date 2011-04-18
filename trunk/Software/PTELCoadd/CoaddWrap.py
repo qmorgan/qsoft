@@ -2,7 +2,7 @@
 CoaddWrap.py
 Author: Adam N. Morgan
 
-A wrap around Chris's mosaic_maker.py, to create mosaics of every N 
+A wrap around Chris\'s mosaic_maker.py, to create mosaics of every N 
 triplestacks created by PAIRITEL Pipeline3.
 
 To run, put this file, along with mosaic_maker.py, anet.py, and 
@@ -258,6 +258,10 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
     elif mins2n < 1.0:
         print 'S2N too low - exiting'
         raise(ValueError)
+
+    j_mosaic_list = []
+    h_mosaic_list = []
+    k_mosaic_list = []
     
     # Two nested while loops.  One keeps going until all observations are 
     # used up.  The other keeps going until the maximum s/n is reached.    
@@ -283,10 +287,6 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             
             myrange = (obs_num_i, obs_num_f)
             num_of_obs = obs_num_f - obs_num_i
-            
-            j_mosaic_list = []
-            h_mosaic_list = []
-            k_mosaic_list = []
             
             dobreak = False
             # if we're running out of observations, tack the rest on to the end
@@ -314,7 +314,7 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             # End here if we've run out of observations to stack.  
 
             
-            if s2n >= mins2n or num_of_obs >= maxcoadd:
+            if s2n >= mins2n or num_of_obs >= maxcoadd or dobreak:
                 if s2n >= mins2n:
                     print 'Minimum S/N Reached! '
                 if num_of_obs >= maxcoadd:
@@ -325,9 +325,9 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 base_split = basename.split('coadd')
                 newbasename = base_split[0] + str(obs_num_i) + '-' + str(obs_num_f) + '_coadd' + base_split[1]
                 filt_list = ['j','h','k']
-                j_mosaic_list.append('j' + newbasename)
-                h_mosaic_list.append('h' + newbasename)
-                k_mosaic_list.append('k' + newbasename)
+                j_mosaic_list.append('j' + newbasename + 'fits')
+                h_mosaic_list.append('h' + newbasename + 'fits')
+                k_mosaic_list.append('k' + newbasename + 'fits')
                 
                 for filt in filt_list:
                     mvname = 'mv %s%sfits %s%sfits' % (filt, basename, filt, newbasename)
@@ -340,10 +340,26 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                     # Check if last observation has high enough s/n
                     # Coadd all obs to previous stack if not high enough.
                     # Change this naming scheme but for now just test
-                    if s2n >= mins2n and len(j_mosaic_list) >= 2:
-                        Coadd(j_mosaic_list[-2:],'j_last_two.fits')
-                        Coadd(h_mosaic_list[-2:],'h_last_two.fits')
-                        Coadd(k_mosaic_list[-2:],'k_last_two.fits')
+                    print j_mosaic_list
+                                        
+                    if s2n <= mins2n and len(j_mosaic_list) >= 2:
+                        
+                        firstindex_under = j_mosaic_list[-2].split('_')[3].split('-')[0]
+                        firstindex_upper = j_mosaic_list[-1].split('_')[3].split('-')[1]
+                        firstindex = firstindex_under + '-' + firstindex_upper
+
+                        secondindex_under = j_mosaic_list[-2].split('_')[5].split('.')[0].split('-')[0]
+                        secondindex_upper = j_mosaic_list[-1].split('_')[5].split('.')[0].split('-')[1]
+                        secondindex = secondindex_under + '-' + secondindex_upper
+
+                        j_name = j_mosaic_list[-2].split('.')[0]+'.'+ j_mosaic_list[-2].split('.')[1]+ '_' + firstindex + '_coadd_' + secondindex + '.fits'
+                        h_name = h_mosaic_list[-2].split('.')[0]+'.'+ h_mosaic_list[-2].split('.')[1]+ '_' + firstindex + '_coadd_' + secondindex + '.fits'
+                        k_name = k_mosaic_list[-2].split('.')[0]+'.'+ k_mosaic_list[-2].split('.')[1]+ '_' + firstindex + '_coadd_' + secondindex + '.fits'
+                        
+                        Coadd(j_mosaic_list[-2:], j_name)
+                        Coadd(h_mosaic_list[-2:], h_name)
+                        Coadd(k_mosaic_list[-2:], k_name)
+                
                     break
                 prevbasename = newbasename # save for later use
                 
