@@ -54,7 +54,7 @@ class GRBHTML:
     def add_header(self):
         self.html_block = '''
         <html><head><title>Swift Trigger %s</title></head>
-        <body bgcolor="#FFFFFF" text="#000066">
+        <body background="http://static.tumblr.com/snnreod/Fx4l8ig9j/background_dark.jpg" bgcolor="#363636" text="#FFFFFF" link="#EEEEEE" alink="#EEEEEE" vlink="#AAAAAA">
         <center>
         <font size="+2">Swift Trigger %s</font><p>
         
@@ -206,12 +206,39 @@ def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
     incl_files = ['reg_path','fc_path']
     incl_keys = ['triggerid_str','z']
     html_block = '''
-    <html><head><title>List of GRB Pages</title></head>
-    <body bgcolor="#FFFFFF" text="#000066">
-    <font size="+2">List of GRB Pages</font><p>
-    BETA!<p>
+    <html><head><title>Q's GRB Pages</title></head>
+    <body background="http://static.tumblr.com/snnreod/Fx4l8ig9j/background_dark.jpg" bgcolor="#363636" text="#000000" link="#111111" alink="#111111" vlink="#333333">
+    <center><font size="+2" color="#FFFFFF">Q's GRB Pages</font><p></center>
     
-    <table border="1">
+    <style type="text/css">
+    table.sample {
+    border-width: 1px;
+    border-spacing: ;
+    border-style: outset;
+    border-color: white;
+    border-collapse: collapse;
+    background-color: rgb(255, 255, 240);
+    }
+    table.sample th {
+    border-width: 3px;
+    padding: 3px;
+    border-style: solid;
+    border-color: black;
+    background-color: white;
+    -moz-border-radius: ;
+    }
+    table.sample td {
+    border-width: 3px;
+    padding: 3px;
+    border-style: solid;
+    border-color: black;
+    background-color: white;
+    -moz-border-radius: ;
+    }
+
+    </style>
+    
+    <table class="sample" align="center">
     ''' 
     table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift')
     table_label = '<tr>'
