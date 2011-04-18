@@ -259,7 +259,7 @@ class qImage:
 
 
 
-def stealStuff(file_name,file_mode,base_url, timeout=20):
+def stealStuff(file_name,file_mode,base_url, timeout=20, verbose=False):
     from urllib2 import Request, urlopen, URLError, HTTPError
     
     #create the url and the request
@@ -274,7 +274,8 @@ def stealStuff(file_name,file_mode,base_url, timeout=20):
         trys_left = 5-count
         try:
             f = urlopen(req, timeout=timeout)
-            print "downloading " + url
+            if verbose: 
+                print "downloading " + url
 
             # Open our local file for writing
             local_file = open(file_name, "w" + file_mode)
