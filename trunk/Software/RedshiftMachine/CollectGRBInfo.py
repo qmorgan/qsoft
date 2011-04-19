@@ -252,7 +252,7 @@ def SaveDB(loadeddb):
 class GRBdb:
     '''Instance of a grb database'''
     def __init__(self,name,incl_nat=True,incl_fc=False,incl_reg=True,
-                make_html=True,html_path='/Users/amorgan/Public/TestDir/'):
+                make_html=True,html_path='/home/amorgan/www/swift/'):
         
         self.date_created = time.ctime()
         try: 
@@ -1057,11 +1057,13 @@ class GRBdb:
         # 
     
     
-    def removeValues(self,key,argument):
+    def removeValues(self,key,argument,removeNAN=False):
         '''Catch-all function to remove all values in the CollectObject which
         obey the given argument.  It removes it from the dictionary, and then
         re-runs the makeallattr function to create new arrays.  
-       
+        
+        
+        if removeNAN: kill the entire entry if this value is NAN for a particular GRB
         '''
         remove_list = []
         # Quick check to see if the argument is kind of formatted correctly
@@ -1083,6 +1085,8 @@ class GRBdb:
             if not keyval == 'unknown':
                 execstring = 'if keyval %s: remove_list.append(ii); already_removed=True '\
                     % (argument)
+            elif removeNAN:
+                execstring = 'remove_list.append(ii); already_removed=True'
             else:
                 execstring = 'pass'
             
