@@ -79,14 +79,17 @@ def GetNewCatFromWeb():
     try:
         swift_cat_web_open = urllib2.urlopen(swift_cat_web_address)
         swift_cat_web_string=swift_cat_web_open.read()
-        left_split = first_half=swift_cat_web_string.split('tab-delimited text file: <a href="tmp/')
+        left_split = first_half=swift_cat_web_string.split('tab-delimited text file: <a href="')
         ascii_cat_id = left_split[1].split('">grb_table_')[0]
-        cat_base_url = 'http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/tmp/' 
+        cat_base_url = 'http://swift.gsfc.nasa.gov/' 
         out_path = loadpath + 'grb_table_current.txt'
         DownloadFile(cat_base_url,ascii_cat_id,out_path)
+        print 'Saved to ' + out_path
+        print ''
     except:
-        pass
-
+        print 'CANNOT DOWNLOAD SWIFT CATALOG'
+        raise Exception
+        
 def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
     # Read a tab delimited file
     print "Opening %s" % swiftcat
