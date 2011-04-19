@@ -31,6 +31,7 @@ from Plotting.ColorScatter import ColorScatter
 from Plotting.Annote import AnnotatedSubPlot
 from Plotting.GridPlot import GridPlot
 from Phot import extinction
+from AutoRedux import GRBHTML
 
 
 #from MiscBin.q import Standardize
@@ -316,6 +317,9 @@ class GRBdb:
         make_html = self.make_html
         html_path = self.html_path
         
+        # Download the newest catalog
+        ParseSwiftCat.GetNewCatFromWeb()
+        
         print '\nNow loading Swift Online Catalog Entries'
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
@@ -411,7 +415,10 @@ class GRBdb:
         # WOULD BE NICE IF THE 'COLLECTED DICT' Was an OBJECT so these could be 
         # ATTRIBUTES.  and we could have the functions be attributes too.  Bah.
         # this would be nice.  So I made it so.  02/06/10
-            
+        
+        if self.make_html:
+            GRBHTML.MakeGRBIndex(collected_dict.dict, html_path='/home/amorgan/www/swift')
+        
         print ''
         print len(collected_dict), ' entries in the collected dictionary'
         print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
