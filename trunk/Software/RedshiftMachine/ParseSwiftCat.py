@@ -28,6 +28,7 @@ Options on GRB Table lookup:
     4 	BAT Dec (J2000)
     5	BAT 90% Error Radius [arcmin]
     6 	BAT T90 [sec]
+    6.5 ????? Update - not sure why this column is added in the text download. increment all by 1
     7 	BAT Fluence (15-150 keV) [10-7 erg/cm2]
     8 	BAT Fluence 90% Error (15-150 keV) [10-7 erg/cm2]
     9 	BAT 1-sec Peak Photon Flux (15-150 keV) [ph/cm2/sec]
@@ -50,6 +51,7 @@ Options on GRB Table lookup:
     26 	UVOT Magnitude
     27 	UVOT Other Filter Magnitudes
     28 	Other Observatory Detections
+    28.5 ???? Update - not sure why this column is added in the text download. increment all by 1
     29 	Redshift
     30 	Host Galaxy
     31 	Comments
@@ -113,9 +115,10 @@ def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
     # Now go through the list of objects read in and put them into a dictionary
 
     for grbs in borklist:
-        subdict={grbs[0]:{'burst_time_str':grbs[1],'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
-                 'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_time_delta_str':grbs[16], 'xrt_column_str':grbs[21], \
-                 'uvot_time_delta_str':grbs[25], 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
+        print grbs
+        subdict={grbs[0]:{'burst_time_str':grbs[1],'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[10], \
+                 'xrt_ra_str':grbs[14], 'xrt_dec_str':grbs[15], 'xrt_time_delta_str':grbs[17], 'xrt_column_str':grbs[22], \
+                 'uvot_time_delta_str':grbs[26], 'v_mag_str':grbs[27], 'uvot_list':grbs[28], 'z_str':grbs[31]}}
         grbdict.update(subdict)
     
     # Update the dictonary to parse the crap and make it better
