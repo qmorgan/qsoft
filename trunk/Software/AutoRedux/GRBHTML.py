@@ -133,7 +133,7 @@ class GRBHTML:
                 DSS Finder Chart<br>
                 <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=200, height=200></a>
                 <br>
-                <a href='http://lyra.berkeley.edu/~amorgan/displayfc.php?ra=%f&dec=%f&sigma=%f&size=AUTO&name=Swift_%s&label=%s&contstr=&survey=sdss'>SDSS Finding Chart</a>
+                <a href='http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=%f&err_shape=combo&incl_scale=yes&size=AUTO&src_name=Swift_%s&pos_label=%s&cont_str=&survey=sdss'>SDSS Finding Chart</a>
                 <br>(May not be available)
                 ''' % (fc_base,fc_base,self.best_pos[0],self.best_pos[1],self.best_pos[2],self.triggerid,self.best_pos_type)
             else:
@@ -184,7 +184,7 @@ class GRBHTML:
     
 
 
-def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
+def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
                 bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None,\
                 grb_time=None,fc_path=None):
     '''Make a GRB page given inputs and return the instance of the html.'''
@@ -198,7 +198,7 @@ def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
     inst.export_html()
     return inst
 
-def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
+def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
     '''Takes a collected dictionary from CollectGRBInfo and creates an index
     html page for all the GRBs
     '''
