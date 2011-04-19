@@ -306,10 +306,17 @@ def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
 def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True):
     fc = qImage()
     # define pixel scale from side size
-    uncertainty = float(uncertainty)
-    ra = float(ra)
-    dec = float(dec)
-    size = float(size)
+    try:
+        uncertainty = float(uncertainty)
+        ra = float(ra)
+        dec = float(dec)
+    except:
+        raise ValueError('Values need to be float')
+    try:
+       size = float(size)
+    except:
+       pass  #assume we wanted auto
+
     if size:
         try:
             if size.upper() == 'AUTO' and uncertainty > 0:
