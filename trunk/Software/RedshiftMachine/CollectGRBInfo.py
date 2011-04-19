@@ -417,7 +417,10 @@ class GRBdb:
         # this would be nice.  So I made it so.  02/06/10
         
         if self.make_html:
-            GRBHTML.MakeGRBIndex(collected_dict.dict, html_path='/home/amorgan/www/swift')
+            try:
+                newpath = GRBHTML.MakeGRBIndex(collected_dict, html_path='/home/amorgan/www/swift')
+            except:
+                print 'Cannot make index page.. path probably does not exist'
         
         print ''
         print len(collected_dict), ' entries in the collected dictionary'
