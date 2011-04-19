@@ -93,7 +93,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 make_html=True, html_path='/o/amorgan/public_html/Swift/',\
                 mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                 feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
-                out_url_path='http://qmorgan.com/swift/'):
+                out_url_path='http://swift.qmorgan.com/'):
     while(True):
         sql_tuple_list = MonitorRSS(feed_url)
         for sql_tuple in sql_tuple_list:
@@ -122,7 +122,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         make_html=True, html_path='/o/amorgan/public_html/Swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
-                        out_url_path='http://qmorgan.com/swift/'):
+                        out_url_path='http://swift.qmorgan.com/'):
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
     triggerid = triggerid.lstrip('0')
@@ -152,7 +152,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                 _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
 
-def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift/',grbhtml=None):
+def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.qmorgan.com/',grbhtml=None):
     if not hasattr(gcn,'mailed_web'):
         gcn.mailed_web = False
     if not gcn.mailed_web:
