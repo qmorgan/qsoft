@@ -90,7 +90,7 @@ def MonitorRSS(feed_url):
 
 def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 mail_reg=False, mail_to='amorgan@berkeley.edu',\
-                make_html=True, html_path='/o/amorgan/public_html/Swift/',\
+                make_html=True, html_path='/home/amorgan/www/swift/',\
                 mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                 feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
                 out_url_path='http://swift.qmorgan.com/'):
@@ -119,7 +119,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
 
 def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_reg=False, mail_to='amorgan@berkeley.edu',\
-                        make_html=True, html_path='/o/amorgan/public_html/Swift/',\
+                        make_html=True, html_path='/home/amorgan/www/swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
                         out_url_path='http://swift.qmorgan.com/'):
