@@ -181,7 +181,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.q
                 try:
                     # python-twitter requires some kind of oAuth authentication now which is a pain
                     # so just use tumblr, linked to the q.mailbot account.
-                    tumblrmail = '831fezzaup@tumblr.com'
+                    tumblrmail = '661mafroil@tumblr.com'
                     # import twitter # requires http://code.google.com/p/python-twitter/
                     import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
                     bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
