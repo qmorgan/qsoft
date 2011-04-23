@@ -9,6 +9,7 @@ except:
 import base64, Image, string
 import glob
 from MiscBin.q import dec2sex
+from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
