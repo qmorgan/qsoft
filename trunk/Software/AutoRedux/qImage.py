@@ -287,13 +287,16 @@ def stealStuff(file_name,file_mode,base_url, timeout=20, verbose=False):
         #handle errors
         except HTTPError, e:
             print "HTTP Error:",e.code , url
-            print "Trying again: %i attempts remaining" % (trys_left)
+            print "Trying again: %i attempts remaining" % (trys_left+1)
+            if trys_left <= -1: qErr.qErr()
         except URLError, e:
             print "URL Error:",e.reason , url
-            print "Trying again: %i attempts remaining" % (trys_left)
+            print "Trying again: %i attempts remaining" % (trys_left+1)
+            if trys_left <= -1: qErr.qErr()
         except:
             print "Couldn't Download!"
-            print "Trying again: %i attempts remaining" % (trys_left)
+            print "Trying again: %i attempts remaining" % (trys_left+1)
+            if trys_left <= -1: qErr.qErr()
 
 def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
     

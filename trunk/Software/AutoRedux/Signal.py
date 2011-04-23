@@ -272,7 +272,7 @@ def DownloadFile(base_url,file_name,out_path):
     except URLError, e:
         print "URL Error:",e.reason , url
         
-def make_grb_html(gcn,html_path='/Users/amorgan/Public/TestDir',reg_path=None,fc_path=None):
+def make_grb_html(gcn,html_path='/home/amorgan/www/swift',reg_path=None,fc_path=None):
     '''Create a GRB Page and Return the Path of the created GRB Webpage'''
     
     triggerid = gcn.triggerid
