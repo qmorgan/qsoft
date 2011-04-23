@@ -307,7 +307,8 @@ def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
     # for the second param ala stealStuff(file_name,'',base_url)
     stealStuff(out_name,"b",img_url, timeout=timeout)
 
-def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True):
+def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True,return_svg=False):
+    '''if return_svg, actually return the svg text rather than saving it to file.  Used for the online finding chart generator.'''
     fc = qImage()
     # define pixel scale from side size
     try:
@@ -356,5 +357,23 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
         suppress_scale=True
     else:
         suppress_scale=False
+
+    if not return_svg:
+        svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
+        outname = storepath+src_name+'_fc'
+        outnamesvg = outname+'.svg'
+        outnamepng = outname+'.png'
+        f=open(outnamesvg,'w')
+        f.write(svgout)
+        f.close()
+        magickcommand = "convert %s %s" % (outnamesvg, outnamepng)
+        try:
+            os.system(magickcommand)
+        except:
+            print "Do not have Imagemagick, cannot convert svg to png"
+        print storepath+outname+'*'
+        outlist = glob.glob(outname+'*')
+        return outlist
     
-    return fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
+    if return_svg:
+        return fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
