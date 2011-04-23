@@ -134,12 +134,16 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
     if incl_reg:
         try:
             reg_path = _incl_reg(gcn)
-            if not reg_path: print '\nCOULDNT FIND REG PATH\n'
+            if not reg_path: 
+                print '\nCOULDNT FIND REG PATH\n'
+                qErr.qErr()
         except: qErr.qErr()
     if incl_fc:
         try:
             fc_path = _incl_fc(gcn,last_pos_check=True)
-            if not fc_path: print '\nCOULDNT FIND FC PATH\n'
+            if not fc_path: 
+                print '\nCOULDNT FIND FC PATH\n'
+                qErr.qErr()
         except: qErr.qErr()
     if mail_reg:
         try:

@@ -14,6 +14,7 @@ import os
 import shutil
 import time
 from MiscBin import q
+from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
