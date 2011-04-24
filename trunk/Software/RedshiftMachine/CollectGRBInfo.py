@@ -32,6 +32,7 @@ from Plotting.Annote import AnnotatedSubPlot
 from Plotting.GridPlot import GridPlot
 from Phot import extinction
 from AutoRedux import GRBHTML
+from MiscBin import qErr
 
 
 #from MiscBin.q import Standardize
@@ -242,6 +243,7 @@ def LoadDB(name, clobber=False):
                 return
         except:
             print "Could not Extract Values for db."
+            qErr.qErr()
     return loadeddb
 
 def SaveDB(loadeddb):
@@ -271,9 +273,10 @@ class GRBdb:
             self.successful_load = True
         except:
             self.successful_load = False
+            qErr.qErr()
         
         
-    def collect(self):
+    def collect(self,get_new_cat=True):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  Each key 
         has several attributes, and as of 01/10/10 the GRBs with the most
@@ -318,7 +321,8 @@ class GRBdb:
         html_path = self.html_path
         
         # Download the newest catalog
-        ParseSwiftCat.GetNewCatFromWeb()
+        if get_new_cat:
+            ParseSwiftCat.GetNewCatFromWeb()
         
         print '\nNow loading Swift Online Catalog Entries'
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
@@ -469,33 +473,18 @@ class GRBdb:
             # load a pickle file containing the extinction information
             # if it already has been loaded, in order to save some time.
             
-            extdictpath = storepath+'GRBextinction.pkl'
-            ext_dict = qPickle.load(extdictpath)
-            if not ext_dict:
-                ext_dict = {}
-                
-            if grb in ext_dict:
-                gal_EB_V = ext_dict[grb]
-            
-            elif 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
+            if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
                 try:
-                    ra_str = str(self.dict[grb]['best_ra'])+'d'
-                    dec_str = str(self.dict[grb]['best_dec'])+'d'
-                    best_position = (ra_str,dec_str)
-                    ext_list = extinction.extinction(lon=best_position[0],\
-                        lat=best_position[1],system_in='Equatorial',\
-                        system_out='Galactic',obs_epoch="2005.0")
-                    gal_EB_V = ext_list[0]
+                    gal_EB_V = extinction.qExtinction(grb,self.dict[grb]['best_ra'],self.dict[grb]['best_dec'])
                 except:
                     print 'Cannot grab extinction values for %s' % (grb)
                     print self.dict[grb]['best_ra'],self.dict[grb]['best_dec'] 
                     gal_EB_V = numpy.NAN
-                ext_dict.update({grb:gal_EB_V})
-                qPickle.save(ext_dict,extdictpath,clobber=True)
+
             self.dict[grb]['gal_EB_V'] = gal_EB_V
             self.class_updated = True
 
-      
+          
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
         we can't calculate a mean or stdev for these values.) 
