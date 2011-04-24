@@ -28,7 +28,6 @@ Options on GRB Table lookup:
     4 	BAT Dec (J2000)
     5	BAT 90% Error Radius [arcmin]
     6 	BAT T90 [sec]
-    6.5 ????? Update - not sure why this column is added in the text download. increment all by 1
     7 	BAT Fluence (15-150 keV) [10-7 erg/cm2]
     8 	BAT Fluence 90% Error (15-150 keV) [10-7 erg/cm2]
     9 	BAT 1-sec Peak Photon Flux (15-150 keV) [ph/cm2/sec]
@@ -51,7 +50,6 @@ Options on GRB Table lookup:
     26 	UVOT Magnitude
     27 	UVOT Other Filter Magnitudes
     28 	Other Observatory Detections
-    28.5 ???? Update - not sure why this column is added in the text download. increment all by 1
     29 	Redshift
     30 	Host Galaxy
     31 	Comments
@@ -77,7 +75,7 @@ if not os.environ.has_key("Q_DIR"):
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
 def GetNewCatFromWeb():
-    swift_cat_web_address = "http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/grb_table.php?obs_swift=1&obs_ipn=1&obs_integral=1&obs_hete=1&obs_agile=1&obs_fermi=1&restrict=none&grb_time=1&grb_trigger=1&burst_advocate=1&other_obs=1&redshift=1&host=1&comments=1&references=1&bat_location=1&bat_err_radius=1&bat_t90=1&bat_fluence=1&bat_err_fluence=1&bat_1s_peak_flux=1&bat_err_1s_peak_flux=1&bat_photon_index=1&bat_err_photon_index=1&xrt_location=1&xrt_err_radius=1&xrt_first_obs=1&xrt_early_flux=1&xrt_24hr_flux=1&xrt_lc_index=1&xrt_gamma=1&xrt_nh=1&uvot_location=1&uvot_err_radius=1&uvot_first_obs=1&uvot_vmag=1&uvot_filters=1"
+    swift_cat_web_address = "http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table/fullview/"
     try:
         swift_cat_web_open = urllib2.urlopen(swift_cat_web_address)
         swift_cat_web_string=swift_cat_web_open.read()
@@ -89,8 +87,7 @@ def GetNewCatFromWeb():
         print 'Saved to ' + out_path
         print ''
     except:
-        print 'CANNOT DOWNLOAD SWIFT CATALOG'
-        raise Exception
+        raise Exception('CANNOT DOWNLOAD SWIFT CATALOG')
         
 def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
     # Read a tab delimited file
@@ -109,16 +106,25 @@ def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
     # Format:
     # GRB, T90, Fluence, PeakFlux, XRT_RA, XRT_Dec, XRT_Column, UVOT V Mag,
     # UVOT Other Mags, Redshift
-
+    
+    
     grbdict = {}
 
     # Now go through the list of objects read in and put them into a dictionary
 
     for grbs in borklist:
-        subdict={grbs[0]:{'burst_time_str':grbs[1],'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[10], \
-                 'xrt_ra_str':grbs[14], 'xrt_dec_str':grbs[15], 'xrt_time_delta_str':grbs[17], 'xrt_column_str':grbs[22], \
-                 'uvot_time_delta_str':grbs[26], 'v_mag_str':grbs[27], 'uvot_list':grbs[28], 'z_str':grbs[31]}}
-        grbdict.update(subdict)
+        if len(grbs) >= 30 and grbs[0][0:3] != 'GRB':
+            subdict={grbs[0]:{'burst_time_str':grbs[1],'triggerid_str':grbs[2],'t90_str':grbs[6],'fluence_str':grbs[7], 'peakflux_str':grbs[9], \
+                 'xrt_ra_str':grbs[13], 'xrt_dec_str':grbs[14], 'xrt_time_delta_str':grbs[16], 'xrt_column_str':grbs[21], \
+                 'uvot_time_delta_str':grbs[25], 'v_mag_str':grbs[26], 'uvot_list':grbs[27], 'z_str':grbs[29]}}
+            grbdict.update(subdict)
+            
+        elif grbs[0][0:3] != 'GRB': 
+            print "line length is not what is expected for line:"
+            print grbs
+            print "Expected length of 34 (at least 31), got %i. Not including" % len(grbs)
+        else:
+            pass
     
     # Update the dictonary to parse the crap and make it better
     for entry in grbdict.keys():
