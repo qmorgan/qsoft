@@ -120,7 +120,7 @@ class GRBHTML:
             except:
                 Gal_EB_V = 'Unknown'
             self.html_block += '''
-            <b>Extinction</b>: E_(B-V) = %s
+            <b>Extinction</b>: E_(B-V) = %s<br><br>
             ''' % (str(Gal_EB_V))
         
         if reg_path != None:
