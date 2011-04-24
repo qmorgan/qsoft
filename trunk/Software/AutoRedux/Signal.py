@@ -196,7 +196,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.q
                         
                     else:
                         twitsub = ''
-                        twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
+                        twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),bigurl)
                     # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
                     # status = api.PostUpdate(twittext)
                     print 'Sending Tweet - %s' % (twittext)
@@ -293,6 +293,7 @@ def make_grb_html(gcn,html_path='/home/amorgan/www/swift',reg_path=None,fc_path=
     except:
         grb_time = None
         
+    
     grbhtml_inst = GRBHTML.MakeGRBPage(triggerid=triggerid,bat_pos=gcn.bat_pos,\
     xrt_pos=gcn.xrt_pos,uvot_pos=gcn.uvot_pos,reg_path=reg_path,\
     fc_path=fc_path, grb_time=grb_time, html_path=html_path)
