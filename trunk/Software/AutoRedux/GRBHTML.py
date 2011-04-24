@@ -15,6 +15,7 @@ import shutil
 import time
 from MiscBin import q
 from MiscBin import qErr
+from Phot import extinction
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -70,7 +71,7 @@ class GRBHTML:
             <b>Burst Time:</b> %s
             
             ''' % (grb_time)
-    
+        
     def add_position_info(self,bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None):
         '''Requires bat_pos, xrt_pos, uvot_pos in format of (ra,dec,uncertainty), 
         where uncertainty is in arcseconds. 
@@ -111,6 +112,17 @@ class GRBHTML:
             (RA = %s, Dec = %s)<br><br>
             ''' % (str(uvot_pos[0]).rstrip('0'),str(uvot_pos[1]).rstrip('0'),str(uvot_pos[2]).rstrip('0'),\
             uvot_pos_sex[0],uvot_pos_sex[1])
+            
+        if self.best_pos:
+            try:
+                source_name = 'swift_' + str(self.triggerid)
+                Gal_EB_V = extinction.qExtinction(source_name,self.best_pos[0],self.best_pos[1])
+            except:
+                Gal_EB_V = 'Unknown'
+            self.html_block += '''
+            <b>Extinction</b>: E_(B-V) = %s
+            ''' % (str(Gal_EB_V))
+        
         if reg_path != None:
             if os.path.exists(reg_path):
                 self.copy_file(reg_path)
