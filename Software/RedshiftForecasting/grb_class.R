@@ -457,7 +457,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
    if(is.null(data_obj_train)){
       print("data_obj_test not specified; using default values")
       data_obj_train = read_data()
-      data_obj_train = add_forest_to_obj(data_obj_train)
+      data_obj_train = add_forest_to_obj(data_obj_train,log_weight_try=0)
    }
    if(is.null(data_obj_test)){
       print("data_obj_test not specified; using default values")
@@ -479,7 +479,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	      frac_followed_up[count] = sum(ordered_alpha_hats < alpha)/Zlen_1
 	   }
 	   
-	   imagefile=paste('Plots/unknownbursts_',data_obj_train$data_string,'_',data_obj_test$data_string,'.pdf',sep="")
+	   imagefile=paste('Plots/PopulationUnknown.pdf',sep="")
 	   pdf(imagefile)
    	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression("Fraction of GRBs Followed Up (q^hat < q)"), xlab=expression('q'), pch="") # initialize plot))
       title(main=expression("Performance on bursts with unknown Z"), sub=data_obj_test$data_string)
@@ -801,7 +801,7 @@ make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filenam
   dev.off()
 }
 
-purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
+purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    # Take the fifth weight for now 
    pdf(imagefile)
    
@@ -837,7 +837,7 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
 
 
 
-efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test'){
+efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    # Take the fifth weight for now 
    high_cutoff = data_obj$high_cutoff
    newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
@@ -941,8 +941,48 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,ploterr=FAL
    dev.off()
 }
 
+multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11),ploterr=FALSE,imagefile='./Plots/ROC_multi_weights.pdf'){
+   pdf(imagefile)
+   data_obj_1 = data_obj
+   high_cutoff = data_obj_1$high_cutoff
+   newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=newylab, pch="") # initialize plot))
+   title(main=expression("Efficiency"))
+   n_curves = length(weight_index_list)
+   col = rainbow(n_curves)
+   col_alpha = rainbow(n_curves,alpha=0.3)
+   name_list = c()
+   curve_index = 1
+   for(weight_index in weight_index_list){
+      print(paste('weight',weight_index))
+      avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+      Zlen_1 = length(avg_obj) - 1
+      print(Zlen_1)
+      alpha_tries = seq(0,1,1/Zlen_1)
+      lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col[curve_index])
+      
+      if(ploterr == TRUE){
+         avg_obj_high = avg_obj + data_obj$fres$objective_stdev_over_seeds[,weight_index]
+         avg_obj_low = avg_obj - data_obj$fres$objective_stdev_over_seeds[,weight_index]
+         xx = c(alpha_tries, rev(alpha_tries))
+         yy = c(avg_obj_high, rev(avg_obj_low))
+         polygon(xx,yy, col=col_alpha[curve_index])         
+      }
+      curve_index = curve_index + 1
+      name_list = c(name_list,paste('weight',weight_index))
+   }
+   # now print diagonal line for reference
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
+   
+   print(name_list)
+   legend("bottomright", name_list, cex=1.2,col=col,lty=1,lwd=4)
+	
+   dev.off()
+}
+
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2 ), Nseeds=10, roc_weight=5,redo_useless=FALSE, high_cutoff=4){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2), Nseeds=10, roc_weight=5,redo_useless=FALSE, high_cutoff=4){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
