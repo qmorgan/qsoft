@@ -981,8 +981,51 @@ multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1
    dev.off()
 }
 
+multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11),ploterr=FALSE,imagefile='./Plots/purity_multi_weights.pdf'){
+   pdf(imagefile)
+   data_obj_1 = data_obj
+   high_cutoff = data_obj_1$high_cutoff
+   newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=newylab, pch="") # initialize plot))
+   title(main=expression("Purity"))
+   n_curves = length(weight_index_list)
+   col = rainbow(n_curves)
+   col_alpha = rainbow(n_curves,alpha=0.3)
+   name_list = c()
+   curve_index = 1
+   
+   for(weight_index in weight_index_list){
+      print(paste('weight',weight_index))
+      avg_pur = data_obj$fres$purity_avg_over_seeds[,weight_index]
+      Zlen_1 = length(avg_pur) - 1
+      print(Zlen_1)
+      base_purity = c(0:Zlen_1)*0+data_obj$num_high/(data_obj$num_low + data_obj$num_high)
+      
+      alpha_tries = seq(0,1,1/Zlen_1)
+      lines(alpha_tries, avg_pur, lty=1, lwd=4, col=col[curve_index])
+      
+      if(ploterr == TRUE){
+         avg_pur_high = avg_pur + data_obj$fres$purity_stdev_over_seeds[,weight_index]
+         avg_pur_low = avg_pur - data_obj$fres$purity_stdev_over_seeds[,weight_index]
+         xx = c(alpha_tries, rev(alpha_tries))
+         yy = c(avg_pur_high, rev(avg_pur_low))
+         polygon(xx,yy, col=col_alpha[curve_index])         
+      }
+      curve_index = curve_index + 1
+      name_list = c(name_list,paste('weight',weight_index))
+   }
+   # now print diagonal line for reference
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   lines(alpha_try_array,base_purity,lty=1,lwd=2)
+   
+   print(name_list)
+   legend("topright", name_list, cex=1.2,col=col,lty=1,lwd=4)
+	
+   dev.off()
+}
+
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2), Nseeds=10, roc_weight=5,redo_useless=FALSE, high_cutoff=4){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2), Nseeds=10, roc_weight=8,redo_useless=FALSE, high_cutoff=4){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
@@ -994,6 +1037,8 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    bumps_text_name = paste("forest_order_bumps_",data_string,"_",high_cutoff,".txt",sep="")
    roc_plot_name = paste("./Plots/ROC_",data_string,"_",high_cutoff,".pdf",sep="")
    purity_plot_name = paste("./Plots/Purity_",data_string,"_",high_cutoff,".pdf",sep="")
+   multiple_purity_weight_plot_name = paste("./Plots/purity_multi_weights_",data_string,"_",high_cutoff,".pdf",sep="")
+   multiple_efficiency_weight_plot_name = paste("./Plots/ROC_multi_weights_",data_string,"_",high_cutoff,".pdf",sep="")
    mydata = read_data(filename=data_filename,high_cutoff=high_cutoff)
    mydata$data_string = data_string
    mydata$log_weights_try=log_weights_try
@@ -1011,6 +1056,9 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    make_obj_fcn_plot(fres_ordered, data_obj = mydata,log_weights_try=log_weights_try, imagefile=obj_func_name)
    fres_ordered = order_residuals(fres_rand,reverse=TRUE)
    make_bumps_plot(fres_ordered, data_obj = mydata, ylabel=paste(expression(widehat(q)),' (Normalized)'),imagefile=bumps_plot_name,textfile=bumps_text_name)
+   multiple_purity_vs_alpha_weights(data_obj=mydata,weight_index_list=seq(1,length(log_weights_try)),imagefile=multiple_purity_weight_plot_name)
+   multiple_efficiency_vs_alpha_weights(data_obj=mydata,weight_index_list=seq(1,length(log_weights_try)),imagefile=multiple_efficiency_weight_plot_name)
+   
    ## make_bumps_plot(alphas.cv)
  }
  
@@ -1055,12 +1103,12 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
 
 
 make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
-    #  make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    #  make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
     make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    #  make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    #make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-    #make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+    make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
 }
 
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(2,2.4,0.4)){
