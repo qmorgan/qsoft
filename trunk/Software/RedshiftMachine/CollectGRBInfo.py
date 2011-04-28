@@ -276,7 +276,7 @@ class GRBdb:
             qErr.qErr()
         
         
-    def collect(self,get_new_cat=True):
+    def collect(self,get_new_cat=False):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  Each key 
         has several attributes, and as of 01/10/10 the GRBs with the most
@@ -1178,8 +1178,7 @@ class GRBdb:
         
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
-            attrlist=['Z','A','B','CHI2','CHI2_PC','CHI2_WT',
-                      'CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
+            attrlist=['Z','A','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
                       'FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT',
                       'MAX_SNR','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
                       'NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten',
@@ -1190,7 +1189,8 @@ class GRBdb:
                       'DT_MAX_SNR','FL_over_SQRT_T90','uvot_detection',
                       'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
                       'PROB_Z_GT_1','PROB_Z_LT_1','PROB_Z_LT_2','PROB_Z_LT_3',
-                      'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4'
+                      'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
+                      'triggerid_str'
                       ],
                       arff_append='',inclerr=True):
         '''Create .arff file from array of attributes
@@ -1433,6 +1433,8 @@ def TestReloadAlldb():
     SaveDB(db_full)
     
     # Remove all bursts newer than 100621A
+    # Remove all bursts without a calculated MAX_SNR value
+    db_full.removeValues('MAX_SNR', '< 0.0', removeNAN=True)
     
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
@@ -1486,29 +1488,38 @@ def TestReloadAlldb():
     reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
-                        'PROB_Z_GT_4']    
+                        'PROB_Z_GT_4','triggerid_str']    
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
     
+    reduced_allzpredict_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_1','PROB_Z_GT_2','PROB_Z_GT_3','PROB_Z_GT_4','PROB_Z_GT_5',
+                        'triggerid_str']    
+    db_onlyz.makeArffFromArray(attrlist=reduced_allzpredict_attr_list,arff_append='_reduced_allzpredict',inclerr=False)
+    
+    
     reduced_nozpredict_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
-                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']    
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'triggerid_str']    
     db_onlyz.makeArffFromArray(attrlist=reduced_nozpredict_attr_list,arff_append='_reduced_nozpredict',inclerr=False)
                         
-    single_list = ['Z','uvot_detection']
+    single_list = ['Z','uvot_detection','triggerid_str']
     db_onlyz.makeArffFromArray(attrlist=single_list,
                                 arff_append='_UVOTonly', inclerr=False)
                                 
     #nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
     #                    'PROB_Z_LT_1','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']
-    nat_z_pred_list = ['Z','PROB_Z_GT_4']               
+    nat_z_pred_list = ['Z','PROB_Z_GT_4','triggerid_str']               
                         
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
     
-    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_4']                           
+    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_4','triggerid_str']                           
                    
     
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
