@@ -139,6 +139,7 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
    ####### define above high_cutoff as high, below as low $ ####### 
    num_high = length(Z[Z >= high_cutoff])
    num_low = length(Z[Z < high_cutoff])
+   triggerids = data1$triggerid_str
    data1$triggerid_str = NULL # meaningless feature in the data sets
    data1 = removeErrors(data1)
    data1 = cleanData(data1,high_cutoff) 
@@ -147,7 +148,7 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
    confmats = list()
    print(paste("Read in:",filename))
    print(paste("with a high-z cutoff value of",high_cutoff))
-   return(list(data1=data1,filename=filename,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,high_cutoff=high_cutoff))
+   return(list(data1=data1,filename=filename,num_high=num_high,num_low=num_low,classes=classes,features=features,confmats=confmats,Z=Z,triggerids=triggerids,high_cutoff=high_cutoff))
 }
 
 ##### adds useless features to an arff file - very simple
@@ -1116,13 +1117,17 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
    make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-   make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+ #  make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_allzpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
 
 }
 
+really_make_all_plots = function(){
+ #  make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
+   make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
+}
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(-1.0,1.0,0.2),high_cutoff=4,roc_weight=1){
    make_forest_plots(data_string='UVOTonly_num_useless1',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='UVOTonly_num_useless2',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
