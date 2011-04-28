@@ -476,6 +476,10 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features)
 	data_obj_test$pred_vals = pred_vals
 	
+	if(!is.null(data_obj_test$triggerids)){
+	   data_obj_test$pred_vals$triggerids = data_obj_test$triggerids
+   }
+	
 	if(plot==TRUE){
 	   Zlen_1 = length(pred_vals$alpha.hat) - 1
 	   alpha_try_array = c(0:Zlen_1)/Zlen_1
@@ -495,6 +499,9 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
       dev.off()
 	}
+	
+	textfile='PopulationUnknown.txt'
+	write.table(data_obj_test$pred_vals,textfile)
 	
 	return(data_obj_test)
 }
