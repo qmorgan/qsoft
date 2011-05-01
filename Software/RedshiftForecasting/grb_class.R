@@ -473,7 +473,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
    }
    ###########################################################################
 	
-	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features)
+	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features,data_obj_train$features)
 	data_obj_test$pred_vals = pred_vals
 	
 	if(!is.null(data_obj_test$triggerids)){
@@ -729,13 +729,13 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
 # Predict redshift (alpha-hat) for test GRBs
 # and returns probabilities of HIGH and LOW
 # for test GRBs (currently not used)
-forest.pred = function(forest,xnew){
+forest.pred = function(forest,xnew,xtrain){
   # xnew in correct format, should be already
   xnew = as.data.frame(xnew)
   n.new = nrow(xnew)
   n.old = length(forest$y)
   # predictions for training data and test
-  pred.train = predict(forest,type="prob")
+  pred.train = predict(forest,newdata=xtrain,type="prob")
   predictions = predict(forest,newdata=xnew,type="prob")  
   # compute alpha.hats for the training
   alpha.hat = vapply(predictions[,2],
@@ -772,7 +772,7 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
     print(paste("fold",ii,"of",nfolds))
     leaveout = which(folds==ii)
     rf.tmp = forest.fit(x[-leaveout,],y[-leaveout],mtry=mtry,weights=weights[-leaveout],n.trees=n.trees,seed=seed)
-    predictions[leaveout] = forest.pred(rf.tmp,x[leaveout,])$alpha.hat
+    predictions[leaveout] = forest.pred(rf.tmp,x[leaveout,],x[-leaveout,])$alpha.hat
   }
   return(predictions)
 }
