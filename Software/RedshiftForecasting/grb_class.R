@@ -216,7 +216,7 @@ test_cart = function(data_obj=NULL,seed=1){
 }
 
 ####### run Random Forest classifier over a vector of weights ####### 
-test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4),seed=1,stratified=FALSE){
+test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0.2),seed=1,stratified=FALSE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not defined; using default values")
@@ -276,7 +276,7 @@ order_residuals = function(forest_res,reverse=FALSE){
 }
 
 ####### smooth weighted random forest classifiers over a number of seeds ####### 
-smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(0,4,0.4),first_seed=1,Nseeds=10,results_dir="redshift-output", redo_useless=FALSE){
+smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0.2),first_seed=1,Nseeds=10,results_dir="redshift-output", redo_useless=FALSE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -531,7 +531,7 @@ add_forest_to_obj = function(data_obj=NULL,log_weight_try=2){
 
 ####### makes objective function plot ####### 
 # forest_order is ordered using "order_residuals" function with high-z at low rank numbers
-make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(0,4,0.4),imagefile="objective_fcn.pdf"){
+make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.1),log_weights_try=seq(-1,1,0.2),imagefile="objective_fcn.pdf"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -589,7 +589,7 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
 }
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
-make_bumps_plot = function(res_avg_over_seeds,data_obj=NULL,xlabel="log high-z weight",ylabel=expression(widehat(alpha)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
+make_bumps_plot = function(res_avg_over_seeds,data_obj=NULL,xlabel="log high-z weight",ylabel=expression(widehat(Q)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -627,7 +627,7 @@ make_bumps_plot = function(res_avg_over_seeds,data_obj=NULL,xlabel="log high-z w
    
    # Add the proper weight column names if we know them
    if(!is.null(data_obj$log_weights_try)){
-      colnames(res_avg_over_seeds)=seq(0,4,0.4)
+      colnames(res_avg_over_seeds)=seq(-1,1,0.2)
    }
    
    pdf(file=imagefile,width=12,height=8) # save bumps plot
@@ -1040,7 +1040,7 @@ multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11)
 }
 
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2), Nseeds=10, roc_weight=8,redo_useless=FALSE, high_cutoff=4){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2), Nseeds=10, roc_weight=11,redo_useless=FALSE, high_cutoff=4){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
@@ -1071,7 +1071,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
       fres_ordered = order_residuals(fres_rand)
       make_obj_fcn_plot(fres_ordered, data_obj = mydata,log_weights_try=log_weights_try, imagefile=obj_func_name)
       fres_ordered = order_residuals(fres_rand,reverse=TRUE)
-      make_bumps_plot(fres_ordered, data_obj = mydata, ylabel=paste(expression(widehat(q)),' (Normalized)'),imagefile=bumps_plot_name,textfile=bumps_text_name)
+      make_bumps_plot(fres_ordered, data_obj = mydata, ylabel=paste(expression(widehat(Q)),' (Normalized)'),imagefile=bumps_plot_name,textfile=bumps_text_name)
    }
    multiple_purity_vs_alpha_weights(data_obj=mydata,weight_index_list=seq(1,length(log_weights_try)),imagefile=multiple_purity_weight_plot_name)
    multiple_efficiency_vs_alpha_weights(data_obj=mydata,weight_index_list=seq(1,length(log_weights_try)),imagefile=multiple_efficiency_weight_plot_name)
@@ -1079,7 +1079,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    ## make_bumps_plot(alphas.cv)
  }
  
-make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','reduced_nozpredict','Full'), log_weights_try=seq(0,4,0.4),roc_weight=5, ploterr=FALSE, high_cutoff=4){
+make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','reduced_nozpredict','Full'), log_weights_try=seq(-1,1,0.2),roc_weight=11, ploterr=FALSE, high_cutoff=4){
    roc_plot_name = paste("./Plots/ROC_Multi.pdf",sep="")
    
    curve_index = 1
