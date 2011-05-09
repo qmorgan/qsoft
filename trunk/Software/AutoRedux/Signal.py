@@ -226,9 +226,9 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.q
                     # so just use tumblr, linked to the q.mailbot account.
                     tumblrmail = '661mafroil@tumblr.com'
                     # import twitter # requires http://code.google.com/p/python-twitter/
-                    import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
+                    #import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
                     bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
-                    littleurl = tinyurl.create_one(bigurl)
+                    #littleurl = tinyurl.create_one(bigurl)
                     if grbhtml:
                         ra=str(gcn.best_pos[0]).rstrip('0')
                         dec=str(gcn.best_pos[1]).rstrip('0')
