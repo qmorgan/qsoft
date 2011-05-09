@@ -26,6 +26,7 @@ from AutoRedux import send_gmail
 from AutoRedux import GRBHTML
 from RedshiftMachine import LoadGCN
 from MiscBin import qErr
+from MiscBin import qPickle
 import glob
 import time
 import datetime
@@ -164,7 +165,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             print "Updating RSS Feed"
         except: qErr.qErr()
 
-def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/'):
+def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=False):
     from AutoRedux.PyRSS2Gen import RSS2
     from AutoRedux.PyRSS2Gen import RSSItem
     from AutoRedux.PyRSS2Gen import Guid
@@ -180,21 +181,29 @@ def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/'):
     dec=str(gcn.best_pos[1]).rstrip('0')
     uncertainty=str(gcn.best_pos[2]).rstrip('0')
     pos_label=gcn.best_pos_type,
-    title = "New GRB! Swift Trigger %i at %s" % (int(gcn.triggerid),str(grb_time))
-    description = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,bigurl)
+    title = "New GRB! Swift Trigger %i at %s UT" % (int(gcn.triggerid),str(grb_time))
+    description = '''*  Time:%s<br> *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,bigurl)
+    
+    # Load past items from pickle file if there is one
+    items = qPickle.load(storepath+'SwiftRSS.pkl')
+    if not items or clear_rss:
+        items = []
+    
+    items.append(RSSItem(
+         title = title,
+         link = bigurl,
+         description = description,
+         guid = Guid(bigurl),
+         pubDate = datetime.datetime.now()))
+    
+    qPickle.save(items,storepath+'SwiftRSS.pkl',clobber=True)
     
     rss = RSS2(
         title = "Q's Swift Feed",
         link = "http://swift.qmorgan.com/",
         description = "Collation of rapid-response information for new Swift GRBs.",
         lastBuildDate = datetime.datetime.now(),
-        items = [
-           RSSItem(
-             title = title,
-             link = bigurl,
-             description = description,
-             guid = Guid(bigurl),
-             pubDate = datetime.datetime.now())])
+        items = items)
              
     rss.write_xml(open(rss_path, "w"))
         
