@@ -169,6 +169,7 @@ def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=
     from AutoRedux.PyRSS2Gen import RSS2
     from AutoRedux.PyRSS2Gen import RSSItem
     from AutoRedux.PyRSS2Gen import Guid
+    import feedparser
     
     bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
     
@@ -185,10 +186,18 @@ def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=
     description = '''*  Time:%s<br> *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (str(grb_time),ra,dec,uncertainty,pos_label,bigurl)
     
     # Load past items from pickle file if there is one
-    items = qPickle.load(storepath+'SwiftRSS.pkl')
-    if not items or clear_rss:
-        items = []
+    old_rss_file = feedparser.parse(rss_path)
+    items = []
+    #populate the old items
+    for entry in old_rss_file.entries:
+        items.append(RSSItem(
+        title=entry['title'],
+        link=entry['link'],
+        description=entry['description'],
+        guid=Guid(entry['link']),
+        pubDate=entry['updated']))
     
+    #add the new item
     items.append(RSSItem(
          title = title,
          link = bigurl,
@@ -196,8 +205,7 @@ def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=
          guid = Guid(bigurl),
          pubDate = datetime.datetime.now()))
     
-    qPickle.save(items,storepath+'SwiftRSS.pkl',clobber=True)
-    
+        
     rss = RSS2(
         title = "Q's Swift Feed",
         link = "http://swift.qmorgan.com/",
