@@ -182,7 +182,7 @@ def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=
     uncertainty=str(gcn.best_pos[2]).rstrip('0')
     pos_label=gcn.best_pos_type,
     title = "New GRB! Swift Trigger %i at %s UT" % (int(gcn.triggerid),str(grb_time))
-    description = '''*  Time:%s<br> *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,bigurl)
+    description = '''*  Time:%s<br> *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (str(grb_time),ra,dec,uncertainty,pos_label,bigurl)
     
     # Load past items from pickle file if there is one
     items = qPickle.load(storepath+'SwiftRSS.pkl')
