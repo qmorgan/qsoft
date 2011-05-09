@@ -28,6 +28,7 @@ from RedshiftMachine import LoadGCN
 from MiscBin import qErr
 import glob
 import time
+import datetime
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -93,6 +94,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 make_html=True, html_path='/home/amorgan/www/swift/',\
                 mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                 feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
+                update_rss=True, rss_path='/home/amorgan/www/swift/rss.xml',
                 out_url_path='http://swift.qmorgan.com/'):
     while(True):
         sql_tuple_list = MonitorRSS(feed_url)
@@ -122,6 +124,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         make_html=True, html_path='/home/amorgan/www/swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
+                        update_rss=True, rss_path='/home/amorgan/www/swift/rss.xml',
                         out_url_path='http://swift.qmorgan.com/'):
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
@@ -155,6 +158,46 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             if mail_html and grbhtml.successful_export:
                 _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
+    if update_rss:
+        try:
+            _update_rss(gcn, rss_path=rss_path,out_url_path='http://swift.qmorgan.com/')
+            print "Updating RSS Feed"
+        except: qErr.qErr()
+
+def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/'):
+    from AutoRedux.PyRSS2Gen import RSS2
+    from AutoRedux.PyRSS2Gen import RSSItem
+    from AutoRedux.PyRSS2Gen import Guid
+    
+    bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
+    
+    try:
+        grb_time = gcn.pdict['grb_date_str'] + ' ' + \
+                   gcn.pdict['grb_time_str'],
+    except:
+        grb_time = 'Unknown Time'
+    ra=str(gcn.best_pos[0]).rstrip('0')
+    dec=str(gcn.best_pos[1]).rstrip('0')
+    uncertainty=str(gcn.best_pos[2]).rstrip('0')
+    pos_label=gcn.best_pos_type,
+    title = "New GRB! Swift Trigger %i at %s" % (int(gcn.triggerid),str(grb_time))
+    description = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,bigurl)
+    
+    rss = RSS2(
+        title = "Q's Swift Feed",
+        link = "http://swift.qmorgan.com/",
+        description = "Collation of rapid-response information for new Swift GRBs.",
+        lastBuildDate = datetime.datetime.now(),
+        items = [
+           RSSItem(
+             title = title,
+             link = bigurl,
+             description = description,
+             guid = Guid(bigurl),
+             pubDate = datetime.datetime.now())])
+             
+    rss.write_xml(open(rss_path, "w"))
+        
 
 def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.qmorgan.com/',grbhtml=None):
     if not hasattr(gcn,'mailed_web'):
@@ -192,7 +235,7 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.q
                         uncertainty=str(gcn.best_pos[2]).rstrip('0')
                         pos_label=gcn.best_pos_type,
                         twitsub = "New GRB! Swift Trigger %i" % (int(gcn.triggerid))
-                        twittext = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,littleurl)
+                        twittext = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,bigurl)
                         
                     else:
                         twitsub = ''
