@@ -216,7 +216,7 @@ test_cart = function(data_obj=NULL,seed=1){
 }
 
 ####### run Random Forest classifier over a vector of weights ####### 
-test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0.2),seed=1,stratified=FALSE){
+test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0.2),make_first_weight_NA=FALSE,seed=1,stratified=FALSE){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not defined; using default values")
@@ -228,8 +228,10 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0.2
 
    # weights_try = c(NA,10^log_weights_try)
    weights_try = 10^log_weights_try
-   weights_try[1] = NA
-	print(weights_try)
+   if(make_first_weight_NA==TRUE){
+      weights_try[1] = NA
+   }
+	
 	Nweights = length(weights_try)
 	for(nweight in seq(1,Nweights)) {
    		print(paste("*** weight",nweight,"of",Nweights,"***"))
@@ -518,16 +520,39 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	      frac_followed_up[count] = sum(ordered_alpha_hats < alpha)/Zlen_1
 	   }
 	   
-	   imagefile=paste('Plots/PopulationUnknown.pdf',sep="")
+	   imagefile=paste('Plots/Calib_testdata.pdf',sep="")
 	   pdf(imagefile)
-   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression("Fraction of GRBs Followed Up (q^hat < q)"), xlab=expression('q'), pch="") # initialize plot))
-      title(main=expression("Performance on bursts with unknown Z"), sub=data_obj_test$data_string)
+   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+      title(main=expression("Q calibration on GRBs with unknown Z"), sub=data_obj_test$data_string)
       lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
       dev.off()
-	}
 	
-	textfile='PopulationUnknown.txt'
+   
+   #plot the default calibration plot
+   weightchoice=11
+   bb = extract_stats()
+   alphahats=bb$fres$avg_over_seeds[,weightchoice]
+   Zlen_1 = length(alphahats) - 1
+   ordered_alpha_hats = sort(alphahats)
+   frac_followed_up = ordered_alpha_hats * 0.0
+   count=0
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   for(alpha in alpha_try_array){
+      count = count+1
+      frac_followed_up[count]=sum(ordered_alpha_hats < alpha)/Zlen_1
+   }
+   imagefile=paste('Plots/Calib_traindata.pdf',sep="")
+   pdf(imagefile)
+   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+   title(main=expression("Q calibration on cross-validated training set GRBs"), sub=data_obj_test$data_string)
+         lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
+         lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
+   dev.off()
+   }
+	
+	
+	textfile='Calib_testdata.txt'
 	write.table(data_obj_test$pred_vals,textfile)
 	
 	return(data_obj_test)
@@ -737,6 +762,7 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
     }
   }
   
+  print(weights)
   n = length(y)
   p = length(table(y))
   if(is.null(mtry)){ # default for mtry
@@ -980,7 +1006,7 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
    
 }
 
-multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf'){
+multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf'){
    pdf(imagefile)
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
@@ -1020,6 +1046,50 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=1,ploterr=FAL
 	
    dev.off()
 }
+
+multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/purity_multi.pdf'){
+   pdf(imagefile)
+   data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
+   high_cutoff = data_obj_1$high_cutoff
+   newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=newylab, pch="") # initialize plot))
+   title(main=expression("Purity"))
+   n_curves = length(data_obj_list)
+   col = rainbow(n_curves)
+   col_alpha = rainbow(n_curves,alpha=0.3)
+   name_list = c()
+   curve_index = 1
+   for(data_obj_name in ls(data_obj_list)){
+      print(data_obj_name)
+      data_obj = get(data_obj_name,pos=data_obj_list)
+      avg_pur = data_obj$fres$purity_avg_over_seeds[,weight_index]
+      Zlen_1 = length(avg_pur) - 1
+      print(Zlen_1)
+      base_purity = c(0:Zlen_1)*0+data_obj$num_high/(data_obj$num_low + data_obj$num_high)
+      
+      alpha_tries = seq(0,1,1/Zlen_1)
+      lines(alpha_tries, avg_pur, lty=1, lwd=4, col=col[curve_index])
+      
+      if(ploterr == TRUE){
+         avg_pur_high = avg_pur + data_obj$fres$purity_stdev_over_seeds[,weight_index]
+         avg_pur_low = avg_pur - data_obj$fres$purity_stdev_over_seeds[,weight_index]
+         xx = c(alpha_tries, rev(alpha_tries))
+         yy = c(avg_pur_high, rev(avg_pur_low))
+         polygon(xx,yy, col=col_alpha[curve_index])         
+      }
+      curve_index = curve_index + 1
+      name_list = c(name_list,data_obj$data_string)
+   }
+   # now print diagonal line for reference
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   lines(alpha_try_array,base_purity,lty=1,lwd=2)
+   
+   print(name_list)
+   legend("topright", name_list, cex=1.2,col=col,lty=1,lwd=4)
+	
+   dev.off()
+}
+
 
 multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11),ploterr=FALSE,imagefile='./Plots/ROC_multi_weights.pdf'){
    pdf(imagefile)
@@ -1105,7 +1175,7 @@ multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11)
 }
 
 # Wrapper to make all representative plots for a given dataset
-make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1,0.2), Nseeds=10, roc_weight=11,redo_useless=FALSE, high_cutoff=4){
+make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1.0,0.2), Nseeds=10, roc_weight=11,redo_useless=FALSE, high_cutoff=4){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
    data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
@@ -1179,6 +1249,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       print(curve_index)
    }
    multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr)
+   multiple_purity_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr)
 }
 
 # make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless10','UVOTonly_num_useless30','UVOTonly_num_useless50','UVOTonly_num_useless70','UVOTonly_num_useless90'),log_weights_try=seq(0.8,1.0,0.2), roc_weight=1)
@@ -1189,7 +1260,7 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
    make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
- #  make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_allzpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
@@ -1197,7 +1268,8 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
 }
 
 really_make_all_plots = function(){
- #  make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
+   make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=4.0)
+   make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
 }
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(-1.0,1.0,0.2),high_cutoff=4,roc_weight=1){
