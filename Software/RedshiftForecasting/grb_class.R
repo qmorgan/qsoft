@@ -152,7 +152,7 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
 }
 
 ##### adds useless features to an arff file - very simple
-add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_removed_UVOTonly.arff', output_filename=NULL, number_useless_features=1){
+add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff', output_filename=NULL, number_useless_features=1){
   # need read.arff and write.arff
   require(foreign)
 
@@ -178,17 +178,17 @@ add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_re
   
 }
 
-remake_all_useless = function(input_filename='./Data/GRB_short+outliers+noZ_removed_UVOTonly.arff'){
+remake_all_useless = function(input_filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff'){
    # 
-   add_useless_features(number_useless_features=10)
-   add_useless_features(number_useless_features=20)
-   add_useless_features(number_useless_features=30)
-   add_useless_features(number_useless_features=40)
-   add_useless_features(number_useless_features=50)
-   add_useless_features(number_useless_features=60)
-   add_useless_features(number_useless_features=70)
-   add_useless_features(number_useless_features=80)
-   add_useless_features(number_useless_features=90)
+   # add_useless_features(number_useless_features=10)
+   # add_useless_features(number_useless_features=20)
+   # add_useless_features(number_useless_features=30)
+   # add_useless_features(number_useless_features=40)
+   # add_useless_features(number_useless_features=50)
+   # add_useless_features(number_useless_features=60)
+   # add_useless_features(number_useless_features=70)
+   # add_useless_features(number_useless_features=80)
+   # add_useless_features(number_useless_features=90)
    add_useless_features(number_useless_features=1)
    add_useless_features(number_useless_features=2)
    add_useless_features(number_useless_features=4)
@@ -487,12 +487,13 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	return(data_obj)
 }
 
-pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
+pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_train=TRUE,weight_index=11){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj_train)){
       print("data_obj_test not specified; using default values")
       data_obj_train = read_data()
-      data_obj_train = add_forest_to_obj(data_obj_train,log_weight_try=1)
+      log_weight_try = ((weight_index-6)/5)
+      data_obj_train = add_forest_to_obj(data_obj_train,log_weight_try=log_weight_try)
    }
    if(is.null(data_obj_test)){
       print("data_obj_test not specified; using default values")
@@ -500,7 +501,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
       data_obj_test = read_data(filename='./Data/GRB_short+outliers+Z_removed_reduced.arff')
    }
    ###########################################################################
-	pred.train=extract_stats(return_probhigh_only=TRUE)[,11]
+	pred.train=extract_stats(return_probhigh_only=TRUE)[,weight_index]
 	
 	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features,pred.train)
 	data_obj_test$pred_vals = pred_vals
@@ -520,7 +521,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
 	      frac_followed_up[count] = sum(ordered_alpha_hats < alpha)/Zlen_1
 	   }
 	   
-	   imagefile=paste('Plots/Calib_testdata.pdf',sep="")
+	   imagefile=paste('Plots/Calib_testdata_logweight',log_weight_try,'.pdf',sep="")
 	   pdf(imagefile)
    	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
       title(main=expression("Q calibration on GRBs with unknown Z"), sub=data_obj_test$data_string)
@@ -528,9 +529,9 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
       dev.off()
 	
-   
+   if(plot_train==TRUE){
    #plot the default calibration plot
-   weightchoice=11
+   weightchoice=weight_index
    bb = extract_stats()
    alphahats=bb$fres$avg_over_seeds[,weightchoice]
    Zlen_1 = length(alphahats) - 1
@@ -542,7 +543,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
       count = count+1
       frac_followed_up[count]=sum(ordered_alpha_hats < alpha)/Zlen_1
    }
-   imagefile=paste('Plots/Calib_traindata.pdf',sep="")
+   imagefile=paste('Plots/Calib_traindata_logweight',log_weight_try,'.pdf',sep="")
    pdf(imagefile)
    plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
    title(main=expression("Q calibration on cross-validated training set GRBs"), sub=data_obj_test$data_string)
@@ -550,7 +551,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE){
          lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
    dev.off()
    }
-	
+}
 	
 	textfile='Calib_testdata.txt'
 	write.table(data_obj_test$pred_vals,textfile)
@@ -1005,8 +1006,8 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
 #   dev.off()
    
 }
-
-multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf'){
+# custom_namelist=c('0 Useless Features','2 Useless Features','4 Useless Features','8 Useless Features','16 Useless Features','32 Useless Features','64 Useless Features')
+multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf',custom_namelist=c()){
    pdf(imagefile)
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
@@ -1035,19 +1036,20 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FA
          polygon(xx,yy, col=col_alpha[curve_index])         
       }
       curve_index = curve_index + 1
-      name_list = c(name_list,data_obj$data_string)
+      if(length(custom_namelist) == 0){name_list = c(name_list,data_obj$data_string)}
    }
    # now print diagonal line for reference
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    
+   if(length(custom_namelist) > 0){name_list = custom_namelist}
    print(name_list)
    legend("bottomright", name_list, cex=1.2,col=col,lty=1,lwd=4)
 	
    dev.off()
 }
 
-multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/purity_multi.pdf'){
+multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/purity_multi.pdf',custom_namelist=c('0 Useless Features','2 Useless Features','4 Useless Features','8 Useless Features','16 Useless Features','32 Useless Features','64 Useless Features')){
    pdf(imagefile)
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
@@ -1078,12 +1080,13 @@ multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,
          polygon(xx,yy, col=col_alpha[curve_index])         
       }
       curve_index = curve_index + 1
-      name_list = c(name_list,data_obj$data_string)
+      if(length(custom_namelist) == 0){name_list = c(name_list,data_obj$data_string)}
    }
    # now print diagonal line for reference
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    lines(alpha_try_array,base_purity,lty=1,lwd=2)
    
+   if(length(custom_namelist) > 0){name_list = custom_namelist}
    print(name_list)
    legend("topright", name_list, cex=1.2,col=col,lty=1,lwd=4)
 	
@@ -1110,7 +1113,6 @@ multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1
       print(Zlen_1)
       alpha_tries = seq(0,1,1/Zlen_1)
       lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col[curve_index])
-      
       if(ploterr == TRUE){
          avg_obj_high = avg_obj + data_obj$fres$objective_stdev_over_seeds[,weight_index]
          avg_obj_low = avg_obj - data_obj$fres$objective_stdev_over_seeds[,weight_index]
@@ -1119,7 +1121,7 @@ multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1
          polygon(xx,yy, col=col_alpha[curve_index])         
       }
       curve_index = curve_index + 1
-      name_list = c(name_list,paste('weight',weight_index))
+      name_list = c(name_list,paste('Weight',round(10**((weight_index-6)/5),2)))
    }
    # now print diagonal line for reference
    alpha_try_array = c(0:Zlen_1)/Zlen_1
@@ -1162,7 +1164,7 @@ multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11)
          polygon(xx,yy, col=col_alpha[curve_index])         
       }
       curve_index = curve_index + 1
-      name_list = c(name_list,paste('weight',weight_index))
+      name_list = c(name_list,paste('Weight',round(10**((weight_index-6)/5),2)))
    }
    # now print diagonal line for reference
    alpha_try_array = c(0:Zlen_1)/Zlen_1
@@ -1254,12 +1256,13 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
 
 # make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless10','UVOTonly_num_useless30','UVOTonly_num_useless50','UVOTonly_num_useless70','UVOTonly_num_useless90'),log_weights_try=seq(0.8,1.0,0.2), roc_weight=1)
 # make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless1','UVOTonly_num_useless2','UVOTonly_num_useless4','UVOTonly_num_useless8','UVOTonly_num_useless16','UVOTonly_num_useless32'),log_weights_try=seq(-1.0,1.0,0.2), roc_weight=8)
+# make_efficiency_plots(data_string_list=list('reduced_num_useless0','reduced_num_useless2','reduced_num_useless4','reduced_num_useless8','reduced_num_useless16','reduced_num_useless32','reduced_num_useless64'),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2)
 
 
 make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
-   make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-   make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-   make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   # make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   # make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   # make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_allzpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
@@ -1269,15 +1272,19 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
 
 really_make_all_plots = function(){
    make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=4.0)
-   make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
-   make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
+   make_forest_plots(data_string='reduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
+   make_forest_plots(data_string='reduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
+   # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
+   # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
 }
-make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(-1.0,1.0,0.2),high_cutoff=4,roc_weight=1){
-   make_forest_plots(data_string='UVOTonly_num_useless1',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless2',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless4',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless8',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless16',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='UVOTonly_num_useless32',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-
+make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(0.8,1.0,0.2),high_cutoff=4,roc_weight=2){
+   # make_forest_plots(data_string='reduced_num_useless0',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   # make_forest_plots(data_string='reduced_num_useless1',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless2',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless4',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless8',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless16',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless32',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless64',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   
 }
