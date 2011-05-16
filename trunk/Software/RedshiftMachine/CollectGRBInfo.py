@@ -325,6 +325,9 @@ class GRBdb:
             ParseSwiftCat.GetNewCatFromWeb()
         
         print '\nNow loading Swift Online Catalog Entries'
+        
+        RATE_GRBdict = ParseRATEGRB()
+        
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
             from RedshiftMachine import ParseNatCat
@@ -344,6 +347,12 @@ class GRBdb:
                 reg_path=None
             
                 trigid_str = catdict['triggerid_str']
+                print '\nNow collecting RATE GRB-z Values for trigger %s' % (trigid_str)
+                try:
+                    catdict.update(RATE_GRBdict[trigid_str])
+                except:
+                    print 'No RATE_GRB info for trigger %s' % trigid_str
+                
                 print '\nNow collecting GCN entries for trigger %s, GRB %s' % (trigid_str, grb_str)
                 try:
                     triggerid=int(trigid_str)
@@ -383,6 +392,7 @@ class GRBdb:
                     print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,grb_str)
                     failed_gcn_grbs.append('GRB'+grb_str+' ('+trigid_str+')')
                     failed_gcn_grbs_ids.append(grb_str)
+                
                     
             
                 print "Now collecting Nat's Catalog entries for GRB %s" % (grb_str)
@@ -1435,6 +1445,7 @@ def TestReloadAlldb():
     # Remove all bursts newer than 100621A
     # Remove all bursts without a calculated MAX_SNR value
     db_full.removeValues('MAX_SNR', '< 0.0', removeNAN=True)
+    db_full.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
     
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
@@ -1525,6 +1536,23 @@ def TestReloadAlldb():
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
                                 arff_append='_UVOTandZpred', inclerr=False)                     
     return db_full
+
+def ParseRATEGRB():
+    rategrbpath = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_testdata.txt'
+    f=file(rategrbpath,'r')
+    # assuming line format of
+    #  '"204" 0.426470588235294 0.07 0.93 "419404"\n'
+    rategrbdict = {}
+    for line in f.readlines():
+        linesplit = line.split()
+        try:
+            subdict = {'Q_hat':float(linesplit[1]), 'prob_high':float(linesplit[2]), 'prob_low':float(linesplit[3])}
+            rategrbdict.update({linesplit[4].strip('"'):subdict})
+        except:
+            pass
+    return rategrbdict
+    
+        
 
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
