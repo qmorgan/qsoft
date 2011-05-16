@@ -21,6 +21,15 @@ import httplib
 import urllib
 import time
 import sys
+import os
+from MiscBin import qPickle
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
 
 urls = [ \
     ['nedwww.ipac.caltech.edu',\
@@ -34,6 +43,30 @@ urls = [ \
 headers = {"Content-type": \
            "application/x-www-form-urlencoded", \
            "Accept": "text/plain"}
+
+def qExtinction(source_name,ra,dec):
+    extdictpath = storepath+'GRBextinction.pkl'
+    ext_dict = qPickle.load(extdictpath)
+    if not ext_dict:
+        ext_dict = {}
+        
+    if source_name in ext_dict:
+        gal_EB_V = ext_dict[source_name]
+    
+    else:
+        try:
+            ra_str = str(ra)+'d'
+            dec_str = str(dec)+'d'
+            best_position = (ra_str,dec_str)
+            ext_list = extinction(lon=best_position[0],\
+                lat=best_position[1],system_in='Equatorial',\
+                system_out='Galactic',obs_epoch="2005.0")
+            gal_EB_V = ext_list[0]
+        except:
+            raise Exception('Cannot Grab Extinction Values')
+        ext_dict.update({source_name:gal_EB_V})
+        qPickle.save(ext_dict,extdictpath,clobber=True)
+    return gal_EB_V
 
 def extinction(lon="12:12:12",lat="-12:12:12",\
                in_equinox="J2000.0",\

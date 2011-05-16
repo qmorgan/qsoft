@@ -31,6 +31,8 @@ from Plotting.ColorScatter import ColorScatter
 from Plotting.Annote import AnnotatedSubPlot
 from Plotting.GridPlot import GridPlot
 from Phot import extinction
+from AutoRedux import GRBHTML
+from MiscBin import qErr
 
 
 #from MiscBin.q import Standardize
@@ -241,6 +243,7 @@ def LoadDB(name, clobber=False):
                 return
         except:
             print "Could not Extract Values for db."
+            qErr.qErr()
     return loadeddb
 
 def SaveDB(loadeddb):
@@ -252,7 +255,7 @@ def SaveDB(loadeddb):
 class GRBdb:
     '''Instance of a grb database'''
     def __init__(self,name,incl_nat=True,incl_fc=False,incl_reg=True,
-                make_html=True,html_path='/Users/amorgan/Public/TestDir/'):
+                make_html=True,html_path='/home/amorgan/www/swift/'):
         
         self.date_created = time.ctime()
         try: 
@@ -270,9 +273,10 @@ class GRBdb:
             self.successful_load = True
         except:
             self.successful_load = False
+            qErr.qErr()
         
         
-    def collect(self):
+    def collect(self,get_new_cat=False):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  Each key 
         has several attributes, and as of 01/10/10 the GRBs with the most
@@ -316,7 +320,14 @@ class GRBdb:
         make_html = self.make_html
         html_path = self.html_path
         
+        # Download the newest catalog
+        if get_new_cat:
+            ParseSwiftCat.GetNewCatFromWeb()
+        
         print '\nNow loading Swift Online Catalog Entries'
+        
+        RATE_GRBdict = ParseRATEGRB()
+        
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
             from RedshiftMachine import ParseNatCat
@@ -336,6 +347,12 @@ class GRBdb:
                 reg_path=None
             
                 trigid_str = catdict['triggerid_str']
+                print '\nNow collecting RATE GRB-z Values for trigger %s' % (trigid_str)
+                try:
+                    catdict.update(RATE_GRBdict[trigid_str])
+                except:
+                    print 'No RATE_GRB info for trigger %s' % trigid_str
+                
                 print '\nNow collecting GCN entries for trigger %s, GRB %s' % (trigid_str, grb_str)
                 try:
                     triggerid=int(trigid_str)
@@ -375,6 +392,7 @@ class GRBdb:
                     print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,grb_str)
                     failed_gcn_grbs.append('GRB'+grb_str+' ('+trigid_str+')')
                     failed_gcn_grbs_ids.append(grb_str)
+                
                     
             
                 print "Now collecting Nat's Catalog entries for GRB %s" % (grb_str)
@@ -411,7 +429,13 @@ class GRBdb:
         # WOULD BE NICE IF THE 'COLLECTED DICT' Was an OBJECT so these could be 
         # ATTRIBUTES.  and we could have the functions be attributes too.  Bah.
         # this would be nice.  So I made it so.  02/06/10
-            
+        
+        if self.make_html:
+            try:
+                newpath = GRBHTML.MakeGRBIndex(collected_dict, html_path='/home/amorgan/www/swift')
+            except:
+                print 'Cannot make index page.. path probably does not exist'
+        
         print ''
         print len(collected_dict), ' entries in the collected dictionary'
         print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
@@ -459,33 +483,18 @@ class GRBdb:
             # load a pickle file containing the extinction information
             # if it already has been loaded, in order to save some time.
             
-            extdictpath = storepath+'GRBextinction.pkl'
-            ext_dict = qPickle.load(extdictpath)
-            if not ext_dict:
-                ext_dict = {}
-                
-            if grb in ext_dict:
-                gal_EB_V = ext_dict[grb]
-            
-            elif 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
+            if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
                 try:
-                    ra_str = str(self.dict[grb]['best_ra'])+'d'
-                    dec_str = str(self.dict[grb]['best_dec'])+'d'
-                    best_position = (ra_str,dec_str)
-                    ext_list = extinction.extinction(lon=best_position[0],\
-                        lat=best_position[1],system_in='Equatorial',\
-                        system_out='Galactic',obs_epoch="2005.0")
-                    gal_EB_V = ext_list[0]
+                    gal_EB_V = extinction.qExtinction(grb,self.dict[grb]['best_ra'],self.dict[grb]['best_dec'])
                 except:
                     print 'Cannot grab extinction values for %s' % (grb)
                     print self.dict[grb]['best_ra'],self.dict[grb]['best_dec'] 
                     gal_EB_V = numpy.NAN
-                ext_dict.update({grb:gal_EB_V})
-                qPickle.save(ext_dict,extdictpath,clobber=True)
+
             self.dict[grb]['gal_EB_V'] = gal_EB_V
             self.class_updated = True
 
-      
+          
     def MakeNomArr(self,key):
         '''Same as MakeAttrArr, but for nominal values (i.e. only create array and subarray;
         we can't calculate a mean or stdev for these values.) 
@@ -1057,11 +1066,13 @@ class GRBdb:
         # 
     
     
-    def removeValues(self,key,argument):
+    def removeValues(self,key,argument,removeNAN=False):
         '''Catch-all function to remove all values in the CollectObject which
         obey the given argument.  It removes it from the dictionary, and then
         re-runs the makeallattr function to create new arrays.  
-       
+        
+        
+        if removeNAN: kill the entire entry if this value is NAN for a particular GRB
         '''
         remove_list = []
         # Quick check to see if the argument is kind of formatted correctly
@@ -1083,6 +1094,8 @@ class GRBdb:
             if not keyval == 'unknown':
                 execstring = 'if keyval %s: remove_list.append(ii); already_removed=True '\
                     % (argument)
+            elif removeNAN:
+                execstring = 'remove_list.append(ii); already_removed=True'
             else:
                 execstring = 'pass'
             
@@ -1175,8 +1188,7 @@ class GRBdb:
         
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
-            attrlist=['Z','A','B','CHI2','CHI2_PC','CHI2_WT',
-                      'CHI2_PC_LATE','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
+            attrlist=['Z','A','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
                       'FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT',
                       'MAX_SNR','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
                       'NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten',
@@ -1187,7 +1199,8 @@ class GRBdb:
                       'DT_MAX_SNR','FL_over_SQRT_T90','uvot_detection',
                       'PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
                       'PROB_Z_GT_1','PROB_Z_LT_1','PROB_Z_LT_2','PROB_Z_LT_3',
-                      'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4'
+                      'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
+                      'triggerid_str'
                       ],
                       arff_append='',inclerr=True):
         '''Create .arff file from array of attributes
@@ -1430,6 +1443,9 @@ def TestReloadAlldb():
     SaveDB(db_full)
     
     # Remove all bursts newer than 100621A
+    # Remove all bursts without a calculated MAX_SNR value
+    db_full.removeValues('MAX_SNR', '< 0.0', removeNAN=True)
+    db_full.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
     
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
@@ -1483,34 +1499,60 @@ def TestReloadAlldb():
     reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
-                        'PROB_Z_GT_4']    
+                        'PROB_Z_GT_4','triggerid_str']    
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
     
+    reduced_allzpredict_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_1','PROB_Z_GT_2','PROB_Z_GT_3','PROB_Z_GT_4','PROB_Z_GT_5',
+                        'triggerid_str']    
+    db_onlyz.makeArffFromArray(attrlist=reduced_allzpredict_attr_list,arff_append='_reduced_allzpredict',inclerr=False)
+    
+    
     reduced_nozpredict_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
-                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection']    
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'triggerid_str']    
     db_onlyz.makeArffFromArray(attrlist=reduced_nozpredict_attr_list,arff_append='_reduced_nozpredict',inclerr=False)
                         
-    single_list = ['Z','uvot_detection']
+    single_list = ['Z','uvot_detection','triggerid_str']
     db_onlyz.makeArffFromArray(attrlist=single_list,
                                 arff_append='_UVOTonly', inclerr=False)
                                 
     #nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
     #                    'PROB_Z_LT_1','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']
-    nat_z_pred_list = ['Z','PROB_Z_GT_4']               
+    nat_z_pred_list = ['Z','PROB_Z_GT_4','triggerid_str']               
                         
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
     
-    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_4']                           
+    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_4','triggerid_str']                           
                    
     
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
                                 arff_append='_UVOTandZpred', inclerr=False)                     
     return db_full
+
+def ParseRATEGRB():
+    rategrbpath = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_testdata.txt'
+    f=file(rategrbpath,'r')
+    # assuming line format of
+    #  '"204" 0.426470588235294 0.07 0.93 "419404"\n'
+    rategrbdict = {}
+    for line in f.readlines():
+        linesplit = line.split()
+        try:
+            subdict = {'Q_hat':float(linesplit[1]), 'prob_high':float(linesplit[2]), 'prob_low':float(linesplit[3])}
+            rategrbdict.update({linesplit[4].strip('"'):subdict})
+        except:
+            pass
+    return rategrbdict
+    
+        
 
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes

@@ -9,6 +9,7 @@ except:
 import base64, Image, string
 import glob
 from MiscBin.q import dec2sex
+from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -287,13 +288,16 @@ def stealStuff(file_name,file_mode,base_url, timeout=20, verbose=False):
         #handle errors
         except HTTPError, e:
             print "HTTP Error:",e.code , url
-            print "Trying again: %i attempts remaining" % (trys_left)
+            print "Trying again: %i attempts remaining" % (trys_left+1)
+            if trys_left <= -1: qErr.qErr()
         except URLError, e:
             print "URL Error:",e.reason , url
-            print "Trying again: %i attempts remaining" % (trys_left)
+            print "Trying again: %i attempts remaining" % (trys_left+1)
+            if trys_left <= -1: qErr.qErr()
         except:
             print "Couldn't Download!"
-            print "Trying again: %i attempts remaining" % (trys_left)
+            print "Trying again: %i attempts remaining" % (trys_left+1)
+            if trys_left <= -1: qErr.qErr()
 
 def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
     
@@ -303,13 +307,21 @@ def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
     # for the second param ala stealStuff(file_name,'',base_url)
     stealStuff(out_name,"b",img_url, timeout=timeout)
 
-def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True):
+def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True,return_svg=False):
+    '''if return_svg, actually return the svg text rather than saving it to file.  Used for the online finding chart generator.'''
     fc = qImage()
     # define pixel scale from side size
-    uncertainty = float(uncertainty)
-    ra = float(ra)
-    dec = float(dec)
-    size = float(size)
+    try:
+        uncertainty = float(uncertainty)
+        ra = float(ra)
+        dec = float(dec)
+    except:
+        raise ValueError('Values need to be float')
+    try:
+       size = float(size)
+    except:
+       pass  #assume we wanted auto
+
     if size:
         try:
             if size.upper() == 'AUTO' and uncertainty > 0:
@@ -345,5 +357,23 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
         suppress_scale=True
     else:
         suppress_scale=False
+
+    if not return_svg:
+        svgout = fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
+        outname = storepath+src_name+'_fc'
+        outnamesvg = outname+'.svg'
+        outnamepng = outname+'.png'
+        f=open(outnamesvg,'w')
+        f.write(svgout)
+        f.close()
+        magickcommand = "convert %s %s" % (outnamesvg, outnamepng)
+        try:
+            os.system(magickcommand)
+        except:
+            print "Do not have Imagemagick, cannot convert svg to png"
+        print storepath+outname+'*'
+        outlist = glob.glob(outname+'*')
+        return outlist
     
-    return fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)
+    if return_svg:
+        return fc.overlay_finding_chart(ra,dec,uncertainty,src_name,pos_label,cont_str,err_shape,suppress_scale)

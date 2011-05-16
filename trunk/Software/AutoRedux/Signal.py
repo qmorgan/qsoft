@@ -26,8 +26,10 @@ from AutoRedux import send_gmail
 from AutoRedux import GRBHTML
 from RedshiftMachine import LoadGCN
 from MiscBin import qErr
+from MiscBin import qPickle
 import glob
 import time
+import datetime
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -90,10 +92,11 @@ def MonitorRSS(feed_url):
 
 def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 mail_reg=False, mail_to='amorgan@berkeley.edu',\
-                make_html=True, html_path='/o/amorgan/public_html/Swift/',\
+                make_html=True, html_path='/home/amorgan/www/swift/',\
                 mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                 feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
-                out_url_path='http://qmorgan.com/swift/'):
+                update_rss=True, rss_path='/home/amorgan/www/swift/rss.xml',
+                out_url_path='http://swift.qmorgan.com/'):
     while(True):
         sql_tuple_list = MonitorRSS(feed_url)
         for sql_tuple in sql_tuple_list:
@@ -119,10 +122,11 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
 
 def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_reg=False, mail_to='amorgan@berkeley.edu',\
-                        make_html=True, html_path='/o/amorgan/public_html/Swift/',\
+                        make_html=True, html_path='/home/amorgan/www/swift/',\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
-                        out_url_path='http://qmorgan.com/swift/'):
+                        update_rss=True, rss_path='/home/amorgan/www/swift/rss.xml',
+                        out_url_path='http://swift.qmorgan.com/'):
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
     triggerid = triggerid.lstrip('0')
@@ -134,12 +138,16 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
     if incl_reg:
         try:
             reg_path = _incl_reg(gcn)
-            if not reg_path: print '\nCOULDNT FIND REG PATH\n'
+            if not reg_path: 
+                print '\nCOULDNT FIND REG PATH\n'
+                qErr.qErr()
         except: qErr.qErr()
     if incl_fc:
         try:
             fc_path = _incl_fc(gcn,last_pos_check=True)
-            if not fc_path: print '\nCOULDNT FIND FC PATH\n'
+            if not fc_path: 
+                print '\nCOULDNT FIND FC PATH\n'
+                qErr.qErr()
         except: qErr.qErr()
     if mail_reg:
         try:
@@ -151,8 +159,64 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             if mail_html and grbhtml.successful_export:
                 _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
+    if update_rss:
+        try:
+            _update_rss(gcn, rss_path=rss_path,out_url_path='http://swift.qmorgan.com/')
+            print "Updating RSS Feed"
+        except: qErr.qErr()
 
-def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan.com/swift/',grbhtml=None):
+def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=False):
+    from AutoRedux.PyRSS2Gen import RSS2
+    from AutoRedux.PyRSS2Gen import RSSItem
+    from AutoRedux.PyRSS2Gen import Guid
+    import feedparser
+    
+    bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
+    
+    try:
+        grb_time = gcn.pdict['grb_date_str'] + ' ' + \
+                   gcn.pdict['grb_time_str'],
+    except:
+        grb_time = 'Unknown Time'
+    ra=str(gcn.best_pos[0]).rstrip('0')
+    dec=str(gcn.best_pos[1]).rstrip('0')
+    uncertainty=str(gcn.best_pos[2]).rstrip('0')
+    pos_label=gcn.best_pos_type,
+    title = "New GRB! Swift Trigger %i at %s UT" % (int(gcn.triggerid),str(grb_time))
+    description = '''*  Time:%s<br> *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (str(grb_time),ra,dec,uncertainty,pos_label,bigurl)
+    
+    # Load past items from pickle file if there is one
+    old_rss_file = feedparser.parse(rss_path)
+    items = []
+    #populate the old items
+    for entry in old_rss_file.entries:
+        items.append(RSSItem(
+        title=entry['title'],
+        link=entry['link'],
+        description=entry['description'],
+        guid=Guid(entry['link']),
+        pubDate=entry['updated']))
+    
+    #add the new item
+    items.append(RSSItem(
+         title = title,
+         link = bigurl,
+         description = description,
+         guid = Guid(bigurl),
+         pubDate = datetime.datetime.now()))
+    
+        
+    rss = RSS2(
+        title = "Q's Swift Feed",
+        link = "http://swift.qmorgan.com/",
+        description = "Collation of rapid-response information for new Swift GRBs.",
+        lastBuildDate = datetime.datetime.now(),
+        items = items)
+             
+    rss.write_xml(open(rss_path, "w"))
+        
+
+def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.qmorgan.com/',grbhtml=None):
     if not hasattr(gcn,'mailed_web'):
         gcn.mailed_web = False
     if not gcn.mailed_web:
@@ -177,22 +241,22 @@ def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://qmorgan
                 try:
                     # python-twitter requires some kind of oAuth authentication now which is a pain
                     # so just use tumblr, linked to the q.mailbot account.
-                    tumblrmail = '831fezzaup@tumblr.com'
+                    tumblrmail = '661mafroil@tumblr.com'
                     # import twitter # requires http://code.google.com/p/python-twitter/
-                    import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
+                    #import tinyurl # requires http://pypi.python.org/pypi/TinyUrl/0.1.0 
                     bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
-                    littleurl = tinyurl.create_one(bigurl)
+                    #littleurl = tinyurl.create_one(bigurl)
                     if grbhtml:
                         ra=str(gcn.best_pos[0]).rstrip('0')
                         dec=str(gcn.best_pos[1]).rstrip('0')
                         uncertainty=str(gcn.best_pos[2]).rstrip('0')
                         pos_label=gcn.best_pos_type,
                         twitsub = "New GRB! Swift Trigger %i" % (int(gcn.triggerid))
-                        twittext = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,littleurl)
+                        twittext = ''' *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (ra,dec,uncertainty,pos_label,bigurl)
                         
                     else:
                         twitsub = ''
-                        twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),littleurl)
+                        twittext = 'New GRB! Swift Trigger %i. Visit %s for more info.' % (int(gcn.triggerid),bigurl)
                     # api = twitter.Api(username='qmorgan', password='twitme0bafgkm') 
                     # status = api.PostUpdate(twittext)
                     print 'Sending Tweet - %s' % (twittext)
@@ -272,7 +336,7 @@ def DownloadFile(base_url,file_name,out_path):
     except URLError, e:
         print "URL Error:",e.reason , url
         
-def make_grb_html(gcn,html_path='/Users/amorgan/Public/TestDir',reg_path=None,fc_path=None):
+def make_grb_html(gcn,html_path='/home/amorgan/www/swift',reg_path=None,fc_path=None):
     '''Create a GRB Page and Return the Path of the created GRB Webpage'''
     
     triggerid = gcn.triggerid
@@ -289,6 +353,7 @@ def make_grb_html(gcn,html_path='/Users/amorgan/Public/TestDir',reg_path=None,fc
     except:
         grb_time = None
         
+    
     grbhtml_inst = GRBHTML.MakeGRBPage(triggerid=triggerid,bat_pos=gcn.bat_pos,\
     xrt_pos=gcn.xrt_pos,uvot_pos=gcn.uvot_pos,reg_path=reg_path,\
     fc_path=fc_path, grb_time=grb_time, html_path=html_path)

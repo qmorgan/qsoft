@@ -14,6 +14,8 @@ import os
 import shutil
 import time
 from MiscBin import q
+from MiscBin import qErr
+from Phot import extinction
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -69,7 +71,7 @@ class GRBHTML:
             <b>Burst Time:</b> %s
             
             ''' % (grb_time)
-    
+        
     def add_position_info(self,bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None):
         '''Requires bat_pos, xrt_pos, uvot_pos in format of (ra,dec,uncertainty), 
         where uncertainty is in arcseconds. 
@@ -110,6 +112,17 @@ class GRBHTML:
             (RA = %s, Dec = %s)<br><br>
             ''' % (str(uvot_pos[0]).rstrip('0'),str(uvot_pos[1]).rstrip('0'),str(uvot_pos[2]).rstrip('0'),\
             uvot_pos_sex[0],uvot_pos_sex[1])
+            
+        if self.best_pos:
+            try:
+                source_name = 'swift_' + str(self.triggerid)
+                Gal_EB_V = extinction.qExtinction(source_name,self.best_pos[0],self.best_pos[1])
+            except:
+                Gal_EB_V = 'Unknown'
+            self.html_block += '''
+            <b>Extinction</b>: E_(B-V) = %s<br><br>
+            ''' % (str(Gal_EB_V))
+        
         if reg_path != None:
             if os.path.exists(reg_path):
                 self.copy_file(reg_path)
@@ -133,7 +146,7 @@ class GRBHTML:
                 DSS Finder Chart<br>
                 <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=200, height=200></a>
                 <br>
-                <a href='http://lyra.berkeley.edu/~amorgan/displayfc.php?ra=%f&dec=%f&sigma=%f&size=AUTO&name=Swift_%s&label=%s&contstr=&survey=sdss'>SDSS Finding Chart</a>
+                <a href='http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=%f&err_shape=combo&incl_scale=yes&size=AUTO&src_name=Swift_%s&pos_label=%s&cont_str=&survey=sdss'>SDSS Finding Chart</a>
                 <br>(May not be available)
                 ''' % (fc_base,fc_base,self.best_pos[0],self.best_pos[1],self.best_pos[2],self.triggerid,self.best_pos_type)
             else:
@@ -184,7 +197,7 @@ class GRBHTML:
     
 
 
-def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
+def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
                 bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None,\
                 grb_time=None,fc_path=None):
     '''Make a GRB page given inputs and return the instance of the html.'''
@@ -198,13 +211,13 @@ def MakeGRBPage(html_path='/Users/amorgan/Public/TestDir',triggerid='000000',\
     inst.export_html()
     return inst
 
-def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
+def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
     '''Takes a collected dictionary from CollectGRBInfo and creates an index
     html page for all the GRBs
     '''
     failed_grbs = []
     incl_files = ['reg_path','fc_path']
-    incl_keys = ['triggerid_str','z']
+    incl_keys = ['triggerid_str','z','Q_hat']
     html_block = '''
     <html><head><title>Q's GRB Pages</title></head>
     <body background="http://static.tumblr.com/snnreod/Fx4l8ig9j/background_dark.jpg" bgcolor="#363636" text="#000000" link="#111111" alink="#111111" vlink="#333333">
@@ -240,7 +253,7 @@ def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
     
     <table class="sample" align="center">
     ''' 
-    table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift')
+    table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift','Q_hat')
     table_label = '<tr>'
     for column_name in table_columns:
         table_label += '<td align=center><b>%s</b></td>' % column_name
@@ -275,7 +288,7 @@ def MakeGRBIndex(collected_grb_dict,html_path='/Users/amorgan/Public/TestDir'):
                 try:
                     html_block += "<td>%s</td>" % str(grbdict[incl_item])
                 except:
-                    pass
+                    html_block += "<td></td>"
 #            html_block += "<td>%s</td>" % (grbdict['triggerid_str'])
 #            html_block += "<td>%f</td>" % (grbdict['z'])
             html_block += "</tr>"
