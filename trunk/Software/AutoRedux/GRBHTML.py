@@ -217,7 +217,7 @@ def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
     '''
     failed_grbs = []
     incl_files = ['reg_path','fc_path']
-    incl_keys = ['triggerid_str','z']
+    incl_keys = ['triggerid_str','z','Q_hat']
     html_block = '''
     <html><head><title>Q's GRB Pages</title></head>
     <body background="http://static.tumblr.com/snnreod/Fx4l8ig9j/background_dark.jpg" bgcolor="#363636" text="#000000" link="#111111" alink="#111111" vlink="#333333">
@@ -253,7 +253,7 @@ def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
     
     <table class="sample" align="center">
     ''' 
-    table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift')
+    table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift','Q_hat')
     table_label = '<tr>'
     for column_name in table_columns:
         table_label += '<td align=center><b>%s</b></td>' % column_name
@@ -288,7 +288,7 @@ def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
                 try:
                     html_block += "<td>%s</td>" % str(grbdict[incl_item])
                 except:
-                    pass
+                    html_block += "<td></td>"
 #            html_block += "<td>%s</td>" % (grbdict['triggerid_str'])
 #            html_block += "<td>%f</td>" % (grbdict['z'])
             html_block += "</tr>"
