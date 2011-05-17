@@ -855,6 +855,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     
     print "Length of pre-truncated sextractor starlist is %s" % str(len(sexcat_starlist))
     print "Length of vizquery 2mass starlist is %s" % str(len(vizcat_starlist))
+    print "sexcat_starlist first entry is:"
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
@@ -1272,7 +1273,8 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
-    filepath = storepath + GRBname + '.data'
+
+    filepath = storepath + GRBname + '.data'         
     while clobber == False:
         if os.path.isfile(filepath) == True:
             data = qPickle.load(filepath)
@@ -1282,7 +1284,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
                 clobber = True
         else:
             clobber = True
-
+    
     while clobber == True:
         if reg == None: 
             print 'Need to input reg file'
@@ -1292,7 +1294,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
                 photdict = {}  
             else:
                 #f = file(filepath)
-                photdict = qPickle.load(filepath)
+                photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
             data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
@@ -1316,6 +1318,11 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     GRBlist = []
     GRBlistwweight = glob.glob('*.fits')
     # Remove the weight images from the list
+    filepath = storepath + GRBname + '.data'
+    # Remove the stored pickle file if clobber is set to True
+    if clobber == True:
+        if os.path.isfile(filepath) == True:
+            os.remove(filepath)
     for item in GRBlistwweight:
         if item.find('weight') == -1:
             GRBlist.append(item)
@@ -1401,7 +1408,7 @@ def plotzp(photdict):
 
 def plots2n(photdict):
     '''Plots a graph of s/n versus duration from the pickle output of the 
-    photreturn function'''
+    photreturn function. This function also takes the output from photLoop'''
     import matplotlib
     import glob
     
@@ -1544,6 +1551,8 @@ def photplot(photdict,ylim=None,xlim=None):
     
     #filepath = path + GRBname + '.data'
     #photdict = qPickle.load(filepath)
+
+    matplotlib.pyplot.clf()
     
     h = False
     j = False
@@ -1641,6 +1650,8 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
     we loop around images in a directory using PhotLoop and measure the 
     photometry of the calibration stars.
     '''
+    import pylab
+    pylab.clf()
     j_delta_med_list = []
     h_delta_med_list = []
     k_delta_med_list = []
