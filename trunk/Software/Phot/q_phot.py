@@ -25,6 +25,7 @@ Contact: cklein@berkeley.edu, amorgan@berkeley.edu
 
 import sys
 import ephem
+import pylab
 from pylab import *
 import os
 from os import system
