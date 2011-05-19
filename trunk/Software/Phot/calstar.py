@@ -150,7 +150,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
 
         #matplotlib.pyplot.errorbar(timarr, datarr, yerr = daterrarr, label = starname, fmt='k.', color = colortuple) 
     star_stdv = numpy.std(datarr)
-    print 'The standard deviation of the calibration stars is:'
+    print 'The standard deviation of the calibration stars is: (DISREGARD THIS, THIS STDV IS PROBABLY WRONG)'
     print star_stdv
     matplotlib.pyplot.title('Calibration Stars Magnitude vs. t_mid')
     matplotlib.pyplot.xlabel('Time After Burst (s)')
@@ -196,12 +196,12 @@ def star_stdv(magplotdict):
         magerrlist = []
         
         for image in magplotdict[star]:
-            if 'targ_mag' in magplotdict[star][image]:
-                print 'targ_mag key found in magplotdict, continuing'
-                maglist += [magplotdict[star][image]['targ_mag'][0]]
-                magerrlist += [magplotdict[star][image]['targ_mag'][1]]
-            else:
-                print 'No targ_mag key found in magplotdict, continuing'
+            #if 'targ_mag' in magplotdict[star][image]:
+             #   print 'targ_mag key found in magplotdict, continuing'
+             maglist += [magplotdict[star][image]['calib_stars'][star]['new_mag']]
+            # magerrlist += [magplotdict[star][image]['calib_stars'][star]['new_e_mag']]
+            #else:
+             #   print 'No targ_mag key found in magplotdict, continuing'
         star_stdv = numpy.std(maglist)
         star_stdv_dict = {star:star_stdv}
         stdv_dict.update(star_stdv_dict)
