@@ -1640,6 +1640,13 @@ def photplot(photdict,ylim=None,xlim=None):
         ax.set_xlim(xlim)
     if ylim:
         ax.set_ylim(ylim)
+
+    F = pylab.gcf()
+    DefaultSize = F.get_size_inches()
+    DPI = F.get_dpi()
+    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+    # was getting incresingly larger with multiple runs
+    F.set_size_inches((20, 15))
     
     print 'lightcurve saved to ' + savepath
     savefig(savepath)    
