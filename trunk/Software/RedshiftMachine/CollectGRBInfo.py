@@ -1175,7 +1175,7 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-    def makeDeluxeTable(self,attrlist=['triggerid_str','Z'],tab_append='',inclerr=True):
+    def makeDeluxeTable(self,attrlist=['triggerid_str','Z'],caption='My awesome Table', tab_append='',inclerr=True):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
@@ -1183,10 +1183,25 @@ class GRBdb:
         '''
         time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed']
                   
+        n_columns = len(attrlist)
+        numcolstr = 'c'*n_columns
+        head1 = '''\\begin{deluxetable}{%s}
+        \\tabletypesize{\scriptsize}
+        \singlespace
+        \\tablewidth{0pt}
+        \\tablecaption{%s}
+        \\tablehead{''' % (numcolstr, caption)
+        
+        head2 = ''
+        for attr in attrlist:
+            head2+='\colhead{%s} &\n' % (attr)
+        head2 = head2.rstrip().rstrip('&')  + '}\n' + '\startdata\n'
+
+        
         # set up paths
         tab_path = storepath+self.name+tab_append+'.ta'
         tab_path_2 = tab_path + 'b'
-        arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr)
+        arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr,ignore_types=True)
         datapath = arffpath + '_data'
         headpath = arffpath + '_head'
         
@@ -1200,13 +1215,21 @@ class GRBdb:
         
         f = open(datapath,'r')
         f_new = open(tab_path_2,'w')
+        f_new.write(head1)
+        f_new.write(head2)
         lines = f.readlines()
         newlines = []
+        count=0
+        lenlines = len(lines)
         for line in lines:
+            count += 1
             new_line = line.replace(',','\t&\t')
-            new_line = new_line.replace('\n',' // \n')
+            if count != lenlines:
+                new_line = new_line.replace('\n',' \\\\ \n')
             f_new.write(new_line)
             
+        f_new.write('\enddata\n')
+        f_new.write('\end{deluxetable}')   
                 
         f.close()
         f_new.close()
@@ -1232,7 +1255,7 @@ class GRBdb:
                       'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
                       'triggerid_str'
                       ],
-                      arff_append='',inclerr=True):
+                      arff_append='',inclerr=True, ignore_types=False):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
@@ -1244,7 +1267,8 @@ class GRBdb:
             storepath + db_name + arff_append .arff
         inclerr = True includes the uncertainty values for the parameters that
             have them
-        
+        ignore_types : ignore whether we think its nominal or numeric and just 
+            treat it as nominal.  only use for making delux tables
         
         '''
         
@@ -1310,7 +1334,7 @@ class GRBdb:
                 if not helpdictitem['speed'] in time_list:
                     print 'Speed for %s not in time_list; not including' % (keyitem)
                     continue
-                if attrdict['type'] == 'numeric' or attrdict['type'] == 'binary':
+                if not ignore_types and (attrdict['type'] == 'numeric' or attrdict['type'] == 'binary'):
                     numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
                     numattrlist.append(keyitem)
                     fmt += ',%f'
@@ -1320,7 +1344,7 @@ class GRBdb:
                         numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % posname
                         numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % negname
                         fmt += ',%f,%f'
-                elif attrdict['type'] == 'nominal':
+                elif attrdict['type'] == 'nominal' or ignore_types:
                     # Do nominal Stuff
                     # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
                     f.write('% !CHECK ME:\n')
@@ -1352,8 +1376,10 @@ class GRBdb:
                     numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['poserrarr']])),axis=0)
                     numtotarr = numpy.concatenate((numtotarr,numpy.array([attrdict['negerrarr']])),axis=0)
             numarr2 = numtotarr
+            nonumeric = False
         else:
             numarr2 = numpy.array(['# NO NUMERIC ATTRIBUTES'])
+            nonumeric = True
             
         
         
@@ -1365,15 +1391,17 @@ class GRBdb:
                 attrdict = getattr(self,keyitem)
                 nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
             nomarr2 = nomtotarr
+            nonominal = False
         else:
             nomarr2 = numpy.array(['# NO NOMINAL ATTRIBUTES'])
+            nonominal = True
         
         nomsubpath = subpath + 'nom'
         numsubpath = subpath + 'num'
         numnomsubpath = subpath + 'numnom'
         
-        numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt='%1.5e')
-        numpy.savetxt(nomsubpath,nomarr2,delimiter=',',fmt='%s')
+        if not nonumeric: numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt='%1.5e')
+        if not nonominal: numpy.savetxt(nomsubpath,nomarr2,delimiter=',',fmt='%s')
         
         cmd = 'cat %s %s > %s' %(numsubpath,nomsubpath,numnomsubpath)
         os.system(cmd)
