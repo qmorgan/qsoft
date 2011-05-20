@@ -212,9 +212,12 @@ def whatis(keyword):
     'z': {'definition':'Redshift','type':'double','source':'SwiftCat','speed':'na','sample':2.4300000000000002},
     'z_class': {'definition':'Redshift class (high_z,medium_z,low_z) derived from actual redshift value','type':'string','source':'Derived','speed':'na','sample':'medium_z'},
     'Z_LT_1_OVER_Z_GT_4':{'definition':'Ratio of Nats probability functions','type':'float','source':'NatBat','speed':'processed','sample':1.302},
+    'Q_hat':{'definition':'Follow-up recommendation from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.302},
+    'prob_high':{'definition':'prob high from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.302},
+    'prob_low':{'definition':'prob low from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.698},
     'z_isupper': {'definition':'Was the redshift value reported an upper limit?','type':'string','source':'SwiftCat','speed':'na','sample':'no'},
     'z_str': {'definition':'Redshift String','type':'string','source':'SwiftCat','speed':'na','sample':'2.43 (Gemini-North: absorption)'}}
-
+    
     if keyword in helpdict:
         return helpdict[keyword]
     elif keyword == 'all':
@@ -467,9 +470,31 @@ class GRBdb:
                 if self.dict[grb]['wh_mag_isupper'] == 'no':
                     UVOT_Detection = 'yes'
                 
-            elif 'v_mag_isupper' in self.dict[grb]:
+            if 'v_mag_isupper' in self.dict[grb]:
                 if self.dict[grb]['v_mag_isupper'] == 'no':
                     UVOT_Detection = 'yes'                
+                    
+            if 'u_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['u_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+                    
+            if 'b_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['b_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+                    
+            if 'w1_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['w1_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+                    
+            if 'w2_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['w2_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+                    
+            if 'm2_mag_isupper' in self.dict[grb]:
+                if self.dict[grb]['m2_mag_isupper'] == 'no':
+                    UVOT_Detection = 'yes'
+            
+                    
             self.dict[grb]['uvot_detection'] = UVOT_Detection
             
             # Make attribute from ratio of nat Z prediction
@@ -931,6 +956,11 @@ class GRBdb:
         self.MakeNomArr('uvot_detection')
         self.MakeAttrArr('gal_EB_V')
         self.MakeAttrArr('Z_LT_1_OVER_Z_GT_4')
+        
+        #RATE_GRB-z values
+        self.MakeAttrArr('Q_hat')
+        self.MakeAttrArr('prob_high')
+        self.MakeAttrArr('prob_low')
         
         # Make the following Binary attributes
         keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig',
@@ -1496,10 +1526,15 @@ def TestReloadAlldb():
     db_onlyz.makeArffFromArray(arff_append='_Full',inclerr=False)
     db_onlyz.makeArffFromArray(arff_append='_Full_with_errors',inclerr=True)
     
-    reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
-                        'NH_PC','T90','bat_image_signif','bat_img_peak',
-                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
-                        'PROB_Z_GT_4','triggerid_str']    
+    # reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+    #                       'NH_PC','T90','bat_image_signif','bat_img_peak',
+    #                       'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+    #                       'PROB_Z_GT_4','triggerid_str']    
+    #     
+    reduced_attr_list = ['Z','A','EP0','FL','FLX_PC_LATE','MAX_SNR',
+                        'T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig_binary','bat_trigger_dur','uvot_detection_binary',
+                        'PROB_Z_GT_4','triggerid_str']
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
