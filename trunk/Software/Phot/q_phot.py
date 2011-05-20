@@ -232,6 +232,12 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
     return fwhm, fwhm_stdev
     
 
+def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
+                            base_dither_error=0.03):
+    uncertainty = float(sqrt(zeropoint_error**2 + (instrumental_error*2.4)**2 
+                    + (base_dither_error/sqrt(num_triplestacks))**2))
+    return uncertainty
+
 # --------------------------    BEGIN PROGRAM   --------------------------------
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
@@ -365,7 +371,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     '''Finding the number of triplestacks (dither positions) used in the image
     for use when calulating the uncertainty (an addl source of error occurs
     which reduces as the sqrt of the number of dither positions):'''
-    base_dither_error = 0.1
     file_header = pyfits.open(progenitor_image_name)
     STRT_count = 0
     for info in file_header[0].header:
@@ -977,8 +982,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             zeropoint_list.append(tmass_mag - ptel_mag)
             if star[7] != 'calib': # sanity check that different target matching works
                 raise ValueError('Calib Star identification mismatch somewhere in the code; squash this bug')
-            zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
-                        + (base_dither_error/sqrt(num_triplestacks))**2)
+            sub_zp_err = return_ptel_uncertainty(ptel_e_mag,tmass_e_mag,num_triplestacks)
+            # zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
+            #             + (base_dither_error/sqrt(num_triplestacks))**2)
+            zeropoint_err_list.append(sub_zp_err)
             
             #Sanity check on target separation
             if star[8] > 5:
@@ -1033,13 +1040,17 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             multiplicitive factor due to the fact that we are typically 
             rebinning from 2"/pix to 1"/pix (should be a factor of two, but
             in testing with GRB 071025, Dan found it to be ~2.4).'''
+            
+            # preserving the target magnitude for later
             target_mag = new_mag
             
             # e_mag = sqrt((inst_err*2.4)**2 + zp_err**2 + (base_dither_error/sqrt(num_triplestacks))**2)
-            target_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
-                            + (base_dither_error/sqrt(num_triplestacks))**2))
-            new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
-                            + (base_dither_error/sqrt(num_triplestacks))**2))
+
+            # new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
+            #                 + (base_dither_error/sqrt(num_triplestacks))**2))
+            new_e_mag = return_ptel_uncertainty(ptel_e_mag,zeropoint_error,num_triplestacks)
+            target_e_mag = new_e_mag
+
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
@@ -1062,8 +1073,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             new_mag = ptel_mag + zeropoint
             delta_pos = star[8]
             delta_mag = abs(new_mag-tmass_mag) # difference between our magnitude and 2mass
-            new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
-                            + (base_dither_error/sqrt(num_triplestacks))**2))
+            # new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
+            #                 + (base_dither_error/sqrt(num_triplestacks))**2))
+            new_e_mag = return_ptel_uncertainty(ptel_e_mag,zeropoint_error,num_triplestacks)
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
             photdict['calib_stars'].update({str(ra):{'ra':ra,'dec':dec,
