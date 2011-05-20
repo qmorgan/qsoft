@@ -983,6 +983,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if star[7] != 'calib': # sanity check that different target matching works
                 raise ValueError('Calib Star identification mismatch somewhere in the code; squash this bug')
             sub_zp_err = return_ptel_uncertainty(ptel_e_mag,tmass_e_mag,num_triplestacks)
+            
+            if sub_zp_err > 0.3:
+                errmessage = '''Star at RA: %f Dec: %f has a huge uncertainty.  
+                Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)
+                raise Exception(errmessage)
+            
             # zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
             #             + (base_dither_error/sqrt(num_triplestacks))**2)
             zeropoint_err_list.append(sub_zp_err)
