@@ -59,6 +59,38 @@ def run_swarp(command):
 ### RECORD INFORMATION ABOUT CHANGING THE SEXTRACTOR PARAM FILES
 ### NOTE - TEST HOW CALIB STAR TRENDS CHANGE WITH APERTURE SIZE
 
+def MakeTriplestack(reduced_filelist):
+    accepted_filters = ['j','h','k']
+    filestring = ''
+    if len(reduced_filelist) != 3:
+        raise ValueError('filelist should be list or tuple of length 3')
+    for reduced_file in reduced_filelist:
+        filt = reduced_file[0]
+        if reduced_file[-6] == '0':
+            filenamebase = reduced_file.split('long_')[1]
+            filenamebase = filenamebase.split('-0.fits')[0]
+        filestring += reduced_file + ' '
+        if filt not in accepted_filters:
+            raise ValueError('File name must start with j, h, or k')
+        if reduced_file.find('.fits') == -1:
+            print outname
+            raise ValueError('Input file must end in .fits')    
+        if not os.path.exists(reduced_file):
+            raise IOError('File does not exist')        
+    
+    print filestring
+    tmpweightpath =  storepath + '/tmptriplestack.weight.fits '
+    tmpimgpath = storepath + '/tmptriplestack.fits '
+    swarpcmd = "swarp -c "+ loadpath + "make_triplestack.swarp " + filestring 
+    swarpcmd += " -WEIGHT_IMAGE @" + loadpath + '/' + filt + '_triplestackweights.txt '
+    swarpcmd += "-IMAGEOUT_NAME " + tmpimgpath + "-WEIGHTOUT_NAME " + tmpweightpath
+    run_swarp(swarpcmd)
+    
+    cmd = "mv " + tmpimgpath + ' ' + filt + '_long_'+ filenamebase.replace('reduced','triplestack') + '.fits'
+    os.system(cmd)
+    cmd = "mv " + tmpweightpath + ' ' + filt + '_long_' + filenamebase.replace('reduced','triplestackweightmap') + '.fits'
+    os.system(cmd)
+
 def Coadd(filelist, outname):
     try:
         from multiprocessing import Pool
