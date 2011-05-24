@@ -1,0 +1,3 @@
+/Users/amorgan/q_soft/load/PTEL_weightmaps/j_weightmap.fits
+/Users/amorgan/q_soft/load/PTEL_weightmaps/j_weightmap.fits
+/Users/amorgan/q_soft/load/PTEL_weightmaps/j_weightmap.fits
