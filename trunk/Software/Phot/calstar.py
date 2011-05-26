@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, noerr=False, magrange=None):
+def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = False, noerr=False, magrange=None):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -28,7 +28,8 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         reg: region file of calibration stars to test and plot
         filelist: EITHER: list of files to run photometry on, or a string
                   to do a glob search of files in a directory (if globit=True)
-        out_pickle: filename of the pickle file to write to
+        out_pickle: override the filename of the pickle file to write to. 
+                    Will use default naming convention if not specified.
         triggerid: Swift trigger id of the GRB (if applicable; otherwise None)
         globit: if True, do a glob search to get a list of filenames to run 
                 photometry on instead of specifying an explicit list.
@@ -47,13 +48,15 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         print 'globit actiavated'
         print filelist
     
+    unique_name = (filelist[0].split('_'))[2]
+    filt = filelist[0][0]
+    
     calib_star_keys = []
     testind = 0
     caldict = {}
     matplotlib.pyplot.clf()
     regpath = reg
     temppath = storepath + 'temp.reg'
-    picklepath = storepath + out_pickle +'.data'
     regfile = open(regpath, 'r')
     reglist = regfile.readlines()
     callist = []
@@ -64,6 +67,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             pass
     
     colornumber = len(callist)
+    n_stars = len(callist)
     
     while((len(calib_star_keys) < len(callist)) and testind < len(filelist)):
         tempreg = open(temppath, 'w')
@@ -121,6 +125,8 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             calregion =  '/calstarregs/' + os.path.basename(reg) 
             data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
             image_data = data[image]
+            if image[0] != filt:
+                raise ValueError('Filter for %s does not match the others') % (image)
             if ra_str in image_data['calib_stars']:
                 datalist += [image_data['calib_stars'][ra_str]['new_mag']] 
                 dataerrlist += [image_data['calib_stars'][ra_str]['new_e_mag']]
@@ -152,9 +158,11 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     star_stdv = numpy.std(datarr)
     print 'The standard deviation of the calibration stars is: (DISREGARD THIS, THIS STDV IS PROBABLY WRONG)'
     print star_stdv
-    matplotlib.pyplot.title('Calibration Stars Magnitude vs. t_mid')
+    plottitle = '%s Calibration Stars Magnitude vs. t_mid' % (filt)
+    plotylabel = '%s Magnitude' % (filt)
+    matplotlib.pyplot.title(plottitle)
     matplotlib.pyplot.xlabel('Time After Burst (s)')
-    matplotlib.pyplot.ylabel('Magnitude')
+    matplotlib.pyplot.ylabel(plotylabel)
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim((ax.get_xlim()[0]),(ax.get_xlim()[1])*1.2)
@@ -169,9 +177,12 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
     # was getting incresingly larger with multiple runs
     F.set_size_inches((20, 15))
-
-    unique_name = (filelist[0].split('_'))[2]
-    filepath = storepath + unique_name + '_calibration_stars.png'
+    if not out_pickle:
+        picklepath = storepath + unique_name + '_' + filt + '_' + n_stars + '_cal_stars.data'
+    else:
+        picklepath = out_pickle
+        
+    filepath = storepath + unique_name + '_' + filt + '_' + n_stars + '_cal_stars.png'
     #matplotlib.pyplot.savefig(filepath)
 
     qPickle.save(caldict, picklepath, clobber=True)
