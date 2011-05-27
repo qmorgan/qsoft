@@ -177,12 +177,13 @@ def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = 
     # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
     # was getting incresingly larger with multiple runs
     F.set_size_inches((20, 15))
+    n_stars_str = str(n_stars)
     if not out_pickle:
-        picklepath = storepath + unique_name + '_' + filt + '_' + n_stars + '_cal_stars.data'
+        picklepath = storepath + unique_name + '_' + filt + '_' + n_stars_str + '_cal_stars.data'
     else:
         picklepath = out_pickle
         
-    filepath = storepath + unique_name + '_' + filt + '_' + n_stars + '_cal_stars.png'
+    filepath = storepath + unique_name + '_' + filt + '_' + n_stars_str + '_cal_stars.png'
     #matplotlib.pyplot.savefig(filepath)
 
     qPickle.save(caldict, picklepath, clobber=True)
@@ -345,6 +346,97 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
     
     return stardict
 
+def extract(caldict_h, caldict_j, caldict_k, starRA):
+    ''' extract specific stars from caldict '''
+    from operator import itemgetter
 
+    matplotlib.pyplot.clf()
+    star_h = caldict_h[starRA]
+    star_j = caldict_j[starRA]
+    star_k = caldict_k[starRA]
+    h_list = []
+    h_err_list = []
+    j_list = []
+    j_err_list = []
+    k_list = []
+    k_err_list = []
+    timlist_h = []
+    terlist_h = []
+    timlist_j = []
+    terlist_j = []
+    timlist_k = []
+    terlist_k = []
 
+    #h
+    #sorting w.r.t time
+    mosaiclist=[]
+    for mosaics in star_h:
+        mosaiclist += [star_h[mosaics]]
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
     
+    for mosaics in mosaiclist:
+        h_list += [mosaics['calib_stars'][starRA]['new_mag']]
+        h_err_list += [mosaics['calib_stars'][starRA]['new_e_mag']]
+        timlist_h += [mosaics['t_mid'][0]]
+        terlist_h += [mosaics['t_mid'][1]]
+
+    #j
+    #sorting w.r.t time
+    mosaiclist=[]
+    for mosaics in star_j:
+        mosaiclist += [star_j[mosaics]]
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    
+    for mosaics in mosaiclist:
+        j_list += [mosaics['calib_stars'][starRA]['new_mag']]
+        j_err_list += [mosaics['calib_stars'][starRA]['new_e_mag']]
+        timlist_j += [mosaics['t_mid'][0]]
+        terlist_j += [mosaics['t_mid'][1]]
+    
+    #k
+    #sorting w.r.t time
+    mosaiclist=[]
+    for mosaics in star_k:
+        mosaiclist += [star_k[mosaics]]
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    
+    for mosaics in mosaiclist:
+        k_list += [mosaics['calib_stars'][starRA]['new_mag']]
+        k_err_list += [mosaics['calib_stars'][starRA]['new_e_mag']]
+        timlist_k += [mosaics['t_mid'][0]]
+        terlist_k += [mosaics['t_mid'][1]]
+
+    matplotlib.pyplot.errorbar(timlist_h, h_list, yerr=h_err_list, xerr=terlist_h, marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green', label = 'h')
+    matplotlib.pyplot.errorbar(timlist_j, j_list, yerr=j_err_list, xerr=terlist_j, marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+    matplotlib.pyplot.errorbar(timlist_k, k_list, yerr=k_err_list, xerr=terlist_k,  \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'k')
+
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    #ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+   # uniquename = caldict_h.keys()[0].split('_')[2]
+    cname = str(starRA)
+    matplotlib.pyplot.title(' Calibration Star '+'('+cname+')')
+    savepath = storepath + '_' + cname + '_singlecalib.png'
+    
+    F = pylab.gcf()
+    DefaultSize = F.get_size_inches()
+    DPI = F.get_dpi()
+    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+    # was getting incresingly larger with multiple runs
+    F.set_size_inches((20, 15))
+
+    print 'single calibration plot saved to ' + savepath
+    matplotlib.pyplot.savefig(savepath)    
+    matplotlib.pyplot.close()
