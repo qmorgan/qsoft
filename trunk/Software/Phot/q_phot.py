@@ -1143,7 +1143,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         photdict.update({'targ_mag':(target_mag,target_e_mag)})
         photdict.update({'targ_flux':(target_flux,target_flux_err)})
         photdict.update({'targ_s2n':src_s2n})
-    # Print out photometry data. 
+    # Print out photometry data.
     print progenitor_image_name, "HJD:", hjd
     print "Photometry Results:", photometry_string
     print ("2MASS Catalog comparison average absolute deviation: " + 
@@ -1348,6 +1348,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     if not GRBlist:
         raise ValueError('No files to perform photometry on. In right directory?')
     for mosaic in GRBlist:
+        print "=========================================================="
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
@@ -1652,6 +1653,7 @@ def photplot(photdict,ylim=None,xlim=None):
     ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
+    matplotlib.pyplot.title(uniquename+' Lightcurve')
     savepath = storepath + uniquename + '_lightcurve.png'
     
     if xlim:
@@ -1724,3 +1726,125 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
         print 's/n plot saved to ' + savepath
 
     return (j_delta_med_list,h_delta_med_list,k_delta_med_list)
+
+def colorevo(photdict, JorK, ylim=None,xlim=None):
+    '''Plots a color evolution J-H, H-K from photdict'''
+    import matplotlib
+    import glob
+    import datetime
+    
+    #filepath = path + GRBname + '.data'
+    #photdict = qPickle.load(filepath)
+
+    matplotlib.pyplot.clf()
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    h_list = []
+    h_errlist = []
+    j_list = []
+    j_errlist = []
+    k_list = []
+    k_errlist = []
+
+    for mosaics in photdict:
+        print 'now doing ' + str(mosaics)        
+        if 'targ_mag' in photdict[mosaics]: 
+            valu = float(photdict[mosaics]['targ_mag'][0])
+            verr = float(photdict[mosaics]['targ_mag'][1])
+
+            #there's probably a prettier way to do this, the second if statements 
+            #are there so that only 1 label per filter is on the legend
+
+            if 'h_' in mosaics:                
+                h_list += [valu]
+                h_errlist += [verr]
+                timlist += [photdict[mosaics]['t_mid'][0]]
+                terlist += [photdict[mosaics]['t_mid'][1]]
+            elif 'j_' in mosaics:
+                j_list += [valu]
+                j_errlist += [verr]
+            elif 'k_' in mosaics:
+                k_list += [valu]
+                k_errlist += [verr]
+
+        elif 'upper_green' in photdict[mosaics]: 
+                valu = float(photdict[mosaics]['upper_green'])
+                if photdict[mosaics]['filter'] == 'h':
+                     h_list += [valu]
+                     h_errlist += [0]
+                     timlist += [photdict[mosaics]['t_mid'][0]]
+                     terlist += [photdict[mosaics]['t_mid'][1]]
+                if photdict[mosaics]['filter'] == 'j':
+                     j_list += [valu]
+                     j_errlist += [0]
+                if photdict[mosaics]['filter'] == 'k':
+                     k_list += [valu]
+                     k_errlist += [0]
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
+    timlist.sort()
+    terlist.sort()
+    timlist = numpy.array(timlist)
+    terlist = numpy.array(terlist)
+    h_list = numpy.array(h_list)
+    j_list = numpy.array(j_list)
+    k_list = numpy.array(k_list)
+
+    jminh = j_list - h_list
+    hmink = h_list - k_list
+
+    if JorK == 'j':
+        matplotlib.pyplot.errorbar(timlist, jminh, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'j-h')
+    elif JorK =='k':
+        matplotlib.pyplot.errorbar(timlist, hmink, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'h-k')
+    elif JorK == 'both':
+        matplotlib.pyplot.errorbar(timlist, jminh, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'j-h')
+        matplotlib.pyplot.errorbar(timlist, hmink, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'h-k')
+        
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    #ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    uniquename = photdict.keys()[0].split('_')[2]
+    if JorK == 'j':
+        cname = 'J-H'
+    elif JorK == 'k':
+        cname = 'H-K'
+    elif JorK == 'both':
+        cname = 'both'
+    matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
+    savepath = storepath + uniquename + '_' + cname + '_colorevo.png'
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+
+    F = pylab.gcf()
+    DefaultSize = F.get_size_inches()
+    DPI = F.get_dpi()
+    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+    # was getting incresingly larger with multiple runs
+    F.set_size_inches((20, 15))
+
+    print 'colorevolution saved to ' + savepath
+    savefig(savepath)    
+    matplotlib.pyplot.close()
