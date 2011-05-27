@@ -299,12 +299,17 @@ def stealStuff(file_name,file_mode,base_url, timeout=20, verbose=False):
             print "Trying again: %i attempts remaining" % (trys_left+1)
             if trys_left <= -1: qErr.qErr()
 
-def downloadImage(img_url,out_name='qImage.jpg', timeout=20):
+def downloadImage(img_url,out_name=None, timeout=20):
     
     #create file name based on known pattern
     # Now download the image. If these were text files,
     # or other ascii types, just pass an empty string
     # for the second param ala stealStuff(file_name,'',base_url)
+    if not out_name:
+        try:
+            out_name = img_url.split('/')[-1]
+        except:
+            out_name = 'qImage.jpg'
     stealStuff(out_name,"b",img_url, timeout=timeout)
 
 def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB090313',pos_label='XRT',survey='dss2red',cont_str='Contact: Test', size=3.0,err_shape='cross',incl_scale=True,return_svg=False):
