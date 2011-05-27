@@ -1732,7 +1732,7 @@ def colorevo(photdict, JorK, ylim=None,xlim=None):
     import matplotlib
     import glob
     import datetime
-    
+    from operator import itemgetter
     #filepath = path + GRBname + '.data'
     #photdict = qPickle.load(filepath)
 
@@ -1750,45 +1750,47 @@ def colorevo(photdict, JorK, ylim=None,xlim=None):
     j_errlist = []
     k_list = []
     k_errlist = []
-
+    mosaiclist=[]
     for mosaics in photdict:
-        print 'now doing ' + str(mosaics)        
-        if 'targ_mag' in photdict[mosaics]: 
-            valu = float(photdict[mosaics]['targ_mag'][0])
-            verr = float(photdict[mosaics]['targ_mag'][1])
+        mosaiclist += [photdict[mosaics]]
+    #sorting w.r.t time
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    for mosaics in mosaiclist:
 
-            #there's probably a prettier way to do this, the second if statements 
-            #are there so that only 1 label per filter is on the legend
-
-            if 'h_' in mosaics:                
+        if 'targ_mag' in mosaics: 
+            valu = float(mosaics['targ_mag'][0])
+            verr = float(mosaics['targ_mag'][1])
+            
+            if mosaics['filter'] == 'h':                
                 h_list += [valu]
                 h_errlist += [verr]
-                timlist += [photdict[mosaics]['t_mid'][0]]
-                terlist += [photdict[mosaics]['t_mid'][1]]
-            elif 'j_' in mosaics:
+                timlist += [mosaics['t_mid'][0]]
+                terlist += [mosaics['t_mid'][1]]
+
+            elif mosaics['filter'] == 'j':
                 j_list += [valu]
                 j_errlist += [verr]
-            elif 'k_' in mosaics:
+            elif mosaics['filter'] == 'k':
                 k_list += [valu]
                 k_errlist += [verr]
-
-        elif 'upper_green' in photdict[mosaics]: 
-                valu = float(photdict[mosaics]['upper_green'])
-                if photdict[mosaics]['filter'] == 'h':
+            
+        elif 'upper_green' in mosaics: 
+                valu = float(mosaics['upper_green'])
+                if mosaics['filter'] == 'h':
                      h_list += [valu]
                      h_errlist += [0]
-                     timlist += [photdict[mosaics]['t_mid'][0]]
-                     terlist += [photdict[mosaics]['t_mid'][1]]
-                if photdict[mosaics]['filter'] == 'j':
+                     timlist += [mosaics['t_mid'][0]]
+                     terlist += [mosaics['t_mid'][1]]
+                if mosaics['filter'] == 'j':
                      j_list += [valu]
                      j_errlist += [0]
-                if photdict[mosaics]['filter'] == 'k':
+                if mosaics['filter'] == 'k':
                      k_list += [valu]
                      k_errlist += [0]
         else:
             print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
-    timlist.sort()
-    terlist.sort()
+
     timlist = numpy.array(timlist)
     terlist = numpy.array(terlist)
     h_list = numpy.array(h_list)
