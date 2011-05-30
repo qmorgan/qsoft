@@ -179,11 +179,11 @@ def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = 
     F.set_size_inches((20, 15))
     n_stars_str = str(n_stars)
     if not out_pickle:
-        picklepath = storepath + unique_name + '_' + filt + '_' + n_stars_str + '_cal_stars.data'
+        picklepath = storepath + unique_name + '_' + filt + '_' + 'ap' + str(ap) + '_' + n_stars_str + '_cal_stars.data'
     else:
         picklepath = out_pickle
         
-    filepath = storepath + unique_name + '_' + filt + '_' + n_stars_str + '_cal_stars.png'
+    filepath = storepath + unique_name + '_' + filt + '_' + 'ap' + str(ap) + '_' + n_stars_str + '_cal_stars.png'
     #matplotlib.pyplot.savefig(filepath)
 
     qPickle.save(caldict, picklepath, clobber=True)

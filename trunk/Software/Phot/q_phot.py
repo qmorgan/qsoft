@@ -1292,8 +1292,12 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
-
-    filepath = storepath + GRBname + '.data'         
+    filepath = storepath + GRBname + 'ap' + str(aper)  
+    if calregion:
+        filepath += '_WithCalReg'
+    if stardict:
+        filepath += '_WithDeepStack'
+    filepath += '.data'
     while clobber == False:
         if os.path.isfile(filepath) == True:
             data = qPickle.load(filepath)
@@ -1509,7 +1513,7 @@ def textoutput(dict,filt=None):
         uniquename = uniquename + '_' + filt
     savepath = storepath + uniquename + '_lightcurve.txt'
     text = file(savepath, "w")
-    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
+    namelist = ['FileName', 'Aperture', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
         'targ_mag', 'targ_mag error']
     text.write('\t'.join(namelist))
     text.write('\n')
@@ -1535,7 +1539,7 @@ def textoutput(dict,filt=None):
             mag = str(values['targ_mag'][0]) 
             magerr = str(values['targ_mag'][1])
         time = str(values['t_mid'][0])
-        datalist = [str(values['FileName']), str(values['STRT_CPU']), \
+        datalist = [str(values['FileName']), str(values['Aperture']), str(values['STRT_CPU']), \
             str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
         text.write('\t'.join(datalist))
         text.write('\n')
@@ -1583,8 +1587,14 @@ def photplot(photdict,ylim=None,xlim=None):
     vallist = []
     errlist = []
 
+    ap = None
+    
     for mosaics in photdict:
         print 'now doing ' + str(mosaics)
+        if ap:
+            if photdict[mosaics]['Aperture'] != ap:
+                raise ValueError ('The aperture used in this mosaic does not match the last one.')
+        ap = photdict[mosaics]['Aperture']
         time = photdict[mosaics]['t_mid'][0]
         terr = photdict[mosaics]['t_mid'][1]
         
@@ -1653,8 +1663,8 @@ def photplot(photdict,ylim=None,xlim=None):
     ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
-    matplotlib.pyplot.title(uniquename+' Lightcurve')
-    savepath = storepath + uniquename + '_lightcurve.png'
+    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + ap)
+    savepath = storepath + uniquename + '_' + 'ap' + ap + '_lightcurve.png'
     
     if xlim:
         ax.set_xlim(xlim)
