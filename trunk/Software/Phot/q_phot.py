@@ -907,15 +907,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     if not calreg:
         pass
     else:
-        reg_path = storepath + calreg
-        regfile = open(reg_path,'r')
-        reglist = regfile.readlines()
-        callist = []
-        for line in reglist:
-            if 'circle' in line:
-                callist += [(((line.rstrip('\n')).strip('circle')).rstrip(')')).strip('(')]
-            else:
-                pass
+        callist = openCalRegion(calreg)
         
         keep_it = False
         indexlist = []
@@ -1287,6 +1279,19 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
     return photdict
 
 
+def openCalRegion(reg_path):
+    reg_path = storepath + calregion
+    regfile = open(reg_path,'r')
+    reglist = regfile.readlines()
+    callist = []
+    for line in reglist:
+        if 'circle' in line:
+            callist += [(((line.rstrip('\n')).strip('circle')).rstrip(')')).strip('(')]
+        else:
+            pass
+   
+    return callist
+
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     auto_upper=True, calregion = None, trigger_id = None, stardict = None):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
@@ -1294,7 +1299,9 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     clobber=True for overwriting existing pickle files. '''
     filepath = storepath + GRBname + 'ap' + str(aper)  
     if calregion:
-        filepath += '_WithCalReg'
+        calibration_list = openCalRegion(calregion)
+        n_calstars = len(calibration_list)
+        filepath += '_WithCalReg' + n_calstars
     if stardict:
         filepath += '_WithDeepStack'
     filepath += '.data'
