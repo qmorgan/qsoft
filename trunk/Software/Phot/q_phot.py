@@ -242,7 +242,7 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True):
+        cleanup=True, caliblimit=True, verbose=False):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -983,11 +983,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if star[7] != 'calib': # sanity check that different target matching works
                 raise ValueError('Calib Star identification mismatch somewhere in the code; squash this bug')
             sub_zp_err = return_ptel_uncertainty(ptel_e_mag,tmass_e_mag,num_triplestacks)
-            
-            if sub_zp_err > 0.3:
-                errmessage = '''Star at RA: %f Dec: %f has a huge uncertainty.  
-                Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)
-                raise Exception(errmessage)
+
+            if caliblimit:
+                if sub_zp_err > 0.3:
+                    errmessage = '''Star at RA: %f Dec: %f has a huge uncertainty.  
+                    Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)
+                    raise Exception(errmessage)
             
             # zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
             #             + (base_dither_error/sqrt(num_triplestacks))**2)
@@ -1061,11 +1062,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
-            print ''
-            print '******'
-            print '!!!!YAY our target!!!!'
-            print star
-            print ''
+            if verbose:
+                print ''
+                print '******'
+                print '!!!!YAY our target!!!!'
+                print star
+                print ''
             continue
         # If the star is just a field 2MASS star . . .
         elif star[6] == 0:
@@ -1088,17 +1090,19 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 '2mass_mag':tmass_mag,'2mass_e_mag':tmass_e_mag,
                 'inst_mag':ptel_mag,'inst_e_mag':ptel_e_mag,'new_mag':new_mag,
                 'new_e_mag':new_e_mag, 'delta_mag':delta_mag, 'delta_pos':delta_pos}})
-            print ''
-            print '******'
-            print 'yay good star'
-            print star
-            print ''
+            if verbose:
+                print ''
+                print '******'
+                print 'yay good star'
+                print star
+                print ''
         else:
-            print ''
-            print '******'
-            print 'BLARGH CANNOT USE THIS STAR'
-            print star
-            print ''
+            if verbose:
+                print ''
+                print '******'
+                print 'BLARGH CANNOT USE THIS STAR'
+                print star
+                print ''
     # Calculate the midpoint heliocentric julian date of the exposure. We use a 
     # try/except clause in case something fails and use a placeholder hjd in that
     # instance.
@@ -1288,7 +1292,7 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
 
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, calregion = None, trigger_id = None, stardict = None):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1318,10 +1322,10 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1333,7 +1337,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
-    stardict=None, clobber=False, auto_upper=True):
+    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1356,7 +1360,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
-            auto_upper=auto_upper)
+            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose)
     return photout
     
 def plotzp(photdict):
@@ -1663,8 +1667,8 @@ def photplot(photdict,ylim=None,xlim=None):
     ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
-    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + ap)
-    savepath = storepath + uniquename + '_' + 'ap' + ap + '_lightcurve.png'
+    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+    savepath = storepath + uniquename + '_' + 'ap' + str(ap) + '_lightcurve.png'
     
     if xlim:
         ax.set_xlim(xlim)
