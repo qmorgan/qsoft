@@ -62,9 +62,21 @@ def run_swarp(command):
 def MakeTriplestack(reduced_filelist):
     accepted_filters = ['j','h','k']
     filestring = ''
+
+    j_stop_list = []
+    j_start_list = []
+
     if len(reduced_filelist) != 3:
         raise ValueError('filelist should be list or tuple of length 3')
     for reduced_file in reduced_filelist:
+
+    # Obtain the start and stop times of the image
+        j_hdulist = pyfits.open(reduced_file)
+        j_header = j_hdulist[0].header
+        j_stop_list.append(str(j_header["STOP_CPU"]))
+        j_start_list.append(str(j_header["STRT_CPU"]))
+        j_hdulist.close()
+        
         filt = reduced_file[0]
         if reduced_file[-6] == '0':
             filenamebase = reduced_file.split('long_')[1]
@@ -76,8 +88,16 @@ def MakeTriplestack(reduced_filelist):
             print outname
             raise ValueError('Input file must end in .fits')    
         if not os.path.exists(reduced_file):
-            raise IOError('File does not exist')        
-    
+            raise IOError('File does not exist')
+        
+    ## Sort the lists of start and stop times
+    j_start_list.sort()
+    j_stop_list.sort()
+
+    ## Take the first start time and the last stop time
+    j_earliest_start = j_start_list[0]
+    j_latest_stop = j_stop_list[-1]
+
     print filestring
     tmpweightpath =  storepath + '/tmptriplestack.weight.fits '
     tmpimgpath = storepath + '/tmptriplestack.fits '
@@ -90,6 +110,21 @@ def MakeTriplestack(reduced_filelist):
     os.system(cmd)
     cmd = "mv " + tmpweightpath + ' ' + filt + '_long_' + filenamebase.replace('reduced','triplestackweightmap') + '.fits'
     os.system(cmd)
+
+    outname = filt + '_long_'+ filenamebase.replace('reduced','triplestack') + '.fits'
+    print 'outname', outname
+    # We insert the STRT_CPU of the first triplestack and the STOP_CPU of 
+    # the last triplestack used to make the mosaic.
+
+    j_hdulist = pyfits.open(outname,mode='update')
+
+    j_header = j_hdulist[0].header
+    
+    j_header.update('STRT_CPU',j_earliest_start)
+    j_header.update('STOP_CPU',j_latest_stop)
+
+    j_hdulist.flush()
+    j_hdulist.close()
 
 def Coadd(filelist, outname):
     try:
@@ -219,7 +254,7 @@ def MakeDeepStack(path='./',outid='GRB.999.999'):
 
 def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 exclude=False, regfile='j.reg', calreg=None,  wcs=False,  \
-                mincoadd=1, maxcoadd=150, fibonacci=True):
+                mincoadd=1, maxcoadd=150, fibonacci=True, p0=False, caliblimit=True):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_phot is needed.
     
@@ -333,7 +368,7 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             
             # Do photometry on the resultant coadd 
             print 'Now doing photometry on %s' % (new_coadd_list[filtindex])
-            photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper)
+            photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper, caliblimit=caliblimit)
             
             if not 'targ_s2n' in photdict:
                 # if an upper limit found, give a tiny s2n so the loop keeps going

@@ -1284,7 +1284,7 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
 
 
 def openCalRegion(reg_path):
-    reg_path = storepath + calregion
+    reg_path = storepath + reg_path
     regfile = open(reg_path,'r')
     reglist = regfile.readlines()
     callist = []
@@ -1305,7 +1305,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     if calregion:
         calibration_list = openCalRegion(calregion)
         n_calstars = len(calibration_list)
-        filepath += '_WithCalReg' + n_calstars
+        filepath += '_WithCalReg' + str(n_calstars)
     if stardict:
         filepath += '_WithDeepStack'
     filepath += '.data'
@@ -1693,7 +1693,7 @@ def photplot(photdict,ylim=None,xlim=None):
     savefig(savepath)    
     matplotlib.pyplot.close()
 
-def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True):
+def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, caliblimit=True):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
     we loop around images in a directory using PhotLoop and measure the 
@@ -1709,7 +1709,7 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
         
         # Can set auto_upper = False since dont care if source is detected or not
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
-            clobber=True, trigger_id=trigger_id, auto_upper=False) 
+            clobber=True, trigger_id=trigger_id, auto_upper=False, caliblimit=caliblimit) 
     
         k_delta_list = []
         h_delta_list = []
