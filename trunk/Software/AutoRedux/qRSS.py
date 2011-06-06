@@ -64,3 +64,19 @@ def UpdateRSS(xmlpath,rsstitle="Q's Feed",rsslink='http://qmorgan.com/',
             rsswrite.write(newline)
         rsswrite.close()
     
+def HeartBeatServer(xmlpath='/home/amorgan/www/swift/heartbeat.xml',sleeptime=3600):
+    '''Run on the computer you want to see is still alive'''
+    
+    while(True):
+        title=str(datetime.datetime.now())
+        description='Server is still alive as of ' + title
+        UpdateRSS(xmlpath,rsstitle="Q Heartbeat",rsslink='http://qmorgan.com/',
+            rssdescription='Feed to ensure the Q Server is up and running',
+            entrytitle=title,entrylink='http://qmorgan.com',
+            entrydescription=description,clear_rss=True,make_readable=True)
+        print 'Heartbeat sent at ' + title
+        time.sleep(sleeptime)
+        
+def HeartBeatListener(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=600):
+    '''Run on a different computer to check in on the server'''
+    pass
