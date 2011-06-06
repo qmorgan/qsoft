@@ -11,6 +11,7 @@ from AutoRedux.PyRSS2Gen import RSS2
 from AutoRedux.PyRSS2Gen import RSSItem
 from AutoRedux.PyRSS2Gen import Guid
 import feedparser
+from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -64,7 +65,7 @@ def UpdateRSS(xmlpath,rsstitle="Q's Feed",rsslink='http://qmorgan.com/',
             rsswrite.write(newline)
         rsswrite.close()
     
-def HeartBeatServer(xmlpath='/home/amorgan/www/swift/heartbeat.xml',sleeptime=3600):
+def HeartBeatServer(xmlpath='/home/amorgan/www/swift/heartbeat.xml',sleeptime=1200):
     '''Run on the computer you want to see is still alive'''
     
     while(True):
@@ -77,6 +78,33 @@ def HeartBeatServer(xmlpath='/home/amorgan/www/swift/heartbeat.xml',sleeptime=36
         print 'Heartbeat sent at ' + title
         time.sleep(sleeptime)
         
-def HeartBeatListener(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=600):
-    '''Run on a different computer to check in on the server'''
-    pass
+def HeartBeatMonitor(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=600,deadtime=1800):
+    '''Run on a different computer to check in on the server
+    checktime is how often you want to check the rss feed to make sure it is updated
+    deadtime is how hold the latest rss update would have to be in order to trigger an email
+    '''
+    deadtime = datetime.timedelta(0,deadtime) # Convert deadtime into timedelta object
+    
+    # TODO: Add ability to check whether it can even access the rss feed 
+    
+    while(True):
+        rssinst = feedparser.parse(rssurl)
+        if len(rssinst['entries']) > 1:
+            raise ValueError('Your RSS feed should only have one entry.')
+        updatedtime = datetime.datetime.strptime(rssinst.entries[0]['updated'],'%a, %d %b %Y %H:%M:%S %Z')
+        nowtime = datetime.datetime.now()
+
+        delta = nowtime - updatedtime
+    
+        print delta
+    
+        try:
+            assert updatedtime < nowtime, 'WARNING: updated time seems to be in the future. Clocks out of sync?'
+        except:
+            qErr.qErr(errtitle='Server/Client Clocks out of Sync!')
+    
+        try:
+            assert delta < deadtime, 'Server might be dead; has been ' + str(delta) + ' since last heartbeat'
+        except:
+            qErr.qErr(errtitle='Server might be dead!')
+        time.sleep(checktime)
