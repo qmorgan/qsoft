@@ -99,6 +99,12 @@ def HeartBeatMonitor(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=6
         print delta
     
         try:
+            assert 'bozo_exception' not in rssinst, 'Server might be dead! Cannot load xml page.'
+        except:
+            errtitle='Cannot load RSS URL %s. Server down?' % (rssurl)
+            qErr.qErr(errtitle=errtitle)
+        
+        try:
             assert updatedtime < nowtime, 'WARNING: updated time seems to be in the future. Clocks out of sync?'
         except:
             qErr.qErr(errtitle='Server/Client Clocks out of Sync!')
