@@ -242,7 +242,7 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True, caliblimit=True, verbose=False):
+        cleanup=True, caliblimit=True, verbose=False, autocull=False):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -977,10 +977,24 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             sub_zp_err = return_ptel_uncertainty(ptel_e_mag,tmass_e_mag,num_triplestacks)
 
             if caliblimit:
+                calregpath = calreg
+                calreglist = openCalRegion(calregpath)
                 if sub_zp_err > 0.3:
                     errmessage = '''Star at RA: %f Dec: %f has a huge uncertainty.  
-                    Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)
-                    raise Exception(errmessage)
+                    Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)                  
+                    # automatic culling of calibration stars
+                    if autocull:
+                        print errmessage
+                        print 'calreglist is'
+                        print calreglist
+                        for index, calreg_stars in enumerate(calreglist):
+                            calreg_ra = float(calreg_stars.split(',')[0])
+                            calreg_dec = float(calreg_stars.split(',')[1])
+                            if (abs(ra-calreg_ra) < 0.001) & (abs(dec-calreg_dec) < 0.001):
+                                del calreglist[index]
+                                print 'calibration star with calreg values RA: %f, Dec : %f has been removed' % (calreg_ra, calreg_dec)
+                    else:
+                          raise Exception(errmessage)          
             
             # zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
             #             + (base_dither_error/sqrt(num_triplestacks))**2)
@@ -1236,6 +1250,29 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     
      # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
 
+    if autocull:
+        # Write new calibration star calregion file
+        tempname_unique = str(progenitor_image_name.split('_')[2]) # + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
+        temppath = storepath + 'calstarregs/' + tempname_unique+'_autocull.reg'
+        tempreg = open(temppath, 'w')
+        tempreg.write('# Region file format: DS9 version 4.1\n')
+        secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
+                                       '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
+                                       'delete=1 include=1 source=1\n'
+        tempreg.write(secondstr)
+        tempreg.write('fk5\n')
+        # Add a few arcseconds to the first position to make sure we don't use it as a target
+        #Why?
+#        test_ra = float(calreg_stars.split(',')[0]) + 0.005
+#        test_dec = float(calreg_stars.split(',')[1]) + 0.005
+        for reg_lines in calreglist:
+            reg_ra = float(reg_lines.split(',')[0])
+            reg_dec = float(reg_lines.split(',')[1])
+            tmp_reg_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (reg_ra,reg_dec)                 
+            tempreg.write(tmp_reg_str)       
+        tempreg.close()
+        print 'Autoculled calibration star calregion created, please re-run photometry using this calibration file'
+
     if calstar_reg_output == True:
         uniquename = str(progenitor_image_name.split('_')[2]) # + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
         reg_name = storepath + 'calstarregs/'  + uniquename + '.reg'
@@ -1283,8 +1320,11 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
     return photdict
 
 
-def openCalRegion(reg_path):
-    reg_path = storepath + reg_path
+def openCalRegion(reg_path, nonstore=False):
+    if nonstore:
+        reg_path = reg_path
+    else:
+        reg_path = storepath + reg_path
     regfile = open(reg_path,'r')
     reglist = regfile.readlines()
     callist = []
@@ -1297,7 +1337,7 @@ def openCalRegion(reg_path):
     return callist
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False, autocull=False):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1329,7 +1369,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
                 data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose)
@@ -1344,7 +1384,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
-    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False):
+    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, autocull=False):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1353,6 +1393,19 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     GRBlistwweight = glob.glob('*.fits')
     # Remove the weight images from the list
     filepath = storepath + GRBname + '.data'
+    filepath = storepath + GRBname + 'ap' + str(ap)
+    if calregion:
+        calibration_list = openCalRegion(calregion)
+        n_calstars = len(calibration_list)
+        filepath += '_WithCalReg' + str(n_calstars)
+    if stardict:
+        filepath += '_WithDeepStack'
+    filepath += '.data'
+    # Remove old autocull file if autocull is set to True
+    if autocull: 
+        autocullpath = storepath + 'calstarregs/' + GRBname+'_autocull.reg'
+        if os.path.isfile(autocullpath) == True:
+            os.remove(autocullpath)
     # Remove the stored pickle file if clobber is set to True
     if clobber == True:
         if os.path.isfile(filepath) == True:
@@ -1367,7 +1420,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
-            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose)
+            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull)
     return photout
     
 def plotzp(photdict):
