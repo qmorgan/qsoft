@@ -91,18 +91,19 @@ def HeartBeatMonitor(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=6
         rssinst = feedparser.parse(rssurl)
         if len(rssinst['entries']) > 1:
             raise ValueError('Your RSS feed should only have one entry.')
+            
+        try:
+            assert 'bozo_exception' not in rssinst, 'Server might be dead! Cannot load xml page.'
+        except:
+            errtitle='Cannot load RSS URL %s. Server down?' % (rssurl)
+            qErr.qErr(errtitle=errtitle)
+            
         updatedtime = datetime.datetime.strptime(rssinst.entries[0]['updated'],'%a, %d %b %Y %H:%M:%S %Z')
         nowtime = datetime.datetime.now()
 
         delta = nowtime - updatedtime
     
         print delta
-    
-        try:
-            assert 'bozo_exception' not in rssinst, 'Server might be dead! Cannot load xml page.'
-        except:
-            errtitle='Cannot load RSS URL %s. Server down?' % (rssurl)
-            qErr.qErr(errtitle=errtitle)
         
         try:
             assert updatedtime < nowtime, 'WARNING: updated time seems to be in the future. Clocks out of sync?'
