@@ -254,7 +254,7 @@ def MakeDeepStack(path='./',outid='GRB.999.999'):
 
 def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 exclude=False, regfile='j.reg', calreg=None,  wcs=False,  \
-                mincoadd=1, maxcoadd=150, fibonacci=True, p0=False, caliblimit=True):
+                mincoadd=1, maxcoadd=150, fibonacci=True, p0=False, caliblimit=True, autocull=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_phot is needed.
     
@@ -368,7 +368,7 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             
             # Do photometry on the resultant coadd 
             print 'Now doing photometry on %s' % (new_coadd_list[filtindex])
-            photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper, caliblimit=caliblimit)
+            photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper, caliblimit=caliblimit, autocull=autocull)
             
             if not 'targ_s2n' in photdict:
                 # if an upper limit found, give a tiny s2n so the loop keeps going

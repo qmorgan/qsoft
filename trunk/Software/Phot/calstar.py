@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = False, noerr=False, magrange=None):
+def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = False, noerr=False, magrange=None, caliblimit=True):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -93,7 +93,7 @@ def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = 
         print "Using image #%i to get the calib stars; if not all are present \
                 in final plot, try a different image" % (testind)
         testimage = filelist[testind]
-        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
+        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False, caliblimit=caliblimit)
         
         for key in photdict[testimage]['calib_stars'].keys():
             if not key in calib_star_keys:
@@ -123,7 +123,7 @@ def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = 
             print 'Photometry of star' + str(index) 
             print 'doing image ' + image
             calregion =  '/calstarregs/' + os.path.basename(reg) 
-            data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
+            data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False, caliblimit=caliblimit)
             image_data = data[image]
             if image[0] != filt:
                 raise ValueError('Filter for %s does not match the others') % (image)
@@ -221,7 +221,7 @@ def star_stdv(magplotdict):
 
 
 def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
-    ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None):
+    ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None, caliblimit=False):
     
     '''
     After creating a calibration deep-stack for all images, use this function
@@ -302,7 +302,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         star_pos = (ra_round, dec_round)
         star_pos_str = str(star_pos)
 
-        data_h = q_phot.dophot(filename_h, temppath, calreg=calibration_reg, ap=ap_h)
+        data_h = q_phot.dophot(filename_h, temppath, calreg=calibration_reg, ap=ap_h, caliblimit=caliblimit)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_h, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_h, trigger=triggerid,delta = True))/2.
@@ -313,7 +313,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         
         keylist.append(parent_label)
         
-        data_j = q_phot.dophot(filename_j, temppath, calreg=calibration_reg, ap=ap_j)
+        data_j = q_phot.dophot(filename_j, temppath, calreg=calibration_reg, ap=ap_j, caliblimit=caliblimit)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_j, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_j, trigger=triggerid,delta = True))/2.
@@ -322,7 +322,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         this_star_dict_j = {parent_label:data_j}
         stardict_j.update(this_star_dict_j)
 
-        data_k = q_phot.dophot(filename_k, temppath, calreg=calibration_reg, ap=ap_k)
+        data_k = q_phot.dophot(filename_k, temppath, calreg=calibration_reg, ap=ap_k, caliblimit=caliblimit)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_k, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_k, trigger=triggerid,delta = True))/2.
@@ -440,3 +440,9 @@ def extract(caldict_h, caldict_j, caldict_k, starRA):
     print 'single calibration plot saved to ' + savepath
     matplotlib.pyplot.savefig(savepath)    
     matplotlib.pyplot.close()
+
+def extractloop(caldict_h, caldict_j, caldict_k):
+    ''' extracts all the calibration star plots from caldicts (done for every h, j, k bands) '''
+
+    for star in caldict_h.keys():
+        extract(caldict_h, caldict_j, caldict_k, star)
