@@ -77,7 +77,48 @@ def HeartBeatServer(xmlpath='/home/amorgan/www/swift/heartbeat.xml',sleeptime=12
             entrydescription=description,clear_rss=True,make_readable=True)
         print 'Heartbeat sent at ' + title
         time.sleep(sleeptime)
+
+def HeartBeatCheck(rssurl='http://swift.qmorgan.com/heartbeat.xml',deadtime=1800):
+    
+    #Open logging file
+    f=open(storepath+'heartbeat.log','a')
+    
+    
+    deadtime = datetime.timedelta(0,deadtime) # Convert deadtime into timedelta object
+    rssinst = feedparser.parse(rssurl)
+    if len(rssinst['entries']) > 1:
+        raise ValueError('Your RSS feed should only have one entry.')
         
+    try:
+        assert 'bozo_exception' not in rssinst, 'Server might be dead! Cannot load xml page.'
+    except:
+        errtitle='Cannot load RSS URL %s. Server down?' % (rssurl)
+        f.write(errtitle+'\n')
+        qErr.qErr(errtitle=errtitle)
+        
+    updatedtime = datetime.datetime.strptime(rssinst.entries[0]['updated'],'%a, %d %b %Y %H:%M:%S %Z')
+    nowtime = datetime.datetime.now()
+
+    delta = nowtime - updatedtime
+
+    print delta
+    f.write('At ' + str(nowtime) + ' it has been ' + str(delta)+ ' since heartbeat\n')
+    
+    try:
+        asserttext = 'WARNING: updated time seems to be in the future. Clocks out of sync?'
+        assert updatedtime < nowtime, asserttext
+    except:
+        f.write(asserttext+'\n')
+        qErr.qErr(errtitle='Server/Client Clocks out of Sync!')
+
+    try:
+        asserttext = 'Server might be dead; has been ' + str(delta) + ' since last heartbeat'
+        assert delta < deadtime, asserttext
+    except:
+        f.write(asserttext+'\n')
+        qErr.qErr(errtitle='Server might be dead!')
+    f.close()    
+    
 def HeartBeatMonitor(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=600,deadtime=1800):
     '''Run on a different computer to check in on the server
     checktime is how often you want to check the rss feed to make sure it is updated
@@ -88,30 +129,8 @@ def HeartBeatMonitor(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=6
     # TODO: Add ability to check whether it can even access the rss feed 
     
     while(True):
-        rssinst = feedparser.parse(rssurl)
-        if len(rssinst['entries']) > 1:
-            raise ValueError('Your RSS feed should only have one entry.')
-            
-        try:
-            assert 'bozo_exception' not in rssinst, 'Server might be dead! Cannot load xml page.'
-        except:
-            errtitle='Cannot load RSS URL %s. Server down?' % (rssurl)
-            qErr.qErr(errtitle=errtitle)
-            
-        updatedtime = datetime.datetime.strptime(rssinst.entries[0]['updated'],'%a, %d %b %Y %H:%M:%S %Z')
-        nowtime = datetime.datetime.now()
-
-        delta = nowtime - updatedtime
-    
-        print delta
-        
-        try:
-            assert updatedtime < nowtime, 'WARNING: updated time seems to be in the future. Clocks out of sync?'
-        except:
-            qErr.qErr(errtitle='Server/Client Clocks out of Sync!')
-    
-        try:
-            assert delta < deadtime, 'Server might be dead; has been ' + str(delta) + ' since last heartbeat'
-        except:
-            qErr.qErr(errtitle='Server might be dead!')
+        HeartBeatCheck(rssurl=rssurl,deadtime=deadtime)
         time.sleep(checktime)
+        
+        
+            
