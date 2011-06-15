@@ -293,7 +293,11 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
     
     prep(obsidlist, path=path, exclude=exclude, date=date)
     firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
-    
+    # Remove old autocull file if autocull is set to True
+    if autocull: 
+        autocullpath = storepath + 'calstarregs/' + firstid + '_autocull.reg'
+        if os.path.isfile(autocullpath) == True:
+            os.remove(autocullpath)
     # Assume no modifications have been made between j,h, and k files
     # I.e that j file is the same order, etc as the others.
     

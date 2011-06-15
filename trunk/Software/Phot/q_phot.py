@@ -861,7 +861,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     
     print "Length of pre-truncated sextractor starlist is %s" % str(len(sexcat_starlist))
     print "Length of vizquery 2mass starlist is %s" % str(len(vizcat_starlist))
-    print "sexcat_starlist first entry is:"
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
@@ -985,16 +984,20 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     # automatic culling of calibration stars
                     if autocull:
                         print errmessage
-                        print 'calreglist is'
-                        print calreglist
                         for index, calreg_stars in enumerate(calreglist):
                             calreg_ra = float(calreg_stars.split(',')[0])
                             calreg_dec = float(calreg_stars.split(',')[1])
-                            if (abs(ra-calreg_ra) < 0.001) & (abs(dec-calreg_dec) < 0.001):
-                                del calreglist[index]
-                                print 'calibration star with calreg values RA: %f, Dec : %f has been removed' % (calreg_ra, calreg_dec)
+                            if (abs(ra-calreg_ra) < 0.00001) & (abs(dec-calreg_dec) < 0.00001):
+                                 print 'calreglist first'
+                                 print calreglist
+                                 del calreglist[index]
+                                 print 'calibration star with calreg values RA: %f, Dec : %f has been removed' % (calreg_ra, calreg_dec)
+                                 print 'calreglist second'
+                                 print calreglist
+                                 print 'calreglist second length is'
+                                 print len(calreglist)
                     else:
-                          raise Exception(errmessage)          
+                        raise Exception(errmessage)          
             
             # zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
             #             + (base_dither_error/sqrt(num_triplestacks))**2)
@@ -1004,8 +1007,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if star[8] > 5:
                 raise Exception("Investigate why the calib star/2mass separation is so large")
             
-    print 'zp list is'
-    print zeropoint_list
     # zeropoint = average(zeropoint_list) # average is not very robust
     zeropoint = numpy.median(zeropoint_list)
     if numpy.isnan(zeropoint):
@@ -1017,8 +1018,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     N_zp = len(zeropoint_list)
     zp_err_arr = numpy.array(zeropoint_err_list)
     zp_err_arr_sq = zp_err_arr**2
-    print 'zp_err_arr_sq is'
-    print zp_err_arr_sq
     sum_zp_err_arr_sq = numpy.sum(zp_err_arr_sq)
 #    zeropoint_error = average(zeropoint_err_list)
     zeropoint_error = numpy.sqrt(sum_zp_err_arr_sq)/N_zp
@@ -1254,7 +1253,14 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         # Write new calibration star calregion file
         tempname_unique = str(progenitor_image_name.split('_')[2]) # + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
         temppath = storepath + 'calstarregs/' + tempname_unique+'_autocull.reg'
-        tempreg = open(temppath, 'w')
+        # Remove old autocull file if autocull is set to True
+        if autocull:
+            autocull_temp = './autoculltemp.reg'
+            autocullpath = autocull_temp
+            if os.path.isfile(autocullpath) == True:
+                os.remove(autocullpath)
+            
+        tempreg = open(autocull_temp, 'w')
         tempreg.write('# Region file format: DS9 version 4.1\n')
         secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
                                        '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
@@ -1265,12 +1271,20 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         #Why?
 #        test_ra = float(calreg_stars.split(',')[0]) + 0.005
 #        test_dec = float(calreg_stars.split(',')[1]) + 0.005
+        print 'calreglist final is'
+        print calreglist
+        print 'length of calreglist is'
+        print len(calreglist)
         for reg_lines in calreglist:
             reg_ra = float(reg_lines.split(',')[0])
             reg_dec = float(reg_lines.split(',')[1])
             tmp_reg_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (reg_ra,reg_dec)                 
             tempreg.write(tmp_reg_str)       
         tempreg.close()
+        if os.path.isfile(temppath) == True:
+                os.remove(temppath)
+        command = 'mv ./autoculltemp.reg' + ' '+temppath
+        os.system(command)
         print 'Autoculled calibration star calregion created, please re-run photometry using this calibration file'
 
     if calstar_reg_output == True:
@@ -1631,7 +1645,7 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 
-def photplot(photdict,ylim=None,xlim=None):
+def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False):
     '''Plots a graph from photdict'''
     import matplotlib
     import glob
@@ -1735,16 +1749,25 @@ def photplot(photdict,ylim=None,xlim=None):
     if ylim:
         ax.set_ylim(ylim)
 
-    F = pylab.gcf()
-    DefaultSize = F.get_size_inches()
-    DPI = F.get_dpi()
-    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
-    # was getting incresingly larger with multiple runs
-    F.set_size_inches((20, 15))
-    
-    print 'lightcurve saved to ' + savepath
-    savefig(savepath)    
-    matplotlib.pyplot.close()
+    if overplot:
+        pass
+    else:
+        F = pylab.gcf()
+        DefaultSize = F.get_size_inches()
+        DPI = F.get_dpi()
+        # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+        # was getting incresingly larger with multiple runs
+        F.set_size_inches((20, 15))
+
+    if plotname:
+        savepath = plotname
+
+    if overplot:
+        pass
+    else:
+        print 'lightcurve saved to ' + savepath
+        savefig(savepath)    
+        matplotlib.pyplot.close()
 
 def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, caliblimit=True):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
@@ -1801,7 +1824,7 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
 
     return (j_delta_med_list,h_delta_med_list,k_delta_med_list)
 
-def colorevo(photdict, JorK, ylim=None,xlim=None):
+def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     '''Plots a color evolution J-H, H-K from photdict'''
     import matplotlib
     import glob
@@ -1870,32 +1893,136 @@ def colorevo(photdict, JorK, ylim=None,xlim=None):
     h_list = numpy.array(h_list)
     j_list = numpy.array(j_list)
     k_list = numpy.array(k_list)
+    h_errlist = numpy.array(h_errlist)
+    j_errlist = numpy.array(j_errlist)
+    k_errlist = numpy.array(k_errlist)
 
     jminh = j_list - h_list
     hmink = h_list - k_list
 
-    if JorK == 'j':
-        matplotlib.pyplot.errorbar(timlist, jminh, \
-                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
-                        ecolor = 'red', label = 'j-h')
-    elif JorK =='k':
-        matplotlib.pyplot.errorbar(timlist, hmink, \
-                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
-                        ecolor = 'blue', label = 'h-k')
-    elif JorK == 'both':
-        matplotlib.pyplot.errorbar(timlist, jminh, \
-                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
-                        ecolor = 'red', label = 'j-h')
-        matplotlib.pyplot.errorbar(timlist, hmink, \
-                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
-                        ecolor = 'blue', label = 'h-k')
+    fig = pylab.figure()
+    
+    ax_lcurve = fig.add_axes([0.1,0.55,0.8,0.4])
+
+    #Lightcurve
+    
+    h = False
+    j = False
+    k = False
+    ap = None
+    
+    for mosaics in photdict_lcurve:
+        print 'now doing ' + str(mosaics)
+        if ap:
+            if photdict_lcurve[mosaics]['Aperture'] != ap:
+                raise ValueError ('The aperture used in this mosaic does not match the last one.')
+        ap = photdict_lcurve[mosaics]['Aperture']
+        time = photdict_lcurve[mosaics]['t_mid'][0]
+        terr = photdict_lcurve[mosaics]['t_mid'][1]
         
+        if 'targ_mag' in photdict_lcurve[mosaics]: 
+            valu = float(photdict_lcurve[mosaics]['targ_mag'][0])
+            verr = float(photdict_lcurve[mosaics]['targ_mag'][1])
+
+            #there's probably a prettier way to do this, the second if statements 
+            #are there so that only 1 label per filter is on the legend
+
+            if 'h_' in mosaics:
+                if h == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green', label = 'h')
+                    h = True
+
+            elif 'j_' in mosaics:            
+                if j == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'j')
+                    j = True
+
+            elif 'k_' in mosaics:
+                if k == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'k')
+                    k = True
+        elif 'upper_green' in photdict_lcurve[mosaics]: 
+                valu = float(photdict_lcurve[mosaics]['upper_green'])
+                if photdict_lcurve[mosaics]['filter'] == 'h':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                if photdict_lcurve[mosaics]['filter'] == 'j':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                if photdict_lcurve[mosaics]['filter'] == 'k':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
     matplotlib.pyplot.ylabel('Mag')
     #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+
+    uniquename = photdict_lcurve.keys()[0].split('_')[2]
+    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+
+    # Color evolution plot    
+
+    ax = fig.add_axes([0.1,0.1,0.8,0.3])
+    
+    if JorK == 'j':
+        error_array = sqrt(j_errlist**2 + h_errlist**2)
+        ax.errorbar(timlist, jminh, yerr = error_array, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'j-h')
+    elif JorK =='k':
+        error_array = sqrt(h_errlist**2 + k_errlist**2)
+        ax.errorbar(timlist, hmink, yerr = error_array, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'h-k')
+    elif JorK == 'both':
+        jh_error_array = sqrt(j_errlist**2 + h_errlist**2)
+        hk_error_array = sqrt(h_errlist**2 + k_errlist**2)
+        ax.errorbar(timlist, jminh, yerr=jh_error_array, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'j-h')
+        ax.errorbar(timlist, hmink, yerr=hk_error_array,xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'h-k')
+        
+    #ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
     #ax.set_xscale('log')
     matplotlib.pyplot.legend()
@@ -1913,14 +2040,13 @@ def colorevo(photdict, JorK, ylim=None,xlim=None):
         ax.set_xlim(xlim)
     if ylim:
         ax.set_ylim(ylim)
-
+        
     F = pylab.gcf()
     DefaultSize = F.get_size_inches()
     DPI = F.get_dpi()
-    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
-    # was getting incresingly larger with multiple runs
-    F.set_size_inches((20, 15))
-
+    if big:
+        F.set_size_inches((20, 15))
+    
     print 'colorevolution saved to ' + savepath
     savefig(savepath)    
     matplotlib.pyplot.close()

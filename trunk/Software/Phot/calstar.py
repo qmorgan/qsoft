@@ -93,7 +93,7 @@ def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = 
         print "Using image #%i to get the calib stars; if not all are present \
                 in final plot, try a different image" % (testind)
         testimage = filelist[testind]
-        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False, caliblimit=caliblimit)
+        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False, caliblimit=caliblimit, trigger_id=triggerid)
         
         for key in photdict[testimage]['calib_stars'].keys():
             if not key in calib_star_keys:
