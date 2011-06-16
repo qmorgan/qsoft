@@ -1577,7 +1577,7 @@ def plots2n(photdict):
     savefig(savepath)           
     matplotlib.pyplot.close()
 
-def textoutput(dict,filt=None):
+def textoutputold(dict,filt=None):
     '''outputs a text file from photdict.  If filt specified, only output that
     particular filter.
     '''
@@ -1901,9 +1901,9 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     hmink = h_list - k_list
 
     fig = pylab.figure()
-    
-    ax_lcurve = fig.add_axes([0.1,0.55,0.8,0.4])
 
+    ax_lcurve = fig.add_axes([0.1,0.55,0.8,0.4])
+    pylab.subplots_adjust(hspace=0.001)    
     #Lightcurve
     
     h = False
@@ -1978,7 +1978,7 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
-    matplotlib.pyplot.xlabel('Time since Burst (s)')
+#    matplotlib.pyplot.xlabel('Time since Burst (s)')
     matplotlib.pyplot.ylabel('Mag')
     #matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
@@ -2033,7 +2033,7 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
         cname = 'H-K'
     elif JorK == 'both':
         cname = 'both'
-    matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
+    #matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
     savepath = storepath + uniquename + '_' + cname + '_colorevo.png'
     
     if xlim:
@@ -2050,3 +2050,103 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     print 'colorevolution saved to ' + savepath
     savefig(savepath)    
     matplotlib.pyplot.close()
+
+
+def textoutput(photdict,utburst,filt=None):
+    '''outputs a text file from photdict.  If filt specified, only output that
+    particular filter.
+    '''
+
+    import datetime
+    from operator import itemgetter
+    
+    filts = ['j','h','k']
+    if filt:
+        if not filt in filts:
+            raise ValueError('Unacceptable value for filt. Needs to be j, h, or k')
+            
+    uniquename = photdict.keys()[0].split('_')[2]
+    if filt:
+        uniquename = uniquename + '_' + filt
+    savepath = storepath + uniquename + '_data.dat'
+    text = file(savepath, "w")
+
+    text.write('@inunit=sec')
+    text.write('\n')
+    text.write('@expunit=sec')
+    text.write('\n')
+    utburst_text = '@utburst=' + str(utburst)
+    text.write(utburst_text)
+    text.write('\n')
+    text.write('@source=PAIRITEL')
+    text.write('\n')
+    namelist = ['%', 'tstart', 'tend', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
+    text.write(' '.join(namelist))
+    text.write('\n')
+
+    mosaiclist=[]
+    for mosaics in photdict:
+        mosaiclist += [photdict[mosaics]]
+    #sorting w.r.t time
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+
+    h_list = []
+    her_list = []
+    j_list = []
+    jer_list = []
+    k_list = []
+    ker_list = []
+    tstart_list = []
+    tstop_list = []
+    exp_list = []
+
+    burst_time_sec = float(utburst.split(':')[0])*3600 + float(utburst.split(':')[1])*60 + float(utburst.split(':')[2]) 
+    
+    for mosaics in mosaiclist:
+        
+        timestart_str = mosaics['STRT_CPU'].split(' ')[1]
+        timestart_sec = float(timestart_str.split(':')[0])*3600 + float(timestart_str.split(':')[1])*60 + float(timestart_str.split(':')[2])
+        start_after_burst_sec = timestart_sec - burst_time_sec
+        timestop_str = mosaics['STOP_CPU'].split(' ')[1]
+        timestop_sec = float(timestop_str.split(':')[0])*3600 + float(timestop_str.split(':')[1])*60 + float(timestop_str.split(':')[2])
+        stop_after_burst_sec = timestop_sec - burst_time_sec
+        
+        exp = mosaics['EXPTIME']
+
+        if 'targ_mag' in mosaics: 
+            valu = float(mosaics['targ_mag'][0])
+            verr = float(mosaics['targ_mag'][1])
+            
+            if mosaics['filter'] == 'h':                
+                mag = valu
+                magerr = verr                
+            elif mosaics['filter'] == 'j':
+                mag = valu
+                magerr = verr
+            elif mosaics['filter'] == 'k':
+                mag = valu
+                magerr = verr
+            
+        elif 'upper_green' in mosaics: 
+                valu = float(mosaics['upper_green'])
+                if mosaics['filter'] == 'h':
+                     mag = valu
+                     magerr = 0
+                if mosaics['filter'] == 'j':
+                     mag = valu
+                     magerr = 0
+                if mosaics['filter'] == 'k':
+                     mag = valu
+                     magerr = 0
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)    
+
+        if 'upper_green' in mosaics:
+            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), str(mosaics['filter']), '=', str(mag), str(magerr), 'yes']
+        else:   
+            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), str(mosaics['filter']), '=', str(mag), str(magerr)]
+
+        text.write(' '.join(datalist))
+        text.write('\n')
+    text.close()
