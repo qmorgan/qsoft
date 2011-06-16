@@ -2054,7 +2054,7 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
 
 def textoutput(photdict,utburst,filt=None):
     '''outputs a text file from photdict.  If filt specified, only output that
-    particular filter.
+    particular filter. Requires a utburst string in the form of hh:mm:ss
     '''
 
     import datetime
@@ -2120,32 +2120,38 @@ def textoutput(photdict,utburst,filt=None):
             
             if mosaics['filter'] == 'h':                
                 mag = valu
-                magerr = verr                
+                magerr = verr
+                filt = 'H'
             elif mosaics['filter'] == 'j':
                 mag = valu
                 magerr = verr
+                filt = 'J'
             elif mosaics['filter'] == 'k':
                 mag = valu
                 magerr = verr
+                filt = 'K'
             
         elif 'upper_green' in mosaics: 
                 valu = float(mosaics['upper_green'])
                 if mosaics['filter'] == 'h':
                      mag = valu
                      magerr = 0
+                     filt = 'H'
                 if mosaics['filter'] == 'j':
                      mag = valu
                      magerr = 0
+                     filt = 'J'
                 if mosaics['filter'] == 'k':
                      mag = valu
                      magerr = 0
+                     filt = 'K'
         else:
             print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)    
-
+        
         if 'upper_green' in mosaics:
-            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), str(mosaics['filter']), '=', str(mag), str(magerr), 'yes']
+            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr), 'yes']
         else:   
-            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), str(mosaics['filter']), '=', str(mag), str(magerr)]
+            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr)]
 
         text.write(' '.join(datalist))
         text.write('\n')
