@@ -312,6 +312,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
 
     sex_file = file(storepath + "star_cat.txt", "r")
     sat_locations = []
+    radec_locations = []
     for line in sex_file:
         if (line[0] == "#"):
             continue
@@ -319,7 +320,60 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if float(line.split()[2]) == 0:
                 x_index = int(round(float(line.split()[0]) - 1))
                 y_index = int(round(float(line.split()[1]) - 1))
+                RA_index = float(line.split()[3])
+                Dec_index = float(line.split()[4])
                 sat_locations.append([y_index, x_index])
+                radec_locations.append([RA_index, Dec_index])
+    print 'sat_locations before culling:'
+    print sat_locations
+
+    
+    if calreg:
+        if find_fwhm or not ap:
+            
+            calreg_radec_list = openCalRegion(calreg)
+
+            keep_it = False
+            indexlist_fwhm = []
+
+            print 'calreg_radec_list is:'
+            print calreg_radec_list
+
+            for index, old_radec in enumerate(radec_locations):
+                keep_it = False
+                print 'old_radec is'
+                print old_radec
+                for new_radec in calreg_radec_list:
+                    calstar_radec_list = new_radec.split(',')
+                    print 'new_radec is'
+                    print calstar_radec_list
+                    caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*\
+                            (1/180.)*(float(old_radec[0])), (numpy.pi)*(1/180.)*\
+                            (float(old_radec[1]))),((numpy.pi)*(1/180.)*\
+                            (float(calstar_radec_list[0])), (numpy.pi)*(1/180.)*\
+                            (float(calstar_radec_list[1]))))))
+                        # only remove the calstar entry if it is not our target;
+                        # i.e. it is not identified as 'target' above
+                        # Remove the calstar entry if distance is small
+                if caldist < 5:
+                    keep_it = True
+                if not keep_it:
+                    indexlist_fwhm += [index]
+                    print 'removed index is'
+                    print index
+
+            indexlist_fwhm.sort()
+            print 'here is the indexlist_fwhm of calibration stars which are not used in calculating FWHM:'
+            print indexlist_fwhm
+            print 'length of indexlist_fwhm is'
+            print len(indexlist_fwhm)
+            revindex = indexlist_fwhm[::-1]
+            for ind in revindex:
+                print "REMOVING %s" % str(sat_locations[ind])
+                del sat_locations[ind]
+
+            print 'sat_locations after culling:'
+            print sat_locations
     
     if find_fwhm or not ap:
         if not ap:
@@ -330,7 +384,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev)
         print "Sigma clipping of fwhm complete."
         print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
-        photdict.update({'FHWM':(fwhm,fwhm_stdev)})        
+        photdict.update({'FWHM':(fwhm,fwhm_stdev)})        
     
     if not ap:
         # If aperture is not specified, fit for ideal size based on the fwhm.
@@ -1351,7 +1405,7 @@ def openCalRegion(reg_path, nonstore=False):
     return callist
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False, autocull=False):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1383,10 +1437,10 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1398,7 +1452,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
-    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, autocull=False):
+    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1434,7 +1488,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
-            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull)
+            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm=find_fwhm)
     return photout
     
 def plotzp(photdict):
@@ -1574,6 +1628,82 @@ def plots2n(photdict):
     #savepath = storepath + uniquename + '_s2nvsdurationlogx.png'
     savepath = storepath + uniquename + '_s2n.png'
     print 's/n plot saved to ' + savepath
+    savefig(savepath)           
+    matplotlib.pyplot.close()
+
+def plotproperty(photdict, prop):
+    '''Plots a graph of zp from the pickle output of the photreturn function'''
+    import matplotlib
+    import glob
+
+    matplotlib.pyplot.clf()
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    vallist = []
+    errlist = []
+
+    for mosaics in photdict:
+        print 'now doing ' + str(mosaics)
+        time = photdict[mosaics]['t_mid'][0]
+        terr = photdict[mosaics]['t_mid'][1]
+
+        if prop == 'FWHM':
+            valu = float(photdict[mosaics]['FWHM'][0])
+            verr = float(photdict[mosaics]['FWHM'][1])
+
+#there's probably a prettier way to do this, the second if statements are 
+#there so that only 1 label per filter is on the legend
+
+        if 'h_' in mosaics:
+            if h == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 'o', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 'o', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green', label = 'h')
+                h = True
+
+        elif 'j_' in mosaics:            
+            if j == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
+                j = True
+
+        elif 'k_' in mosaics:
+            if k == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 'o', linestyle ='None', mfc = 'red', \
+                    mec = 'green', ecolor = 'red')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 'o', linestyle ='None', mfc = 'red', \
+                    mec = 'green', ecolor = 'red', label = 'k')
+                k = True
+
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1])
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    if prop == 'FWHM':
+        axis_label = 'FWHM (arcseconds)'
+    matplotlib.pyplot.ylabel(axis_label)
+    matplotlib.pyplot.legend()
+    uniquename = photdict.keys()[0].split('_')[2]
+    propname = '_'+prop+'.png'
+    savepath = storepath + uniquename + propname
+    print '%s plot saved to ' % (prop) + savepath
     savefig(savepath)           
     matplotlib.pyplot.close()
 
