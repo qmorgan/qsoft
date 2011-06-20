@@ -271,11 +271,16 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         stardict: If set, use a dictionary of calibration star photometries 
             from a deep stack of the location rather than the 2mass values.  
             CURRENTLY NOT WORKING.
+        caliblimit: if True, then if a calibration star has a higher stdev than
+            our threshold, then stop the program
         
     '''
     # Begin timing
     t1 = time()
-     
+    
+    if not calreg:
+        caliblimit = False 
+    
     # Store the original image name.
     image_name = progenitor_image_name
     hdulist = pyfits.open(image_name)
@@ -308,7 +313,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     hdulist = pyfits.open(objects_image)
     objects_data = hdulist[0].data
     hdulist.close()
-    system("rm "+ storepath + "check.fits")
+    #system("rm "+ storepath + "check.fits")
 
     sex_file = file(storepath + "star_cat.txt", "r")
     sat_locations = []
@@ -324,6 +329,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 Dec_index = float(line.split()[4])
                 sat_locations.append([y_index, x_index])
                 radec_locations.append([RA_index, Dec_index])
+               # print str(RA_index) + ' ' + str(Dec_index)
     print 'sat_locations before culling:'
     print sat_locations
 
@@ -341,12 +347,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
 
             for index, old_radec in enumerate(radec_locations):
                 keep_it = False
-                print 'old_radec is'
+                #print 'old_radec is'
                 print old_radec
                 for new_radec in calreg_radec_list:
                     calstar_radec_list = new_radec.split(',')
-                    print 'new_radec is'
-                    print calstar_radec_list
+                    #print 'new_radec is'
+                    #print calstar_radec_list
                     caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*\
                             (1/180.)*(float(old_radec[0])), (numpy.pi)*(1/180.)*\
                             (float(old_radec[1]))),((numpy.pi)*(1/180.)*\
@@ -355,8 +361,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                         # only remove the calstar entry if it is not our target;
                         # i.e. it is not identified as 'target' above
                         # Remove the calstar entry if distance is small
-                if caldist < 5:
-                    keep_it = True
+                    print caldist
+                    if caldist < 5:
+                        keep_it = True
                 if not keep_it:
                     indexlist_fwhm += [index]
                     print 'removed index is'
