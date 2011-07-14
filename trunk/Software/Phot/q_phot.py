@@ -227,7 +227,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 #             print ("Finished fit for saturated star at " + str(m) + " " 
 #                 + str(n) + ". FWHM: " + str(fwhm_unqiue) + " with metric: " + str(metric))
             fwhm_list.append(fwhm_unqiue)
-    fwhm = mean(fwhm_list)
+    fwhm = median(fwhm_list)
     fwhm_stdev = std(fwhm_list)
     return fwhm, fwhm_stdev
     
@@ -242,7 +242,7 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True, caliblimit=True, verbose=False, autocull=False):
+        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -330,8 +330,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 sat_locations.append([y_index, x_index])
                 radec_locations.append([RA_index, Dec_index])
                # print str(RA_index) + ' ' + str(Dec_index)
-    print 'sat_locations before culling:'
-    print sat_locations
+    # print 'sat_locations before culling:'
+    # print sat_locations
 
     
     if calreg:
@@ -342,13 +342,13 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             keep_it = False
             indexlist_fwhm = []
 
-            print 'calreg_radec_list is:'
-            print calreg_radec_list
+           # print 'calreg_radec_list is:'
+           # print calreg_radec_list
 
             for index, old_radec in enumerate(radec_locations):
                 keep_it = False
                 #print 'old_radec is'
-                print old_radec
+                #print old_radec
                 for new_radec in calreg_radec_list:
                     calstar_radec_list = new_radec.split(',')
                     #print 'new_radec is'
@@ -361,26 +361,26 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                         # only remove the calstar entry if it is not our target;
                         # i.e. it is not identified as 'target' above
                         # Remove the calstar entry if distance is small
-                    print caldist
+                   # print caldist
                     if caldist < 5:
                         keep_it = True
                 if not keep_it:
                     indexlist_fwhm += [index]
-                    print 'removed index is'
-                    print index
+                   # print 'removed index is'
+                   # print index
 
             indexlist_fwhm.sort()
-            print 'here is the indexlist_fwhm of calibration stars which are not used in calculating FWHM:'
-            print indexlist_fwhm
-            print 'length of indexlist_fwhm is'
-            print len(indexlist_fwhm)
+           # print 'here is the indexlist_fwhm of calibration stars which are not used in calculating FWHM:'
+           # print indexlist_fwhm
+           # print 'length of indexlist_fwhm is'
+           # print len(indexlist_fwhm)
             revindex = indexlist_fwhm[::-1]
             for ind in revindex:
-                print "REMOVING %s" % str(sat_locations[ind])
+                # print "REMOVING %s" % str(sat_locations[ind])
                 del sat_locations[ind]
 
-            print 'sat_locations after culling:'
-            print sat_locations
+           # print 'sat_locations after culling:'
+           # print sat_locations
     
     if find_fwhm or not ap:
         if not ap:
@@ -926,6 +926,18 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
     # [ra, dec, 2massmag, 2masserr instmag, insterr, sexflags, 'calib'/'target']
+
+    # debug printing
+    import pprint
+    print 'sexcat_starlist is'
+    pprint.pprint(sexcat_starlist)
+
+    print '================================================================='
+    print '================================================================='
+    print '================================================================='
+    print 'vizcat_starlist is'
+    pprint.pprint(vizcat_starlist)
+    
     combined_starlist = []
     for sexcat_star in sexcat_starlist:
         sexcat_star_ra_rad = sexcat_star[0] * 0.01745329252
@@ -959,10 +971,14 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     sexcat_star[2], sexcat_star[3], 
                     sexcat_star[4],'calib',separation_arcsec])
 
+    
     print 'length of combined_starlist is %s' % str(len(combined_starlist))
     if len(combined_starlist) == 0:
-        raise Exception('Combined Starlist is empty; no cross correlations found between sextractor catalog and 2mass.')
-    
+        if not for_wcs_coadd:
+            raise Exception('Combined Starlist is empty; no cross correlations found between sextractor catalog and 2mass.')
+        else:
+            photdict = {'FileName':image_name}
+            return photdict
     # Deleting stars in combined_starlist that is not in the inputted region file (if not calreg == False)
     if not calreg:
         pass
@@ -990,13 +1006,15 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 indexlist += [index]
 
         indexlist.sort()
-        print 'here is the indexlist of calibration stars which are not used'
-        print indexlist
-        print 'length of indexlist is'
-        print len(indexlist)
+        if verbose:
+            print 'here is the indexlist of calibration stars which are not used'
+            print indexlist
+            print 'length of indexlist is'
+            print len(indexlist)
         revindex = indexlist[::-1]
         for ind in revindex:
-            print "REMOVING %s" % str(combined_starlist[ind])
+            if verbose:
+                print "REMOVING %s" % str(combined_starlist[ind])
             del combined_starlist[ind]
             
     # Use the combined_starlist to calculate a zeropoint for the science image.
