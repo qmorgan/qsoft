@@ -861,6 +861,8 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
     predictions[leaveout] = forest.cvpred(rf.tmp,x[leaveout,],x[-leaveout,])$prob.high
     
   }
+  ## NOTE: SHOULD PREALLOCATE alpha.hat (i.e. alpha.hat = rep(0,n)), this
+  ## will speed up computations
   alpha.hat = NULL # compute alpha-hat values
   for(ii in 1:n){
     alpha.hat = c(alpha.hat, sum(predictions[ii]< predictions)/n)
