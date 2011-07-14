@@ -1,0 +1,3 @@
+$Q_DIR/load/PTEL_weightmaps/k_weightmap.fits
+$Q_DIR/load/PTEL_weightmaps/k_weightmap.fits
+$Q_DIR/load/PTEL_weightmaps/k_weightmap.fits

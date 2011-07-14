@@ -57,6 +57,7 @@ def whatis(keyword):
     '''
 
     helpdict = {
+    'grb': {'definition':'GRB name','type':'string','source':'SwiftCat','speed':'processed','sample':'GRB110205A'},
     'A': {'definition':'Alpha: One of the 4 parameters in the Band-function fit to the BAT gamma-ray spectrum.  Alpha is the power-law index *before* the peak in the fit and is typically clustered around -1','type':'double','source':'NatBat Spectra','speed':'processed','sample':-0.77270000000000005},
     'A1': {'definition':'Alpha Lower limit','type':'double','source':'NatBat Spectra','speed':'processed','sample':-1.0469999999999999},
     'A2': {'definition':'Alpha Upper limit','type':'double','source':'NatBat Spectra','speed':'processed','sample':-0.48049999999999998},
@@ -454,6 +455,7 @@ class GRBdb:
         
         '''
         for grb in self.dict:
+            self.dict[grb]['grb']=grb   #set the identity value
             if 'z' in self.dict[grb]:
                 if self.dict[grb]['z'] > 5.0:
                     self.dict[grb]['z_class'] = 'high_z'
@@ -855,6 +857,7 @@ class GRBdb:
 
     
     def MakeAllAttr(self):
+        self.MakeNomArr('grb')
         self.MakeAttrArr('A',negerrkey='A1',poserrkey='A2',DeltaErr=False)
         self.MakeAttrArr('B',negerrkey='B1',poserrkey='B2',DeltaErr=False)
         self.MakeAttrArr('CHI2')
@@ -1175,7 +1178,7 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-    def makeDeluxeTable(self,attrlist=['triggerid_str','Z'],caption='My awesome Table', tab_append='',inclerr=True):
+    def makeDeluxeTable(self,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],caption='My awesome Table', tab_append='',inclerr=True):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature

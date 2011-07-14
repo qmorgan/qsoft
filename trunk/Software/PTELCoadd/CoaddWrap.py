@@ -59,6 +59,73 @@ def run_swarp(command):
 ### RECORD INFORMATION ABOUT CHANGING THE SEXTRACTOR PARAM FILES
 ### NOTE - TEST HOW CALIB STAR TRENDS CHANGE WITH APERTURE SIZE
 
+def MakeTriplestack(reduced_filelist):
+    accepted_filters = ['j','h','k']
+    filestring = ''
+
+    j_stop_list = []
+    j_start_list = []
+
+    if len(reduced_filelist) != 3:
+        raise ValueError('filelist should be list or tuple of length 3')
+    for reduced_file in reduced_filelist:
+
+    # Obtain the start and stop times of the image
+        j_hdulist = pyfits.open(reduced_file)
+        j_header = j_hdulist[0].header
+        j_stop_list.append(str(j_header["STOP_CPU"]))
+        j_start_list.append(str(j_header["STRT_CPU"]))
+        j_hdulist.close()
+        
+        filt = reduced_file[0]
+        if reduced_file[-6] == '0':
+            filenamebase = reduced_file.split('long_')[1]
+            filenamebase = filenamebase.split('-0.fits')[0]
+        filestring += reduced_file + ' '
+        if filt not in accepted_filters:
+            raise ValueError('File name must start with j, h, or k')
+        if reduced_file.find('.fits') == -1:
+            print outname
+            raise ValueError('Input file must end in .fits')    
+        if not os.path.exists(reduced_file):
+            raise IOError('File does not exist')
+        
+    ## Sort the lists of start and stop times
+    j_start_list.sort()
+    j_stop_list.sort()
+
+    ## Take the first start time and the last stop time
+    j_earliest_start = j_start_list[0]
+    j_latest_stop = j_stop_list[-1]
+
+    print filestring
+    tmpweightpath =  storepath + '/tmptriplestack.weight.fits '
+    tmpimgpath = storepath + '/tmptriplestack.fits '
+    swarpcmd = "swarp -c "+ loadpath + "make_triplestack.swarp " + filestring 
+    swarpcmd += " -WEIGHT_IMAGE @" + loadpath + '/' + filt + '_triplestackweights.txt '
+    swarpcmd += "-IMAGEOUT_NAME " + tmpimgpath + "-WEIGHTOUT_NAME " + tmpweightpath
+    run_swarp(swarpcmd)
+    
+    cmd = "mv " + tmpimgpath + ' ' + filt + '_long_'+ filenamebase.replace('reduced','triplestack') + '.fits'
+    os.system(cmd)
+    cmd = "mv " + tmpweightpath + ' ' + filt + '_long_' + filenamebase.replace('reduced','triplestackweightmap') + '.fits'
+    os.system(cmd)
+
+    outname = filt + '_long_'+ filenamebase.replace('reduced','triplestack') + '.fits'
+    print 'outname', outname
+    # We insert the STRT_CPU of the first triplestack and the STOP_CPU of 
+    # the last triplestack used to make the mosaic.
+
+    j_hdulist = pyfits.open(outname,mode='update')
+
+    j_header = j_hdulist[0].header
+    
+    j_header.update('STRT_CPU',j_earliest_start)
+    j_header.update('STOP_CPU',j_latest_stop)
+
+    j_hdulist.flush()
+    j_hdulist.close()
+
 def Coadd(filelist, outname):
     try:
         from multiprocessing import Pool
@@ -168,6 +235,138 @@ def Coadd(filelist, outname):
     total_time = end_time - start_time
     print "Program finished, execution time %f seconds." % total_time
 
+def MakeMultStack(imlist, stacknum, Clobber=False):
+    from operator import itemgetter
+    from Phot import t_mid
+    import datetime
+    import os
+    #if stacknum%3 !=0:
+    #    raise Exception('Stack number is not divisible by 3, please input integer that is divisible by 3!')
+    #if len(imlist)%(stacknum/3) != 0:
+    #    print 'WARNING:Number of triplestacks not evenly divisible, there will be leftovers!'
+    
+    # removing weight files, might be buggy
+    for index, image in enumerate(imlist):
+        if 'weight' in image:
+            del imlist[index]
+    # sorting
+    imtup_list = []
+    for image in imlist:
+        imtup = ()
+        headerlist = pyfits.open(image)
+        starttime = headerlist[0].header['STRT_CPU'].split(' ')[1]
+        starthour = float(starttime.split(':')[0])*3600.
+        startmin = float(starttime.split(':')[1])*60.
+        startsec = float(starttime.split(':')[2])
+        starttime = starthour + startmin + startsec
+        imtup = (image, starttime)
+        headerlist.close()
+        imtup_list.append(imtup)
+    imtup_list=sorted(imtup_list, key=lambda image: image[1])
+        
+    rangelist = xrange(len(imtup_list)/stacknum)
+    burstname = imlist[0].split('_')[2]
+    # prep(burstname, date)
+    for index, image in enumerate(rangelist):
+        coaddlist = imtup_list[index*stacknum:index*stacknum+stacknum]
+        new_coaddlist = []
+        for image in coaddlist:
+            new_coaddlist.append(image[0])
+        coaddlist = new_coaddlist
+        start_timelist = []
+        stop_timelist = []
+        
+        for image_tobe_coadded in coaddlist:
+        # Obtain the start and stop times of the image
+            image_tobe_coadded = image_tobe_coadded
+            GRBname = image_tobe_coadded.split('_')[2]
+            
+            headerlist = pyfits.open(image_tobe_coadded)
+            starttime = headerlist[0].header['STRT_CPU']
+            stoptime = headerlist[0].header['STOP_CPU']
+            stop_timelist.append(str(stoptime))
+            start_timelist.append(str(starttime))
+            headerlist.close()
+            
+            filt = image_tobe_coadded[0]
+                        
+            if image_tobe_coadded.find('.fits') == -1:
+                print outname
+                raise ValueError('Input file must end in .fits')    
+            if not os.path.exists(image_tobe_coadded):
+                raise IOError('File does not exist')
+
+        ## Sort the lists of start and stop times
+        start_timelist.sort()
+        stop_timelist.sort()
+#        print start_timelist
+#        print stop_timelist
+    ## Take the first start time and the last stop time
+        earliest_start = start_timelist[0]
+        latest_stop = stop_timelist[-1]
+
+        start = datetime.datetime.strptime(earliest_start.split('.')[0], "%Y-%m-%d %H:%M:%S")
+        stop = datetime.datetime.strptime(latest_stop.split('.')[0], "%Y-%m-%d %H:%M:%S")
+
+        start_str = start.strftime('%Y-%b-%d-%Hh%Mm%Ss')
+        stop_str = stop.strftime('%Y-%b-%d-%Hh%Mm%Ss')
+        date_str = start.strftime('%Y-%b-%d-%Hh%Mm%Ss').split('-')
+        date_str = date_str[0] + ('-') + date_str[1] + ('-') + date_str[2]
+        
+        basename = filt + '_long_triplestack' + start_str + '-' + GRBname +'000' 
+        stacknumber = index + 1
+        output_stack_name = basename + '-p' + str(stacknumber) + '.fits'
+#        print index
+#        print output_stack_name
+#        print 
+        Coadd(coaddlist, output_stack_name)
+
+       
+        dirname = burstname + '000_' + date_str + '-reduction_output'
+        fits_dir_name = burstname + '000' + '_triplestacks'
+        mvstr = 'mv %s ./%s/%s/%s' % (output_stack_name, dirname, fits_dir_name, output_stack_name)
+        weights_name = output_stack_name.split('.fits')[0] + '.weight.fits'
+        weights_dir_name = burstname + '000' + '_triplestackweights'
+        mvweights = 'mv %s ./%s/%s/%s' % (weights_name, dirname, weights_dir_name, output_stack_name)
+
+        if os.path.exists("./"+dirname):
+            if Clobber:
+                delstr = 'rm -rf %s' % dirname
+                os.system(delstr)
+                make_directory = 'mkdir ' + dirname
+                make_sub = 'mkdir ' + dirname + '/' + fits_dir_name
+                make_weights_sub = 'mkdir ' + dirname + '/' + weights_dir_name
+                os.system(make_directory)
+                os.system(make_sub)
+                os.system(make_weights_sub)
+        else:
+            make_directory = 'mkdir ' + dirname
+            make_sub = 'mkdir ' + dirname + '/' + fits_dir_name
+            make_weights_sub = 'mkdir ' + dirname + '/' + weights_dir_name
+            os.system(make_directory)
+            os.system(make_sub)
+            os.system(make_weights_sub)
+        
+        print 'mvstr is'
+        print mvstr
+        print 'mvweight is'
+        print mvweights
+        print 
+
+        os.system(mvstr)
+        os.system(mvweights)
+
+def MakeAllMultStack(stacknum):
+    ''' Run MakeMultStack to every filter and every image in the folder '''
+    import glob
+
+    h_glob = glob.glob('h_long*')
+    MakeMultStack(h_glob, stacknum)
+    j_glob = glob.glob('j_long*')
+    MakeMultStack(j_glob, stacknum)
+    k_glob = glob.glob('k_long*')
+    MakeMultStack(k_glob, stacknum)
+
 def MakeDeepStack(path='./',outid='GRB.999.999'):
     '''Coadd all like-filter images together in a particular folder.  Used
     after SmartStackRefine (or some other coadding scheme) to make a deep stack
@@ -187,7 +386,7 @@ def MakeDeepStack(path='./',outid='GRB.999.999'):
 
 def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
                 exclude=False, regfile='j.reg', calreg=None,  wcs=False,  \
-                mincoadd=1, maxcoadd=150, fibonacci=True):
+                mincoadd=1, maxcoadd=150, fibonacci=True, p0=False, caliblimit=True, autocull=False):
     '''Here we continually coadd each observation in the obs list until 
     the minimum signal to noise is reached.  q_phot is needed.
     
@@ -226,7 +425,11 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
     
     prep(obsidlist, path=path, exclude=exclude, date=date)
     firstid = obsidlist[0] # the first id is all you need for coadd() and cleanup()
-    
+    # Remove old autocull file if autocull is set to True
+    if autocull: 
+        autocullpath = storepath + 'calstarregs/' + firstid + '_autocull.reg'
+        if os.path.isfile(autocullpath) == True:
+            os.remove(autocullpath)
     # Assume no modifications have been made between j,h, and k files
     # I.e that j file is the same order, etc as the others.
     
@@ -301,7 +504,10 @@ def smartStackRefine(obsidlist, path=None, date='', mins2n=20, minfilter='j', \
             
             # Do photometry on the resultant coadd 
             print 'Now doing photometry on %s' % (new_coadd_list[filtindex])
-            photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper)
+            if not wcs:
+                photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper, caliblimit=caliblimit, autocull=autocull)
+            else:
+                photdict = q_phot.dophot(new_coadd_list[filtindex],regfile,calreg=calreg,ap=ap,do_upper=doupper, caliblimit=caliblimit, autocull=autocull, for_wcs_coadd=True)
             
             if not 'targ_s2n' in photdict:
                 # if an upper limit found, give a tiny s2n so the loop keeps going

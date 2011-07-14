@@ -11,7 +11,7 @@ import glob
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
-def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False, noerr=False, magrange=None):
+def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = False, noerr=False, magrange=None, caliblimit=True):
     
     '''
     Plot magnitudes of calibration stars as a function of time.
@@ -28,7 +28,8 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         reg: region file of calibration stars to test and plot
         filelist: EITHER: list of files to run photometry on, or a string
                   to do a glob search of files in a directory (if globit=True)
-        out_pickle: filename of the pickle file to write to
+        out_pickle: override the filename of the pickle file to write to. 
+                    Will use default naming convention if not specified.
         triggerid: Swift trigger id of the GRB (if applicable; otherwise None)
         globit: if True, do a glob search to get a list of filenames to run 
                 photometry on instead of specifying an explicit list.
@@ -47,13 +48,15 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         print 'globit actiavated'
         print filelist
     
+    unique_name = (filelist[0].split('_'))[2]
+    filt = filelist[0][0]
+    
     calib_star_keys = []
     testind = 0
     caldict = {}
     matplotlib.pyplot.clf()
     regpath = reg
     temppath = storepath + 'temp.reg'
-    picklepath = storepath + out_pickle +'.data'
     regfile = open(regpath, 'r')
     reglist = regfile.readlines()
     callist = []
@@ -64,6 +67,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             pass
     
     colornumber = len(callist)
+    n_stars = len(callist)
     
     while((len(calib_star_keys) < len(callist)) and testind < len(filelist)):
         tempreg = open(temppath, 'w')
@@ -89,7 +93,7 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
         print "Using image #%i to get the calib stars; if not all are present \
                 in final plot, try a different image" % (testind)
         testimage = filelist[testind]
-        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
+        photdict = q_phot.photreturn(os.path.basename(reg), testimage, reg=temppath, calregion=calregion, aper=ap, auto_upper=False, caliblimit=caliblimit, trigger_id=triggerid)
         
         for key in photdict[testimage]['calib_stars'].keys():
             if not key in calib_star_keys:
@@ -119,8 +123,10 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
             print 'Photometry of star' + str(index) 
             print 'doing image ' + image
             calregion =  '/calstarregs/' + os.path.basename(reg) 
-            data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False)
+            data = q_phot.photreturn(os.path.basename(reg), image, reg=temppath, calregion=calregion, aper=ap, auto_upper=False, caliblimit=caliblimit)
             image_data = data[image]
+            if image[0] != filt:
+                raise ValueError('Filter for %s does not match the others') % (image)
             if ra_str in image_data['calib_stars']:
                 datalist += [image_data['calib_stars'][ra_str]['new_mag']] 
                 dataerrlist += [image_data['calib_stars'][ra_str]['new_e_mag']]
@@ -152,9 +158,11 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     star_stdv = numpy.std(datarr)
     print 'The standard deviation of the calibration stars is: (DISREGARD THIS, THIS STDV IS PROBABLY WRONG)'
     print star_stdv
-    matplotlib.pyplot.title('Calibration Stars Magnitude vs. t_mid')
+    plottitle = '%s Calibration Stars Magnitude vs. t_mid' % (filt)
+    plotylabel = '%s Magnitude' % (filt)
+    matplotlib.pyplot.title(plottitle)
     matplotlib.pyplot.xlabel('Time After Burst (s)')
-    matplotlib.pyplot.ylabel('Magnitude')
+    matplotlib.pyplot.ylabel(plotylabel)
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1])
     ax.set_xlim((ax.get_xlim()[0]),(ax.get_xlim()[1])*1.2)
@@ -169,9 +177,13 @@ def magplot(reg, filelist, out_pickle, ap=None, triggerid = None, globit = False
     # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
     # was getting incresingly larger with multiple runs
     F.set_size_inches((20, 15))
-
-    unique_name = (filelist[0].split('_'))[2]
-    filepath = storepath + unique_name + '_calibration_stars.png'
+    n_stars_str = str(n_stars)
+    if not out_pickle:
+        picklepath = storepath + unique_name + '_' + filt + '_' + 'ap' + str(ap) + '_' + n_stars_str + '_cal_stars.data'
+    else:
+        picklepath = out_pickle
+        
+    filepath = storepath + unique_name + '_' + filt + '_' + 'ap' + str(ap) + '_' + n_stars_str + '_cal_stars.png'
     #matplotlib.pyplot.savefig(filepath)
 
     qPickle.save(caldict, picklepath, clobber=True)
@@ -209,7 +221,7 @@ def star_stdv(magplotdict):
 
 
 def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
-    ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None):
+    ap_h=None,ap_j=None,ap_k=None,triggerid=None, calibration_reg=None, caliblimit=False):
     
     '''
     After creating a calibration deep-stack for all images, use this function
@@ -290,7 +302,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         star_pos = (ra_round, dec_round)
         star_pos_str = str(star_pos)
 
-        data_h = q_phot.dophot(filename_h, temppath, calreg=calibration_reg, ap=ap_h)
+        data_h = q_phot.dophot(filename_h, temppath, calreg=calibration_reg, ap=ap_h, caliblimit=caliblimit)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_h, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_h, trigger=triggerid,delta = True))/2.
@@ -301,7 +313,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         
         keylist.append(parent_label)
         
-        data_j = q_phot.dophot(filename_j, temppath, calreg=calibration_reg, ap=ap_j)
+        data_j = q_phot.dophot(filename_j, temppath, calreg=calibration_reg, ap=ap_j, caliblimit=caliblimit)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_j, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_j, trigger=triggerid,delta = True))/2.
@@ -310,7 +322,7 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
         this_star_dict_j = {parent_label:data_j}
         stardict_j.update(this_star_dict_j)
 
-        data_k = q_phot.dophot(filename_k, temppath, calreg=calibration_reg, ap=ap_k)
+        data_k = q_phot.dophot(filename_k, temppath, calreg=calibration_reg, ap=ap_k, caliblimit=caliblimit)
         parent_label = star_pos_str
         time = float(t_mid.t_mid(filename_k, trigger=triggerid))
         terr = float(t_mid.t_mid(filename_k, trigger=triggerid,delta = True))/2.
@@ -334,6 +346,103 @@ def getstar(reg, out_pickle, filename_h, filename_j, filename_k, \
     
     return stardict
 
+def extract(caldict_h, caldict_j, caldict_k, starRA):
+    ''' extract specific stars from caldict '''
+    from operator import itemgetter
 
+    matplotlib.pyplot.clf()
+    star_h = caldict_h[starRA]
+    star_j = caldict_j[starRA]
+    star_k = caldict_k[starRA]
+    h_list = []
+    h_err_list = []
+    j_list = []
+    j_err_list = []
+    k_list = []
+    k_err_list = []
+    timlist_h = []
+    terlist_h = []
+    timlist_j = []
+    terlist_j = []
+    timlist_k = []
+    terlist_k = []
 
+    #h
+    #sorting w.r.t time
+    mosaiclist=[]
+    for mosaics in star_h:
+        mosaiclist += [star_h[mosaics]]
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
     
+    for mosaics in mosaiclist:
+        h_list += [mosaics['calib_stars'][starRA]['new_mag']]
+        h_err_list += [mosaics['calib_stars'][starRA]['new_e_mag']]
+        timlist_h += [mosaics['t_mid'][0]]
+        terlist_h += [mosaics['t_mid'][1]]
+
+    #j
+    #sorting w.r.t time
+    mosaiclist=[]
+    for mosaics in star_j:
+        mosaiclist += [star_j[mosaics]]
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    
+    for mosaics in mosaiclist:
+        j_list += [mosaics['calib_stars'][starRA]['new_mag']]
+        j_err_list += [mosaics['calib_stars'][starRA]['new_e_mag']]
+        timlist_j += [mosaics['t_mid'][0]]
+        terlist_j += [mosaics['t_mid'][1]]
+    
+    #k
+    #sorting w.r.t time
+    mosaiclist=[]
+    for mosaics in star_k:
+        mosaiclist += [star_k[mosaics]]
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    
+    for mosaics in mosaiclist:
+        k_list += [mosaics['calib_stars'][starRA]['new_mag']]
+        k_err_list += [mosaics['calib_stars'][starRA]['new_e_mag']]
+        timlist_k += [mosaics['t_mid'][0]]
+        terlist_k += [mosaics['t_mid'][1]]
+
+    matplotlib.pyplot.errorbar(timlist_h, h_list, yerr=h_err_list, xerr=terlist_h, marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green', label = 'h')
+    matplotlib.pyplot.errorbar(timlist_j, j_list, yerr=j_err_list, xerr=terlist_j, marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', ecolor = 'blue', label = 'j')
+    matplotlib.pyplot.errorbar(timlist_k, k_list, yerr=k_err_list, xerr=terlist_k,  \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'k')
+
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    #ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+   # uniquename = caldict_h.keys()[0].split('_')[2]
+    cname = str(starRA)
+    matplotlib.pyplot.title(' Calibration Star '+'('+cname+')')
+    savepath = storepath + '_' + cname + '_singlecalib.png'
+    
+    F = pylab.gcf()
+    DefaultSize = F.get_size_inches()
+    DPI = F.get_dpi()
+    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+    # was getting incresingly larger with multiple runs
+    F.set_size_inches((20, 15))
+
+    print 'single calibration plot saved to ' + savepath
+    matplotlib.pyplot.savefig(savepath)    
+    matplotlib.pyplot.close()
+
+def extractloop(caldict_h, caldict_j, caldict_k):
+    ''' extracts all the calibration star plots from caldicts (done for every h, j, k bands) '''
+
+    for star in caldict_h.keys():
+        extract(caldict_h, caldict_j, caldict_k, star)

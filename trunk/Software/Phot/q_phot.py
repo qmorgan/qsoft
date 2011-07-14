@@ -227,7 +227,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 #             print ("Finished fit for saturated star at " + str(m) + " " 
 #                 + str(n) + ". FWHM: " + str(fwhm_unqiue) + " with metric: " + str(metric))
             fwhm_list.append(fwhm_unqiue)
-    fwhm = mean(fwhm_list)
+    fwhm = median(fwhm_list)
     fwhm_stdev = std(fwhm_list)
     return fwhm, fwhm_stdev
     
@@ -242,7 +242,7 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True):
+        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -271,11 +271,16 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         stardict: If set, use a dictionary of calibration star photometries 
             from a deep stack of the location rather than the 2mass values.  
             CURRENTLY NOT WORKING.
+        caliblimit: if True, then if a calibration star has a higher stdev than
+            our threshold, then stop the program
         
     '''
     # Begin timing
     t1 = time()
-     
+    
+    if not calreg:
+        caliblimit = False 
+    
     # Store the original image name.
     image_name = progenitor_image_name
     hdulist = pyfits.open(image_name)
@@ -308,10 +313,11 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     hdulist = pyfits.open(objects_image)
     objects_data = hdulist[0].data
     hdulist.close()
-    system("rm "+ storepath + "check.fits")
+    #system("rm "+ storepath + "check.fits")
 
     sex_file = file(storepath + "star_cat.txt", "r")
     sat_locations = []
+    radec_locations = []
     for line in sex_file:
         if (line[0] == "#"):
             continue
@@ -319,7 +325,62 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if float(line.split()[2]) == 0:
                 x_index = int(round(float(line.split()[0]) - 1))
                 y_index = int(round(float(line.split()[1]) - 1))
+                RA_index = float(line.split()[3])
+                Dec_index = float(line.split()[4])
                 sat_locations.append([y_index, x_index])
+                radec_locations.append([RA_index, Dec_index])
+               # print str(RA_index) + ' ' + str(Dec_index)
+    # print 'sat_locations before culling:'
+    # print sat_locations
+
+    
+    if calreg:
+        if find_fwhm or not ap:
+            
+            calreg_radec_list = openCalRegion(calreg)
+
+            keep_it = False
+            indexlist_fwhm = []
+
+           # print 'calreg_radec_list is:'
+           # print calreg_radec_list
+
+            for index, old_radec in enumerate(radec_locations):
+                keep_it = False
+                #print 'old_radec is'
+                #print old_radec
+                for new_radec in calreg_radec_list:
+                    calstar_radec_list = new_radec.split(',')
+                    #print 'new_radec is'
+                    #print calstar_radec_list
+                    caldist = 206264.806247*(float(ephem.separation(((numpy.pi)*\
+                            (1/180.)*(float(old_radec[0])), (numpy.pi)*(1/180.)*\
+                            (float(old_radec[1]))),((numpy.pi)*(1/180.)*\
+                            (float(calstar_radec_list[0])), (numpy.pi)*(1/180.)*\
+                            (float(calstar_radec_list[1]))))))
+                        # only remove the calstar entry if it is not our target;
+                        # i.e. it is not identified as 'target' above
+                        # Remove the calstar entry if distance is small
+                   # print caldist
+                    if caldist < 5:
+                        keep_it = True
+                if not keep_it:
+                    indexlist_fwhm += [index]
+                   # print 'removed index is'
+                   # print index
+
+            indexlist_fwhm.sort()
+           # print 'here is the indexlist_fwhm of calibration stars which are not used in calculating FWHM:'
+           # print indexlist_fwhm
+           # print 'length of indexlist_fwhm is'
+           # print len(indexlist_fwhm)
+            revindex = indexlist_fwhm[::-1]
+            for ind in revindex:
+                # print "REMOVING %s" % str(sat_locations[ind])
+                del sat_locations[ind]
+
+           # print 'sat_locations after culling:'
+           # print sat_locations
     
     if find_fwhm or not ap:
         if not ap:
@@ -330,7 +391,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         fwhm, fwhm_stdev = fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev)
         print "Sigma clipping of fwhm complete."
         print ("FWHM mean: " + str(fwhm) + " stdev: " + str(fwhm_stdev) + ".")
-        photdict.update({'FHWM':(fwhm,fwhm_stdev)})        
+        photdict.update({'FWHM':(fwhm,fwhm_stdev)})        
     
     if not ap:
         # If aperture is not specified, fit for ideal size based on the fwhm.
@@ -861,11 +922,22 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     
     print "Length of pre-truncated sextractor starlist is %s" % str(len(sexcat_starlist))
     print "Length of vizquery 2mass starlist is %s" % str(len(vizcat_starlist))
-    print "sexcat_starlist first entry is:"
     # Compare the entries in sexcat_starlist and vizcat_starlist to create a 
     # combined_starlist which has entries for sources with both archival and new
     # instrumental data. The target need not be included in the archive.
     # [ra, dec, 2massmag, 2masserr instmag, insterr, sexflags, 'calib'/'target']
+
+    # debug printing
+    import pprint
+    print 'sexcat_starlist is'
+    pprint.pprint(sexcat_starlist)
+
+    print '================================================================='
+    print '================================================================='
+    print '================================================================='
+    print 'vizcat_starlist is'
+    pprint.pprint(vizcat_starlist)
+    
     combined_starlist = []
     for sexcat_star in sexcat_starlist:
         sexcat_star_ra_rad = sexcat_star[0] * 0.01745329252
@@ -899,23 +971,19 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                     sexcat_star[2], sexcat_star[3], 
                     sexcat_star[4],'calib',separation_arcsec])
 
+    
     print 'length of combined_starlist is %s' % str(len(combined_starlist))
     if len(combined_starlist) == 0:
-        raise Exception('Combined Starlist is empty; no cross correlations found between sextractor catalog and 2mass.')
-    
+        if not for_wcs_coadd:
+            raise Exception('Combined Starlist is empty; no cross correlations found between sextractor catalog and 2mass.')
+        else:
+            photdict = {'FileName':image_name}
+            return photdict
     # Deleting stars in combined_starlist that is not in the inputted region file (if not calreg == False)
     if not calreg:
         pass
     else:
-        reg_path = storepath + calreg
-        regfile = open(reg_path,'r')
-        reglist = regfile.readlines()
-        callist = []
-        for line in reglist:
-            if 'circle' in line:
-                callist += [(((line.rstrip('\n')).strip('circle')).rstrip(')')).strip('(')]
-            else:
-                pass
+        callist = openCalRegion(calreg)
         
         keep_it = False
         indexlist = []
@@ -938,13 +1006,15 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 indexlist += [index]
 
         indexlist.sort()
-        print 'here is the indexlist of calibration stars which are not used'
-        print indexlist
-        print 'length of indexlist is'
-        print len(indexlist)
+        if verbose:
+            print 'here is the indexlist of calibration stars which are not used'
+            print indexlist
+            print 'length of indexlist is'
+            print len(indexlist)
         revindex = indexlist[::-1]
         for ind in revindex:
-            print "REMOVING %s" % str(combined_starlist[ind])
+            if verbose:
+                print "REMOVING %s" % str(combined_starlist[ind])
             del combined_starlist[ind]
             
     # Use the combined_starlist to calculate a zeropoint for the science image.
@@ -983,11 +1053,30 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if star[7] != 'calib': # sanity check that different target matching works
                 raise ValueError('Calib Star identification mismatch somewhere in the code; squash this bug')
             sub_zp_err = return_ptel_uncertainty(ptel_e_mag,tmass_e_mag,num_triplestacks)
-            
-            if sub_zp_err > 0.3:
-                errmessage = '''Star at RA: %f Dec: %f has a huge uncertainty.  
-                Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)
-                raise Exception(errmessage)
+
+            if caliblimit:
+                calregpath = calreg
+                calreglist = openCalRegion(calregpath)
+                if sub_zp_err > 0.3:
+                    errmessage = '''Star at RA: %f Dec: %f has a huge uncertainty.  
+                    Investigate and possibly remove from calibration star list before continuing''' % (ra, dec)                  
+                    # automatic culling of calibration stars
+                    if autocull:
+                        print errmessage
+                        for index, calreg_stars in enumerate(calreglist):
+                            calreg_ra = float(calreg_stars.split(',')[0])
+                            calreg_dec = float(calreg_stars.split(',')[1])
+                            if (abs(ra-calreg_ra) < 0.00001) & (abs(dec-calreg_dec) < 0.00001):
+                                 print 'calreglist first'
+                                 print calreglist
+                                 del calreglist[index]
+                                 print 'calibration star with calreg values RA: %f, Dec : %f has been removed' % (calreg_ra, calreg_dec)
+                                 print 'calreglist second'
+                                 print calreglist
+                                 print 'calreglist second length is'
+                                 print len(calreglist)
+                    else:
+                        raise Exception(errmessage)          
             
             # zeropoint_err_list.append(sqrt(tmass_e_mag**2 + (ptel_e_mag*2.4)**2)
             #             + (base_dither_error/sqrt(num_triplestacks))**2)
@@ -997,8 +1086,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             if star[8] > 5:
                 raise Exception("Investigate why the calib star/2mass separation is so large")
             
-    print 'zp list is'
-    print zeropoint_list
     # zeropoint = average(zeropoint_list) # average is not very robust
     zeropoint = numpy.median(zeropoint_list)
     if numpy.isnan(zeropoint):
@@ -1010,8 +1097,6 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     N_zp = len(zeropoint_list)
     zp_err_arr = numpy.array(zeropoint_err_list)
     zp_err_arr_sq = zp_err_arr**2
-    print 'zp_err_arr_sq is'
-    print zp_err_arr_sq
     sum_zp_err_arr_sq = numpy.sum(zp_err_arr_sq)
 #    zeropoint_error = average(zeropoint_err_list)
     zeropoint_error = numpy.sqrt(sum_zp_err_arr_sq)/N_zp
@@ -1061,11 +1146,12 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             target_flux_err = src_flux_err # Note does not take into account zp
             final_starlist.append([ra, dec, tmass_mag, tmass_e_mag, 
                 ptel_mag, ptel_e_mag, ptel_flag, new_mag, new_e_mag])
-            print ''
-            print '******'
-            print '!!!!YAY our target!!!!'
-            print star
-            print ''
+            if verbose:
+                print ''
+                print '******'
+                print '!!!!YAY our target!!!!'
+                print star
+                print ''
             continue
         # If the star is just a field 2MASS star . . .
         elif star[6] == 0:
@@ -1088,17 +1174,19 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 '2mass_mag':tmass_mag,'2mass_e_mag':tmass_e_mag,
                 'inst_mag':ptel_mag,'inst_e_mag':ptel_e_mag,'new_mag':new_mag,
                 'new_e_mag':new_e_mag, 'delta_mag':delta_mag, 'delta_pos':delta_pos}})
-            print ''
-            print '******'
-            print 'yay good star'
-            print star
-            print ''
+            if verbose:
+                print ''
+                print '******'
+                print 'yay good star'
+                print star
+                print ''
         else:
-            print ''
-            print '******'
-            print 'BLARGH CANNOT USE THIS STAR'
-            print star
-            print ''
+            if verbose:
+                print ''
+                print '******'
+                print 'BLARGH CANNOT USE THIS STAR'
+                print star
+                print ''
     # Calculate the midpoint heliocentric julian date of the exposure. We use a 
     # try/except clause in case something fails and use a placeholder hjd in that
     # instance.
@@ -1143,7 +1231,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         photdict.update({'targ_mag':(target_mag,target_e_mag)})
         photdict.update({'targ_flux':(target_flux,target_flux_err)})
         photdict.update({'targ_s2n':src_s2n})
-    # Print out photometry data. 
+    # Print out photometry data.
     print progenitor_image_name, "HJD:", hjd
     print "Photometry Results:", photometry_string
     print ("2MASS Catalog comparison average absolute deviation: " + 
@@ -1240,6 +1328,44 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     
      # Outputting the .reg file of the calibration stars (if calstar_reg_output==True).
 
+    if autocull:
+        # Write new calibration star calregion file
+        tempname_unique = str(progenitor_image_name.split('_')[2]) # + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
+        temppath = storepath + 'calstarregs/' + tempname_unique+'_autocull.reg'
+        # Remove old autocull file if autocull is set to True
+        if autocull:
+            autocull_temp = './autoculltemp.reg'
+            autocullpath = autocull_temp
+            if os.path.isfile(autocullpath) == True:
+                os.remove(autocullpath)
+            
+        tempreg = open(autocull_temp, 'w')
+        tempreg.write('# Region file format: DS9 version 4.1\n')
+        secondstr='global color=green dashlist=8 3 width=2 font="helvetica '+ \
+                                       '16 normal" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 '+ \
+                                       'delete=1 include=1 source=1\n'
+        tempreg.write(secondstr)
+        tempreg.write('fk5\n')
+        # Add a few arcseconds to the first position to make sure we don't use it as a target
+        #Why?
+#        test_ra = float(calreg_stars.split(',')[0]) + 0.005
+#        test_dec = float(calreg_stars.split(',')[1]) + 0.005
+        print 'calreglist final is'
+        print calreglist
+        print 'length of calreglist is'
+        print len(calreglist)
+        for reg_lines in calreglist:
+            reg_ra = float(reg_lines.split(',')[0])
+            reg_dec = float(reg_lines.split(',')[1])
+            tmp_reg_str = 'circle(%f,%f,4") # width=2 font="helvetica 16 normal"\n' % (reg_ra,reg_dec)                 
+            tempreg.write(tmp_reg_str)       
+        tempreg.close()
+        if os.path.isfile(temppath) == True:
+                os.remove(temppath)
+        command = 'mv ./autoculltemp.reg' + ' '+temppath
+        os.system(command)
+        print 'Autoculled calibration star calregion created, please re-run photometry using this calibration file'
+
     if calstar_reg_output == True:
         uniquename = str(progenitor_image_name.split('_')[2]) # + str(progenitor_image_name.split('_')[4]).rstrip('.fits') 
         reg_name = storepath + 'calstarregs/'  + uniquename + '.reg'
@@ -1287,13 +1413,35 @@ def do_dir_phot(photdir='./',reg='PTEL.reg',ap=None, do_upper=False, auto_upper=
     return photdict
 
 
+def openCalRegion(reg_path, nonstore=False):
+    if nonstore:
+        reg_path = reg_path
+    else:
+        reg_path = storepath + reg_path
+    regfile = open(reg_path,'r')
+    reglist = regfile.readlines()
+    callist = []
+    for line in reglist:
+        if 'circle' in line:
+            callist += [(((line.rstrip('\n')).strip('circle')).rstrip(')')).strip('(')]
+        else:
+            pass
+   
+    return callist
+
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, calregion = None, trigger_id = None, stardict = None):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
-
-    filepath = storepath + GRBname + '.data'         
+    filepath = storepath + GRBname + 'ap' + str(aper)  
+    if calregion:
+        calibration_list = openCalRegion(calregion)
+        n_calstars = len(calibration_list)
+        filepath += '_WithCalReg' + str(n_calstars)
+    if stardict:
+        filepath += '_WithDeepStack'
+    filepath += '.data'
     while clobber == False:
         if os.path.isfile(filepath) == True:
             data = qPickle.load(filepath)
@@ -1314,10 +1462,10 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1329,7 +1477,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
-    stardict=None, clobber=False, auto_upper=True):
+    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1338,6 +1486,19 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     GRBlistwweight = glob.glob('*.fits')
     # Remove the weight images from the list
     filepath = storepath + GRBname + '.data'
+    filepath = storepath + GRBname + 'ap' + str(ap)
+    if calregion:
+        calibration_list = openCalRegion(calregion)
+        n_calstars = len(calibration_list)
+        filepath += '_WithCalReg' + str(n_calstars)
+    if stardict:
+        filepath += '_WithDeepStack'
+    filepath += '.data'
+    # Remove old autocull file if autocull is set to True
+    if autocull: 
+        autocullpath = storepath + 'calstarregs/' + GRBname+'_autocull.reg'
+        if os.path.isfile(autocullpath) == True:
+            os.remove(autocullpath)
     # Remove the stored pickle file if clobber is set to True
     if clobber == True:
         if os.path.isfile(filepath) == True:
@@ -1348,10 +1509,11 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     if not GRBlist:
         raise ValueError('No files to perform photometry on. In right directory?')
     for mosaic in GRBlist:
+        print "=========================================================="
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
-            auto_upper=auto_upper)
+            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm=find_fwhm)
     return photout
     
 def plotzp(photdict):
@@ -1494,7 +1656,83 @@ def plots2n(photdict):
     savefig(savepath)           
     matplotlib.pyplot.close()
 
-def textoutput(dict,filt=None):
+def plotproperty(photdict, prop):
+    '''Plots a graph of zp from the pickle output of the photreturn function'''
+    import matplotlib
+    import glob
+
+    matplotlib.pyplot.clf()
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    vallist = []
+    errlist = []
+
+    for mosaics in photdict:
+        print 'now doing ' + str(mosaics)
+        time = photdict[mosaics]['t_mid'][0]
+        terr = photdict[mosaics]['t_mid'][1]
+
+        if prop == 'FWHM':
+            valu = float(photdict[mosaics]['FWHM'][0])
+            verr = float(photdict[mosaics]['FWHM'][1])
+
+#there's probably a prettier way to do this, the second if statements are 
+#there so that only 1 label per filter is on the legend
+
+        if 'h_' in mosaics:
+            if h == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 'o', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 'o', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green', label = 'h')
+                h = True
+
+        elif 'j_' in mosaics:            
+            if j == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
+                    marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    ecolor = 'blue', label = 'j')
+                j = True
+
+        elif 'k_' in mosaics:
+            if k == True: 
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 'o', linestyle ='None', mfc = 'red', \
+                    mec = 'green', ecolor = 'red')
+            else:
+                matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
+                    marker = 'o', linestyle ='None', mfc = 'red', \
+                    mec = 'green', ecolor = 'red', label = 'k')
+                k = True
+
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1])
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    if prop == 'FWHM':
+        axis_label = 'FWHM (arcseconds)'
+    matplotlib.pyplot.ylabel(axis_label)
+    matplotlib.pyplot.legend()
+    uniquename = photdict.keys()[0].split('_')[2]
+    propname = '_'+prop+'.png'
+    savepath = storepath + uniquename + propname
+    print '%s plot saved to ' % (prop) + savepath
+    savefig(savepath)           
+    matplotlib.pyplot.close()
+
+def textoutputold(dict,filt=None):
     '''outputs a text file from photdict.  If filt specified, only output that
     particular filter.
     '''
@@ -1508,7 +1746,7 @@ def textoutput(dict,filt=None):
         uniquename = uniquename + '_' + filt
     savepath = storepath + uniquename + '_lightcurve.txt'
     text = file(savepath, "w")
-    namelist = ['FileName', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
+    namelist = ['FileName', 'Aperture', 'STRT_CPU', 'STOP_CPU', 't_mid' , 'EXPTIME',\
         'targ_mag', 'targ_mag error']
     text.write('\t'.join(namelist))
     text.write('\n')
@@ -1534,7 +1772,7 @@ def textoutput(dict,filt=None):
             mag = str(values['targ_mag'][0]) 
             magerr = str(values['targ_mag'][1])
         time = str(values['t_mid'][0])
-        datalist = [str(values['FileName']), str(values['STRT_CPU']), \
+        datalist = [str(values['FileName']), str(values['Aperture']), str(values['STRT_CPU']), \
             str(values['STOP_CPU']), time, str(values['EXPTIME']), mag, magerr]
         text.write('\t'.join(datalist))
         text.write('\n')
@@ -1562,7 +1800,7 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 
-def photplot(photdict,ylim=None,xlim=None):
+def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False):
     '''Plots a graph from photdict'''
     import matplotlib
     import glob
@@ -1582,8 +1820,14 @@ def photplot(photdict,ylim=None,xlim=None):
     vallist = []
     errlist = []
 
+    ap = None
+    
     for mosaics in photdict:
         print 'now doing ' + str(mosaics)
+        if ap:
+            if photdict[mosaics]['Aperture'] != ap:
+                raise ValueError ('The aperture used in this mosaic does not match the last one.')
+        ap = photdict[mosaics]['Aperture']
         time = photdict[mosaics]['t_mid'][0]
         terr = photdict[mosaics]['t_mid'][1]
         
@@ -1652,25 +1896,35 @@ def photplot(photdict,ylim=None,xlim=None):
     ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
-    savepath = storepath + uniquename + '_lightcurve.png'
+    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+    savepath = storepath + uniquename + '_' + 'ap' + str(ap) + '_lightcurve.png'
     
     if xlim:
         ax.set_xlim(xlim)
     if ylim:
         ax.set_ylim(ylim)
 
-    F = pylab.gcf()
-    DefaultSize = F.get_size_inches()
-    DPI = F.get_dpi()
-    # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
-    # was getting incresingly larger with multiple runs
-    F.set_size_inches((20, 15))
-    
-    print 'lightcurve saved to ' + savepath
-    savefig(savepath)    
-    matplotlib.pyplot.close()
+    if overplot:
+        pass
+    else:
+        F = pylab.gcf()
+        DefaultSize = F.get_size_inches()
+        DPI = F.get_dpi()
+        # F.set_size_inches( (DefaultSize[0]*2.5, DefaultSize[1]*2.5) )
+        # was getting incresingly larger with multiple runs
+        F.set_size_inches((20, 15))
 
-def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True):
+    if plotname:
+        savepath = plotname
+
+    if overplot:
+        pass
+    else:
+        print 'lightcurve saved to ' + savepath
+        savefig(savepath)    
+        matplotlib.pyplot.close()
+
+def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, caliblimit=True):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
     we loop around images in a directory using PhotLoop and measure the 
@@ -1686,7 +1940,7 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
         
         # Can set auto_upper = False since dont care if source is detected or not
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
-            clobber=True, trigger_id=trigger_id, auto_upper=False) 
+            clobber=True, trigger_id=trigger_id, auto_upper=False, caliblimit=caliblimit) 
     
         k_delta_list = []
         h_delta_list = []
@@ -1724,3 +1978,336 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
         print 's/n plot saved to ' + savepath
 
     return (j_delta_med_list,h_delta_med_list,k_delta_med_list)
+
+def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
+    '''Plots a color evolution J-H, H-K from photdict'''
+    import matplotlib
+    import glob
+    import datetime
+    from operator import itemgetter
+    #filepath = path + GRBname + '.data'
+    #photdict = qPickle.load(filepath)
+
+    matplotlib.pyplot.clf()
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    h_list = []
+    h_errlist = []
+    j_list = []
+    j_errlist = []
+    k_list = []
+    k_errlist = []
+    mosaiclist=[]
+    for mosaics in photdict:
+        mosaiclist += [photdict[mosaics]]
+    #sorting w.r.t time
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    for mosaics in mosaiclist:
+
+        if 'targ_mag' in mosaics: 
+            valu = float(mosaics['targ_mag'][0])
+            verr = float(mosaics['targ_mag'][1])
+            
+            if mosaics['filter'] == 'h':                
+                h_list += [valu]
+                h_errlist += [verr]
+                timlist += [mosaics['t_mid'][0]]
+                terlist += [mosaics['t_mid'][1]]
+
+            elif mosaics['filter'] == 'j':
+                j_list += [valu]
+                j_errlist += [verr]
+            elif mosaics['filter'] == 'k':
+                k_list += [valu]
+                k_errlist += [verr]
+            
+        elif 'upper_green' in mosaics: 
+                valu = float(mosaics['upper_green'])
+                if mosaics['filter'] == 'h':
+                     h_list += [valu]
+                     h_errlist += [0]
+                     timlist += [mosaics['t_mid'][0]]
+                     terlist += [mosaics['t_mid'][1]]
+                if mosaics['filter'] == 'j':
+                     j_list += [valu]
+                     j_errlist += [0]
+                if mosaics['filter'] == 'k':
+                     k_list += [valu]
+                     k_errlist += [0]
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
+
+    timlist = numpy.array(timlist)
+    terlist = numpy.array(terlist)
+    h_list = numpy.array(h_list)
+    j_list = numpy.array(j_list)
+    k_list = numpy.array(k_list)
+    h_errlist = numpy.array(h_errlist)
+    j_errlist = numpy.array(j_errlist)
+    k_errlist = numpy.array(k_errlist)
+
+    jminh = j_list - h_list
+    hmink = h_list - k_list
+
+    fig = pylab.figure()
+
+    ax_lcurve = fig.add_axes([0.1,0.55,0.8,0.4])
+    pylab.subplots_adjust(hspace=0.001)    
+    #Lightcurve
+    
+    h = False
+    j = False
+    k = False
+    ap = None
+    
+    for mosaics in photdict_lcurve:
+        print 'now doing ' + str(mosaics)
+        if ap:
+            if photdict_lcurve[mosaics]['Aperture'] != ap:
+                raise ValueError ('The aperture used in this mosaic does not match the last one.')
+        ap = photdict_lcurve[mosaics]['Aperture']
+        time = photdict_lcurve[mosaics]['t_mid'][0]
+        terr = photdict_lcurve[mosaics]['t_mid'][1]
+        
+        if 'targ_mag' in photdict_lcurve[mosaics]: 
+            valu = float(photdict_lcurve[mosaics]['targ_mag'][0])
+            verr = float(photdict_lcurve[mosaics]['targ_mag'][1])
+
+            #there's probably a prettier way to do this, the second if statements 
+            #are there so that only 1 label per filter is on the legend
+
+            if 'h_' in mosaics:
+                if h == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green', label = 'h')
+                    h = True
+
+            elif 'j_' in mosaics:            
+                if j == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'j')
+                    j = True
+
+            elif 'k_' in mosaics:
+                if k == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'k')
+                    k = True
+        elif 'upper_green' in photdict_lcurve[mosaics]: 
+                valu = float(photdict_lcurve[mosaics]['upper_green'])
+                if photdict_lcurve[mosaics]['filter'] == 'h':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                if photdict_lcurve[mosaics]['filter'] == 'j':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                if photdict_lcurve[mosaics]['filter'] == 'k':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+#    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+
+    uniquename = photdict_lcurve.keys()[0].split('_')[2]
+    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+
+    # Color evolution plot    
+
+    ax = fig.add_axes([0.1,0.1,0.8,0.3])
+    
+    if JorK == 'j':
+        error_array = sqrt(j_errlist**2 + h_errlist**2)
+        ax.errorbar(timlist, jminh, yerr = error_array, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'j-h')
+    elif JorK =='k':
+        error_array = sqrt(h_errlist**2 + k_errlist**2)
+        ax.errorbar(timlist, hmink, yerr = error_array, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'h-k')
+    elif JorK == 'both':
+        jh_error_array = sqrt(j_errlist**2 + h_errlist**2)
+        hk_error_array = sqrt(h_errlist**2 + k_errlist**2)
+        ax.errorbar(timlist, jminh, yerr=jh_error_array, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'j-h')
+        ax.errorbar(timlist, hmink, yerr=hk_error_array,xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'h-k')
+        
+    #ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    #ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    uniquename = photdict.keys()[0].split('_')[2]
+    if JorK == 'j':
+        cname = 'J-H'
+    elif JorK == 'k':
+        cname = 'H-K'
+    elif JorK == 'both':
+        cname = 'both'
+    #matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
+    savepath = storepath + uniquename + '_' + cname + '_colorevo.png'
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+        
+    F = pylab.gcf()
+    DefaultSize = F.get_size_inches()
+    DPI = F.get_dpi()
+    if big:
+        F.set_size_inches((20, 15))
+    
+    print 'colorevolution saved to ' + savepath
+    savefig(savepath)    
+    matplotlib.pyplot.close()
+
+
+def textoutput(photdict,utburst,filt=None):
+    '''outputs a text file from photdict.  If filt specified, only output that
+    particular filter. Requires a utburst string in the form of hh:mm:ss
+    '''
+
+    import datetime
+    from operator import itemgetter
+    
+    filts = ['j','h','k']
+    if filt:
+        if not filt in filts:
+            raise ValueError('Unacceptable value for filt. Needs to be j, h, or k')
+            
+    uniquename = photdict.keys()[0].split('_')[2]
+    if filt:
+        uniquename = uniquename + '_' + filt
+    savepath = storepath + uniquename + '_data.dat'
+    text = file(savepath, "w")
+
+    text.write('@inunit=sec')
+    text.write('\n')
+    text.write('@expunit=sec')
+    text.write('\n')
+    utburst_text = '@utburst=' + str(utburst)
+    text.write(utburst_text)
+    text.write('\n')
+    text.write('@source=PAIRITEL')
+    text.write('\n')
+    namelist = ['%', 'tstart', 'tend', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
+    text.write(' '.join(namelist))
+    text.write('\n')
+
+    mosaiclist=[]
+    for mosaics in photdict:
+        mosaiclist += [photdict[mosaics]]
+    #sorting w.r.t time
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+
+    h_list = []
+    her_list = []
+    j_list = []
+    jer_list = []
+    k_list = []
+    ker_list = []
+    tstart_list = []
+    tstop_list = []
+    exp_list = []
+
+    burst_time_sec = float(utburst.split(':')[0])*3600 + float(utburst.split(':')[1])*60 + float(utburst.split(':')[2]) 
+    
+    for mosaics in mosaiclist:
+        
+        timestart_str = mosaics['STRT_CPU'].split(' ')[1]
+        timestart_sec = float(timestart_str.split(':')[0])*3600 + float(timestart_str.split(':')[1])*60 + float(timestart_str.split(':')[2])
+        start_after_burst_sec = timestart_sec - burst_time_sec
+        timestop_str = mosaics['STOP_CPU'].split(' ')[1]
+        timestop_sec = float(timestop_str.split(':')[0])*3600 + float(timestop_str.split(':')[1])*60 + float(timestop_str.split(':')[2])
+        stop_after_burst_sec = timestop_sec - burst_time_sec
+        
+        exp = mosaics['EXPTIME']
+
+        if 'targ_mag' in mosaics: 
+            valu = float(mosaics['targ_mag'][0])
+            verr = float(mosaics['targ_mag'][1])
+            
+            if mosaics['filter'] == 'h':                
+                mag = valu
+                magerr = verr
+                filt = 'H'
+            elif mosaics['filter'] == 'j':
+                mag = valu
+                magerr = verr
+                filt = 'J'
+            elif mosaics['filter'] == 'k':
+                mag = valu
+                magerr = verr
+                filt = 'K'
+            
+        elif 'upper_green' in mosaics: 
+                valu = float(mosaics['upper_green'])
+                if mosaics['filter'] == 'h':
+                     mag = valu
+                     magerr = 0
+                     filt = 'H'
+                if mosaics['filter'] == 'j':
+                     mag = valu
+                     magerr = 0
+                     filt = 'J'
+                if mosaics['filter'] == 'k':
+                     mag = valu
+                     magerr = 0
+                     filt = 'K'
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)    
+        
+        if 'upper_green' in mosaics:
+            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+        else:   
+            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr)]
+
+        text.write(' '.join(datalist))
+        text.write('\n')
+    text.close()

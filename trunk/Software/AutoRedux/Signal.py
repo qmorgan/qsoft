@@ -140,14 +140,14 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             reg_path = _incl_reg(gcn)
             if not reg_path: 
                 print '\nCOULDNT FIND REG PATH\n'
-                qErr.qErr()
+                qErr.qErr(errtitle='COULDNT FIND REG PATH')
         except: qErr.qErr()
     if incl_fc:
         try:
             fc_path = _incl_fc(gcn,last_pos_check=True)
             if not fc_path: 
                 print '\nCOULDNT FIND FC PATH\n'
-                qErr.qErr()
+                qErr.qErr(errtitle='COULDNT FIND FC PATH')
         except: qErr.qErr()
     if mail_reg:
         try:
@@ -166,11 +166,8 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
         except: qErr.qErr()
 
 def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=False):
-    from AutoRedux.PyRSS2Gen import RSS2
-    from AutoRedux.PyRSS2Gen import RSSItem
-    from AutoRedux.PyRSS2Gen import Guid
-    import feedparser
-    
+    from AutoRedux import qRSS
+  
     bigurl = '%s%i/' % (out_url_path,int(gcn.triggerid))
     
     try:
@@ -185,36 +182,10 @@ def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=
     title = "New GRB! Swift Trigger %i at %s UT" % (int(gcn.triggerid),str(grb_time))
     description = '''*  Time:%s<br> *  RA = %s<br> *  Dec = %s<br> *  Uncertainty = %s %s<br> *  Visit %s for more info''' % (str(grb_time),ra,dec,uncertainty,pos_label,bigurl)
     
-    # Load past items from pickle file if there is one
-    old_rss_file = feedparser.parse(rss_path)
-    items = []
-    #populate the old items
-    for entry in old_rss_file.entries:
-        items.append(RSSItem(
-        title=entry['title'],
-        link=entry['link'],
-        description=entry['description'],
-        guid=Guid(entry['link']),
-        pubDate=entry['updated']))
-    
-    #add the new item
-    items.append(RSSItem(
-         title = title,
-         link = bigurl,
-         description = description,
-         guid = Guid(bigurl),
-         pubDate = datetime.datetime.now()))
-    
-        
-    rss = RSS2(
-        title = "Q's Swift Feed",
-        link = "http://swift.qmorgan.com/",
-        description = "Collation of rapid-response information for new Swift GRBs.",
-        lastBuildDate = datetime.datetime.now(),
-        items = items)
-             
-    rss.write_xml(open(rss_path, "w"))
-        
+    qRSS.UpdateRSS(rss_path,rsstitle="Q's Swift Feed",rsslink="http://swift.qmorgan.com/",
+        rssdescription="Collation of rapid-response information for new Swift GRBs.",
+        entrytitle=title,entrylink=bigurl,entrydescription=description,clear_rss=clear_rss)
+
 
 def _mail_html(gcn,mail_to,clobber=False,tweet=True,out_url_path='http://swift.qmorgan.com/',grbhtml=None):
     if not hasattr(gcn,'mailed_web'):
