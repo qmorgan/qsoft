@@ -63,7 +63,7 @@ d1 = density(alpha.hat.features$alpha.hat[alpha.hat.features$uvot_detection == 0
 d2 = density(alpha.hat.features$alpha.hat[alpha.hat.features$uvot_detection == 1])
 ymax = max(d1$y,d2$y)
 
-pdf('Plot/qHatdensityUVOTyesUVOTno.pdf')
+pdf('Plots/qHatdensityUVOTyesUVOTno.pdf')
 plot(d1,col='blue',lty=2,xlab="q hat",main="")
 lines(d2,col='orange')
 legend(-.1,1.5,c("uvot=NO","uvot=yes"),col=c("blue","orange"),lty=c(2,1))
