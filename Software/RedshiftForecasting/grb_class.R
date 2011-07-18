@@ -799,8 +799,10 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    # avg_pur_high = data_obj$fres$purity_upper_perc_over_seeds[,weight_index]
    # avg_pur_low = data_obj$fres$purity_lower_perc_over_seeds[,weight_index]
    # 
-   avg_pur_high = avg_pur + data_obj$fres$purity_stdev_over_seeds[,weight_index]
-   avg_pur_low = avg_pur - data_obj$fres$purity_stdev_over_seeds[,weight_index]
+   
+   pur_uncertainty = data_obj$fres$purity_stdev_over_seeds[,weight_index]
+   avg_pur_high = avg_pur + pur_uncertainty
+   avg_pur_low = avg_pur - pur_uncertainty
    
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up (Normalized)"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Purity"), sub=data_obj$data_string)
@@ -812,11 +814,17 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    polygon(xx,yy, col=col_alpha)
    lines(alpha_try_array,base_purity,lty=1,lwd=2)
    
+   percent_frame=as.data.frame(alpha_try_array)
+   purity_frame=as.data.frame(avg_pur)
+   uncertainty_frame=as.data.frame(pur_uncertainty)
+   textoutput=cbind(percent_frame,purity_frame,uncertainty_frame)
+   
+   textfile=paste('Table_TrainingDataPurity_',data_obj$data_string,'_',high_cutoff,'.txt',sep="")
+	write.table(textoutput,textfile)
+   
    dev.off()
    
 }
-
-
 
 efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    # Take the fifth weight for now 
@@ -824,8 +832,9 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
    
    avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
-   avg_obj_high = avg_obj + data_obj$fres$objective_stdev_over_seeds[,weight_index]
-   avg_obj_low = avg_obj - data_obj$fres$objective_stdev_over_seeds[,weight_index]
+   obj_uncertainty = data_obj$fres$objective_stdev_over_seeds[,weight_index]
+   avg_obj_high = avg_obj + obj_uncertainty
+   avg_obj_low = avg_obj - obj_uncertainty
    
    Zlen_1 = length(avg_obj) - 1
    alpha_try_array = c(0:Zlen_1)/Zlen_1
@@ -843,6 +852,14 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(alpha_tries, avg_obj, lty=1, lwd=4, col=col)
+   
+   percent_frame=as.data.frame(alpha_try_array)
+   efficiency_frame=as.data.frame(avg_obj)
+   uncertainty_frame=as.data.frame(obj_uncertainty)
+   textoutput=cbind(percent_frame,efficiency_frame,uncertainty_frame)
+   
+   textfile=paste('Table_TrainingDataEfficiency_',data_obj$data_string,'_',high_cutoff,'.txt',sep="")
+	write.table(textoutput,textfile)
    
    dev.off()
    
