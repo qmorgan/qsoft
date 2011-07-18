@@ -69,55 +69,6 @@ rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(
   return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
 }
 
-
-#### Random Forest (party) ####
-# Author: Joey Richards
-# Description: wraps around the "party" version of random forest which can 
-# properly deal with missing data.  
-#
-# ToDo: 
-# Random forest should work better than CART - just need to figure out how to 
-# properly take weights into account.  Here there are two things to tune - 
-# the weights and the total number of allowed trees.
-
-## OUTDATED -  Problems with our dataset.  Use rforest.cv
-# rfc.cv = function(x,y,nfolds=5,folds=NULL,testset=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
-#   # don't train on any of the data in testset
-#   # this is to use in the hierarchical classifier
-#   require(party)
-#   set.seed(seed)
-#   
-#   n = length(y)
-#   p = length(table(y))
-#   if(is.null(folds)){
-#     folds = sample(1:nfolds,n,replace=TRUE)
-#   }
-#   else{
-#     nfolds = length(unique(folds))
-#   }
-#   predictions = matrix(0,nrow=n,ncol=p)
-# 
-#   if(is.null(mtry)){
-#     mtry = ceiling(sqrt(dim(x)[2]))
-#   }
-# 
-#   for(ii in 1:nfolds){
-#     print(paste("fold",ii,"of",nfolds))
-#     leaveout = which(folds==ii)
-#     train = cbind(y[-union(leaveout,testset)],x[-union(leaveout,testset),])
-#     test = cbind(y[leaveout],x[leaveout,])
-#     names(train)[1] = names(test)[1] = "y"
-#     rf.tmp = cforest(y~.,data=train,weights=weights[-leaveout],controls=cforest_classical(mtry=mtry,ntree=n.trees))
-#     predictions[leaveout,] = matrix(unlist(treeresponse(rf.tmp,newdata=test)),length(leaveout),p,byrow=T)
-#   }
-#   pred = levels(y)[apply(predictions,1,which.max)]
-#   pred = factor(pred,levels=levels(y))
-#   confmat = table(pred,y)
-#   err.rate = 1-sum(diag(confmat))/n
-# 
-#   return(list(predclass=pred,predprob=predictions,confmat=confmat,err.rate=err.rate))
-# }
-
 ##########################################
 ####### GRB high-z classification #######
 ##########################################
@@ -708,45 +659,6 @@ par(mar=c(4,0,0,1))
 
 
 # fit and return forest on training data (using optimal tuning parameters)
-cforest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
-  require(party)
-  set.seed(seed)
-  
-  n = length(y)
-  p = length(table(y))
-  if(is.null(mtry)){ # default for mtry
-    mtry = ceiling(sqrt(dim(x)[2]))
-  }
-  train = cbind(y,x) # set up data to read into cforest
-  names(train)[1] = "y"
-  # fit random forest
-  rf.fit = cforest(y~.,data=train,weights=weights,controls=cforest_classical(mtry=mtry,ntree=n.trees))
-
-  return(rf.fit)
-}
-
-# Predict redshift (alpha-hat) for new GRBs
-cforest.pred = function(forest,xnew){
-  xnew = as.data.frame(xnew)
-  n.new = dim(xnew)[1]
-  n.old = length(predict(forest))
-  # predictions for training data (to compute alpha-hats)
-  pred.train = matrix(unlist(treeresponse(forest)),n.old,2,byrow=T) # CV this?
-  # predict post. probs. for new data, with input forest
-  predictions = matrix(unlist(treeresponse(forest,newdata=xnew)),n.new,2,byrow=T)
-#  print(xnew$bat_is_rate_trig)[1]
-  alpha.hat = NULL # compute alpha-hat values
-  for(ii in 1:n.new){
-    alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
-  }
-
-  return(list(alpha.hat = alpha.hat,prob.high=predictions[,2],prob.low=predictions[,1]))
-}
-
-
-
-# SAME AS cforest.fit but for the randomForest package
-# fit and return forest on training data (using optimal tuning parameters)
 forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   require(randomForest)
   set.seed(seed)
@@ -769,7 +681,7 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
   if(is.null(mtry)){ # default for mtry
     mtry = ceiling(sqrt(dim(x)[2]))
   }
-  train = cbind(y,x) # set up data to read into cforest
+  train = cbind(y,x) # set up data to read into randomForest
   names(train)[1] = "y"
   # fit random forest
   rf.fit = randomForest(y~.,data=train,
@@ -778,8 +690,6 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
 }
 
 
-
-# USE FOR randomForest, use cforest.pred for party
 # Predict redshift (alpha-hat) for test GRBs
 # and returns probabilities of HIGH and LOW
 # for test GRBs (currently not used)
@@ -871,44 +781,6 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
                 prob.high=predictions))
 }
 
-
-# roc curves
-# 1. true class is n length vector of high / low
-# 2. prediction_matrix is n x c matrix of probabilities (of low, this needs
-#    to be thought about, otherwise curve goes down)
-make_roc_curve = function(true_class,prediction_matrix,curve_colors=NULL,filename="roc_curve.pdf"){
-
-  # check to make sure data is in correct form
-  require(ROCR)
-  if(!is.factor(true_class)){
-    print("true_class must be a factor")
-    return(0)
-  }
-  if(!is.matrix(prediction_matrix)){
-    print("prediction_matrix must be a matrix")
-    return(0)
-  }
-  if(nrow(prediction_matrix) != length(true_class)){
-    print("the number of obs you are predicting != number of true classes")
-    return(0)
-  }
-  
-  # if colors not specified, get some
-  if(is.null(curve_colors)){
-    curve_colors = 1:ncol(prediction_matrix)
-  }
-
-  # use functions in ROCR package to make objects for plotting
-  true_class = matrix(rep(true_class,ncol(prediction_matrix)),nrow=nrow(prediction_matrix),byrow=F)
-  pred <- prediction(prediction_matrix,true_class,label.ordering=c("low","high"))
-  # see ROCR user guide on CRAN p.2 for definition of "tpr", "pcfall", ect.
-  performance1 = performance(pred,"tpr","pcfall")
-
-  # make the plot
-  pdf(filename)
-  plot(performance1,col=as.list(curve_colors),xlab="False Discovery Rate = Contamination = False High / Total Predicted High",ylab="True Positive Rate = Efficiency = True High / Total Actual High)",main="ROC Curve for Classifiers")
-  dev.off()
-}
 
 purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    # Take the fifth weight for now 
