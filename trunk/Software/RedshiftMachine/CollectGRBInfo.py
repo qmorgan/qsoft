@@ -1562,7 +1562,7 @@ def TestReloadAlldb():
     #                       'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
     #                       'PROB_Z_GT_4','triggerid_str']    
     #     
-    reduced_attr_list = ['Z','A','EP0','FL','GAM_PC','MAX_SNR',
+    reduced_attr_list = ['Z','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4','triggerid_str']
@@ -1571,7 +1571,7 @@ def TestReloadAlldb():
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
     
-    reduced_allzpredict_attr_list = ['Z','A','EP0','FL','GAM_PC','MAX_SNR',
+    reduced_allzpredict_attr_list = ['Z','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_1','PROB_Z_GT_2','PROB_Z_GT_3','PROB_Z_GT_4','PROB_Z_GT_5',
@@ -1579,7 +1579,7 @@ def TestReloadAlldb():
     db_onlyz.makeArffFromArray(attrlist=reduced_allzpredict_attr_list,arff_append='_reduced_allzpredict',inclerr=False)
     
     
-    reduced_nozpredict_attr_list = ['Z','A','EP0','FL','GAM_PC','MAX_SNR',
+    reduced_nozpredict_attr_list = ['Z','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'triggerid_str']    
