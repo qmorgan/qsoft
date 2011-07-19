@@ -1562,9 +1562,9 @@ def TestReloadAlldb():
     #                       'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
     #                       'PROB_Z_GT_4','triggerid_str']    
     #     
-    reduced_attr_list = ['Z','A','EP0','FL','FLX_PC_LATE','MAX_SNR',
-                        'T90','bat_image_signif','bat_img_peak',
-                        'bat_is_rate_trig_binary','bat_trigger_dur','uvot_detection_binary',
+    reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4','triggerid_str']
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
