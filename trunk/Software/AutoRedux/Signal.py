@@ -123,6 +123,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
         for sql_tuple in sql_tuple_list:
             print sql_tuple[1]
             entry_title = sql_tuple[1]
+            entry_id = sql_tuple[2]
             xml_link = sql_tuple[0]
             if feed_type.lower() == 'estar' and entry_title.find('SWIFT') != -1 and entry_title.count('-') == 1:
                 # Break up entry title into component parts to extract the triggerid
