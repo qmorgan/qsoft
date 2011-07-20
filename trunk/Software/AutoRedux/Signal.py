@@ -64,7 +64,7 @@ def MonitorRSS(feed_url):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     # Create the table if it doesn't exist
-    c.execute('CREATE TABLE IF NOT EXISTS RSSContent (`url`, `title`, `dateAdded`, `content`, `xml_location`)')
+    c.execute('CREATE TABLE IF NOT EXISTS RSSContent (`url`, `title`, `dateAdded`, `id`, `content`, `xml_location`)')
     
     sql_entry_list=[]
     
@@ -78,10 +78,30 @@ def MonitorRSS(feed_url):
                     xml_file = entry.link  # apparently the entry.link is the address I wanted
 #                    print xml_file
                     shortened_link = xml_file
+                    
+                    if not 'link' in entry:
+                        errtitle='link value not in RSS entry'
+                        qErr.qErr(errtitle=errtitle)
+                    if not 'title' in entry:
+                        errtitle='title value not in RSS entry'
+                        qErr.qErr(errtitle=errtitle)
+                    if not 'summary' in entry:
+                        errtitle='summary value not in RSS entry; using blank value'
+                        print errtitle
+                        summary = 'unknown'
+                    else:
+                        summary = entry.summary
+                    if not 'id' in entry:
+                        errtitle='id value not in RSS entry; using blank value'
+                        print errtitle
+                        entryid = 'unknown'
+                    else:
+                        entryid = entry.id
+                        
                     try:
-                        sql_entry = (entry.link, entry.title, entry.summary, shortened_link)
+                        sql_entry = (entry.link, entry.title, entryid, summary, shortened_link)
                         print sql_entry
-                        c.execute('insert into RSSContent (`url`, `title`, `content`, `xml_location`) values (?,?,?,?)', sql_entry)
+                        c.execute('insert into RSSContent (`url`, `title`, `id`, `content`, `xml_location`) values (?,?,?,?,?)', sql_entry)
                         sql_entry_list.append(sql_entry)
                     except:
                         print "Could not update RSS database for entry %s" % (entry.title)
@@ -93,8 +113,8 @@ def MonitorRSS(feed_url):
 def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 mail_reg=False, mail_to='amorgan@berkeley.edu',\
                 make_html=True, html_path='/home/amorgan/www/swift/',\
-                mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
-                feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
+                mail_html=True, feed_type = 'skyalert', tweet = True, force_mail=False,\
+                feed_url="http://www.skyalert.org/feeds/144/",
                 update_rss=True, rss_path='/home/amorgan/www/swift/rss.xml',
                 out_url_path='http://swift.qmorgan.com/'):
     while(True):
@@ -113,6 +133,9 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 # first six characters of 4th value in split link is the triggerid
                 splittitle = entry_title.split(' ')
                 triggerid = str(splittitle[3])
+            elif feed_type.lower() == 'skyalert' and entry_id.find('SWIFT') != -1
+                #formatted like 'ivo://nasa.gsfc.gcn/SWIFT#BAT_GRB_Pos_457553-880'
+                triggerid = entry_id.split('-')[0].split('_')[-1]                
             else:
                 triggerid = '0'
             if len(triggerid) == 6:
