@@ -104,6 +104,7 @@ def MonitorRSS(feed_url):
                         c.execute('insert into RSSContent (`url`, `title`, `id`, `content`, `xml_location`) values (?,?,?,?,?)', sql_entry)
                         sql_entry_list.append(sql_entry)
                     except:
+                        qErr.qErr()
                         print "Could not update RSS database for entry %s" % (entry.title)
             conn.commit()
             
