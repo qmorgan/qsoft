@@ -746,7 +746,6 @@ forest.cvpred = function(forest,xnew,xtrain){
 }
 
 forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
-  require(party)
   set.seed(seed)
   
   n = length(y)
