@@ -133,7 +133,7 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 # first six characters of 4th value in split link is the triggerid
                 splittitle = entry_title.split(' ')
                 triggerid = str(splittitle[3])
-            elif feed_type.lower() == 'skyalert' and entry_id.find('SWIFT') != -1
+            elif feed_type.lower() == 'skyalert' and entry_id.find('SWIFT') != -1:
                 #formatted like 'ivo://nasa.gsfc.gcn/SWIFT#BAT_GRB_Pos_457553-880'
                 triggerid = entry_id.split('-')[0].split('_')[-1]                
             else:
