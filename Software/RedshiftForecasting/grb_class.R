@@ -719,31 +719,31 @@ forest.pred = function(forest,xnew,pred.train){
               prob.low=predictions[,1]))
 }
 
-forest.cvpred = function(forest,xnew,xtrain){
-  # xnew in correct format, should be already
-  xnew = as.data.frame(xnew)
-  n.new = nrow(xnew)
-  n.old = length(forest$y)
-    
-  # predictions for training data and test
-  # SHOULD WE BE USING THIS newdata=xtrain OR OMITTING FOR OOB PREDICTIONS?
-  pred.train = predict(forest,newdata=xtrain,type="prob")
-  #pred.train = predict(forest,type="prob")
-  predictions = predict(forest,newdata=xnew,type="prob")  
-  # compute alpha.hats for the training
-  # alpha.hat = vapply(predictions[,2],
-  #   function(x) { sum(x < pred.train[,2]) / n.old},0)
-    # alpha.hat = NULL # compute alpha-hat values
-    # for(ii in 1:n.new){
-    #   alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
-    #   if(ii==10){
-    #      print(pred.train[,2])
-    #   }
-    # }
-  # return everything as a list
-  return(list(prob.high=predictions[,2],
-              prob.low=predictions[,1]))
-}
+# forest.cvpred = function(forest,xnew,xtrain){
+#   # xnew in correct format, should be already
+#   xnew = as.data.frame(xnew)
+#   n.new = nrow(xnew)
+#   n.old = length(forest$y)
+#     
+#   # predictions for training data and test
+#   # SHOULD WE BE USING THIS newdata=xtrain OR OMITTING FOR OOB PREDICTIONS?
+#   pred.train = predict(forest,newdata=xtrain,type="prob")
+#   #pred.train = predict(forest,type="prob")
+#   predictions = predict(forest,newdata=xnew,type="prob")  
+#   # compute alpha.hats for the training
+#   # alpha.hat = vapply(predictions[,2],
+#   #   function(x) { sum(x < pred.train[,2]) / n.old},0)
+#     # alpha.hat = NULL # compute alpha-hat values
+#     # for(ii in 1:n.new){
+#     #   alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train[,2])/n.old)
+#     #   if(ii==10){
+#     #      print(pred.train[,2])
+#     #   }
+#     # }
+#   # return everything as a list
+#   return(list(prob.high=predictions[,2],
+#               prob.low=predictions[,1]))
+# }
 
 forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   set.seed(seed)
@@ -766,8 +766,10 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
     print(paste("fold",ii,"of",nfolds))
     leaveout = which(folds==ii)
     rf.tmp = forest.fit(x[-leaveout,],y[-leaveout],mtry=mtry,weights=weights[-leaveout],n.trees=n.trees,seed=seed)
-    # Calculate the alpha-hats based on the cross-validation prediction
-    predictions[leaveout] = forest.cvpred(rf.tmp,x[leaveout,],x[-leaveout,])$prob.high
+    # Calculate the probabilities based on the cross-validation prediction
+    temp_predictions = predict(rf.tmp,newdata=x[leaveout,],type="prob") 
+    temp_prob_high = temp_predictions[,2]
+    predictions[leaveout] = temp_prob_high
     
   }
   ## NOTE: SHOULD PREALLOCATE alpha.hat (i.e. alpha.hat = rep(0,n)), this
