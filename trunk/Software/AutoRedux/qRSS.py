@@ -104,9 +104,13 @@ def HeartBeatCheck(rssurl='http://swift.qmorgan.com/heartbeat.xml',deadtime=1800
     print delta
     f.write('At ' + str(nowtime) + ' it has been ' + str(delta)+ ' since heartbeat\n')
     
+    #adding four minutes buffer to account for clock differences on computers
+    fourminutes = datetime.timedelta(0,240)
+    comparetime = nowtime + fourminutes
+    
     try:
-        asserttext = 'WARNING: updated time seems to be in the future. Clocks out of sync?'
-        assert updatedtime < nowtime, asserttext
+        asserttext = 'WARNING: updated time seems to be > 4 minutes in the future. Clocks out of sync?'
+        assert updatedtime < comparetime, asserttext
     except:
         f.write(asserttext+'\n')
         qErr.qErr(errtitle='Server/Client Clocks out of Sync!')
