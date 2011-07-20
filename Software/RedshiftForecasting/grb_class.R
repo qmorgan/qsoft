@@ -205,6 +205,7 @@ test_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0.2
    		   foresttest_prob.high=foresttest_res$prob.high
    		}
    		else{
+   		   # do ten-fold cv
    		   foresttest_res = forest.cv(data_obj$features,data_obj$classes,nfolds=10,weights=weights_vec,seed=seed)
    		   foresttest_alpha.hat=foresttest_res$alpha.hat
    		   foresttest_prob.high=foresttest_res$prob.high
@@ -403,6 +404,7 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
    		sum_lower=quantile(sum_high_as_high_all_seeds_dim2, c(0.16))
    		
    		if(weight_index==5 & nalpha == 9){
+   		   print('for weight index 5 and nalpha 9:')
    		   print(sum_high_as_high_all_seeds_dim2)
    		   print(sum_upper)
    		   print(sum_lower)
@@ -719,6 +721,7 @@ forest.pred = function(forest,xnew,pred.train){
               prob.low=predictions[,1]))
 }
 
+
 # forest.cvpred = function(forest,xnew,xtrain){
 #   # xnew in correct format, should be already
 #   xnew = as.data.frame(xnew)
@@ -747,7 +750,8 @@ forest.pred = function(forest,xnew,pred.train){
 
 forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,1)){
   set.seed(seed)
-  
+  # x is the features (data_obj$features)
+  # y is the classes (data_obj$classes). length of the classes is the # of training instances (136 in this case)
   n = length(y)
   p = length(table(y))
   if(is.null(folds)){
