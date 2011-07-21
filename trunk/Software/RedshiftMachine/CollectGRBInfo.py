@@ -1571,6 +1571,15 @@ def TestReloadAlldb():
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
     
+    # Make an arff for one of each removing one of each of the reduced features
+    for feature in reduced_attr_list:
+        if feature == 'Z' or feature == 'triggerid_str':
+            continue
+        newlist = copy.copy(reduced_attr_list)
+        newlist.remove(feature)
+        arffappend='_reduced_rem-'+feature
+        db_onlyz.makeArffFromArray(attrlist=newlist,arff_append=arffappend,inclerr=False)
+    
     reduced_allzpredict_attr_list = ['Z','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
