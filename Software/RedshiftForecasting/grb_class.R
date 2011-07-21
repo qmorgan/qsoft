@@ -760,8 +760,11 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
   else{
     nfolds = length(unique(folds))
   }
-  predictions = rep(0,p)
-
+  predictions = rep(0,n)
+  ### JAMES CODE
+  predictions_alpha_hat = rep(0,n)
+  ### END JAMES CODE
+  
   if(is.null(mtry)){
     mtry = ceiling(sqrt(dim(x)[2]))
   }
@@ -771,6 +774,13 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
     leaveout = which(folds==ii)
     rf.tmp = forest.fit(x[-leaveout,],y[-leaveout],mtry=mtry,weights=weights[-leaveout],n.trees=n.trees,seed=seed)
     # Calculate the probabilities based on the cross-validation prediction
+
+    ### JAMES CODE
+    pred.train = predict(rf.tmp)
+    temp_predictions = forest.pred(rf.tmp,newdata=x[leaveout,],pred.train)
+    predictions_alpha_hat[leaveout] = temp_predictions$alpha.hat
+    ### END JAMES CODE
+    
     temp_predictions = predict(rf.tmp,newdata=x[leaveout,],type="prob") 
     temp_prob_high = temp_predictions[,2]
     predictions[leaveout] = temp_prob_high
@@ -782,8 +792,15 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
   for(ii in 1:n){
     alpha.hat = c(alpha.hat, sum(predictions[ii]< predictions)/n)
   }
-  return(list(alpha.hat=alpha.hat,
+
+  ## COMMENTED BY JAMES
+  ## return(list(alpha.hat=alpha.hat,
+  ##               prob.high=predictions))
+  ## JAMES CODE
+  return(list(alpha.hat=predictions_alpha_hat,
                 prob.high=predictions))
+  ## END JAMES CODE
+  
 }
 
 
