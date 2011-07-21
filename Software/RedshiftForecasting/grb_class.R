@@ -455,7 +455,6 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
    }
    ###########################################################################
 	pred.train=extract_stats(return_probhigh_only=TRUE)[,weight_index]
-	
 	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features,pred.train)
 	data_obj_test$pred_vals = pred_vals
 	
@@ -711,9 +710,9 @@ forest.pred = function(forest,xnew,pred.train){
     alpha.hat = NULL # compute alpha-hat values
     for(ii in 1:n.new){
       alpha.hat = c(alpha.hat, sum(predictions[ii,2]< pred.train)/n.old)
-      if(ii==10){
-         print(pred.train)
-      }
+      # if(ii==10){
+      #    print(pred.train)
+      # }
     }
   # return everything as a list
   return(list(alpha.hat = alpha.hat,
@@ -776,8 +775,10 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
     # Calculate the probabilities based on the cross-validation prediction
 
     ### JAMES CODE
-    pred.train = predict(rf.tmp)
-    temp_predictions = forest.pred(rf.tmp,newdata=x[leaveout,],pred.train)
+    pred.train_full = predict(rf.tmp,type="prob") #predict on the non-held out data. type=prob gives the probabilities instead of just the classes
+    pred.train = pred.train_full[,2] # Second column is the probability of being high
+
+    temp_predictions = forest.pred(rf.tmp,x[leaveout,],pred.train)
     predictions_alpha_hat[leaveout] = temp_predictions$alpha.hat
     ### END JAMES CODE
     
