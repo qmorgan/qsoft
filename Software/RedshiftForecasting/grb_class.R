@@ -1174,13 +1174,13 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
 
 
 make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
-   # make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    # make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    # make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_allzpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-   make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   # make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
 
 }
 
@@ -1188,11 +1188,12 @@ really_make_all_plots = function(){
    make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=4.0)
    make_forest_plots(data_string='reduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    make_forest_plots(data_string='reduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
+   make_all_useless_plots(generate_data=TRUE,Nseeds=100)
    # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
 }
 make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(0.8,1.0,0.2),high_cutoff=4,roc_weight=2){
-   # make_forest_plots(data_string='reduced_num_useless0',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='reduced_num_useless0',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    # make_forest_plots(data_string='reduced_num_useless1',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='reduced_num_useless2',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='reduced_num_useless4',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
