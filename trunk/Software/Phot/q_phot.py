@@ -928,15 +928,15 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     # [ra, dec, 2massmag, 2masserr instmag, insterr, sexflags, 'calib'/'target']
 
     # debug printing
-    import pprint
-    print 'sexcat_starlist is'
-    pprint.pprint(sexcat_starlist)
+    # import pprint
+    # print 'sexcat_starlist is'
+    # pprint.pprint(sexcat_starlist)
 
-    print '================================================================='
-    print '================================================================='
-    print '================================================================='
-    print 'vizcat_starlist is'
-    pprint.pprint(vizcat_starlist)
+    # print '================================================================='
+    # print '================================================================='
+    # print '================================================================='
+    # print 'vizcat_starlist is'
+    # pprint.pprint(vizcat_starlist)
     
     combined_starlist = []
     for sexcat_star in sexcat_starlist:
@@ -1732,7 +1732,7 @@ def plotproperty(photdict, prop):
     savefig(savepath)           
     matplotlib.pyplot.close()
 
-def textoutputold(dict,filt=None):
+def oldtextoutput(dict,filt=None):
     '''outputs a text file from photdict.  If filt specified, only output that
     particular filter.
     '''
@@ -1800,7 +1800,7 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 
-def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False):
+def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap=False):
     '''Plots a graph from photdict'''
     import matplotlib
     import glob
@@ -1826,8 +1826,14 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False):
         print 'now doing ' + str(mosaics)
         if ap:
             if photdict[mosaics]['Aperture'] != ap:
-                raise ValueError ('The aperture used in this mosaic does not match the last one.')
-        ap = photdict[mosaics]['Aperture']
+                if no_ap:
+                    pass
+                else:
+                    raise ValueError ('The aperture used in this mosaic does not match the last one.')
+        if no_ap:
+            pass
+        else:
+            ap = photdict[mosaics]['Aperture']
         time = photdict[mosaics]['t_mid'][0]
         terr = photdict[mosaics]['t_mid'][1]
         
@@ -1896,7 +1902,10 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False):
     ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
-    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+    if no_ap:
+        matplotlib.pyplot.title(uniquename)
+    else:
+        matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
     savepath = storepath + uniquename + '_' + 'ap' + str(ap) + '_lightcurve.png'
     
     if xlim:
@@ -2207,9 +2216,9 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     matplotlib.pyplot.close()
 
 
-def textoutput(photdict,utburst,filt=None):
+def textoutput(photdict,utburst,filt=None, day=False):
     '''outputs a text file from photdict.  If filt specified, only output that
-    particular filter. Requires a utburst string in the form of hh:mm:ss
+    particular filter. Requires a utburst string in the form of hh:mm:ss. Days are integers (e.g. second day observation => day=2. WARNING: If the observations consists of multiple days, care needs to be exercised! Current fix: do it manually!
     '''
 
     import datetime
@@ -2261,14 +2270,19 @@ def textoutput(photdict,utburst,filt=None):
     for mosaics in mosaiclist:
         
         timestart_str = mosaics['STRT_CPU'].split(' ')[1]
-        timestart_sec = float(timestart_str.split(':')[0])*3600 + float(timestart_str.split(':')[1])*60 + float(timestart_str.split(':')[2])
-        start_after_burst_sec = timestart_sec - burst_time_sec
+        timestart_sec = float(timestart_str.split(':')[0])*3600. + float(timestart_str.split(':')[1])*60. + float(timestart_str.split(':')[2])
+        if day:
+            start_after_burst_sec = timestart_sec - burst_time_sec + (day-1)*86400
+        else:
+            start_after_burst_sec = timestart_sec - burst_time_sec
         timestop_str = mosaics['STOP_CPU'].split(' ')[1]
-        timestop_sec = float(timestop_str.split(':')[0])*3600 + float(timestop_str.split(':')[1])*60 + float(timestop_str.split(':')[2])
-        stop_after_burst_sec = timestop_sec - burst_time_sec
-        
+        timestop_sec = float(timestop_str.split(':')[0])*3600. + float(timestop_str.split(':')[1])*60. + float(timestop_str.split(':')[2])
+        if day:
+            stop_after_burst_sec = timestop_sec - burst_time_sec + (day-1)*86400
+        else:
+            stop_after_burst_sec = timestop_sec - burst_time_sec
         exp = mosaics['EXPTIME']
-
+        
         if 'targ_mag' in mosaics: 
             valu = float(mosaics['targ_mag'][0])
             verr = float(mosaics['targ_mag'][1])

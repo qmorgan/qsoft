@@ -263,7 +263,8 @@ def MakeMultStack(imlist, stacknum, Clobber=False):
         headerlist.close()
         imtup_list.append(imtup)
     imtup_list=sorted(imtup_list, key=lambda image: image[1])
-        
+    an_list = []
+    an_weights_list = []
     rangelist = xrange(len(imtup_list)/stacknum)
     burstname = imlist[0].split('_')[2]
     # prep(burstname, date)
@@ -312,40 +313,65 @@ def MakeMultStack(imlist, stacknum, Clobber=False):
         stop_str = stop.strftime('%Y-%b-%d-%Hh%Mm%Ss')
         date_str = start.strftime('%Y-%b-%d-%Hh%Mm%Ss').split('-')
         date_str = date_str[0] + ('-') + date_str[1] + ('-') + date_str[2]
+        date_str_2 = start.strftime('%Y-%m-%d-%Hh%Mm%Ss').split('-')
+        date_str_2 = date_str_2[0] + ('-') + date_str_2[1] + ('-') + date_str_2[2]
         
         basename = filt + '_long_triplestack' + start_str + '-' + GRBname +'000' 
         stacknumber = index + 1
         output_stack_name = basename + '-p' + str(stacknumber) + '.fits'
-#        print index
-#        print output_stack_name
-#        print 
-        Coadd(coaddlist, output_stack_name)
 
+        # Coadding
+        Coadd(coaddlist, output_stack_name)
        
-        dirname = burstname + '000_' + date_str + '-reduction_output'
+        dirname = burstname + '000_' + date_str_2 + '-reduction_output'
         fits_dir_name = burstname + '000' + '_triplestacks'
+        ancillary_dir_name = burstname + '000' + '_ancillary'
         mvstr = 'mv %s ./%s/%s/%s' % (output_stack_name, dirname, fits_dir_name, output_stack_name)
         weights_name = output_stack_name.split('.fits')[0] + '.weight.fits'
         weights_dir_name = burstname + '000' + '_triplestackweights'
-        mvweights = 'mv %s ./%s/%s/%s' % (weights_name, dirname, weights_dir_name, output_stack_name)
+        weights_final_name = filt + '_long_triplestackweightmap' + output_stack_name.split('triplestack')[1]
+        mvweights = 'mv %s ./%s/%s/%s' % (weights_name, dirname, weights_dir_name, weights_final_name)
 
+        # writing ancillary files
+        an_name = filt + '_long_triplestacks.txt'
+        an_file = open(an_name, 'w')
+        an_text = 'triplestacks/' + output_stack_name
+        an_list += [an_text]
+        an_file.write(an_text)
+        an_file.close()
+
+        an_weights_name = filt + '_long_triplestackweights.txt'
+        an_weights_file = open(an_weights_name, 'w')
+        an_weights_text = 'triplestackweights/' + filt + '_long_triplestackweightmap' + output_stack_name.split('triplestack')[1]
+        an_weights_list += [an_weights_text]
+        an_weights_file.write(an_weights_text)
+        an_weights_file.close()
+
+        mvancillary = 'mv %s ./%s/%s/%s' % (an_name, dirname, ancillary_dir_name, an_name)
+        mvancillary_weights = 'mv %s ./%s/%s/%s' % (an_weights_name, dirname, ancillary_dir_name, an_weights_name)        
+        
         if os.path.exists("./"+dirname):
+            # clobber does not work for now
             if Clobber:
                 delstr = 'rm -rf %s' % dirname
                 os.system(delstr)
                 make_directory = 'mkdir ' + dirname
                 make_sub = 'mkdir ' + dirname + '/' + fits_dir_name
+                make_ancillary_sub = 'mkdir ' + dirname + '/' + ancillary_dir_name
                 make_weights_sub = 'mkdir ' + dirname + '/' + weights_dir_name
                 os.system(make_directory)
                 os.system(make_sub)
                 os.system(make_weights_sub)
+                os.system(make_ancillary_sub)
         else:
             make_directory = 'mkdir ' + dirname
             make_sub = 'mkdir ' + dirname + '/' + fits_dir_name
+            make_ancillary_sub = 'mkdir ' + dirname + '/' + ancillary_dir_name
             make_weights_sub = 'mkdir ' + dirname + '/' + weights_dir_name
             os.system(make_directory)
             os.system(make_sub)
             os.system(make_weights_sub)
+            os.system(make_ancillary_sub)
         
         print 'mvstr is'
         print mvstr
@@ -356,15 +382,32 @@ def MakeMultStack(imlist, stacknum, Clobber=False):
         os.system(mvstr)
         os.system(mvweights)
 
+
+    an_name = filt + '_long_triplestacks.txt'
+    an_file = open(an_name, 'w')
+    for string in an_list:
+        writestring = string + '\n'
+        an_file.write(writestring)
+    an_file.close()
+
+    an_weights_name = filt + '_long_triplestackweights.txt'
+    an_weights_file = open(an_weights_name, 'w')
+    for string in an_weights_list:
+        writestring = string + '\n'
+        an_weights_file.write(writestring)
+    an_weights_file.close()
+    os.system(mvancillary)
+    os.system(mvancillary_weights)
+
 def MakeAllMultStack(stacknum):
     ''' Run MakeMultStack to every filter and every image in the folder '''
     import glob
 
-    h_glob = glob.glob('h_long*')
+    h_glob = glob.glob('h_long_GRB*.fits')
     MakeMultStack(h_glob, stacknum)
-    j_glob = glob.glob('j_long*')
+    j_glob = glob.glob('j_long_GRB*.fits')
     MakeMultStack(j_glob, stacknum)
-    k_glob = glob.glob('k_long*')
+    k_glob = glob.glob('k_long_GRB*.fits')
     MakeMultStack(k_glob, stacknum)
 
 def MakeDeepStack(path='./',outid='GRB.999.999'):
@@ -862,3 +905,42 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
     
     # Return an array of the new files created
     return mosaic_list
+
+def WCS_Transplant(original_image, target_image):
+
+    hdulist = pyfits.open(original_image)
+    header = hdulist[0].header
+    wcs_info = {"CRVAL1":header["CRVAL1"], "CRPIX1":header["CRPIX1"], "CD1_1":header["CD1_1"], "CD1_2":header["CD1_2"], "CTYPE2":header["CTYPE2"], "CUNIT2":header["CUNIT2"], "CRVAL2":header["CRVAL2"], "CRPIX2":header["CRPIX2"], "CD2_1":header["CD2_1"], "CD2_2":header["CD2_2"]} 
+    hdulist.close()    
+   
+    hdulist_target = pyfits.open(target_image,mode='update')
+    header_target = hdulist_target[0].header
+    for info in wcs_info:
+        header_target.update(info, wcs_info[info])    
+    hdulist_target.flush()
+    hdulist_target.close()
+
+def WCS_Transplant_All(ref_band='j'):
+
+    import glob
+    h_glob = glob.glob('h_long_GRB*.fits')
+    j_glob = glob.glob('j_long_GRB*.fits')
+    k_glob = glob.glob('k_long_GRB*.fits')
+
+    if ref_band == 'j':
+        index_list = xrange(len(j_glob))
+        for image_number in index_list:
+            WCS_Transplant(j_glob[image_number], h_glob[image_number])
+            WCS_Transplant(j_glob[image_number], k_glob[image_number])
+    elif ref_band == 'h':
+        index_list = xrange(len(h_glob))
+        for image_number in index_list:
+            WCS_Transplant(h_glob[image_number], j_glob[image_number])
+            WCS_Transplant(h_glob[image_number], k_glob[image_number])
+    elif ref_band == 'k':
+        index_list = xrange(len(k_glob))
+        for image_number in index_list:
+            WCS_Transplant(k_glob[image_number], j_glob[image_number])
+            WCS_Transplant(k_glob[image_number], h_glob[image_number])
+    else:    
+        raise ValueError('ref_band needs to be either h, j, or k')
