@@ -48,9 +48,6 @@ def parse_grbox_xml(ignore_nonswift=True,filename=default_filename,cutoff_date=(
     # Define lists to use later
     has_host_z = []
     ignores = ['hostphotz','photz']
-    z_list    = []
-    zname_list = []
-    date_list    = []
     
     grbox_dict = {}
     
@@ -111,32 +108,15 @@ def parse_grbox_xml(ignore_nonswift=True,filename=default_filename,cutoff_date=(
             if ignore_long and grb_class == 'GRB':
                 continue
                
-            zname_list.append(grbname)
             has_host_z.append(has_host)
-            z_list.append(float(zz))
-            date_list.append(datetime.date(yr,mn,dy))
            
            
             subdict = {grbname:{'date':datetime.date(yr,mn,dy),'class':grb_class,'instrument':instrument,'grbox_z':float(zz),'has_host_z':has_host}}
            
             grbox_dict.update(subdict)
 
-    # tessellation
-    #a = jsbtess.jsbtess(z_list,per=0.03,dolog=True,unlog=True)
-    #l = [r[0] for r in a['bb']]
-    #w = [r[1] - r[0] for r in a['bb']]
-
-    ## save redshift record
-    
-    all_grbs = zip(date_list,z_list,zname_list)
-    all_grbs.sort()  # sort by date increasing
-    # print "***ZLIST***"
-    # print z_list
-    # print len(z_list)
-    #         
     
     from pprint import pprint 
-    # pprint(all_grbs)
     
     pprint(grbox_dict)
     
@@ -164,12 +144,12 @@ def Make_Z_Plot(filename=default_filename):
     ### Print out the most distant GRB as a function of time
     zmax = 0.0
     rr = []
-    for grb in all_grbs:
-       if grb[1] > zmax:
-           rr.append(grb)
-           zmax = grb[1]
-           print grb[0].year + grb[0].timetuple().tm_yday/365.0, grb[1], "#  ", grb[2]
-
+    for key,value in grbox_dict.iteritems():
+        if value['grbox_z'] > zmax:
+            rr.append(key)
+            zmax = value['grbox_z']
+            print value['date'].year + value['date'].timetuple().tm_yday/365.0, zmax, "#  ", key
+    
 
     ax = plt.subplot(111)
     n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='#660000',alpha=0.95)
@@ -214,14 +194,14 @@ def Make_Z_Plot(filename=default_filename):
     ay.set_ylabel("Cumulative Number",fontsize=20,family="times")
     # formatter for bottom x axis 
     def ff(x,pos=None):
-       if x < -1:
-           return "%.2f" % (10**x)
-       elif x < 0:
-           return "%.1f" % (10**x)
-       elif 10**x == 8.5:
-           return "%.1f" % (10**x)
-       else:
-           return "%i" % (10**x)
+        if x < -1:
+            return "%.2f" % (10**x)
+        elif x < 0:
+            return "%.1f" % (10**x)
+        elif 10**x == 8.5:
+            return "%.1f" % (10**x)
+        else:
+            return "%i" % (10**x)
 
     formatter = FuncFormatter(ff)
     ax.set_xticks([-2,-1,plt.log10(0.3),0,plt.log10(2),plt.log10(3),plt.log10(4),plt.log10(6),plt.log10(8.5)])
@@ -238,11 +218,11 @@ def Make_Z_Plot(filename=default_filename):
 
     # Define function for plotting the top X axis; time since big bang in Gyr
     def rr(x,pos=None): 
-       g = cosmocalc.cosmocalc(10.0**x, H0=71.0)
-       if g['zage_Gyr'] < 1:
-           return "%.2f" % g['zage_Gyr'] # Return 2 dec place if age < 1; e.g 0.62
-       else:
-           return "%.1f" % g['zage_Gyr'] # Return 1 dec place if age > 1; e.g. 1.5
+        g = cosmocalc.cosmocalc(10.0**x, H0=71.0)
+        if g['zage_Gyr'] < 1:
+            return "%.2f" % g['zage_Gyr'] # Return 2 dec place if age < 1; e.g 0.62
+        else:
+            return "%.1f" % g['zage_Gyr'] # Return 1 dec place if age > 1; e.g. 1.5
 
     ax2.set_xticks([-1.91,-1.3,-0.752,-0.283,0.102,0.349,0.62,plt.log10(8.3)])
 
@@ -256,16 +236,16 @@ def Make_Z_Plot(filename=default_filename):
     ## Now plot inset plot of GRBs greater than z=4.0
 
     axins = inset_axes(ax2,
-                      width="30%", # width = 30% of parent_bbox
-                      height="30%") # height : 1 inch)
+                        width="30%", # width = 30% of parent_bbox
+                        height="30%") # height : 1 inch)
 
     locator=axins.get_axes_locator()
     locator.set_bbox_to_anchor((-0.8,-0.45,1.35,1.35), ax.transAxes)
     locator.borderpad = 0.0
 
     high_z_list = [z for z in z_list if z > 4.0]
-
-    n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
+    if high_z_list: # if there are any high-z's, plot them
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
     axins.set_xlim(4.0,8.5)
     axins.set_xlabel("z")
     axins.set_ylabel("N")
@@ -277,7 +257,8 @@ def Make_Z_Plot(filename=default_filename):
 
     high_z_list = [z for z in z_list if z > 4.0]
 
-    n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
+    if high_z_list: # if there are any high-z's, plot them
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
 
     axins.set_xlim(4.0,9.0)
     #mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
