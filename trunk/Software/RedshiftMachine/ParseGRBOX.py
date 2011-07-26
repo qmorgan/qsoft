@@ -123,8 +123,7 @@ def parse_grbox_xml(ignore_nonswift=True,filename=default_filename,cutoff_date=(
     return grbox_dict
 
 
-def Make_Z_Plot(filename=default_filename):
-    grbox_dict = parse_grbox_xml(filename=filename)
+def Make_Z_Plot(grbox_dict):
     z_list = []
     zname_list = []
     date_list = []
@@ -283,4 +282,9 @@ def Make_Z_Plot(filename=default_filename):
 #    print z_list[i], uncertain_z[i],ztype[i],names[i]
 
 def MakePlotForRATEGRBz():
-    pass
+    grbdict = parse_grbox_xml(ignore_nonswift=True,filename=default_filename,cutoff_date=(2010,07,01),
+                        exclude=['071020','050724','070612A','050126','050401','071010B','071003','091024','071010A','050603','090313',
+                        '090726', '090313','070283','071028B','071010B','071010A','071003','061210','060814','060729','060614'], # this exclude file needs to be properly fleshed out due to observing constraints.
+                        ignore_short=True, ignore_xrf=False, ignore_long=False)
+    Make_Z_Plot(grbdict)
+    return grbdict
