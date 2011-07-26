@@ -9,6 +9,7 @@ import os
 from matplotlib import rc
 import copy
 import cosmocalc
+from AutoRedux.Signal import DownloadFile
 
 
 overplot_high_z = True
@@ -21,12 +22,19 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
 
 # Import matplotlib run commands to set font
 rc('font', family='serif')
+default_filename=storepath+"grboxtxt.xml"
 
-def parse_grbox_xml(ignore_preswift=True):
-    filename=storepath+"grboxtxt_updated.xml"
+# xml_url = 'http://lyra.berkeley.edu/grbox/grboxtxt.php?form=submitted&starttime=700101&endtime=111231&sort=z&reverse=y&showindex=y&showt90=y&showepeak=y&showfluence=y&showra=y&showdec=y&showerr=y&showb=y&showebv=y&showz=y&showhostmag=y&showut=y&showxflux=y&showpeakmag=y&shownh=y&showsat=y&showclass=y&comments=y&xor=y&observatory=t&obsdate=2011-07-25&posfmt=sexc&xrtpos=best&format=xml'
+
+
+def parse_grbox_xml(ignore_nonswift=True,filename=default_filename,cutoff_date=(2010,07,01),
+                    exclude=[], ignore_short=True, ignore_xrf=False, ignore_long=False):
+    
     a = bindery.parse(filename)
 
     # Parse the xml to grab the grb names and whether there have been certain 
@@ -35,6 +43,7 @@ def parse_grbox_xml(ignore_preswift=True):
     has_xray  = [x.xml_value.encode() == 'y' for x in a.xml_select(u'/grbs/grb/greiner/@x')]
     has_opt   = [x.xml_value.encode() == 'y' for x in a.xml_select(u'/grbs/grb/greiner/@o')]
     has_radio = [x.xml_value.encode() == 'y' for x in a.xml_select(u'/grbs/grb/greiner/@r')]
+    
 
     # Define lists to use later
     has_host_z = []
@@ -48,47 +57,69 @@ def parse_grbox_xml(ignore_preswift=True):
     # loop through all the GRB names in the XML file and grab all the redshifts
     # associated with each name (there may be more than one!) 
     for grbname in names:
-       ## get all the redshifts
-       print grbname
-       # Obtain a list of tentative redshifts for every grbname
-       tentative_z =[str(x) for x in a.xml_select(u'/grbs/grb[@index="%s"]/redshift/z' % grbname)]
-       # if there is an "?" after the redshift number (e.g. <z>1.24?</z>), mark it
-       uncertain_z = [str(x).find("?") != -1 for x in tentative_z]
-       # Obtain a list of the redshift types
-       z_type = [str(x) for x in a.xml_select(u'/grbs/grb[@index="%s"]/redshift/ztype' % grbname)]
-       print grbname, [(tentative_z[i],uncertain_z[i],z_type[i]) for i in range(len(tentative_z))]
-       use = False
-       for i in range(len(tentative_z) - 1,-1,-1):
-           use_this_z = True
-           for ii in ignores:
-               if z_type[i].find(ii) != -1:
-                   # this type is to be ignored
-                   use_this_z=False
-           has_host = False
-           if z_type[i].find("hostz") != -1:
-               has_host = True
+        ## get all the redshifts
+        if grbname in exclude:
+            exclude.remove(grbname)
+            continue
+        print grbname
+        # Obtain a list of tentative redshifts for every grbname
+        instrument = [str(x) for x in a.xml_select(u'/grbs/grb[@index="%s"]/burst/instrument' % grbname)][0]
+        grb_class = [str(x) for x in a.xml_select(u'/grbs/grb[@index="%s"]/burst/class' % grbname)]
+        if not grb_class:
+            grb_class = ['GRB']  #unlabeled classes are assumed to be just normal bursts
+        grb_class = grb_class[0]
+        tentative_z =[str(x) for x in a.xml_select(u'/grbs/grb[@index="%s"]/redshift/z' % grbname)]
+        # if there is an "?" after the redshift number (e.g. <z>1.24?</z>), mark it
+        uncertain_z = [str(x).find("?") != -1 for x in tentative_z]
+        # Obtain a list of the redshift types
+        z_type = [str(x) for x in a.xml_select(u'/grbs/grb[@index="%s"]/redshift/ztype' % grbname)]
+        print grbname, [(tentative_z[i],uncertain_z[i],z_type[i]) for i in range(len(tentative_z))]
+        use = False
+        for i in range(len(tentative_z) - 1,-1,-1):
+            use_this_z = True
+            for ii in ignores:
+                if z_type[i].find(ii) != -1:
+                    # this type is to be ignored
+                    use_this_z=False
+            has_host = False
+            if z_type[i].find("hostz") != -1:
+                has_host = True
+            
+            if use_this_z and not uncertain_z[i]:
+                use = True
+                zz = tentative_z[i]
+        if use:
            
-           if use_this_z and not uncertain_z[i]:
-               use = True
-               zz = tentative_z[i]
-       if use:
-
-           yr = int("19" + grbname[0:2]) if int(grbname[0]) > 8 else int("20" + grbname[0:2])
-           mn = int(grbname[2:4])
-           dy = int(grbname[4:6])
+            yr = int("19" + grbname[0:2]) if int(grbname[0]) > 8 else int("20" + grbname[0:2])
+            mn = int(grbname[2:4])
+            dy = int(grbname[4:6])
            
-           if ignore_preswift and datetime.date(yr,mn,dy) < datetime.date(2004,12,10):
-               continue
+            if cutoff_date:
+                cutoff_yr = int(cutoff_date[0])
+                cutoff_mo = int(cutoff_date[1])
+                cutoff_day = int(cutoff_date[2])
+                if datetime.date(yr,mn,dy) > datetime.date(cutoff_yr,cutoff_mo,cutoff_day):
+                    continue
+            # if ignore_nonswift and datetime.date(yr,mn,dy) < datetime.date(2004,12,10):
                
-           zname_list.append(grbname)
-           has_host_z.append(has_host)
-           z_list.append(float(zz))
-           date_list.append(datetime.date(yr,mn,dy))
+            if ignore_nonswift and instrument != 'Swift':
+                continue
+            if ignore_short and grb_class == 'SHB':
+                continue
+            if ignore_xrf and grb_class == 'XRF':
+                continue
+            if ignore_long and grb_class == 'GRB':
+                continue
+               
+            zname_list.append(grbname)
+            has_host_z.append(has_host)
+            z_list.append(float(zz))
+            date_list.append(datetime.date(yr,mn,dy))
            
            
-           subdict = {grbname:{'grbox_z':float(zz),'has_host_z':has_host}}
+            subdict = {grbname:{'date':datetime.date(yr,mn,dy),'class':grb_class,'instrument':instrument,'grbox_z':float(zz),'has_host_z':has_host}}
            
-           grbox_dict.update(subdict)
+            grbox_dict.update(subdict)
 
     # tessellation
     #a = jsbtess.jsbtess(z_list,per=0.03,dolog=True,unlog=True)
@@ -96,174 +127,179 @@ def parse_grbox_xml(ignore_preswift=True):
     #w = [r[1] - r[0] for r in a['bb']]
 
     ## save redshift record
-    alll = zip(date_list,z_list,zname_list)
-    alll.sort()  # sort by date increasing
+    
+    all_grbs = zip(date_list,z_list,zname_list)
+    all_grbs.sort()  # sort by date increasing
     # print "***ZLIST***"
     # print z_list
     # print len(z_list)
     #         
     
     from pprint import pprint 
-    # pprint(alll)
+    # pprint(all_grbs)
     
     pprint(grbox_dict)
     
-    return alll
+    return grbox_dict
 
 
-alll = parse_grbox_xml()
-z_list = []
-zname_list = []
-date_list = []
+def Make_Z_Plot(filename=default_filename):
+    grbox_dict = parse_grbox_xml(filename=filename)
+    z_list = []
+    zname_list = []
+    date_list = []
 
 
-# 'un'zip alll (is there a better way to do this? just assign rather than a for loop?)
-for tup in alll:
-    date_list.append(tup[0])
-    z_list.append(tup[1])
-    zname_list.append(tup[2])
-print '***All***'
-print ' '
-print z_list
-print len(z_list)
+    # 'un'zip all_grbs (is there a better way to do this? just assign rather than a for loop?)
+    for key,value in grbox_dict.iteritems():
+        date_list.append(value['date'])
+        z_list.append(value['grbox_z'])
+        zname_list.append(key)
+    print '***All***'
+    print ' '
+    print z_list
+    print len(z_list)
 
 
-### Print out the most distant GRB as a function of time
-zmax = 0.0
-rr = []
-for grb in alll:
-   if grb[1] > zmax:
-       rr.append(grb)
-       zmax = grb[1]
-       print grb[0].year + grb[0].timetuple().tm_yday/365.0, grb[1], "#  ", grb[2]
+    ### Print out the most distant GRB as a function of time
+    zmax = 0.0
+    rr = []
+    for grb in all_grbs:
+       if grb[1] > zmax:
+           rr.append(grb)
+           zmax = grb[1]
+           print grb[0].year + grb[0].timetuple().tm_yday/365.0, grb[1], "#  ", grb[2]
 
 
-ax = plt.subplot(111)
-n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='#660000',alpha=0.95)
+    ax = plt.subplot(111)
+    n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='#660000',alpha=0.95)
 
-# Define pre-swift burst index as bursts before 041210
-preswifti = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
+    # Define pre-swift burst index as bursts before 041210
+    high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
 
-pre_swift_z_list = [z_list[i] for i in list(preswifti[0])]
-#print pre_swift_z_list
-n, bins1, patches = plt.hist(plt.log10(pre_swift_z_list),bins=bins,facecolor='#990000',alpha=0.6)
+    high_z_list = [z_list[i] for i in list(high_z_i[0])]
+    #print high_z_list
+    n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='#990000',alpha=0.6)
 
-if overplot_high_z:
-    pre_swift_z_list = [z for z in z_list if z > 4.0]
-    n, bins1, patches = plt.hist(plt.log10(pre_swift_z_list),bins=bins,facecolor='#666600')
-
-
-ay = ax.twinx()
-
-argg = list(plt.ones(len(z_list)).cumsum().repeat(2))
-zz = copy.copy(z_list)
-zz.sort()
-tmp = list(plt.log10(zz).repeat(2))
-
-tmp.append(1)
-yy = [0]
-yy.extend(argg)
-
-ay.plot(tmp,yy,linewidth = 4,color='black',alpha=0.95)
-
-argg = list(plt.ones(len(pre_swift_z_list)).cumsum().repeat(2))
-zz = copy.copy(pre_swift_z_list)
-zz.sort()
-tmp = list(plt.log10(zz).repeat(2))
-
-tmp.append(1)
-yy = [0]
-yy.extend(argg)
+    if overplot_high_z:
+        high_z_list = [z for z in z_list if z > 4.0]
+        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='#666600')
 
 
-ay.plot(tmp,yy,"-",linewidth = 2,color='#222222',alpha=0.75)
-ay.set_ylim((0,len(z_list)*1.05))
-ay.set_ylabel("Cumulative Number",fontsize=20,family="times")
-# formatter for bottom x axis 
-def ff(x,pos=None):
-   if x < -1:
-       return "%.2f" % (10**x)
-   elif x < 0:
-       return "%.1f" % (10**x)
-   elif 10**x == 8.5:
-       return "%.1f" % (10**x)
-   else:
-       return "%i" % (10**x)
+    ay = ax.twinx()
 
-formatter = FuncFormatter(ff)
-ax.set_xticks([-2,-1,plt.log10(0.3),0,plt.log10(2),plt.log10(3),plt.log10(4),plt.log10(6),plt.log10(8.5)])
-ax.xaxis.set_major_formatter(formatter)
-ax.set_xlabel("Redshift [z]",fontsize=20,family="times")
-ax.set_ylabel("Number",fontsize=20,family="times")
+    argg = list(plt.ones(len(z_list)).cumsum().repeat(2))
+    zz = copy.copy(z_list)
+    zz.sort()
+    tmp = list(plt.log10(zz).repeat(2))
 
-ax.set_xlim( (plt.log10(0.005),plt.log10(10)))
+    tmp.append(1)
+    yy = [0]
+    yy.extend(argg)
 
-ax2 = ax.twiny()
-xlim= ax.get_xlim()
-#ax2.set_xscale("log")
-ax2.set_xlim( (xlim[0], xlim[1]) )
+    ay.plot(tmp,yy,linewidth = 4,color='black',alpha=0.95)
 
-# Define function for plotting the top X axis; time since big bang in Gyr
-def rr(x,pos=None): 
-   g = cosmocalc.cosmocalc(10.0**x, H0=71.0)
-   if g['zage_Gyr'] < 1:
-       return "%.2f" % g['zage_Gyr'] # Return 2 dec place if age < 1; e.g 0.62
-   else:
-       return "%.1f" % g['zage_Gyr'] # Return 1 dec place if age > 1; e.g. 1.5
+    argg = list(plt.ones(len(high_z_list)).cumsum().repeat(2))
+    zz = copy.copy(high_z_list)
+    zz.sort()
+    tmp = list(plt.log10(zz).repeat(2))
 
-ax2.set_xticks([-1.91,-1.3,-0.752,-0.283,0.102,0.349,0.62,plt.log10(8.3)])
-
-formatter1 = FuncFormatter(rr)
-ax2.xaxis.set_major_formatter(formatter1)
-ax2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20,family="times")
-
-#plt.bar(l,a['yy'],width=w,log=False)
-#ax.set_xscale("log",nonposx='clip')
-
-## Now plot inset plot of GRBs greater than z=4.0
-
-axins = inset_axes(ax2,
-                  width="30%", # width = 30% of parent_bbox
-                  height="30%") # height : 1 inch)
-
-locator=axins.get_axes_locator()
-locator.set_bbox_to_anchor((-0.8,-0.45,1.35,1.35), ax.transAxes)
-locator.borderpad = 0.0
-
-pre_swift_z_list = [z for z in z_list if z > 4.0]
-
-n, bins, patches = plt.hist(plt.array(pre_swift_z_list),facecolor='#666600')
-axins.set_xlim(4.0,8.5)
-axins.set_xlabel("z")
-axins.set_ylabel("N")
-
-preswifti = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
-pre_swift_z_list = [z_list[i] for i in list(preswifti[0]) if z_list[i] > 4.0]
-
-n, bins, patches = plt.hist(plt.array(pre_swift_z_list),bins=bins,facecolor='#999900')
-
-pre_swift_z_list = [z for z in z_list if z > 4.0]
-
-n, bins, patches = plt.hist(plt.array(pre_swift_z_list),facecolor='#666600')
-
-axins.set_xlim(4.0,9.0)
-#mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
-
-#axins2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20)
-ylabels = ax.get_yticklabels()
-plt.setp(ylabels, size=14, name='times', weight='light', color='k')
-
-xlabels = ax.get_xticklabels()
-plt.setp(xlabels, size=14, name='times', weight='light', color='k')
-
-xlabels = ax2.get_xticklabels()
-plt.setp(xlabels, size=14, name='times', weight='light', color='k')
-
-xlabels = ay.get_yticklabels()
-plt.setp(xlabels, size=14, name='times', weight='light', color='k')
+    tmp.append(1)
+    yy = [0]
+    yy.extend(argg)
 
 
-plt.draw()
+    ay.plot(tmp,yy,"-",linewidth = 2,color='#222222',alpha=0.75)
+    ay.set_ylim((0,len(z_list)*1.05))
+    ay.set_ylabel("Cumulative Number",fontsize=20,family="times")
+    # formatter for bottom x axis 
+    def ff(x,pos=None):
+       if x < -1:
+           return "%.2f" % (10**x)
+       elif x < 0:
+           return "%.1f" % (10**x)
+       elif 10**x == 8.5:
+           return "%.1f" % (10**x)
+       else:
+           return "%i" % (10**x)
 
+    formatter = FuncFormatter(ff)
+    ax.set_xticks([-2,-1,plt.log10(0.3),0,plt.log10(2),plt.log10(3),plt.log10(4),plt.log10(6),plt.log10(8.5)])
+    ax.xaxis.set_major_formatter(formatter)
+    ax.set_xlabel("Redshift [z]",fontsize=20,family="times")
+    ax.set_ylabel("Number",fontsize=20,family="times")
+
+    ax.set_xlim( (plt.log10(0.005),plt.log10(10)))
+
+    ax2 = ax.twiny()
+    xlim= ax.get_xlim()
+    #ax2.set_xscale("log")
+    ax2.set_xlim( (xlim[0], xlim[1]) )
+
+    # Define function for plotting the top X axis; time since big bang in Gyr
+    def rr(x,pos=None): 
+       g = cosmocalc.cosmocalc(10.0**x, H0=71.0)
+       if g['zage_Gyr'] < 1:
+           return "%.2f" % g['zage_Gyr'] # Return 2 dec place if age < 1; e.g 0.62
+       else:
+           return "%.1f" % g['zage_Gyr'] # Return 1 dec place if age > 1; e.g. 1.5
+
+    ax2.set_xticks([-1.91,-1.3,-0.752,-0.283,0.102,0.349,0.62,plt.log10(8.3)])
+
+    formatter1 = FuncFormatter(rr)
+    ax2.xaxis.set_major_formatter(formatter1)
+    ax2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20,family="times")
+
+    #plt.bar(l,a['yy'],width=w,log=False)
+    #ax.set_xscale("log",nonposx='clip')
+
+    ## Now plot inset plot of GRBs greater than z=4.0
+
+    axins = inset_axes(ax2,
+                      width="30%", # width = 30% of parent_bbox
+                      height="30%") # height : 1 inch)
+
+    locator=axins.get_axes_locator()
+    locator.set_bbox_to_anchor((-0.8,-0.45,1.35,1.35), ax.transAxes)
+    locator.borderpad = 0.0
+
+    high_z_list = [z for z in z_list if z > 4.0]
+
+    n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
+    axins.set_xlim(4.0,8.5)
+    axins.set_xlabel("z")
+    axins.set_ylabel("N")
+
+    high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
+    high_z_list = [z_list[i] for i in list(high_z_i[0]) if z_list[i] > 4.0]
+
+    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='#999900')
+
+    high_z_list = [z for z in z_list if z > 4.0]
+
+    n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
+
+    axins.set_xlim(4.0,9.0)
+    #mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
+
+    #axins2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20)
+    ylabels = ax.get_yticklabels()
+    plt.setp(ylabels, size=14, name='times', weight='light', color='k')
+
+    xlabels = ax.get_xticklabels()
+    plt.setp(xlabels, size=14, name='times', weight='light', color='k')
+
+    xlabels = ax2.get_xticklabels()
+    plt.setp(xlabels, size=14, name='times', weight='light', color='k')
+
+    xlabels = ay.get_yticklabels()
+    plt.setp(xlabels, size=14, name='times', weight='light', color='k')
+
+
+    plt.draw()
+    return z_list
 #for i in range(len(z_list)):
 #    print z_list[i], uncertain_z[i],ztype[i],names[i]
+
+def MakePlotForRATEGRBz():
+    pass
