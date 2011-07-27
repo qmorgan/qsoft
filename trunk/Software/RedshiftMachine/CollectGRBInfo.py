@@ -214,6 +214,7 @@ def whatis(keyword):
     'z_class': {'definition':'Redshift class (high_z,medium_z,low_z) derived from actual redshift value','type':'string','source':'Derived','speed':'na','sample':'medium_z'},
     'Z_LT_1_OVER_Z_GT_4':{'definition':'Ratio of Nats probability functions','type':'float','source':'NatBat','speed':'processed','sample':1.302},
     'Q_hat':{'definition':'Follow-up recommendation from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.302},
+    'Q_hat_train':{'definition':'Follow-up recommendation from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.302},
     'prob_high':{'definition':'prob high from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.302},
     'prob_low':{'definition':'prob low from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.698},
     'z_isupper': {'definition':'Was the redshift value reported an upper limit?','type':'string','source':'SwiftCat','speed':'na','sample':'no'},
@@ -962,6 +963,7 @@ class GRBdb:
         
         #RATE_GRB-z values
         self.MakeAttrArr('Q_hat')
+        self.MakeAttrArr('Q_hat_train')
         self.MakeAttrArr('prob_high')
         self.MakeAttrArr('prob_low')
         
@@ -1566,8 +1568,23 @@ def TestReloadAlldb():
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4','triggerid_str']
-    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)   
+    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+
+    db_onlyz_tab = copy.deepcopy(db_onlyz)
+    db_onlyz_tab.Reload_DB()
+    db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
+    table_list = ['Q_hat_train','Z']
+    db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
+    db_onlyz_tab.makeDeluxeTable(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
+    
+    table_list = ['Q_hat']
+    db_noz_tab = copy.deepcopy(db_noz)
+    db_noz_tab.Reload_DB()
+    db_noz_tab.name = 'GRB_short+outliers+Z_removed_tab'
+    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
+    
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
     
@@ -1614,7 +1631,9 @@ def TestReloadAlldb():
 
 def ParseRATEGRB():
     rategrbpath = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_testdata.txt'
+    rategrbpath_train = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_traindata.txt'
     f=file(rategrbpath,'r')
+    g=file(rategrbpath_train,'r')
     # assuming line format of
     #  '"204" 0.426470588235294 0.07 0.93 "419404"\n'
     rategrbdict = {}
@@ -1625,6 +1644,16 @@ def ParseRATEGRB():
             rategrbdict.update({linesplit[4].strip('"'):subdict})
         except:
             pass
+    # assuming line format of
+    # '"10" 0.719301369 "416103"\n'
+    for line in g.readlines():
+        linesplit = line.split()
+        try:
+            subdict = {'Q_hat_train':float(linesplit[1])}
+            rategrbdict.update({linesplit[2].strip('""'):subdict})
+        except:
+            pass
+    
     return rategrbdict
     
         
