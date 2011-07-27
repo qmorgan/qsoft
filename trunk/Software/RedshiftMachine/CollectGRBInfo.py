@@ -1281,7 +1281,7 @@ class GRBdb:
         arffpath = storepath+self.name+arff_append+'.arff'
         arffpathpartial = arffpath + '_head'
         arffpathdata = arffpath + '_data'
-        subpath = storepath+'redshiftdata'+'.txt'
+        subpath = arffpath+'redshiftdata'+'.txt'
         
         fmt = ''
         
@@ -1442,6 +1442,9 @@ class GRBdb:
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
+        
+
+        
         return arffpath
         
     def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
@@ -1574,16 +1577,16 @@ def TestReloadAlldb():
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
-    table_list = ['Q_hat_train','Z']
+    table_list = ['grb','Q_hat_train','Z']
     db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
-    db_onlyz_tab.makeDeluxeTable(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
+    db_onlyz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False)
     
-    table_list = ['Q_hat']
+    table_list = ['grb','Q_hat']
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+outliers+Z_removed_tab'
     db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False)
     
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
@@ -1626,7 +1629,10 @@ def TestReloadAlldb():
                    
     
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
-                                arff_append='_UVOTandZpred', inclerr=False)                     
+                                arff_append='_UVOTandZpred', inclerr=False)
+                                
+    Cleanup()
+                         
     return db_full
 
 def ParseRATEGRB():
@@ -1687,6 +1693,15 @@ def TestMakeGridPlot():
     fig = db_full.gridplot(z_key=None,color='black',histbins=20,histrangelist=histrangelist,fig=fig,histloc='tr')
     db_highz= LoadDB('GRB_short+noZ+z<4_removed')
     fig2 = db_highz.gridplot(z_key=None,color='red',histbins=20,histrangelist=histrangelist,fig=fig,histloc='br')
+    
+    
+def Cleanup():
+    cmd = 'rm ' + storepath + '/*_head'
+    os.system(cmd)
+    cmd = 'rm ' + storepath + '/*_data'
+    os.system(cmd)
+    cmd = 'rm ' + storepath + '/*redshiftdata.txt*'
+    os.system(cmd)
     
     
        
