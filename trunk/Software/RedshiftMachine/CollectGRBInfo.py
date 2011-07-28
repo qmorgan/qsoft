@@ -1732,15 +1732,24 @@ def TestMakeNicePlot():
     pylab.ylabel("UVOT Detection?")
     pylab.xlabel("log(BAT SNR) (Normalized)")
  
-def TestMakeGridPlot():
+def TestMakeGridPlot(keys=['A','log_EP0','log_FL','log_MAX_SNR',
+                    'log_NH_PC','log_T90','log_bat_image_signif','bat_img_peak',
+                     'bat_trigger_dur','PROB_Z_GT_4'],
+                        labels=['$A$','$\log(E_{p,0})$','$\log(FL)$','$\log(MAX_SNR)$','$\log(NH_{pc})$',
+                        '$\log(t_{90})$','$\log(BAT Image Significance)$','$(BAT Img Peak)$',
+                        '$(bat_trigger_duration)$','$P_{z>4}$']):
     db = LoadDB('GRB_short_removed')
+    db.Reload_DB()
     histrangelist = db.gridplot(gethistrangelist=True)
-    fig = db.gridplot(z_key=None,color='grey',histbins=20,histrangelist=histrangelist,histloc='tl')
+    fig = db.gridplot(keys=keys,labels=labels,
+       z_key=None,histbins=20,color='grey',histrangelist=histrangelist,histloc='tl')
     db_full = LoadDB('GRB_short+noZ_removed')
-    fig = db_full.gridplot(z_key=None,color='black',histbins=20,histrangelist=histrangelist,fig=fig,histloc='tr')
+    fig = db_full.gridplot(keys=keys,labels=labels,
+    z_key=None,color='black',histbins=20,histrangelist=histrangelist,fig=fig,histloc='tr')
     db_highz= LoadDB('GRB_short+noZ+z<4_removed')
-    fig2 = db_highz.gridplot(z_key=None,color='red',histbins=20,histrangelist=histrangelist,fig=fig,histloc='br')
-    
+    fig2 = db_highz.gridplot(keys=keys, labels=labels,
+       z_key=None,color='red',histbins=20,histrangelist=histrangelist,fig=fig,histloc='br')
+    fig2.show()
     
 def Cleanup():
     cmd = 'rm ' + storepath + '/*_head'
