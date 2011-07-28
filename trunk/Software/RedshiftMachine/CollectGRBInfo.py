@@ -1180,7 +1180,7 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-    def makeDeluxeTable(self,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],caption='My awesome Table', tab_append='',inclerr=True):
+    def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],caption='My awesome Table', tab_append='',inclerr=True,sortkey=''):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
@@ -1206,9 +1206,9 @@ class GRBdb:
         # set up paths
         tab_path = storepath+self.name+tab_append+'.ta'
         tab_path_2 = tab_path + 'b'
-        arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr,ignore_types=True)
+        if not arffpath:
+            arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr,ignore_types=True,sortkey=sortkey)
         datapath = arffpath + '_data'
-        headpath = arffpath + '_head'
         
         ### CONVERT DATA SECTION
         # ## replace ',' with ' & '
@@ -1230,6 +1230,7 @@ class GRBdb:
             count += 1
             new_line = line.replace(',','\t&\t')
             if count != lenlines:
+                new_line = new_line.replace('\r','')
                 new_line = new_line.replace('\n',' \\\\ \n')
             f_new.write(new_line)
             
@@ -1260,7 +1261,7 @@ class GRBdb:
                       'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
                       'triggerid_str'
                       ],
-                      arff_append='',inclerr=True, ignore_types=False):
+                      arff_append='',inclerr=True, ignore_types=False, sortkey=''):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
@@ -1274,7 +1275,7 @@ class GRBdb:
             have them
         ignore_types : ignore whether we think its nominal or numeric and just 
             treat it as nominal.  only use for making delux tables
-        
+        sortkey: if defined, sort by this key.
         '''
         
         # Open file
@@ -1342,7 +1343,10 @@ class GRBdb:
                 if not ignore_types and (attrdict['type'] == 'numeric' or attrdict['type'] == 'binary'):
                     numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
                     numattrlist.append(keyitem)
-                    fmt += ',%f'
+                    if not fmt:
+                        fmt = '%f'
+                    else:
+                        fmt += ',%f'
                     if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
                         posname = keyitem + '_poserr'
                         negname = keyitem + '_negerr'
@@ -1354,7 +1358,10 @@ class GRBdb:
                     # WARNING: MIGHT NOT BE YES OR NO - MORE OPTIONS COULD BE PRESENT
                     f.write('% !CHECK ME:\n')
                     nomattrlist.append(keyitem)
-                    fmt += ',%s'
+                    if not fmt:
+                        fmt = '%s'
+                    else:
+                        fmt += ',%s'
                     nomkeystring += ('@ATTRIBUTE %s {yes, no}\n') % keyitem
                 else:
                     print 'Attribute type is unknown (not nominal or numeric). Continuing..'
@@ -1390,13 +1397,22 @@ class GRBdb:
         
         if nomattrlist:
             firstattr = nomattrlist[0]
-            nomtotarr=numpy.array([getattr(self,firstattr)['array']])
+            #nomtotarr=numpy.array([getattr(self,firstattr)['array']])
+            #nomtotarr = getattr(self,firstattr)['array']
+            nomtotarr = []
             # Populate the total array
-            for keyitem in nomattrlist[1:]:
+            # for keyitem in nomattrlist[1:]:
+            for keyitem in nomattrlist:
                 attrdict = getattr(self,keyitem)
-                nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
+                nomtotarr.append(list(attrdict['array']))
+                # nomtotarr = numpy.concatenate((nomtotarr,numpy.array([attrdict['array']])),axis=0)
+            
+            nomtotarrlist = nomtotarr
+            # have to specify the datatype explicitly here, else it defaults to just 8 characters
+            nomtotarr = numpy.array(nomtotarr,dtype='|S20')
             nomarr2 = nomtotarr
             nonominal = False
+            
         else:
             nomarr2 = numpy.array(['# NO NOMINAL ATTRIBUTES'])
             nonominal = True
@@ -1405,14 +1421,19 @@ class GRBdb:
         numsubpath = subpath + 'num'
         numnomsubpath = subpath + 'numnom'
         
+
+        
         if not nonumeric: numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt='%1.5e')
         if not nonominal: numpy.savetxt(nomsubpath,nomarr2,delimiter=',',fmt='%s')
+        
+        # if ignore_types and 'FL' in attrlist:
+        #     raise Exception
         
         cmd = 'cat %s %s > %s' %(numsubpath,nomsubpath,numnomsubpath)
         os.system(cmd)
         
         
-        fixedarray = numpy.genfromtxt(numnomsubpath,delimiter=',',dtype='str')
+        fixedarray = numpy.genfromtxt(numnomsubpath,delimiter=',',dtype='|S20')
         numpy.savetxt(subpath,fixedarray.T,delimiter=',',fmt='%s')
         
         
@@ -1438,6 +1459,12 @@ class GRBdb:
         # copy the data part to a more reasonable format
         cmd = 'cp %s %s' % (subpath2, arffpathdata)
         os.system(cmd)
+        
+        if sortkey:
+            from pylab import csv2rec, rec2csv
+            myarray=csv2rec(arffpathdata,delimiter=',',names=attrlist)
+            myarray.sort(order=sortkey)
+            rec2csv(myarray,arffpathdata,withheader=False)
         
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
@@ -1578,15 +1605,35 @@ def TestReloadAlldb():
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
     table_list = ['grb','Q_hat_train','Z']
-    db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
-    db_onlyz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False)
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,inclerr=False,sortkey='grb')
+    
+    db_onlyz_tab = copy.deepcopy(db_onlyz)
+    db_onlyz_tab.Reload_DB()
+    db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_fulltab'
+    table_list = ['grb','Q_hat_train','Z','A','EP0','FL','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4']
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,inclerr=False,sortkey='grb')
     
     table_list = ['grb','Q_hat']
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+outliers+Z_removed_tab'
-    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False)
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False)
+    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False,sortkey='grb')
+
+    table_list = ['grb','Q_hat','A','EP0','FL','MAX_SNR',
+                        'NH_PC','T90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4']
+    db_noz_tab = copy.deepcopy(db_noz)
+    db_noz_tab.Reload_DB()
+    db_noz_tab.name = 'GRB_short+outliers+Z_removed_fulltab'
+    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False,sortkey='grb')
     
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
@@ -1698,8 +1745,8 @@ def TestMakeGridPlot():
 def Cleanup():
     cmd = 'rm ' + storepath + '/*_head'
     os.system(cmd)
-    cmd = 'rm ' + storepath + '/*_data'
-    os.system(cmd)
+    # cmd = 'rm ' + storepath + '/*_data'
+    # os.system(cmd)
     cmd = 'rm ' + storepath + '/*redshiftdata.txt*'
     os.system(cmd)
     
