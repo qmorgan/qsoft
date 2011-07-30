@@ -28,6 +28,7 @@ loadpath = os.environ.get("Q_DIR") + '/load/'
 # Import matplotlib run commands to set font
 rc('font', family='serif')
 default_filename=storepath+"grboxtxt.xml"
+rc('text', usetex=True)
 
 # xml_url = 'http://lyra.berkeley.edu/grbox/grboxtxt.php?form=submitted&starttime=700101&endtime=111231&sort=z&reverse=y&showindex=y&showt90=y&showepeak=y&showfluence=y&showra=y&showdec=y&showerr=y&showb=y&showebv=y&showz=y&showhostmag=y&showut=y&showxflux=y&showpeakmag=y&shownh=y&showsat=y&showclass=y&comments=y&xor=y&observatory=t&obsdate=2011-07-25&posfmt=sexc&xrtpos=best&format=xml'
 
@@ -151,18 +152,18 @@ def Make_Z_Plot(grbox_dict):
     
 
     ax = plt.subplot(111)
-    n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='#660000',alpha=0.95)
+    n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='grey',edgecolor='grey',alpha=0.95)
 
     # Define pre-swift burst index as bursts before 041210
     high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
 
     high_z_list = [z_list[i] for i in list(high_z_i[0])]
     #print high_z_list
-    n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='#990000',alpha=0.6)
+    n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.6)
 
     if overplot_high_z:
         high_z_list = [z for z in z_list if z > 4.0]
-        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='#666600')
+        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red')
 
 
     ay = ax.twinx()
@@ -175,8 +176,9 @@ def Make_Z_Plot(grbox_dict):
     tmp.append(1)
     yy = [0]
     yy.extend(argg)
-
-    ay.plot(tmp,yy,linewidth = 4,color='black',alpha=0.95)
+    
+    
+    ay.plot(tmp,yy,aa=True,linewidth = 4,color='black',alpha=0.95)
 
     argg = list(plt.ones(len(high_z_list)).cumsum().repeat(2))
     zz = copy.copy(high_z_list)
@@ -188,9 +190,9 @@ def Make_Z_Plot(grbox_dict):
     yy.extend(argg)
 
 
-    ay.plot(tmp,yy,"-",linewidth = 2,color='#222222',alpha=0.75)
+    ay.plot(tmp,yy,aa=True,linewidth = 2,color='#222222',alpha=0.75)
     ay.set_ylim((0,len(z_list)*1.05))
-    ay.set_ylabel("Cumulative Number",fontsize=20,family="times")
+    ay.set_ylabel("Cumulative Number",fontsize=20)
     # formatter for bottom x axis 
     def ff(x,pos=None):
         if x < -1:
@@ -205,8 +207,8 @@ def Make_Z_Plot(grbox_dict):
     formatter = FuncFormatter(ff)
     ax.set_xticks([-2,-1,plt.log10(0.3),0,plt.log10(2),plt.log10(3),plt.log10(4),plt.log10(6),plt.log10(8.5)])
     ax.xaxis.set_major_formatter(formatter)
-    ax.set_xlabel("Redshift [z]",fontsize=20,family="times")
-    ax.set_ylabel("Number",fontsize=20,family="times")
+    ax.set_xlabel("Redshift ($z$)",fontsize=20)
+    ax.set_ylabel("Number",fontsize=20)
 
     ax.set_xlim( (plt.log10(0.005),plt.log10(10)))
 
@@ -227,7 +229,7 @@ def Make_Z_Plot(grbox_dict):
 
     formatter1 = FuncFormatter(rr)
     ax2.xaxis.set_major_formatter(formatter1)
-    ax2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20,family="times")
+    ax2.set_xlabel("Time since Big Bang (Gyr)",fontsize=20)
 
     #plt.bar(l,a['yy'],width=w,log=False)
     #ax.set_xscale("log",nonposx='clip')
@@ -244,7 +246,7 @@ def Make_Z_Plot(grbox_dict):
 
     high_z_list = [z for z in z_list if z > 4.0]
     if high_z_list: # if there are any high-z's, plot them
-        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red', edgecolor='red')
     axins.set_xlim(4.0,8.5)
     axins.set_xlabel("z")
     axins.set_ylabel("N")
@@ -252,12 +254,12 @@ def Make_Z_Plot(grbox_dict):
     high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
     high_z_list = [z_list[i] for i in list(high_z_i[0]) if z_list[i] > 4.0]
 
-    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='#999900')
+    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='red',edgecolor='red')
 
     high_z_list = [z for z in z_list if z > 4.0]
 
     if high_z_list: # if there are any high-z's, plot them
-        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='#666600')
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red',edgecolor='red')
 
     axins.set_xlim(4.0,9.0)
     #mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
