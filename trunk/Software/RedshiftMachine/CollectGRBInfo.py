@@ -1180,7 +1180,7 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-    def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],caption='My awesome Table', tab_append='',inclerr=True,sortkey=''):
+    def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],namelist=None,caption='My awesome Table', tab_append='',inclerr=True,sortkey=''):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
@@ -1189,7 +1189,7 @@ class GRBdb:
         time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed']
                   
         n_columns = len(attrlist)
-        numcolstr = 'c'*n_columns
+        numcolstr = 'l'*n_columns
         head1 = '''\\begin{deluxetable}{%s}
         \\tabletypesize{\scriptsize}
         \singlespace
@@ -1199,7 +1199,11 @@ class GRBdb:
         
         head2 = ''
         for attr in attrlist:
-            head2+='\colhead{%s} &\n' % (attr)
+            if namelist and len(namelist) == len(attrlist):
+                attrindex = attrlist.index(attr)
+                head2+='\colhead{%s} &\n' % (namelist[attrindex])
+            else:
+                head2+='\colhead{%s} &\n' % (attr)
         head2 = head2.rstrip().rstrip('&')  + '}\n' + '\startdata\n'
 
         
@@ -1605,8 +1609,9 @@ def TestReloadAlldb():
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
     table_list = ['grb','Q_hat_train','Z']
+    namelist = ['GRB','\widehat{\mathcal{Q}}_{train}','z']
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,inclerr=False,sortkey='grb')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb')
     
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
@@ -1619,11 +1624,12 @@ def TestReloadAlldb():
     db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,inclerr=False,sortkey='grb')
     
     table_list = ['grb','Q_hat']
+    namelist = ['GRB','\widehat{\mathcal{Q}}_{z=4}']    
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+outliers+Z_removed_tab'
     db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,inclerr=False,sortkey='grb')
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb')
 
     table_list = ['grb','Q_hat','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
