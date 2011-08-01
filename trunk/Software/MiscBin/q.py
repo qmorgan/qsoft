@@ -21,7 +21,22 @@ h = 6.626e-27 # erg s
 
 #import units
     
-
+    
+def round_array(x,sig=2):
+    from math import log10, floor
+    import numpy
+    x=numpy.array(x)
+    i = 0
+    for element in x:
+        new = round_sig(element,sig=sig)
+        x[i]=new
+        i += 1
+    return x
+    
+def round_sig(x, sig=2):
+    from math import log10, floor
+    return round(x, sig-int(floor(log10(x)))-1)
+    
 def flux2mag():
     """docstring for flux2mag"""
     pass
