@@ -1425,13 +1425,35 @@ class GRBdb:
         numsubpath = subpath + 'num'
         numnomsubpath = subpath + 'numnom'
         
-
+        # round the arrays 
+        from MiscBin import q
         
+        ind = -1
+        for subarr in nomarr2:
+            ind += 1
+            if ignore_types: # only try this conversion if we're ignoring the types
+                try:
+                    roundsubarr = copy.deepcopy(subarr)
+                    roundsubarr = numpy.array(roundsubarr,dtype='float32') #convert it back from a string to a float
+                    roundsubarr[numpy.isfinite(roundsubarr)]=q.round_array(roundsubarr[numpy.isfinite(roundsubarr)],sig=4)
+                    roundsubarr = numpy.array(["{0:.4e}".format(a) for a in roundsubarr.astype(None) if type(a) is not str]) #convet it back to string
+                    nomarr2[ind]=roundsubarr
+                except:
+                    pass
+        
+        ind = -1
+        for subarr in numarr2:
+            ind += 1
+            try:
+                roundsubarr = copy.deepcopy(subarr)
+                roundsubarr[numpy.isfinite(roundsubarr)]=q.round_array(roundsubarr[numpy.isfinite(roundsubarr)],sig=4)
+                numarr2[ind]=roundsubarr
+            except:
+                pass
+            
         if not nonumeric: numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt='%1.5e')
         if not nonominal: numpy.savetxt(nomsubpath,nomarr2,delimiter=',',fmt='%s')
         
-        # if ignore_types and 'FL' in attrlist:
-        #     raise Exception
         
         cmd = 'cat %s %s > %s' %(numsubpath,nomsubpath,numnomsubpath)
         os.system(cmd)
@@ -1464,12 +1486,20 @@ class GRBdb:
         cmd = 'cp %s %s' % (subpath2, arffpathdata)
         os.system(cmd)
         
+        
         if sortkey:
             from pylab import csv2rec, rec2csv
-            myarray=csv2rec(arffpathdata,delimiter=',',names=attrlist)
-            myarray.sort(order=sortkey)
+            f = open(arffpathdata,'r')
+            lines = f.readlines()
+            newlist = []
+            for line in lines:
+                newlist.append(line.strip().split(','))     
+            newarray=numpy.array(newlist)
+            # use numpy.rec.fromrecords() to create a recarray from a list of records in text form
+            myarray = numpy.rec.fromrecords(newarray,names=tuple(attrlist))
+            myarray.sort(order=sortkey)    
             rec2csv(myarray,arffpathdata,withheader=False)
-        
+            #raise Exception
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
@@ -1604,14 +1634,6 @@ def TestReloadAlldb():
                         'PROB_Z_GT_4','triggerid_str']
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
-
-    db_onlyz_tab = copy.deepcopy(db_onlyz)
-    db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
-    table_list = ['grb','Q_hat_train','Z']
-    namelist = ['GRB','\widehat{\mathcal{Q}}_{train}','z']
-    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb')
     
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
@@ -1622,7 +1644,15 @@ def TestReloadAlldb():
                         'PROB_Z_GT_4']
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,inclerr=False,sortkey='grb')
-    
+
+    db_onlyz_tab = copy.deepcopy(db_onlyz)
+    db_onlyz_tab.Reload_DB()
+    db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
+    table_list = ['grb','Q_hat_train','Z']
+    namelist = ['GRB','\widehat{\mathcal{Q}}_{train}','z']
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb')
+
     table_list = ['grb','Q_hat']
     namelist = ['GRB','\widehat{\mathcal{Q}}_{z=4}']    
     db_noz_tab = copy.deepcopy(db_noz)
