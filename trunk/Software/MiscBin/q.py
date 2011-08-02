@@ -40,7 +40,7 @@ def round_sig(x, sig=2):
     elif x < 0:
         roundedsig = -1*round(-1*x, sig-int(floor(log10(-1*x)))-1)
     else:
-        pass
+        roundedsig = x
     return roundedsig
     
 def flux2mag():
