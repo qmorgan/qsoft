@@ -35,7 +35,13 @@ def round_array(x,sig=2):
     
 def round_sig(x, sig=2):
     from math import log10, floor
-    return round(x, sig-int(floor(log10(x)))-1)
+    if x > 0:
+        roundedsig = round(x, sig-int(floor(log10(x)))-1)
+    elif x < 0:
+        roundedsig = -1*round(-1*x, sig-int(floor(log10(-1*x)))-1)
+    else:
+        pass
+    return roundedsig
     
 def flux2mag():
     """docstring for flux2mag"""
