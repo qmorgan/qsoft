@@ -1265,7 +1265,7 @@ class GRBdb:
                       'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
                       'triggerid_str'
                       ],
-                      arff_append='',inclerr=True, ignore_types=False, sortkey=''):
+                      arff_append='',inclerr=True, ignore_types=False, sortkey='',roundval=4):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
@@ -1435,8 +1435,9 @@ class GRBdb:
                 try:
                     roundsubnomarr = copy.deepcopy(nomsubarr)
                     roundsubnomarr = numpy.array(roundsubnomarr,dtype='float32') #convert it back from a string to a float
-                    roundsubnomarr[numpy.isfinite(roundsubnomarr)]=q.round_array(roundsubnomarr[numpy.isfinite(roundsubnomarr)],sig=4)
-                    roundsubnomarr = numpy.array(["{0:.4e}".format(a) for a in roundsubnomarr.astype(None) if type(a) is not str]) #convet it back to string
+                    roundsubnomarr[numpy.isfinite(roundsubnomarr)]=q.round_array(roundsubnomarr[numpy.isfinite(roundsubnomarr)],sig=int(roundval))
+                    roundstr = "{0:."+str(int(roundval)-1)+"e}"
+                    roundsubnomarr = numpy.array([roundstr.format(a) for a in roundsubnomarr.astype(None) if type(a) is not str]) #convet it back to string
                     nomarr2[ind]=roundsubnomarr
                     
                 except:
@@ -1448,12 +1449,13 @@ class GRBdb:
             ind += 1
             try:
                 roundsubnumarr = copy.deepcopy(numsubarr)
-                roundsubnumarr[numpy.isfinite(roundsubnumarr)]=q.round_array(roundsubnumarr[numpy.isfinite(roundsubnumarr)],sig=4)
+                roundsubnumarr[numpy.isfinite(roundsubnumarr)]=q.round_array(roundsubnumarr[numpy.isfinite(roundsubnumarr)],sig=int(roundval))
                 numarr2[ind]=roundsubnumarr
             except:
                 pass
-            
-        if not nonumeric: numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt='%1.5e')
+        
+        numfmt = '%1.'+str(int(roundval)-1)+'e'
+        if not nonumeric: numpy.savetxt(numsubpath,numarr2,delimiter=',',fmt=numfmt)
         if not nonominal: numpy.savetxt(nomsubpath,nomarr2,delimiter=',',fmt='%s')
         
         
