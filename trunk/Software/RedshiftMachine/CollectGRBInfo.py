@@ -1429,25 +1429,27 @@ class GRBdb:
         from MiscBin import q
         
         ind = -1
-        for subarr in nomarr2:
+        for nomsubarr in nomarr2:
             ind += 1
             if ignore_types: # only try this conversion if we're ignoring the types
                 try:
-                    roundsubarr = copy.deepcopy(subarr)
-                    roundsubarr = numpy.array(roundsubarr,dtype='float32') #convert it back from a string to a float
-                    roundsubarr[numpy.isfinite(roundsubarr)]=q.round_array(roundsubarr[numpy.isfinite(roundsubarr)],sig=4)
-                    roundsubarr = numpy.array(["{0:.4e}".format(a) for a in roundsubarr.astype(None) if type(a) is not str]) #convet it back to string
-                    nomarr2[ind]=roundsubarr
+                    roundsubnomarr = copy.deepcopy(nomsubarr)
+                    roundsubnomarr = numpy.array(roundsubnomarr,dtype='float32') #convert it back from a string to a float
+                    roundsubnomarr[numpy.isfinite(roundsubnomarr)]=q.round_array(roundsubnomarr[numpy.isfinite(roundsubnomarr)],sig=4)
+                    roundsubnomarr = numpy.array(["{0:.4e}".format(a) for a in roundsubnomarr.astype(None) if type(a) is not str]) #convet it back to string
+                    nomarr2[ind]=roundsubnomarr
+                    
                 except:
                     pass
+
         
         ind = -1
-        for subarr in numarr2:
+        for numsubarr in numarr2:
             ind += 1
             try:
-                roundsubarr = copy.deepcopy(subarr)
-                roundsubarr[numpy.isfinite(roundsubarr)]=q.round_array(roundsubarr[numpy.isfinite(roundsubarr)],sig=4)
-                numarr2[ind]=roundsubarr
+                roundsubnumarr = copy.deepcopy(numsubarr)
+                roundsubnumarr[numpy.isfinite(roundsubnumarr)]=q.round_array(roundsubnumarr[numpy.isfinite(roundsubnumarr)],sig=4)
+                numarr2[ind]=roundsubnumarr
             except:
                 pass
             
@@ -1499,7 +1501,7 @@ class GRBdb:
             myarray = numpy.rec.fromrecords(newarray,names=tuple(attrlist))
             myarray.sort(order=sortkey)    
             rec2csv(myarray,arffpathdata,withheader=False)
-            #raise Exception
+
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
