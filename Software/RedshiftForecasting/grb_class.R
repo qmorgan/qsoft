@@ -475,7 +475,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
 	   
 	   imagefile=paste('Plots/Calib_testdata_logweight',log_weight_try,'.pdf',sep="")
 	   pdf(imagefile)
-   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
       title(main=expression("Q calibration on GRBs with unknown Z"), sub=data_obj_test$data_string)
       lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
@@ -488,6 +488,12 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
    alphahats=bb$fres$avg_over_seeds[,weightchoice]
    Zlen_1 = length(alphahats) - 1
    ordered_alpha_hats = sort(alphahats)
+   
+   # make a repeat of 3 alphahats because im lazy and that's how the other one is read in.
+	trainlist = list(alpha_hats=alphahats,triggerids=bb$triggerids)
+	textfile='Calib_traindata.txt'
+	write.table(trainlist,textfile)
+	
    frac_followed_up = ordered_alpha_hats * 0.0
    count=0
    alpha_try_array = c(0:Zlen_1)/Zlen_1
@@ -497,7 +503,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
    }
    imagefile=paste('Plots/Calib_traindata_logweight',log_weight_try,'.pdf',sep="")
    pdf(imagefile)
-   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.4,cex.main=2.5,ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
    title(main=expression("Q calibration on cross-validated training set GRBs"), sub=data_obj_test$data_string)
          lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
          lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
@@ -507,6 +513,8 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
 	
 	textfile='Calib_testdata.txt'
 	write.table(data_obj_test$pred_vals,textfile)
+	
+
 	
 	return(data_obj_test)
 }
@@ -548,7 +556,7 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
    	Nz = length(data_obj$Z)
    	Nhigh = sum(data_obj$Z > high_cutoff)
 	pdf(file=imagefile,width=12,height=8) # save obj plot
-	plot(x = c(min(log_weights_try), max(log_weights_try)), y = c(0,1), xlim = c(min(log_weights_try), max(log_weights_try)), ylim=c(0,1), pch="") # initialize plot))
+	plot(x = c(min(log_weights_try), max(log_weights_try)), y = c(0,1), cex.lab=1.4,cex.main=2.5,xlim = c(min(log_weights_try), max(log_weights_try)), ylim=c(0,1), pch="") # initialize plot))
 	Nalpha = length(alpha_vec)
 	col = rainbow(Nalpha)
 
@@ -641,7 +649,7 @@ layout(matrix(c(1,2), 1, 2, byrow = TRUE), widths=c(10,1), heights=c(2,2)) # mak
 par(mar=c(4,2,0,0))
    parcoord(res_avg_over_seeds,lwd=lwd_vec,var.label=FALSE,col=tc[col.vec])
    title(xlab=xlabel,cex.lab=1.25,mgp=c(2.5,1,0)) # axis labels
-   title(ylab=ylabel,cex.lab=1.5,mgp=c(.25,1,0)) # yaxis
+   title(ylab=ylabel,cex.lab=1.4,cex.main=2.5,mgp=c(.25,1,0)) # yaxis
 # Colorbar stuff
 par(mar=c(4,0,0,1))
    plot(1, type="n", axes=F, xlab="z (log\n scale)", ylab="",xlim=c(-1,1),ylim=c(-1,1),mgp=c(1,1,0),cex.lab=1.25) # empty plot for colorbar
@@ -827,7 +835,7 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    avg_pur_high = avg_pur + pur_uncertainty
    avg_pur_low = avg_pur - pur_uncertainty
    
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Purity"), sub=data_obj$data_string)
    lines(alpha_tries, avg_pur, lty=1, lwd=2, col='red')
    xx = c(alpha_tries, rev(alpha_tries))
@@ -863,7 +871,7 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
    pdf(imagefile)
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Efficiency"), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(alpha_tries, avg_obj, lty=1, lwd=2, col='red')
@@ -905,7 +913,7 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
    pdf(imagefile)
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=newxlab, ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=newxlab, ylab=newylab, pch="") # initialize plot))
    title(main=expression("Efficiency vs Purity"), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(avg_obj, avg_pur, lty=1, lwd=2, col='red')
@@ -926,7 +934,7 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FA
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
    col = rainbow(n_curves)
@@ -968,7 +976,7 @@ multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Purity"))
    n_curves = length(data_obj_list)
    col = rainbow(n_curves)
@@ -1015,7 +1023,7 @@ multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1
    data_obj_1 = data_obj
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Efficiency"))
    n_curves = length(weight_index_list)
    col = rainbow(n_curves)
@@ -1054,7 +1062,7 @@ multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11)
    data_obj_1 = data_obj
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
    title(main=expression("Purity"))
    n_curves = length(weight_index_list)
    col = rainbow(n_curves)
@@ -1170,7 +1178,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       print(curve_index)
    }
    multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr, custom_namelist=custom_namelist,imagefile=paste('./Plots/ROC_multi',plot_suffix,'.pdf',sep=''))
-   multiple_purity_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr, custom_namelist=custom_namelist,imagefile=('./Plots/purity_multi',plot_suffix,'.pdf',sep=''))
+   multiple_purity_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr, custom_namelist=custom_namelist,imagefile=paste('./Plots/purity_multi',plot_suffix,'.pdf',sep=''))
 }
 
 # make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless10','UVOTonly_num_useless30','UVOTonly_num_useless50','UVOTonly_num_useless70','UVOTonly_num_useless90'),log_weights_try=seq(0.8,1.0,0.2), roc_weight=1)
@@ -1182,7 +1190,7 @@ make_all_plots = function(generate_data=FALSE,Nseeds=10,high_cutoff=4){
    make_forest_plots(data_string='reduced',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    # make_forest_plots(data_string='UVOTandZpred',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    # make_forest_plots(data_string='UVOTonly',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
-   make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
+   # make_forest_plots(data_string='Nat_Zprediction',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_nozpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    make_forest_plots(data_string='reduced_allzpredict',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
    # make_forest_plots(data_string='Full',generate_data=generate_data,Nseeds=Nseeds,high_cutoff=high_cutoff)
