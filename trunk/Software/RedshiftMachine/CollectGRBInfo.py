@@ -1180,7 +1180,9 @@ class GRBdb:
         #update the length
         self.length=len(self.dict)
                     
-    def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],namelist=None,caption='My awesome Table', tab_append='',inclerr=True,sortkey='',rotate=False):
+    def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],
+        namelist=None,caption='My awesome Table', tab_append='',inclerr=True,sortkey='',rotate=False,
+        label=None):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
@@ -1252,7 +1254,10 @@ class GRBdb:
             f_new.write(new_line)
             
         f_new.write('\enddata\n')
-        f_new.write('\end{deluxetable}')   
+        if label:
+            labeltext = '\label{%s}\n' % (label)
+            f_new.write(labeltext)
+        f_new.write('\end{deluxetable}\n')   
         if rotate:
             f_new.write('\end{landscape}')        
         f.close()
@@ -1279,7 +1284,8 @@ class GRBdb:
                       'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
                       'triggerid_str'
                       ],
-                      arff_append='',inclerr=True, ignore_types=False, sortkey='',roundval=4):
+                      arff_append='',inclerr=True, ignore_types=False, sortkey='',roundval=4,
+                      remove_outliers=False):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
@@ -1304,7 +1310,6 @@ class GRBdb:
         
         fmt = ''
         
-        remove_outliers = True
         if remove_outliers:
             for attr in attrlist:
                 self.removeOutliers(attr,threshold=0.32)
@@ -1612,7 +1617,7 @@ def TestReloadAlldb():
     SaveDB(db_lowz)
     SaveDB(db_highz)
     
-    db_full.Reload_DB(remove_short=True, remove_outliers=True,outlier_threshold=0.32)
+    db_full.Reload_DB(remove_short=True, remove_outliers=False)#,outlier_threshold=0.32)
     db_full.name = 'GRB_short+outliers_removed' 
     SaveDB(db_full)
     
@@ -1656,9 +1661,9 @@ def TestReloadAlldb():
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_fulltab'
-    namelist = ['GRB','\widehat{\mathcal{Q}}_{train}','z','\\alpha','E_{peak}','S','S/N_{max}',
-                        'NH_{pc}','T_{90}','\\sigma_{BAT}','N_{BAT}',
-                        'Rate','t_{BAT}','UVOT', 'P_{z>4}',
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','trigger','','detect','']
     
     table_list = ['grb','Q_hat_train','Z','A','EP0','FL','MAX_SNR',
@@ -1666,27 +1671,27 @@ def TestReloadAlldb():
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training')
 
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
     table_list = ['grb','Q_hat_train','Z']
-    namelist = ['GRB','\widehat{\mathcal{Q}}_{train}','z']
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data')
 
     table_list = ['grb','Q_hat']
-    namelist = ['GRB','\widehat{\mathcal{Q}}_{z=4}']    
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{z=4}$']    
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+outliers+Z_removed_tab'
     db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data')
     
-    namelist = ['GRB','\widehat{\mathcal{Q}}','\\alpha','E_{peak}','S','S/N_{max}',
-                        'NH_{pc}','T_{90}','\\sigma_{BAT}','N_{BAT}',
-                        'Rate','t_{BAT}','UVOT', 'P_{z>4}'
+    namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
                         '','','','','','','','','','','','trigger','','detect','']
     table_list = ['grb','Q_hat','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
@@ -1696,7 +1701,7 @@ def TestReloadAlldb():
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+outliers+Z_removed_fulltab'
     db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data')
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown')
     
     db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
