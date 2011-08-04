@@ -80,12 +80,10 @@ source('./algorithm1/algorithm1.R')
 library(foreign)
 library(fields)
 library(randomForest)
+library(missForest)
 
-read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4,impute=TRUE){
+read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4,impute=TRUE,missForestImpute=FALSE){
    data1 = read.arff(filename)
-   if(impute == TRUE){
-     data1 = na.roughfix(data1)
-   }
    Z = data1$Z
    ####### define above high_cutoff as high, below as low $ ####### 
    num_high = length(Z[Z >= high_cutoff])
@@ -94,6 +92,16 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
    data1$triggerid_str = NULL # meaningless feature in the data sets
    data1 = removeErrors(data1)
    data1 = cleanData(data1,high_cutoff) 
+   ## by default do simple median / mode imputing
+   if(impute == TRUE & missForestImpute == FALSE){
+     data1 = na.roughfix(data1)
+   }
+   ## or we can do missForest imputing
+   if(missForestImpute == TRUE){
+     data1.noclass = data1[,-1]
+     data1.noclass.imputed = missForest(data1.noclass)$ximp
+     data1[,2:ncol(data1)] = data1.noclass.imputed
+   }
    classes = data1[,1]
    features = data1[,-1]
    confmats = list()
