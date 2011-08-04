@@ -483,8 +483,9 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
 	   
 	   imagefile=paste('Plots/Calib_testdata_logweight',log_weight_try,'.pdf',sep="")
 	   pdf(imagefile)
-   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
-      title(main=expression("Q calibration on GRBs with unknown Z"), sub=data_obj_test$data_string)
+           par(mar=c(4.5,4.5,4.5,2))
+   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2, main = "Q calibration on GRBs with unknown z",ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+    #  title(main=expression("Q calibration on GRBs with unknown Z"), sub=data_obj_test$data_string)
       lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
       dev.off()
@@ -511,8 +512,9 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
    }
    imagefile=paste('Plots/Calib_traindata_logweight',log_weight_try,'.pdf',sep="")
    pdf(imagefile)
-   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.4,cex.main=2.5,ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
-   title(main=expression("Q calibration on cross-validated training set GRBs"), sub=data_obj_test$data_string)
+   par(mar=c(4.5,4.5,4.5,2))
+   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2, main = "Q calibration on cross-validated training set GRBs",ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+ #  title(main=expression("Q calibration on cross-validated training set GRBs"), sub=data_obj_test$data_string)
          lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
          lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
    dev.off()
@@ -824,7 +826,8 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
 purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    # Take the fifth weight for now 
    pdf(imagefile)
-   
+    par(mar=c(4.5,4.5,4.5,2))
+  
    high_cutoff = data_obj$high_cutoff
    newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
    
@@ -843,8 +846,8 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    avg_pur_high = avg_pur + pur_uncertainty
    avg_pur_low = avg_pur - pur_uncertainty
    
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Purity"), sub=data_obj$data_string)
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5,main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
+  # title(main=expression("Purity"), sub=data_obj$data_string)
    lines(alpha_tries, avg_pur, lty=1, lwd=2, col='red')
    xx = c(alpha_tries, rev(alpha_tries))
    yy = c(avg_pur_high, rev(avg_pur_low))
@@ -879,8 +882,9 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
    pdf(imagefile)
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Efficiency"), sub=data_obj$data_string)
+   par(mar=c(4.5,4.5,4.5,2))
+   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency", xlab="Fraction of GRBs Followed Up", ylab=newylab) # initialize plot))
+   #title(main=expression("Efficiency"), sub=data_obj$data_string,cex.main=2)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(alpha_tries, avg_obj, lty=1, lwd=2, col='red')
    xx = c(alpha_tries, rev(alpha_tries))
@@ -921,8 +925,9 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
    alpha_try_array = c(0:Zlen_1)/Zlen_1
    alpha_tries = seq(0,1,1/Zlen_1)
    pdf(imagefile)
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=newxlab, ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Efficiency vs Purity"), sub=data_obj$data_string)
+   par(mar=c(4.5,4.5,4.5,2))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency vs. Purity", xlab=newxlab, ylab=newylab) # initialize plot))
+  # title(main=expression("Efficiency vs Purity"), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
    lines(avg_obj, avg_pur, lty=1, lwd=2, col='red')
    xx = c(alpha_tries, rev(alpha_tries))
@@ -939,11 +944,12 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
 # custom_namelist=c('0 Useless Features','2 Useless Features','4 Useless Features','8 Useless Features','16 Useless Features','32 Useless Features','64 Useless Features')
 multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf',custom_namelist=c()){
    pdf(imagefile)
+   par(mar=c(4.5,4.5,4.5,2))
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Efficiency"))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+  # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
    col = rainbow(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
@@ -981,11 +987,12 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FA
 
 multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/purity_multi.pdf',custom_namelist=c()){
    pdf(imagefile)
+   par(mar=c(4.5,4.5,4.5,2))
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Purity"))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Purity", xlab=expression("Fraction of GRBs Followed Up"), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+  # title(main=expression("Purity"))
    n_curves = length(data_obj_list)
    col = rainbow(n_curves)
    ltys = rep(1:4, length.out=n_curves) #create a vector for different ltys
@@ -1028,11 +1035,12 @@ multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,
 
 multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11),ploterr=FALSE,imagefile='./Plots/ROC_multi_weights.pdf'){
    pdf(imagefile)
+   par(mar=c(4.5,4.5,4.5,2))
    data_obj_1 = data_obj
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Efficiency"))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+ #  title(main=expression("Efficiency"))
    n_curves = length(weight_index_list)
    col = rainbow(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
@@ -1067,11 +1075,12 @@ multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1
 
 multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11),ploterr=FALSE,imagefile='./Plots/purity_multi_weights.pdf'){
    pdf(imagefile)
+   par(mar=c(4.5,4.5,4.5,2))
    data_obj_1 = data_obj
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.4,cex.main=2.5, xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
-   title(main=expression("Purity"))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+  # title(main=expression("Purity"))
    n_curves = length(weight_index_list)
    col = rainbow(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
