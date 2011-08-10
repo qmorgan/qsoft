@@ -19,7 +19,15 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
         subdict={}
         if rowcount == 0:
             headerlist = tr.findAll(text=True)
-            headerlist = headerlist[0:expected_cols]                
+            headerlist = headerlist[0:expected_cols]
+            
+            # rename any duplicates in the header list by appending a number
+            duplicates = [x for x in headerlist if headerlist.count(x)>=2]
+
+            for duplicate in duplicates:
+                addd = headerlist.count(duplicate)
+                headerlist[headerlist.index(duplicate)] = str(addd) + duplicate
+                            
         colcount = 0
         trstrip = [a for a in tr.findAll(text=True) if a != u' ']
         
