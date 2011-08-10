@@ -20,6 +20,8 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
         if rowcount == 0:
             headerlist = tr.findAll(text=True)
             headerlist = headerlist[0:expected_cols]
+            #add a few characters to deliniate that these are web features
+            headerlist = ['web_'+x.strip().replace(' ','_') for x in headerlist]
             
             # rename any duplicates in the header list by appending a number
             duplicates = [x for x in headerlist if headerlist.count(x)>=2]
@@ -35,7 +37,8 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
         # But don't skip the first row no matter what because there is a malformed
         # table where the first row has more 
         if len(trstrip) == expected_cols + 1 and tr.find('a') != None:
-            print trstrip.pop(1)
+            popped = trstrip.pop(1)
+            # print popped
         if not len(trstrip) == expected_cols and rowcount != 0:
             print 'Skipping this burst'
             continue
@@ -61,7 +64,6 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
                 # parse them accordingly: '1.8e-06 (1.6e-06,1.9e-06)'
                 if errtype == 'ul' and val.find('(') != -1 and val.find(',') != -1:
                     value = val.split('(')[0].strip()
-                    print value
                     remainder = val.split('(')[1].strip().split(',')
                     lowlimit = remainder[0].strip()
                     uplimit = remainder[1].strip().strip(')')
@@ -78,10 +80,7 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
         
                 if grbname:
                     grbdict.update({grbname:subdict})
-                    
-                    
-            
-                #print subdict
+
             else:
                 pass
             
@@ -92,7 +91,7 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
         rowcount += 1
             
     print 'Done'
-    print headerlist
+    # print headerlist
     return grbdict
 
 def ParseBATSpec():
@@ -118,3 +117,21 @@ def ParseXRTSpec():
     soup=BeautifulSoup(html)
     xrtspec = parseNatWebTable(soup,expected_cols=17,errtype='ul')
     return xrtspec
+
+def CombineWebResults():
+    import copy
+    xrtdict = ParseXRTSpec()
+    timingdict = ParseBATTiming()
+    specdict = ParseBATSpec()
+    fulldict = copy.deepcopy(xrtdict)
+    for key, value in timingdict.iteritems():
+        if key in fulldict:
+            fulldict[key].update(value)
+        else:
+            fulldict.update({key:value})
+    for key, value in specdict.iteritems():
+        if key in fulldict:
+            fulldict[key].update(value)
+        else:
+            fulldict.update({key:value})
+    return fulldict
