@@ -1,5 +1,6 @@
 import urllib2
 from BeautifulSoup import BeautifulSoup
+import copy
 
 
 def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
@@ -135,3 +136,28 @@ def CombineWebResults():
         else:
             fulldict.update({key:value})
     return fulldict
+
+def ConvertToFloat(fulldict):
+    newdict = copy.deepcopy(fulldict)
+    for key, value in fulldict.iteritems():
+        for subkey, subvalue in value.iteritems():
+            try:
+                newdict[key][subkey] = float(subvalue)
+            except:
+                pass
+    return newdict
+
+def RemoveUnknownVals(fulldict,remove_list=['na','&nbsp;']):
+    # gotta deal with inf at some point too..
+    newdict = copy.deepcopy(fulldict)
+    for key, value in fulldict.iteritems():
+        for subkey, subvalue in value.iteritems():
+            if subvalue  in remove_list:
+                xx = newdict[key].pop(subkey)
+    return newdict
+
+def CombineRemoveConvert():
+    grbdict = CombineWebResults()
+    grbdict = RemoveUnknownVals(grbdict)
+    grbdict = ConvertToFloat(grbdict)
+    return grbdict
