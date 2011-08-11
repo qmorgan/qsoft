@@ -218,7 +218,9 @@ def whatis(keyword):
     'prob_high':{'definition':'prob high from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.302},
     'prob_low':{'definition':'prob low from RATE GRB-z','type':'float','source':'RATEGRBz','speed':'processed','sample':0.698},
     'z_isupper': {'definition':'Was the redshift value reported an upper limit?','type':'string','source':'SwiftCat','speed':'na','sample':'no'},
-    'z_str': {'definition':'Redshift String','type':'string','source':'SwiftCat','speed':'na','sample':'2.43 (Gemini-North: absorption)'}}
+    'z_str': {'definition':'Redshift String','type':'string','source':'SwiftCat','speed':'na','sample':'2.43 (Gemini-North: absorption)'},
+    'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48}
+    }
     
     if keyword in helpdict:
         return helpdict[keyword]
@@ -259,7 +261,7 @@ def SaveDB(loadeddb):
 
 class GRBdb:
     '''Instance of a grb database'''
-    def __init__(self,name,incl_nat=True,incl_fc=False,incl_reg=True,
+    def __init__(self,name,incl_nat=True,incl_nat_web=True,incl_fc=False,incl_reg=True,
                 make_html=True,html_path='/home/amorgan/www/swift/'):
         
         self.date_created = time.ctime()
@@ -267,6 +269,7 @@ class GRBdb:
             self.name = str(name)
             self.incl_fc = incl_fc
             self.incl_nat = incl_nat
+            self.incl_nat_web = incl_nat_web
             self.incl_reg = incl_reg
             self.make_html = make_html
             self.html_path = html_path
@@ -321,6 +324,7 @@ class GRBdb:
         
         incl_fc = self.incl_fc
         incl_nat = self.incl_nat
+        incl_nat_web = self.incl_nat_web
         incl_reg = self.incl_reg
         make_html = self.make_html
         html_path = self.html_path
@@ -336,13 +340,19 @@ class GRBdb:
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
             from RedshiftMachine import ParseNatCat
-            print "Now loading Nat's Catalog"
+            print "Now loading Nat's FITS Catalog"
             natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
+        if incl_nat_web:
+            from RedshiftMachine import ParseNatWeb
+            print "Now loading Nat's Web Catalog"
+            natcatwebdict = ParseNatWeb.CombineWebResults()
         collected_dict = {}
         failed_gcn_grbs = []
         failed_nat_grbs = []
+        failed_nat_web_grbs = []
         failed_gcn_grbs_ids = []  # includes just the grb_str e.g. '090313'
         failed_nat_grbs_ids = []  # includes just the grb_str e.g. '090313'
+        failed_nat_web_grbs_ids = []
         failed_finding_charts = []
         for grb_str,catdict in swiftcatdict.iteritems():
             # If the swiftcat has a TRIGGERID associated with it, grab the trigger id
@@ -400,7 +410,7 @@ class GRBdb:
                 
                     
             
-                print "Now collecting Nat's Catalog entries for GRB %s" % (grb_str)
+                print "Now collecting Nat's FITS Catalog entries for GRB %s" % (grb_str)
                 GRBgrb_str = 'GRB'+grb_str
                 try:
                     catdict.update(natcatdict[GRBgrb_str])
@@ -412,6 +422,26 @@ class GRBdb:
                         try:
                             # Try ADDING the trailing A onto the name and see if it's in natcat
                             catdict.update(natcatdict[GRBgrb_str+'A'])
+                        except:
+                            print "Cannot load Nat's entries for GRB %s" % (grb_str)
+                            failed_nat_web_grbs.append(GRBgrb_str) 
+                            failed_nat_web_grbs_ids.append(grb_str)
+            
+                subdict = {grb_str:catdict}
+                collected_dict.update(subdict)
+                
+                
+                print "Now collecting Nat's Web Catalog entries for GRB %s" % (grb_str)
+                try:
+                    catdict.update(natcatwebdict[GRBgrb_str]) 
+                except:
+                    try:
+                        # Try stripping the trailing A off the name and see if its in nat's cat
+                        catdict.update(natcatwebdict[GRBgrb_str.strip('A')])
+                    except:
+                        try:
+                            # Try ADDING the trailing A onto the name and see if it's in natcat
+                            catdict.update(natcatwebdict[GRBgrb_str+'A'])
                         except:
                             print "Cannot load Nat's entries for GRB %s" % (grb_str)
                             failed_nat_grbs.append(GRBgrb_str)
@@ -966,6 +996,9 @@ class GRBdb:
         self.MakeAttrArr('Q_hat_train')
         self.MakeAttrArr('prob_high')
         self.MakeAttrArr('prob_low')
+        
+        #Nat Web Values
+        self.MakeAttrArr('web_T_90')
         
         # Make the following Binary attributes
         keys_to_binary = ['v_mag_isupper','wh_mag_isupper','bat_is_rate_trig',
