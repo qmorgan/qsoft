@@ -455,8 +455,10 @@ class GRBdb:
         failed_finding_charts.sort()
         self.failed_gcn_grbs = failed_gcn_grbs
         self.failed_nat_grbs = failed_nat_grbs
+        self.failed_nat_web_grbs = failed_nat_web_grbs
         self.failed_gcn_grbs_ids = failed_gcn_grbs_ids
         self.failed_nat_grbs_ids = failed_nat_grbs_ids
+        self.failed_nat_web_grbs_ids = failed_nat_web_grbs_ids
         self.failed_finding_charts = failed_finding_charts
         self.length = len(collected_dict)
         # Can potentially update later to cull out the failed_gcn_grb_ids, etc
@@ -474,7 +476,8 @@ class GRBdb:
         print ''
         print len(collected_dict), ' entries in the collected dictionary'
         print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
-        print "GRBs failed to gather from Nat's Catalogue: ", failed_nat_grbs  
+        print "GRBs failed to gather from Nat's FITS Catalogue: ", failed_nat_grbs  
+        print "GRBs failed to gather from Nat's Web Catalogue: ", failed_nat_web_grbs  
         print "GRBs failed to obtain finding charts: ", failed_finding_charts           
         return collected_dict
     
