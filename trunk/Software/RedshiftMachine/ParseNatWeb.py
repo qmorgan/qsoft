@@ -156,8 +156,17 @@ def RemoveUnknownVals(fulldict,remove_list=['na','&nbsp;']):
                 xx = newdict[key].pop(subkey)
     return newdict
 
+def RemoveBadInstances(fulldict,remove_list=['#t90']):
+    newdict = copy.deepcopy(fulldict)
+    for key, value in fulldict.iteritems():
+        for subkey, subvalue in value.iteritems():
+            if subvalue  in remove_list:
+                xx = newdict.pop(key)
+    return newdict
+
 def CombineRemoveConvert():
     grbdict = CombineWebResults()
+    grbdict = RemoveBadInstances(grbdict)
     grbdict = RemoveUnknownVals(grbdict)
     grbdict = ConvertToFloat(grbdict)
     return grbdict
