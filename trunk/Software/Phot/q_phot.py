@@ -1989,7 +1989,7 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
     return (j_delta_med_list,h_delta_med_list,k_delta_med_list)
 
 def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
-    '''Plots a color evolution J-H, H-K from photdict'''
+    '''Plots a color evolution J-H, H-K from photdict. There are two photdicts, one for the color evolution, and another for the lightcurve. This is because they might have different time resolution. Of course, they can be the same.'''
     import matplotlib
     import glob
     import datetime
@@ -2325,3 +2325,250 @@ def textoutput(photdict,utburst,filt=None, day=False):
         text.write(' '.join(datalist))
         text.write('\n')
     text.close()
+
+def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False):
+    '''Plots spectral indexes vs. time from photdict'''
+    import matplotlib
+    import glob
+    import datetime
+    import numpy
+    from operator import itemgetter
+    from scipy import optimize
+    from scipy import log10
+    from MiscBin import q
+    from Phot import pofit
+
+    #filepath = path + GRBname + '.data'
+    #photdict = qPickle.load(filepath)
+
+    matplotlib.pyplot.clf()
+    
+    h = False
+    j = False
+    k = False
+
+    timlist = []
+    terlist = []
+    h_list = []
+    h_errlist = []
+    j_list = []
+    j_errlist = []
+    k_list = []
+    k_errlist = []
+    mosaiclist=[]
+    for mosaics in photdict:
+        mosaiclist += [photdict[mosaics]]
+    #sorting w.r.t time
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+    for mosaics in mosaiclist:
+
+        if 'targ_mag' in mosaics: 
+            valu = float(mosaics['targ_mag'][0])
+            verr = float(mosaics['targ_mag'][1])
+            
+            if mosaics['filter'] == 'h':                
+                h_list += [valu]
+                h_errlist += [verr]
+                timlist += [mosaics['t_mid'][0]]
+                terlist += [mosaics['t_mid'][1]]
+
+            elif mosaics['filter'] == 'j':
+                j_list += [valu]
+                j_errlist += [verr]
+            elif mosaics['filter'] == 'k':
+                k_list += [valu]
+                k_errlist += [verr]
+            
+        elif 'upper_green' in mosaics: 
+                valu = float(mosaics['upper_green'])
+                if mosaics['filter'] == 'h':
+                     h_list += [valu]
+                     h_errlist += [0]
+                     timlist += [mosaics['t_mid'][0]]
+                     terlist += [mosaics['t_mid'][1]]
+                if mosaics['filter'] == 'j':
+                     j_list += [valu]
+                     j_errlist += [0]
+                if mosaics['filter'] == 'k':
+                     k_list += [valu]
+                     k_errlist += [0]
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
+
+    timlist = numpy.array(timlist)
+    terlist = numpy.array(terlist)
+    h_list = numpy.array(h_list)
+    j_list = numpy.array(j_list)
+    k_list = numpy.array(k_list)
+    h_errlist = numpy.array(h_errlist)
+    j_errlist = numpy.array(j_errlist)
+    k_errlist = numpy.array(k_errlist)
+
+    # We have to fit these one by one.
+    # Note that the length of h, j, k must be the same.
+
+    betalist = []
+    for index, mosaic in enumerate(j_list):
+        k_mag = k_list[index]
+        h_mag = h_list[index]
+        j_mag = j_list[index] # sort by ascending frequencies
+        k_flux = q.mag2flux(k_mag,0,6.667e-21) # zeropoints are in jansky
+        h_flux = q.mag2flux(h_mag,0,1.024e-20)
+        j_flux = q.mag2flux(j_mag,0,1.594e-20)
+        
+        specmag = numpy.array([k_flux, h_flux, j_flux])
+        specmag_error = numpy.array([k_errlist[index], h_errlist[index], j_errlist[index]])
+        
+        p_freqs = numpy.array([1.362692991e+14,1.873702863e+14,2.306095831e+14]) # placeholder values, get the actual values!
+        log_freqs = log10(p_freqs)
+        log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
+
+#        fitfunc = lambda p, x: p[0] + p[1] * x # the linear function in log-log space
+#        errfunc = lambda p, x, y, err: (y - fitfunc(p, x)) / err # the error function, this is just the data minus the line of best fit divided by the error
+#        pinit = [0., -1.0] # initial guess
+
+#        out = optimize.leastsq(errfunc, pinit, args=(log_freqs, specmag, log_specmag_err), full_output=1)
+#        pfinal = out[0] # Getting the coefficients
+#        covar = out[1] # The covariance        
+
+        results = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+        betalist += [results[1]] # Getting the spectral index
+
+        print '----'
+        print k_mag
+        print h_mag
+        print j_mag
+        print specmag
+        print '----'   
+
+    fig = pylab.figure()
+    ax_lcurve = fig.add_axes([0.1,0.55,0.8,0.4])
+    pylab.subplots_adjust(hspace=0.001)
+    
+    #Lightcurve
+    
+    h = False
+    j = False
+    k = False
+    ap = None
+    
+    for mosaics in photdict_lcurve:
+        print 'now doing ' + str(mosaics)
+        if ap:
+            if photdict_lcurve[mosaics]['Aperture'] != ap:
+                raise ValueError ('The aperture used in this mosaic does not match the last one.')
+        ap = photdict_lcurve[mosaics]['Aperture']
+        time = photdict_lcurve[mosaics]['t_mid'][0]
+        terr = photdict_lcurve[mosaics]['t_mid'][1]
+        
+        if 'targ_mag' in photdict_lcurve[mosaics]: 
+            valu = float(photdict_lcurve[mosaics]['targ_mag'][0])
+            verr = float(photdict_lcurve[mosaics]['targ_mag'][1])
+
+            #there's probably a prettier way to do this, the second if statements 
+            #are there so that only 1 label per filter is on the legend
+
+            if 'h_' in mosaics:
+                if h == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green', label = 'h')
+                    h = True
+
+            elif 'j_' in mosaics:            
+                if j == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'j')
+                    j = True
+
+            elif 'k_' in mosaics:
+                if k == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red', label = 'k')
+                    k = True
+        elif 'upper_green' in photdict_lcurve[mosaics]: 
+                valu = float(photdict_lcurve[mosaics]['upper_green'])
+                if photdict_lcurve[mosaics]['filter'] == 'h':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'green', mec = 'green', \
+                        ecolor = 'green')
+                if photdict_lcurve[mosaics]['filter'] == 'j':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                if photdict_lcurve[mosaics]['filter'] == 'k':
+                    matplotlib.pyplot.errorbar(time, valu, xerr=terr, \
+                        marker = 'v', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+#    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    #matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+
+    uniquename = photdict_lcurve.keys()[0].split('_')[2]
+    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+
+    # spectral index plot
+    beta_err = list(numpy.zeros(len(timlist)))
+
+    ax = fig.add_axes([0.1,0.1,0.8,0.3])    
+    ax.errorbar(timlist, betalist, yerr = beta_err, xerr=terlist,\
+                        marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
+                        ecolor = 'red')
+        
+    #ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    matplotlib.pyplot.semilogx()
+    ax = matplotlib.pyplot.gca()
+    #ax.set_xscale('log')
+    matplotlib.pyplot.legend()
+    uniquename = photdict.keys()[0].split('_')[2]
+    cname = 'beta'
+    #matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
+    savepath = storepath + uniquename + '_' + cname + '_colorevo.png'
+    
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+        
+    F = pylab.gcf()
+    DefaultSize = F.get_size_inches()
+    DPI = F.get_dpi()
+    if big:
+        F.set_size_inches((20, 15))
+    
+    print 'colorevolution saved to ' + savepath
+    savefig(savepath)    
+    matplotlib.pyplot.close()
+
