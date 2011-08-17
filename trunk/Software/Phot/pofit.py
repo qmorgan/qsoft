@@ -23,7 +23,7 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
     def powerlaw(x): return  amp()*(x**index())
     def fitfunc(x): return const() + x*slope()
     logx = log10(xdata)
-
+    
     fitfunc_lambda = lambda x, const, slope:const+x*slope
 #===========================================================================
 
@@ -62,18 +62,28 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
         plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
         errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'k') #Data
     elif band == 'beta':
-        #plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
-        #errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'beta') #Data
+        plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
+        errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'beta') #Data
         #show()
+        savefig('spectralfit.png')
         pass
     title(name)
-    xlabel('Log Time After Burst (s)')
-    ylabel('Magnitude')
-
-    ax = matplotlib.pyplot.gca()
-    ax.set_ylim(ax.get_ylim()[::-1])
-    print 'slope is'
-    print slope()
+    if band == 'beta':
+        xlabel('Log10(Frequency)')
+        ylabel('Flux Density (Converted to AB Magnitude)')
+        ax = matplotlib.pyplot.gca()
+        ax.set_ylim(ax.get_ylim()[::-1])
+        print 'const is'
+        print const()
+        print 'beta is'
+        print slope()
+    else:
+        xlabel('Log Time After Burst (s)')
+        ylabel('Magnitude')
+        ax = matplotlib.pyplot.gca()
+        ax.set_ylim(ax.get_ylim()[::-1])
+        print 'slope is'
+        print slope()
     return ([const(), slope()])
 
 def fitplot(dict, name='GRB', exclude=[]): 

@@ -2326,7 +2326,7 @@ def textoutput(photdict,utburst,filt=None, day=False):
         text.write('\n')
     text.close()
 
-def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False):
+def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=False):
     '''Plots spectral indexes vs. time from photdict'''
     import matplotlib
     import glob
@@ -2413,14 +2413,19 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False):
         k_mag = k_list[index]
         h_mag = h_list[index]
         j_mag = j_list[index] # sort by ascending frequencies
-        k_flux = q.mag2flux(k_mag,0,6.667e-21) # zeropoints are in jansky
-        h_flux = q.mag2flux(h_mag,0,1.024e-20)
-        j_flux = q.mag2flux(j_mag,0,1.594e-20)
+
+        k_flux = -2.5*numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) - 48.60 # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
+        h_flux = -2.5*numpy.log10(q.mag2flux(h_mag,0,1.024e-20)) - 48.60
+        j_flux = -2.5*numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) -48.60
+
+#        k_flux = q.mag2flux(k_mag,0,666.7e6) # zeropoints are in microjansky
+#        h_flux = q.mag2flux(h_mag,0,1024e6)
+#        j_flux = q.mag2flux(j_mag,0,1594e6) 
         
         specmag = numpy.array([k_flux, h_flux, j_flux])
         specmag_error = numpy.array([k_errlist[index], h_errlist[index], j_errlist[index]])
-        
-        p_freqs = numpy.array([1.362692991e+14,1.873702863e+14,2.306095831e+14]) # placeholder values, get the actual values!
+
+        p_freqs = numpy.array([1.394383526e+14,1.816923988e+14,2.398339664e+14]) # placeholder values, get the actual values!
         log_freqs = log10(p_freqs)
         log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
 
@@ -2456,8 +2461,11 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False):
     for mosaics in photdict_lcurve:
         print 'now doing ' + str(mosaics)
         if ap:
-            if photdict_lcurve[mosaics]['Aperture'] != ap:
-                raise ValueError ('The aperture used in this mosaic does not match the last one.')
+            if not dif_ap:
+                if photdict_lcurve[mosaics]['Aperture'] != ap:
+                    raise ValueError ('The aperture used in this mosaic does not match the last one.')
+                else:
+                    print 'The aperture used in this mosaic does not match the last one, continuing...'
         ap = photdict_lcurve[mosaics]['Aperture']
         time = photdict_lcurve[mosaics]['t_mid'][0]
         terr = photdict_lcurve[mosaics]['t_mid'][1]
@@ -2544,10 +2552,10 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False):
                         ecolor = 'red')
         
     #ax = matplotlib.pyplot.gca()
-    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    #ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('Mag')
+    matplotlib.pyplot.ylabel('Beta')
     matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
     #ax.set_xscale('log')
