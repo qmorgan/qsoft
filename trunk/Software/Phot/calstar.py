@@ -55,7 +55,7 @@ def magplot(reg, filelist, out_pickle=None, ap=None, triggerid = None, globit = 
     testind = 0
     caldict = {}
     matplotlib.pyplot.clf()
-    regpath = reg
+    regpath = storepath + reg
     temppath = storepath + 'temp.reg'
     regfile = open(regpath, 'r')
     reglist = regfile.readlines()

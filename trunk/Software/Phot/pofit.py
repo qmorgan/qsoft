@@ -61,8 +61,11 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
     elif band == 'k':
         plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
         errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'k') #Data
-        
-
+    elif band == 'beta':
+        #plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
+        #errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'beta') #Data
+        #show()
+        pass
     title(name)
     xlabel('Log Time After Burst (s)')
     ylabel('Magnitude')
