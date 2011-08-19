@@ -481,10 +481,14 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
 	      frac_followed_up[count] = sum(ordered_alpha_hats < alpha)/Zlen_1
 	   }
 	   
+	   par(mar=c(4.5,4.5,4.5,2))
+
+      
+	   
 	   imagefile=paste('Plots/Calib_testdata_logweight',log_weight_try,'.pdf',sep="")
 	   pdf(imagefile)
            par(mar=c(4.5,4.5,4.5,2))
-   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2, main = "Q calibration on GRBs with unknown z",ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+   	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2.0, main = "Q calibration on GRBs with unknown z",ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
     #  title(main=expression("Q calibration on GRBs with unknown Z"), sub=data_obj_test$data_string)
       lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
       lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
@@ -513,7 +517,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
    imagefile=paste('Plots/Calib_traindata_logweight',log_weight_try,'.pdf',sep="")
    pdf(imagefile)
    par(mar=c(4.5,4.5,4.5,2))
-   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2, main = "Q calibration on cross-validated training set GRBs",ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
+   plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2.0, main = "Q calibration on training set",ylab=expression(paste("Fraction of GRBs Followed up (",widehat(Q)," < Q)",sep='')), xlab=expression('Q'), pch="") # initialize plot))
  #  title(main=expression("Q calibration on cross-validated training set GRBs"), sub=data_obj_test$data_string)
          lines(alpha_try_array,alpha_try_array,lty=2,lwd=1)
          lines(alpha_try_array,frac_followed_up,lty=1,lwd=2)
@@ -941,6 +945,120 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
 #   dev.off()
    
 }
+
+multiple_efficiency_vs_alpha_residuals = function(reference_data_obj,data_obj_list,weight_index=11,ref_weight_index=11,ploterr=FALSE,imagefile='./Plots/ROC_multi_residuals.pdf',custom_namelist=c()){
+   pdf(imagefile)
+   par(mar=c(4.5,4.5,4.5,2))
+   data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
+
+   high_cutoff = reference_data_obj$high_cutoff
+   newylab=paste("Change in fraction of high (z > ",high_cutoff,") GRBs observed",sep="")
+   
+   reference_avg_obj = reference_data_obj$fres$objective_avg_over_seeds[,ref_weight_index]
+   reference_obj_uncertainty = reference_data_obj$fres$objective_stdev_over_seeds[,ref_weight_index]
+   reference_avg_obj_high = reference_avg_obj + reference_obj_uncertainty
+   reference_avg_obj_low = reference_avg_obj - reference_obj_uncertainty
+   
+	plot(x = c(0,1), y = c(-0.12,0.12), xlim = c(0,1), ylim=c(-0.12,0.12), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+  # title(main=expression("Efficiency"))
+   n_curves = length(data_obj_list)
+   col = rainbow(n_curves)
+   col_alpha = rainbow(n_curves,alpha=0.3)
+   name_list = c()
+   curve_index = 1
+   
+   if(ploterr == TRUE){
+      Zlen_1 = length(reference_avg_obj) - 1
+      print(Zlen_1)
+      alpha_tries = seq(0,1,1/Zlen_1)
+      xx = c(alpha_tries, rev(alpha_tries))
+      yy = c(reference_obj_uncertainty, rev(reference_obj_uncertainty*-1))
+      polygon(xx,yy, col="#9999994D")         
+   }
+   
+   for(data_obj_name in ls(data_obj_list)){
+      print(data_obj_name)
+      data_obj = get(data_obj_name,pos=data_obj_list)
+      avg_obj = data_obj$fres$objective_avg_over_seeds[,weight_index]
+      
+      avg_obj_res = avg_obj - reference_avg_obj
+      
+      Zlen_1 = length(avg_obj) - 1
+      print(Zlen_1)
+      alpha_tries = seq(0,1,1/Zlen_1)
+      lines(alpha_tries, avg_obj_res, lty=1, lwd=2, col=col[curve_index])
+
+      curve_index = curve_index + 1
+      if(length(custom_namelist) == 0){name_list = c(name_list,data_obj$data_string)}
+   }
+   # now print diagonal line for reference
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   lines(alpha_try_array,alpha_try_array*0,lty=1,lwd=2)
+
+   if(length(custom_namelist) > 0){name_list = custom_namelist}
+   print(name_list)
+   legend("topright", name_list, cex=1.0,col=col,lty=1,lwd=2)
+	
+   dev.off()
+}
+
+multiple_purity_vs_alpha_residuals = function(reference_data_obj,data_obj_list,weight_index=11,ref_weight_index=11,ploterr=FALSE,imagefile='./Plots/Purity_multi_residuals.pdf',custom_namelist=c()){
+   pdf(imagefile)
+   par(mar=c(4.5,4.5,4.5,2))
+   data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
+
+   high_cutoff = reference_data_obj$high_cutoff
+   newylab=paste("Change in percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
+   
+   reference_avg_obj = reference_data_obj$fres$purity_avg_over_seeds[,ref_weight_index]
+   reference_obj_uncertainty = reference_data_obj$fres$purity_stdev_over_seeds[,ref_weight_index]
+   reference_avg_obj_high = reference_avg_obj + reference_obj_uncertainty
+   reference_avg_obj_low = reference_avg_obj - reference_obj_uncertainty
+   
+	plot(x = c(0,1), y = c(-0.12,0.12), xlim = c(0,1), ylim=c(-0.12,0.12), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+  # title(main=expression("Efficiency"))
+   n_curves = length(data_obj_list)
+   col = rainbow(n_curves)
+   col_alpha = rainbow(n_curves,alpha=0.3)
+   name_list = c()
+   curve_index = 1
+   
+   if(ploterr == TRUE){
+      Zlen_1 = length(reference_avg_obj) - 1
+      print(Zlen_1)
+      alpha_tries = seq(0,1,1/Zlen_1)
+      xx = c(alpha_tries, rev(alpha_tries))
+      yy = c(reference_obj_uncertainty, rev(reference_obj_uncertainty*-1))
+      polygon(xx,yy, col="#9999994D")         
+   }
+   
+   for(data_obj_name in ls(data_obj_list)){
+      print(data_obj_name)
+      data_obj = get(data_obj_name,pos=data_obj_list)
+      avg_obj = data_obj$fres$purity_avg_over_seeds[,weight_index]
+      
+      avg_obj_res = avg_obj - reference_avg_obj
+      
+      Zlen_1 = length(avg_obj) - 1
+      print(Zlen_1)
+      alpha_tries = seq(0,1,1/Zlen_1)
+      lines(alpha_tries, avg_obj_res, lty=1, lwd=2, col=col[curve_index])
+
+      curve_index = curve_index + 1
+      if(length(custom_namelist) == 0){name_list = c(name_list,data_obj$data_string)}
+   }
+   # now print diagonal line for reference
+   alpha_try_array = c(0:Zlen_1)/Zlen_1
+   lines(alpha_try_array,alpha_try_array*0,lty=1,lwd=2)
+
+   if(length(custom_namelist) > 0){name_list = custom_namelist}
+   print(name_list)
+   legend("topright", name_list, cex=1.0,col=col,lty=1,lwd=2)
+	
+   dev.off()
+}
+
+
 # custom_namelist=c('0 Useless Features','2 Useless Features','4 Useless Features','8 Useless Features','16 Useless Features','32 Useless Features','64 Useless Features')
 multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,imagefile='./Plots/ROC_multi.pdf',custom_namelist=c()){
    pdf(imagefile)
@@ -991,7 +1109,7 @@ multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,
    data_obj_1 = get(ls(data_obj_list)[1],pos=data_obj_list)
    high_cutoff = data_obj_1$high_cutoff
    newylab=paste("Percent of observed GRBs that are high z (z > ",high_cutoff,")",sep="")
-	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Purity", xlab=expression("Fraction of GRBs Followed Up"), xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Purity"))
    n_curves = length(data_obj_list)
    col = rainbow(n_curves)
@@ -1157,7 +1275,7 @@ make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weig
    ## make_bumps_plot(alphas.cv)
  }
  
-make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','reduced_nozpredict','Full'), log_weights_try=seq(-1,1,0.2),roc_weight=11, ploterr=FALSE, high_cutoff=4, custom_namelist=c(), plot_suffix=''){
+make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('reduced','UVOTonly','UVOTandZpred','Nat_Zprediction','reduced_nozpredict','Full'), log_weights_try=seq(-1,1,0.2),roc_weight=11, ploterr=FALSE, high_cutoff=4, custom_namelist=c(), plot_suffix='',ref_data_string='reduced',ref_weight_index=11){
    
    curve_index = 1
    data_obj_list = list()
@@ -1191,11 +1309,24 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       if(curve_index==10){data_obj_list$l10 = mydata}
       if(curve_index==11){data_obj_list$l11 = mydata}
       if(curve_index==12){data_obj_list$l12 = mydata}
+      if(curve_index==13){data_obj_list$l13 = mydata}
+      if(curve_index==14){data_obj_list$l14 = mydata}
+      if(curve_index==15){data_obj_list$l15 = mydata}
       curve_index = curve_index + 1
       print(curve_index)
    }
+   data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",ref_data_string,".arff",sep="")
+   data_results_dir = paste("./smooth_weights_results/smooth_weights_",ref_data_string,"_",high_cutoff,sep="")
+   
+   refdata = read_data(filename=data_filename,high_cutoff=high_cutoff)
+   refdata = extract_stats(data_obj = mydata, forest_res_dir=data_results_dir)
+   
+   multiple_efficiency_vs_alpha_residuals(refdata,data_obj_list, ref_weight_index=ref_weight_index, weight_index=roc_weight,ploterr=TRUE, custom_namelist=custom_namelist,imagefile=paste('./Plots/ROC_multi_residual',plot_suffix,'.pdf',sep='') )
+   multiple_purity_vs_alpha_residuals(refdata,data_obj_list, ref_weight_index=ref_weight_index, weight_index=roc_weight,ploterr=TRUE, custom_namelist=custom_namelist,imagefile=paste('./Plots/purity_multi_residual',plot_suffix,'.pdf',sep='') )
+   
    multiple_efficiency_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr, custom_namelist=custom_namelist,imagefile=paste('./Plots/ROC_multi',plot_suffix,'.pdf',sep=''))
    multiple_purity_vs_alpha(data_obj_list, weight_index=roc_weight,ploterr=ploterr, custom_namelist=custom_namelist,imagefile=paste('./Plots/purity_multi',plot_suffix,'.pdf',sep=''))
+
 }
 
 # make_efficiency_plots(data_string_list=list('UVOTonly','UVOTonly_num_useless10','UVOTonly_num_useless30','UVOTonly_num_useless50','UVOTonly_num_useless70','UVOTonly_num_useless90'),log_weights_try=seq(0.8,1.0,0.2), roc_weight=1)
@@ -1231,6 +1362,8 @@ make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=
    make_forest_plots(data_string='reduced_num_useless16',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='reduced_num_useless32',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='reduced_num_useless64',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   custom_namelist=c('0 Useless Features','2 Useless Features','4 Useless Features','8 Useless Features','16 Useless Features','32 Useless Features','64 Useless Features')
+   make_efficiency_plots(data_string_list=list('reduced_num_useless0','reduced_num_useless2','reduced_num_useless4','reduced_num_useless8','reduced_num_useless16','reduced_num_useless32','reduced_num_useless64'),log_weights_try=seq(0.8,1.0,0.2), custom_namelist=custom_namelist,roc_weight=2,ref_weight_index=11)
    
 }
 
@@ -1248,7 +1381,7 @@ make_all_importance_plots = function(generate_data=FALSE,Nseeds=10,log_weights_t
    make_forest_plots(data_string='reduced_rem-bat_trigger_dur',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='reduced_rem-uvot_detection',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    custom_namelist=c("Removed A","Removed EP0","Removed FL","Removed MAX_SNR","Removed NH_PC","Removed PROB_Z_GT_4","Removed T90","Removed bat_image_signif","Removed bat_img_peak","Removed bat_is_rate_trig","Removed bat_trigger_dur","Removed uvot_detection")
-   make_efficiency_plots(data_string_list=list("reduced_rem-A","reduced_rem-EP0","reduced_rem-FL","reduced_rem-MAX_SNR","reduced_rem-NH_PC","reduced_rem-PROB_Z_GT_4","reduced_rem-T90","reduced_rem-bat_image_signif","reduced_rem-bat_img_peak","reduced_rem-bat_is_rate_trig","reduced_rem-bat_trigger_dur","reduced_rem-uvot_detection"),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2, custom_namelist=custom_namelist,plot_suffix='_importance')
+   make_efficiency_plots(data_string_list=list("reduced_rem-A","reduced_rem-EP0","reduced_rem-FL","reduced_rem-MAX_SNR","reduced_rem-NH_PC","reduced_rem-PROB_Z_GT_4","reduced_rem-T90","reduced_rem-bat_image_signif","reduced_rem-bat_img_peak","reduced_rem-bat_is_rate_trig","reduced_rem-bat_trigger_dur","reduced_rem-uvot_detection"),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2, custom_namelist=custom_namelist,plot_suffix='_importance',ref_weight_index=11)
 
 }                   
 
