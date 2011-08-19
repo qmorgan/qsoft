@@ -962,7 +962,7 @@ multiple_efficiency_vs_alpha_residuals = function(reference_data_obj,data_obj_li
 	plot(x = c(0,1), y = c(-0.12,0.12), xlim = c(0,1), ylim=c(-0.12,0.12), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
-   col = rainbow(n_curves)
+   col = tim.colors(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
    name_list = c()
    curve_index = 1
@@ -997,7 +997,7 @@ multiple_efficiency_vs_alpha_residuals = function(reference_data_obj,data_obj_li
 
    if(length(custom_namelist) > 0){name_list = custom_namelist}
    print(name_list)
-   legend("topright", name_list, cex=1.0,col=col,lty=1,lwd=2)
+   legend("topright", name_list, cex=0.95,col=col,lty=1,lwd=2,bg='#FFFFFF')
 	
    dev.off()
 }
@@ -1018,7 +1018,7 @@ multiple_purity_vs_alpha_residuals = function(reference_data_obj,data_obj_list,w
 	plot(x = c(0,1), y = c(-0.12,0.12), xlim = c(0,1), ylim=c(-0.12,0.12), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
-   col = rainbow(n_curves)
+   col = tim.colors(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
    name_list = c()
    curve_index = 1
@@ -1053,7 +1053,7 @@ multiple_purity_vs_alpha_residuals = function(reference_data_obj,data_obj_list,w
 
    if(length(custom_namelist) > 0){name_list = custom_namelist}
    print(name_list)
-   legend("topright", name_list, cex=1.0,col=col,lty=1,lwd=2)
+   legend("topright", name_list, cex=0.95,col=col,lty=1,lwd=2,bg='#FFFFFF')
 	
    dev.off()
 }
@@ -1069,7 +1069,7 @@ multiple_efficiency_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FA
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
-   col = rainbow(n_curves)
+   col = tim.colors(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
    name_list = c()
    curve_index = 1
@@ -1112,7 +1112,7 @@ multiple_purity_vs_alpha = function(data_obj_list,weight_index=11,ploterr=FALSE,
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Purity"))
    n_curves = length(data_obj_list)
-   col = rainbow(n_curves)
+   col = tim.colors(n_curves)
    ltys = rep(1:4, length.out=n_curves) #create a vector for different ltys
    
    col_alpha = rainbow(n_curves,alpha=0.3)
@@ -1160,7 +1160,7 @@ multiple_efficiency_vs_alpha_weights = function(data_obj,weight_index_list=seq(1
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
  #  title(main=expression("Efficiency"))
    n_curves = length(weight_index_list)
-   col = rainbow(n_curves)
+   col = tim.colors(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
    name_list = c()
    curve_index = 1
@@ -1200,7 +1200,7 @@ multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11)
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1),cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Purity"))
    n_curves = length(weight_index_list)
-   col = rainbow(n_curves)
+   col = tim.colors(n_curves)
    col_alpha = rainbow(n_curves,alpha=0.3)
    name_list = c()
    curve_index = 1
