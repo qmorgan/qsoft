@@ -263,4 +263,4 @@ def uvotcr2flux(countrate,filt,red_corr=0.0):
         print '  mag:  ' , corr_uvotmag
         print '  flux: ' , corr_uvotflux, 'erg/s/cm^2/A'
         print '  flux: ' , 1e26 * (filt.wave**2 / c) * corr_uvotflux * 1e11, 'uJy'
-
+    

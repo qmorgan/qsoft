@@ -235,7 +235,7 @@ def Coadd(filelist, outname):
     total_time = end_time - start_time
     print "Program finished, execution time %f seconds." % total_time
 
-def MakeMultStack(imlist, stacknum, Clobber=False):
+def MakeMultStack(imlist, stacknum, Clobber=False, name_str='000'):
     from operator import itemgetter
     from Phot import t_mid
     import datetime
@@ -316,19 +316,19 @@ def MakeMultStack(imlist, stacknum, Clobber=False):
         date_str_2 = start.strftime('%Y-%m-%d-%Hh%Mm%Ss').split('-')
         date_str_2 = date_str_2[0] + ('-') + date_str_2[1] + ('-') + date_str_2[2]
         
-        basename = filt + '_long_triplestack' + start_str + '-' + GRBname +'000' 
+        basename = filt + '_long_triplestack' + start_str + '-' + GRBname + name_str 
         stacknumber = index + 1
         output_stack_name = basename + '-p' + str(stacknumber) + '.fits'
 
         # Coadding
         Coadd(coaddlist, output_stack_name)
        
-        dirname = burstname + '000_' + date_str_2 + '-reduction_output'
-        fits_dir_name = burstname + '000' + '_triplestacks'
-        ancillary_dir_name = burstname + '000' + '_ancillary'
+        dirname = burstname + name_str + '_' + date_str_2 + '-reduction_output'
+        fits_dir_name = burstname + name_str + '_triplestacks'
+        ancillary_dir_name = burstname + name_str + '_ancillary'
         mvstr = 'mv %s ./%s/%s/%s' % (output_stack_name, dirname, fits_dir_name, output_stack_name)
         weights_name = output_stack_name.split('.fits')[0] + '.weight.fits'
-        weights_dir_name = burstname + '000' + '_triplestackweights'
+        weights_dir_name = burstname + name_str + '_triplestackweights'
         weights_final_name = filt + '_long_triplestackweightmap' + output_stack_name.split('triplestack')[1]
         mvweights = 'mv %s ./%s/%s/%s' % (weights_name, dirname, weights_dir_name, weights_final_name)
 
@@ -399,16 +399,16 @@ def MakeMultStack(imlist, stacknum, Clobber=False):
     os.system(mvancillary)
     os.system(mvancillary_weights)
 
-def MakeAllMultStack(stacknum):
+def MakeAllMultStack(stacknum, name_str='000'):
     ''' Run MakeMultStack to every filter and every image in the folder '''
     import glob
 
     h_glob = glob.glob('h_long_GRB*.fits')
-    MakeMultStack(h_glob, stacknum)
+    MakeMultStack(h_glob, stacknum, name_str=name_str)
     j_glob = glob.glob('j_long_GRB*.fits')
-    MakeMultStack(j_glob, stacknum)
+    MakeMultStack(j_glob, stacknum, name_str=name_str)
     k_glob = glob.glob('k_long_GRB*.fits')
-    MakeMultStack(k_glob, stacknum)
+    MakeMultStack(k_glob, stacknum, name_str=name_str)
 
 def MakeDeepStack(path='./',outid='GRB.999.999'):
     '''Coadd all like-filter images together in a particular folder.  Used
@@ -908,10 +908,65 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
 
 def WCS_Transplant(original_image, target_image):
 
+    import pprint
+
     hdulist = pyfits.open(original_image)
     header = hdulist[0].header
-    wcs_info = {"CRVAL1":header["CRVAL1"], "CRPIX1":header["CRPIX1"], "CD1_1":header["CD1_1"], "CD1_2":header["CD1_2"], "CTYPE2":header["CTYPE2"], "CUNIT2":header["CUNIT2"], "CRVAL2":header["CRVAL2"], "CRPIX2":header["CRPIX2"], "CD2_1":header["CD2_1"], "CD2_2":header["CD2_2"]} 
+    wcs_info = {"RADECSYS":header["RADECSYS"],"CRVAL1":header["CRVAL1"], "CRPIX1":header["CRPIX1"], "CD1_1":header["CD1_1"], "CD1_2":header["CD1_2"], "CYTPE1":header["CTYPE1"],"CTYPE2":header["CTYPE2"], "CUNIT2":header["CUNIT2"], "CRVAL2":header["CRVAL2"], "CRPIX2":header["CRPIX2"], "CD2_1":header["CD2_1"], "CD2_2":header["CD2_2"]} 
+    try:
+        key={"WAT1_001":header["WAT1_001"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"WAT2_001":header["WAT2_001"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"RA":header["RA"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"DEC":header["DEC"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"SECPIX1":header["SECPIX1"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"SECPIX2":header["SECPIX2"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"EPOCH":header["EPOCH"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"EQUINOX":header["EQUINOX"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"CROTA1":header["CROTA1"]}
+        wcs_info.update(key)
+    except:
+        pass
+    try:
+        key={"CROTA2":header["CROTA2"]}
+        wcs_info.update(key)
+    except:
+        pass
     hdulist.close()    
+
+    print 'Transfering WCS info:'
+    pprint.pprint(wcs_info)
    
     hdulist_target = pyfits.open(target_image,mode='update')
     header_target = hdulist_target[0].header
@@ -920,17 +975,20 @@ def WCS_Transplant(original_image, target_image):
     hdulist_target.flush()
     hdulist_target.close()
 
-def WCS_Transplant_All(ref_band='j'):
+def WCS_Transplant_All(ref_band='j', no_h=False):
 
+    # globbing, on nom nom
     import glob
-    h_glob = glob.glob('h_long_GRB*.fits')
-    j_glob = glob.glob('j_long_GRB*.fits')
-    k_glob = glob.glob('k_long_GRB*.fits')
+    if not no_h:
+        h_glob = glob.glob('h_long_triplestack*.fits')
+    j_glob = glob.glob('j_long_triplestack*.fits')
+    k_glob = glob.glob('k_long_triplestack*.fits')
 
     if ref_band == 'j':
         index_list = xrange(len(j_glob))
         for image_number in index_list:
-            WCS_Transplant(j_glob[image_number], h_glob[image_number])
+            if not no_h:
+                WCS_Transplant(j_glob[image_number], h_glob[image_number])
             WCS_Transplant(j_glob[image_number], k_glob[image_number])
     elif ref_band == 'h':
         index_list = xrange(len(h_glob))
@@ -941,6 +999,7 @@ def WCS_Transplant_All(ref_band='j'):
         index_list = xrange(len(k_glob))
         for image_number in index_list:
             WCS_Transplant(k_glob[image_number], j_glob[image_number])
-            WCS_Transplant(k_glob[image_number], h_glob[image_number])
+            if not no_h:
+                WCS_Transplant(k_glob[image_number], h_glob[image_number])
     else:    
         raise ValueError('ref_band needs to be either h, j, or k')
