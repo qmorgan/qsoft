@@ -49,7 +49,13 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
     #ampErr = sqrt(covar[1][1])*amp
 #===========================================================================
     #plotting data
- 
+
+    print 'ydata'
+    print ydata
+    print 'yerr'
+    print yerr
+    print 'logx'
+    print logx
     out = optiphot.fit(fitfunc, [const, slope], ydata, yerr, logx) 
     
     if band == 'h':

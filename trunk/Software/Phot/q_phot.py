@@ -2384,7 +2384,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
                 valu = float(mosaics['upper_green'])
                 if mosaics['filter'] == 'h':
                      h_list += [valu]
-                     h_errlist += [0]
+                     h_errlist += [0] # this error = 0 causes optiphot to fail at fitting SED
                      timlist += [mosaics['t_mid'][0]]
                      terlist += [mosaics['t_mid'][1]]
                 if mosaics['filter'] == 'j':
@@ -2414,6 +2414,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
         h_mag = h_list[index]
         j_mag = j_list[index] # sort by ascending frequencies
 
+        # These aren't fluxes.. they are converted to AB magnitude
         k_flux = -2.5*numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) - 48.60 # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
         h_flux = -2.5*numpy.log10(q.mag2flux(h_mag,0,1.024e-20)) - 48.60
         j_flux = -2.5*numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) -48.60
@@ -2437,15 +2438,16 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
 #        pfinal = out[0] # Getting the coefficients
 #        covar = out[1] # The covariance        
 
-        results = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
-        betalist += [results[1]] # Getting the spectral index
-
         print '----'
-        print k_mag
-        print h_mag
-        print j_mag
+        print 'index number %s' % index
+        print k_flux
+        print h_flux
+        print j_flux
         print specmag
         print '----'   
+
+        results = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+        betalist += [results[1]] # Getting the spectral index
 
     fig = pylab.figure()
     ax_lcurve = fig.add_axes([0.1,0.55,0.8,0.4])
