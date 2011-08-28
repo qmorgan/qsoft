@@ -220,9 +220,10 @@ def whatis(keyword):
     'z_isupper': {'definition':'Was the redshift value reported an upper limit?','type':'string','source':'SwiftCat','speed':'na','sample':'no'},
     'z_str': {'definition':'Redshift String','type':'string','source':'SwiftCat','speed':'na','sample':'2.43 (Gemini-North: absorption)'},
     'web_alpha' : {'definition':'Alpha: One of the 4 parameters in the Band-function fit to the BAT gamma-ray spectrum.  Alpha is the power-law index *before* the peak in the fit and is typically clustered around -1','type':'double','source':'NatBat Spectra','speed':'processed','sample':-0.77270000000000005},
-    '2web_N_H_(excess)_[10^22_cm^-2]' : {'definition':'Excess N_H Column inferred from XRT PC Data (10^22 cm^-2) using PC (Photon-counting Mode) data - see T_PC for time range','type':'double','source':'NatXRT','speed':'processed','sample':0.017999999999999999}, 
+    'web_N_H_(excess)_[10^22_cm^-2]_2' : {'definition':'Excess N_H Column inferred from XRT PC Data (10^22 cm^-2) using PC (Photon-counting Mode) data - see T_PC for time range','type':'double','source':'NatXRT','speed':'processed','sample':0.017999999999999999}, 
     'web_Bayes_Ep_[keV]' : {'definition':'Bayes E_peak: One of the 4 parameters in the Band-function fit to the BAT gamma-ray spectrum.  E_Peak is the energy (frequency) at which most of the energy is emitted.','type':'double','source':'NatBat Spectra - found with a model fit to the spectrum, using bayesian techniques. More trustworthy than EP0.','speed':'processed','sample':161.47},
     'web_Energy_Fluence_(15-350_keV)_[erg/cm^2]' : {'definition':'Energy Fluence (15-350 keV) [erg/cm^2] - mathematically, the integral of the BAT gamma-ray light curve over time','type':'double','source':'NatBat Spectra','speed':'processed','sample':4.1281000000000003e-06},
+    'web_S/N' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
     'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48}
     }
     
@@ -1006,9 +1007,10 @@ class GRBdb:
         
         #Nat Web Values
         self.MakeAttrArr('web_alpha')
-        self.MakeAttrArr('2web_N_H_(excess)_[10^22_cm^-2]')
+        self.MakeAttrArr('web_N_H_(excess)_[10^22_cm^-2]_2')
         self.MakeAttrArr('web_Bayes_Ep_[keV]')
         self.MakeAttrArr('web_Energy_Fluence_(15-350_keV)_[erg/cm^2]')
+        self.MakeAttrArr('web_S/N')
         self.MakeAttrArr('web_T_90')
         
         # Make the following Binary attributes

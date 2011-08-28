@@ -29,7 +29,7 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
 
             for duplicate in duplicates:
                 addd = headerlist.count(duplicate)
-                headerlist[headerlist.index(duplicate)] = str(addd) + duplicate
+                headerlist[headerlist.index(duplicate)] = duplicate + '_' + str(addd) 
                             
         colcount = 0
         trstrip = [a for a in tr.findAll(text=True) if a != u' ']
