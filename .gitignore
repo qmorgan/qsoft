@@ -1,3 +1,7 @@
+*.pyc
+*.aux
+*.bbl
+*.blg
 /store/*.png
 /store/*.jpg
 /store/*.jpeg
