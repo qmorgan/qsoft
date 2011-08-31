@@ -334,9 +334,11 @@ def pruneArray(array, argument):
 
 
 def sphere_dist(ra1,dec1,ra2,dec2):
-    cosdistance = math.cos(ra1-ra2)*math.cos(dec1)*math.cos(dec2) + \
-        math.sin(dec1)*math.sin(dec2)
-    distance_deg = math.acos(cosdistance)
+    '''Given a pair of ra/dec (in radians), or a list of ra/dec in radians,
+    return the spherical distance between them'''
+    cosdistance = numpy.cos(ra1-ra2)*numpy.cos(dec1)*numpy.cos(dec2) + \
+        numpy.sin(dec1)*numpy.sin(dec2)
+    distance_deg = numpy.arccos(cosdistance)*180/numpy.pi
     distance_asec = distance_deg*3600.0
     return distance_asec
 
