@@ -1398,6 +1398,15 @@ class GRBdb:
             # Check to see if the attribute exists
             if hasattr(self,keyitem):
                 attrdict = getattr(self,keyitem)
+                # R doesn't like parentheticals in it's features, so remove them
+                keyitemname=keyitem
+                keyitemname = keyitemname.replace(')','')
+                keyitemname = keyitemname.replace('(','')
+                keyitemname = keyitemname.replace(']','')
+                keyitemname = keyitemname.replace('[','')
+                keyitemname = keyitemname.replace('-','_')
+                keyitemname = keyitemname.replace('/','_')
+                keyitemname = keyitemname.replace('^','e')
                 # Check if a numeric or nominal attribute
                 if not 'type' in attrdict:
                     print 'type not in attribute dict.  Continuing...'
@@ -1416,15 +1425,15 @@ class GRBdb:
                     print 'Speed for %s not in time_list; not including' % (keyitem)
                     continue
                 if not ignore_types and (attrdict['type'] == 'numeric' or attrdict['type'] == 'binary'):
-                    numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitem
+                    numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % keyitemname
                     numattrlist.append(keyitem)
                     if not fmt:
                         fmt = '%f'
                     else:
                         fmt += ',%f'
                     if inclerr and 'poserrarr' in attrdict and 'negerrarr' in attrdict:
-                        posname = keyitem + '_poserr'
-                        negname = keyitem + '_negerr'
+                        posname = keyitemname + '_poserr'
+                        negname = keyitemname + '_negerr'
                         numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % posname
                         numkeystring += ('@ATTRIBUTE %s NUMERIC\n') % negname
                         fmt += ',%f,%f'
@@ -1437,7 +1446,7 @@ class GRBdb:
                         fmt = '%s'
                     else:
                         fmt += ',%s'
-                    nomkeystring += ('@ATTRIBUTE %s {yes, no}\n') % keyitem
+                    nomkeystring += ('@ATTRIBUTE %s {yes, no}\n') % keyitemname
                 else:
                     print 'Attribute type is unknown (not nominal or numeric). Continuing..'
                 # Write the keystring
@@ -1866,7 +1875,7 @@ def TestReloadAlldb():
             continue
         newlist = copy.copy(reduced_attr_list)
         newlist.remove(feature)
-        arffappend='_reduced_rem-'+feature
+        arffappend='_webreduced_rem-'+feature
         db_onlyz.makeArffFromArray(attrlist=newlist,arff_append=arffappend,inclerr=False)
     
         #########################################
