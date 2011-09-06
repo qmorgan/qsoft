@@ -1349,6 +1349,12 @@ class GRBdb:
         '''
         
         # Open file
+        arff_append = arff_append.replace('/','-') # replace any slashes with dashes
+        arff_append = arff_append.replace(')','')
+        arff_append = arff_append.replace('(','')
+        arff_append = arff_append.replace(']','')
+        arff_append = arff_append.replace('[','')
+        
         arffpath = storepath+self.name+arff_append+'.arff'
         arffpathpartial = arffpath + '_head'
         arffpathdata = arffpath + '_data'
@@ -1775,6 +1781,98 @@ def TestReloadAlldb():
         newlist.remove(feature)
         arffappend='_reduced_rem-'+feature
         db_onlyz.makeArffFromArray(attrlist=newlist,arff_append=arffappend,inclerr=False)
+    
+        #########################################
+        ##### END REDUCED  FEATURE SET #####
+        #####################################
+    
+        # 'web_alpha' 
+        # 'web_N_H_(excess)_[10^22_cm^-2]_2'
+        # 'web_Bayes_Ep_[keV]' 
+        # 'web_Energy_Fluence_(15-350_keV)_[erg/cm^2]'
+        # 'web_S/N'
+        # 'web_T_90'
+                                                    
+    #########################################
+    ##### BEGIN REDUCED WEB FEATURE SET #####
+    #####################################
+    reduced_attr_list = ['Z','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+                        'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4','triggerid_str']
+    ### Make Reduced training set arff ###
+    db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced',inclerr=False)
+    ### Make Reduced Test Set Arff
+    db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced',inclerr=False)
+    
+    ######## Make reduced training set Full Table ########
+    db_onlyz_tab = copy.deepcopy(db_onlyz)
+    db_onlyz_tab.Reload_DB()
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_fulltab'
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
+                        '','','','','','','','','','','','trigger','','detect','']
+    
+    table_list = ['grb','Q_hat_train','Z','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+                        'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4']
+    # create arff using ignore_types to make a table
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training')
+    
+    ######## Make reduced training set small Table ########
+    db_onlyz_tab = copy.deepcopy(db_onlyz)
+    db_onlyz_tab.Reload_DB()
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_tab'
+    table_list = ['grb','Q_hat_train','Z']
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
+    # create arff using ignore_types to make a table
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data')
+
+    ######## Make reduced test (no-z) set small Table ########
+    db_noz_tab = copy.deepcopy(db_noz)
+    db_noz_tab.Reload_DB()
+    db_noz_tab.name = 'GRB_short+Z_removed_tab'
+    table_list = ['grb','Q_hat']
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{z=4}$']
+    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data')
+    
+    ######## Make reduced test (no-z) set Full Table ########
+    db_noz_tab = copy.deepcopy(db_noz)
+    db_noz_tab.Reload_DB()
+    db_noz_tab.name = 'GRB_short+Z_removed_fulltab'
+    namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
+                        '','','','','','','','','','','','trigger','','detect','']
+    table_list = ['grb','Q_hat','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+                        'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4']
+    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
+    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown')
+    
+    
+    db_outliersremoved.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    # May need to remove 'Z' from the attr list for use with R code.
+    
+    # Make an arff for one of each removing one of each of the reduced features
+    for feature in reduced_attr_list:
+        if feature == 'Z' or feature == 'triggerid_str':
+            continue
+        newlist = copy.copy(reduced_attr_list)
+        newlist.remove(feature)
+        arffappend='_reduced_rem-'+feature
+        db_onlyz.makeArffFromArray(attrlist=newlist,arff_append=arffappend,inclerr=False)
+    
+        #########################################
+        ##### END REDUCED WEB FEATURE SET #####
+        #####################################
+    
     
     reduced_allzpredict_attr_list = ['Z','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
