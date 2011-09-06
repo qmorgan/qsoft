@@ -852,11 +852,11 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5,main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
   # title(main=expression("Purity"), sub=data_obj$data_string)
-   lines(alpha_tries, avg_pur, lty=1, lwd=2, col='red')
+   lines(alpha_tries, avg_pur, lty=1, lwd=2, col='black')
    xx = c(alpha_tries, rev(alpha_tries))
    yy = c(avg_pur_high, rev(avg_pur_low))
-   col=rainbow(1)
-   col_alpha = rainbow(1,alpha=0.3)
+   col='black'
+   col_alpha = "#9999994D"
    polygon(xx,yy, col=col_alpha)
    lines(alpha_try_array,base_purity,lty=1,lwd=2)
    
@@ -890,11 +890,11 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency", xlab="Fraction of GRBs Followed Up", ylab=newylab) # initialize plot))
    #title(main=expression("Efficiency"), sub=data_obj$data_string,cex.main=2)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
-   lines(alpha_tries, avg_obj, lty=1, lwd=2, col='red')
+   lines(alpha_tries, avg_obj, lty=1, lwd=2, col='black')
    xx = c(alpha_tries, rev(alpha_tries))
    yy = c(avg_obj_high, rev(avg_obj_low))
-   col=rainbow(1)
-   col_alpha = rainbow(1,alpha=0.3)
+   col='black'
+   col_alpha = "#9999994D"
    polygon(xx,yy, col=col_alpha)
    
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
@@ -933,11 +933,11 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Efficiency vs. Purity", xlab=newxlab, ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency vs Purity"), sub=data_obj$data_string)
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
-   lines(avg_obj, avg_pur, lty=1, lwd=2, col='red')
+   lines(avg_obj, avg_pur, lty=1, lwd=2, col='black')
    xx = c(alpha_tries, rev(alpha_tries))
    yy = c(avg_obj_high, rev(avg_obj_low))
-   col=rainbow(1)
-   col_alpha = rainbow(1,alpha=0.3)
+   col='black'
+   col_alpha = "#9999994D"
 #   polygon(xx,yy, col=col_alpha)
    
 #   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
@@ -959,7 +959,7 @@ multiple_efficiency_vs_alpha_residuals = function(reference_data_obj,data_obj_li
    reference_avg_obj_high = reference_avg_obj + reference_obj_uncertainty
    reference_avg_obj_low = reference_avg_obj - reference_obj_uncertainty
    
-	plot(x = c(0,1), y = c(-0.12,0.12), xlim = c(0,1), ylim=c(-0.12,0.12), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+	plot(x = c(0,1), y = c(-0.13,0.13), xlim = c(0,1), ylim=c(-0.13,0.13), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
    col = tim.colors(n_curves)
@@ -1351,7 +1351,7 @@ really_make_all_plots = function(){
    make_forest_plots(data_string='webreduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    make_forest_plots(data_string='webreduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
    make_all_useless_plots(generate_data=TRUE,Nseeds=100)
-   make_all_importance_plots(generate_data=TRUE,NSseeds=100)
+   make_all_importance_plots(generate_data=TRUE,Nseeds=100)
    # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
 }
@@ -1382,7 +1382,7 @@ make_all_importance_plots = function(generate_data=FALSE,Nseeds=10,log_weights_t
    make_forest_plots(data_string='webreduced_rem-bat_is_rate_trig',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-bat_trigger_dur',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-uvot_detection',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   custom_namelist=c("Removed A","Removed EP0","Removed FL","Removed MAX_SNR","Removed NH_PC","Removed PROB_Z_GT_4","Removed T90","Removed bat_image_signif","Removed bat_img_peak","Removed bat_is_rate_trig","Removed bat_trigger_dur","Removed uvot_detection")
+   custom_namelist=c(expression("Removed " * alpha),expression("Removed " * E[peak]),"Removed S",expression("Removed " * S/N[max]),expression("Removed " * N[H] * " (PC)"),expression("Removed " * P[z>4]),expression("Removed " * T[90]),expression("Removed " * sigma[BAT]),expression("Removed " * N[peak~BAT]),"Removed Rate Trigger?",expression("Removed " * t[BAT]),"Removed UVOT detection?")
    make_efficiency_plots(data_string_list=list("webreduced_rem-web_alpha","webreduced_rem-web_Bayes_Ep_keV","webreduced_rem-web_Energy_Fluence_15-350_keV_erg-cm^2","webreduced_rem-web_S-N","webreduced_rem-web_N_H_excess_10^22_cm^-2_2","webreduced_rem-PROB_Z_GT_4","webreduced_rem-web_T_90","webreduced_rem-bat_image_signif","webreduced_rem-bat_img_peak","webreduced_rem-bat_is_rate_trig","webreduced_rem-bat_trigger_dur","webreduced_rem-uvot_detection"),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2, custom_namelist=custom_namelist,plot_suffix='_importance',ref_weight_index=11)
 
 }                   
