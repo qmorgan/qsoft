@@ -1647,13 +1647,13 @@ def TestReloadAlldb():
     db_full.name = 'GRB_short_removed'
     SaveDB(db_full)
     
-    db_outlierskept = copy.deepcopy(db_full)
-    db_outlierskept.Reload_DB(remove_short=True, remove_no_redshift=True)
-    db_outlierskept.name = 'GRB_short+noZ_removed'
-    SaveDB(db_outlierskept)
+    db_outliersremoved = copy.deepcopy(db_full)
+    db_outliersremoved.Reload_DB(remove_short=True, remove_no_redshift=True, remove_outliers = True, outlier_threshold=0.32)
+    db_outliersremoved.name = 'GRB_short+outliers+noZ_removed'
+    SaveDB(db_outliersremoved)
     
-    db_highz = copy.deepcopy(db_outlierskept)
-    db_lowz = copy.deepcopy(db_outlierskept)
+    db_highz = copy.deepcopy(db_full)
+    db_lowz = copy.deepcopy(db_full)
     db_highz.removeValues('Z','<4')
     db_lowz.removeValues('Z','>=4')
     db_highz.Reload_DB()
@@ -1663,20 +1663,23 @@ def TestReloadAlldb():
     SaveDB(db_lowz)
     SaveDB(db_highz)
     
-    db_full.Reload_DB(remove_short=True, remove_outliers=False)#,outlier_threshold=0.32)
+    
+    db_full.Reload_DB(remove_short=True, remove_outliers=False)
     db_full.name = 'GRB_short+outliers_removed' 
     SaveDB(db_full)
+        
     
     db_onlyz = copy.deepcopy(db_full)
     db_onlyz.Reload_DB(remove_short=True, remove_no_redshift=True)
-    db_onlyz.name = 'GRB_short+outliers+noZ_removed'
+    db_onlyz.name = 'GRB_short+noZ_removed'
     SaveDB(db_onlyz)
     
     db_noz = copy.deepcopy(db_full)
     db_noz.removeValues('Z','>=0.0') #remove all bursts with known redshifts
     db_noz.Reload_DB()
-    db_noz.name = 'GRB_short+outliers+Z_removed'
+    db_noz.name = 'GRB_short+Z_removed'
     SaveDB(db_noz)
+    
     
     db_highz = copy.deepcopy(db_onlyz)
     db_lowz = copy.deepcopy(db_onlyz)
@@ -1684,8 +1687,8 @@ def TestReloadAlldb():
     db_lowz.removeValues('Z','>=4')
     db_highz.Reload_DB()
     db_lowz.Reload_DB()
-    db_lowz.name = 'GRB_short+outliers+noZ+z>4_removed'
-    db_highz.name = 'GRB_short+outliers+noZ+z<4_removed'
+    db_lowz.name = 'GRB_short+noZ+z>4_removed'
+    db_highz.name = 'GRB_short+noZ+z<4_removed'
     SaveDB(db_lowz)
     SaveDB(db_highz)
     
@@ -1697,16 +1700,22 @@ def TestReloadAlldb():
     #                       'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
     #                       'PROB_Z_GT_4','triggerid_str']    
     #     
+    
+    ##### BEGIN REDUCED FEATURE SET #####
+    #####################################
     reduced_attr_list = ['Z','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4','triggerid_str']
+    ### Make Reduced training set arff ###
     db_onlyz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    ### Make Reduced Test Set Arff
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     
+    ######## Make reduced training set Full Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_fulltab'
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
@@ -1716,25 +1725,33 @@ def TestReloadAlldb():
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
+    # create arff using ignore_types to make a table
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training')
-
+    
+    ######## Make reduced training set small Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+outliers+noZ_removed_tab'
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_tab'
     table_list = ['grb','Q_hat_train','Z']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
+    # create arff using ignore_types to make a table
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data')
 
-    table_list = ['grb','Q_hat']
-    namelist = ['GRB','$\widehat{\mathcal{Q}}_{z=4}$']    
+    ######## Make reduced test (no-z) set small Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
-    db_noz_tab.name = 'GRB_short+outliers+Z_removed_tab'
+    db_noz_tab.name = 'GRB_short+Z_removed_tab'
+    table_list = ['grb','Q_hat']
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{z=4}$']
     db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data')
     
+    ######## Make reduced test (no-z) set Full Table ########
+    db_noz_tab = copy.deepcopy(db_noz)
+    db_noz_tab.Reload_DB()
+    db_noz_tab.name = 'GRB_short+Z_removed_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
@@ -1743,13 +1760,11 @@ def TestReloadAlldb():
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
-    db_noz_tab = copy.deepcopy(db_noz)
-    db_noz_tab.Reload_DB()
-    db_noz_tab.name = 'GRB_short+outliers+Z_removed_fulltab'
     db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
     db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown')
     
-    db_outlierskept.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
+    
+    db_outliersremoved.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
     # May need to remove 'Z' from the attr list for use with R code.
     
     # Make an arff for one of each removing one of each of the reduced features
@@ -1828,7 +1843,7 @@ def ParseRATEGRB():
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
     # TODO: Label colorbar
-    # db_full = LoadDB('101116_short+outliers+noZ_removed')
+    # db_full = LoadDB('101116_short+noZ_removed')
     # db_full.Reload_DB() # remove all the outliers before splitting
     # db_highz = copy.deepcopy(db_full)
     # db_lowz = copy.deepcopy(db_full)
@@ -1836,8 +1851,8 @@ def TestMakeNicePlot():
     # db_lowz.removeValues('Z','>=4')
     # db_highz.Reload_DB()
     # db_lowz.Reload_DB()
-    db_lowz = LoadDB('GRB_short+outliers+noZ+z>4_removed')
-    db_highz = LoadDB('GRB_short+outliers+noZ+z<4_removed')
+    db_lowz = LoadDB('GRB_short+noZ+z>4_removed')
+    db_highz = LoadDB('GRB_short+noZ+z<4_removed')
     
     ax = db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
     jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
