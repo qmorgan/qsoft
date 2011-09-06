@@ -82,7 +82,7 @@ library(fields)
 library(randomForest)
 library(missForest)
 
-read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff',high_cutoff=4,impute=TRUE,missForestImpute=FALSE){
+read_data = function(filename='./Data/GRB_short+noZ_removed_reduced.arff',high_cutoff=4,impute=TRUE,missForestImpute=FALSE){
    data1 = read.arff(filename)
    Z = data1$Z
    ####### define above high_cutoff as high, below as low $ ####### 
@@ -111,7 +111,7 @@ read_data = function(filename='./Data/GRB_short+outliers+noZ_removed_reduced.arf
 }
 
 ##### adds useless features to an arff file - very simple
-add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff', output_filename=NULL, number_useless_features=1){
+add_useless_features = function(input_filename='./Data/GRB_short+noZ_removed_reduced.arff', output_filename=NULL, number_useless_features=1){
   # need read.arff and write.arff
   require(foreign)
 
@@ -137,7 +137,7 @@ add_useless_features = function(input_filename='./Data/GRB_short+outliers+noZ_re
   
 }
 
-remake_all_useless = function(input_filename='./Data/GRB_short+outliers+noZ_removed_reduced.arff'){
+remake_all_useless = function(input_filename='./Data/GRB_short+noZ_removed_reduced.arff'){
    # 
    # add_useless_features(number_useless_features=10)
    # add_useless_features(number_useless_features=20)
@@ -459,7 +459,7 @@ pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_t
    if(is.null(data_obj_test)){
       print("data_obj_test not specified; using default values")
       
-      data_obj_test = read_data(filename='./Data/GRB_short+outliers+Z_removed_reduced.arff')
+      data_obj_test = read_data(filename='./Data/GRB_short+Z_removed_reduced.arff')
    }
    ###########################################################################
 	pred.train=extract_stats(return_probhigh_only=TRUE)[,weight_index]
@@ -1238,7 +1238,7 @@ multiple_purity_vs_alpha_weights = function(data_obj,weight_index_list=seq(1,11)
 # Wrapper to make all representative plots for a given dataset
 make_forest_plots = function(data_string="reduced",generate_data=FALSE, log_weights_try=seq(-1,1.0,0.2), Nseeds=10, roc_weight=11,redo_useless=FALSE, high_cutoff=4){
    # generate_data will re-do the smooth_random_forest_weights function, which takes a while
-   data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
+   data_filename = paste("./Data/GRB_short+noZ_removed_",data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
    obj_func_name = paste("./Plots/objective_fcn_",data_string,"_",high_cutoff,".pdf",sep="")
    bumps_pred_plot_name = paste("./Plots/forest_pred_bumps_",data_string,"_",high_cutoff,".pdf",sep="")
@@ -1281,7 +1281,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
    data_obj_list = list()
    
    for(data_string in data_string_list){
-      data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",data_string,".arff",sep="")
+      data_filename = paste("./Data/GRB_short+noZ_removed_",data_string,".arff",sep="")
       data_results_dir = paste("./smooth_weights_results/smooth_weights_",data_string,"_",high_cutoff,sep="")
       
       mydata = read_data(filename=data_filename,high_cutoff=high_cutoff)
@@ -1315,7 +1315,7 @@ make_efficiency_plots = function(generate_data=FALSE, data_string_list=list('red
       curve_index = curve_index + 1
       print(curve_index)
    }
-   data_filename = paste("./Data/GRB_short+outliers+noZ_removed_",ref_data_string,".arff",sep="")
+   data_filename = paste("./Data/GRB_short+noZ_removed_",ref_data_string,".arff",sep="")
    data_results_dir = paste("./smooth_weights_results/smooth_weights_",ref_data_string,"_",high_cutoff,sep="")
    
    refdata = read_data(filename=data_filename,high_cutoff=high_cutoff)
