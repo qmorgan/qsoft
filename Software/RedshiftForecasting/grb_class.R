@@ -1351,6 +1351,7 @@ really_make_all_plots = function(){
    make_forest_plots(data_string='webreduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    make_forest_plots(data_string='webreduced',generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
    make_all_useless_plots(generate_data=TRUE,Nseeds=100)
+   make_all_importance_plots(generate_data=TRUE,NSseeds=100)
    # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.5)
    # make_all_plots(generate_data=TRUE,Nseeds=100,high_cutoff=3.0)
 }
