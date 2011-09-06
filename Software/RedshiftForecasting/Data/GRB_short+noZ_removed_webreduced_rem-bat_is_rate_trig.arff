@@ -5,7 +5,7 @@
 %     (b) Data From: GCN Notices (http://gcn.gsfc.nasa.gov/),
 %                    http://astro.berkeley.edu/~nat/Swift/
 %                    http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/
-%     (c) Date: Tue Sep  6 01:47:00 2011
+%     (c) Date: Tue Sep  6 02:24:03 2011
 % 
 % 3. This file was created automatically. 
 %    CHECK THE ATTRIBUTES before running Weka. 
@@ -16,10 +16,10 @@
 % !CHECK ME:
 @ATTRIBUTE Z NUMERIC
 @ATTRIBUTE web_alpha NUMERIC
-@ATTRIBUTE web_Bayes_Ep_[keV] NUMERIC
-@ATTRIBUTE web_Energy_Fluence_(15-350_keV)_[erg/cm^2] NUMERIC
-@ATTRIBUTE web_S/N NUMERIC
-@ATTRIBUTE web_N_H_(excess)_[10^22_cm^-2]_2 NUMERIC
+@ATTRIBUTE web_Bayes_Ep_keV NUMERIC
+@ATTRIBUTE web_Energy_Fluence_15_350_keV_erg_cme2 NUMERIC
+@ATTRIBUTE web_S_N NUMERIC
+@ATTRIBUTE web_N_H_excess_10e22_cme_2_2 NUMERIC
 @ATTRIBUTE web_T_90 NUMERIC
 @ATTRIBUTE bat_image_signif NUMERIC
 @ATTRIBUTE bat_img_peak NUMERIC
