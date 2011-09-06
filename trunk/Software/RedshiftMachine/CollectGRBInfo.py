@@ -788,7 +788,7 @@ class GRBdb:
     
     def gridplot(self,fig=None,\
         keys=['log_T90','log_FL','log_MAX_SNR','PROB_Z_GT_4'],
-        labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/N_{BAT})$','$P_{z>4}$'],\
+        labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/N_{peak,BAT})$','$P_{z>4}$'],\
         z_key='Z', hist=True, histbins=None, histloc=None, color='black',
         discrete=None, gethistrangelist=False, histrangelist=None, **kwargs):
         keylist = [getattr(self,key)['array'] for key in keys]
@@ -1732,7 +1732,7 @@ def TestReloadAlldb():
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','trigger','','detect','']
     
@@ -1768,7 +1768,7 @@ def TestReloadAlldb():
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+Z_removed_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
                         '','','','','','','','','','','','trigger','','detect','']
     table_list = ['grb','Q_hat','A','EP0','FL','MAX_SNR',
@@ -1819,7 +1819,7 @@ def TestReloadAlldb():
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','trigger','','detect','']
     
@@ -1855,7 +1855,7 @@ def TestReloadAlldb():
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+Z_removed_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$NH_{pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
                         '','','','','','','','','','','','trigger','','detect','']
     table_list = ['grb','Q_hat','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
@@ -1971,7 +1971,7 @@ def TestMakeNicePlot():
 def TestMakeGridPlot(keys=['A','log_EP0','log_FL','log_MAX_SNR',
                     'log_NH_PC','log_T90','log_bat_image_signif','bat_img_peak',
                      'bat_trigger_dur','PROB_Z_GT_4'],
-                        labels=['$A$','$\log(E_{p,0})$','$\log(FL)$','$\log(MAX_SNR)$','$\log(NH_{pc})$',
+                        labels=['$A$','$\log(E_{p,0})$','$\log(FL)$','$\log(MAX_SNR)$','$\log(N_{H,pc})$',
                         '$\log(t_{90})$','$\log(BAT Image Significance)$','$(BAT Img Peak)$',
                         '$(bat_trigger_duration)$','$P_{z>4}$']):
     db = LoadDB('GRB_short_removed')
