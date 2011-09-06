@@ -1369,20 +1369,20 @@ make_all_useless_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=
 }
 
 make_all_importance_plots = function(generate_data=FALSE,Nseeds=10,log_weights_try=seq(0.8,1.0,0.2),high_cutoff=4,roc_weight=2){
-   make_forest_plots(data_string='webreduced_rem-A',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='webreduced_rem-EP0',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='webreduced_rem-FL',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='webreduced_rem-MAX_SNR',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='webreduced_rem-NH_PC',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='webreduced_rem-web_alpha',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='webreduced_rem-web_Bayes_Ep_keV',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='webreduced_rem-web_Energy_Fluence_15-350_keV_erg-cm^2',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='webreduced_rem-web_S-N',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
+   make_forest_plots(data_string='webreduced_rem-web_N_H_excess_10^22_cm^-2_2',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-PROB_Z_GT_4',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   make_forest_plots(data_string='webreduced_rem-T90',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)  
+   make_forest_plots(data_string='webreduced_rem-web_T_90',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)  
    make_forest_plots(data_string='webreduced_rem-bat_image_signif',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-bat_img_peak',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-bat_is_rate_trig',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-bat_trigger_dur',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-uvot_detection',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    custom_namelist=c("Removed A","Removed EP0","Removed FL","Removed MAX_SNR","Removed NH_PC","Removed PROB_Z_GT_4","Removed T90","Removed bat_image_signif","Removed bat_img_peak","Removed bat_is_rate_trig","Removed bat_trigger_dur","Removed uvot_detection")
-   make_efficiency_plots(data_string_list=list("webreduced_rem-A","webreduced_rem-EP0","webreduced_rem-FL","webreduced_rem-MAX_SNR","webreduced_rem-NH_PC","webreduced_rem-PROB_Z_GT_4","webreduced_rem-T90","webreduced_rem-bat_image_signif","webreduced_rem-bat_img_peak","webreduced_rem-bat_is_rate_trig","webreduced_rem-bat_trigger_dur","webreduced_rem-uvot_detection"),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2, custom_namelist=custom_namelist,plot_suffix='_importance',ref_weight_index=11)
+   make_efficiency_plots(data_string_list=list("webreduced_rem-web_alpha","webreduced_rem-web_Bayes_Ep_keV","webreduced_rem-web_Energy_Fluence_15-350_keV_erg-cm^2","webreduced_rem-web_S-N","webreduced_rem-web_N_H_excess_10^22_cm^-2_2","webreduced_rem-PROB_Z_GT_4","webreduced_rem-web_T_90","webreduced_rem-bat_image_signif","webreduced_rem-bat_img_peak","webreduced_rem-bat_is_rate_trig","webreduced_rem-bat_trigger_dur","webreduced_rem-uvot_detection"),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2, custom_namelist=custom_namelist,plot_suffix='_importance',ref_weight_index=11)
 
 }                   
 
