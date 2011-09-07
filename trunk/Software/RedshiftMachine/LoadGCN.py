@@ -48,10 +48,12 @@ def LoadGCN(triggerid, clobber=False):
                 # Save new Pickle file
                 qPickle.save(loadedgcn,pklpath,clobber=True)
             else:
-                print 'Could not succesfully load GCN.'
+                errtitle = 'Could not succesfully load GCN for trigger %s' % (str(triggerid)) 
+                qErr.qErr(errtitle=errtitle)
                 return
         except:
-            print "Could not Extract Values for GCN."
+            errtitle = 'Could not extract GCN values for trigger %s' % (str(triggerid)) 
+            qErr.qErr(errtitle=errtitle)
     return loadedgcn
 
 def SaveGCN(loadedgcn):
