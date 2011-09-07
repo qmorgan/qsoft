@@ -22,6 +22,7 @@ import os
 import sys
 from ParseGCNNotice import GCNNotice
 from MiscBin import qPickle
+from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
