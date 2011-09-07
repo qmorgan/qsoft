@@ -90,13 +90,17 @@ class GCNNotice:
             # Make sure not a empty string and check to make sure it is long enough
             # Q Edits 8/24/09
             gcnsplit = gcn.splitlines()
-            if len(gcnsplit) > 3:
-                # Find what the notice type is  - 4th line
-                typeline = gcnsplit[3]
+            if '' in gcnsplit: gcnsplit.remove('')
+            if ' ' in gcnsplit: gcnsplit.remove(' ')
+            if len(gcnsplit) > 2:
+                # Find what the notice type is  - 3rd line
+                typeline = gcnsplit[2]
                 typesplit = typeline.split(':     ')
                 if typesplit[0] != 'NOTICE_TYPE':
                     print 'THIRD LINE IS NOT NOTICE_TYPE!' 
-                    print gcnsplit[2:5]
+                    print gcnsplit[0:5]
+                    qErr.qErr(errtitle='Third line is not notice type!',errtext=gcn)
+                    raise Exception
                 else:
                     # Append the GCN to the list of well-formatted notices
                     self.good_gcn_notices.append(gcn)
@@ -144,6 +148,7 @@ class GCNNotice:
                 ########### Error checking############            
                 print(partialdict['NOTICE_TYPE'],gcn_type)
                 if not partialdict['NOTICE_TYPE'] == gcn_type:
+                    qErr.qErr(errtitle='Notice Types do not match!')
                     raise Exception
                 ######################################
                     
