@@ -159,7 +159,7 @@ class GCNNotice:
         error.  All units are in decimal degrees.
         '''
         if hasattr(self,'dict') == False:
-            self.createdict(self.gcn_notices)
+            self.createdict()
         if self.dict.has_key(notice_type):
             decstr = self.dict[notice_type]['GRB_DEC']
             rastr = self.dict[notice_type]['GRB_RA']
@@ -191,7 +191,7 @@ class GCNNotice:
         
         '''
         if hasattr(self,'dict') == False:
-            self.createdict(self.gcn_notices)
+            self.createdict()
         # Maybe put these all in a big position dictionary instead?
         # if there is an update, overwrite 
         pos_list = ['Swift-BAT GRB Position','Swift-XRT Position', \
@@ -278,7 +278,7 @@ class GCNNotice:
         val_type is 'f','i', or 's' for float, integer, string
         '''
         if hasattr(self,'dict') == False:
-            self.createdict(self.gcn_notices)
+            self.createdict()
             subdict={}
         self.pdict={} # Parsed Dictionary  
         self.parseable_types = {"Swift-BAT GRB Position":"e_bat_pos",\
