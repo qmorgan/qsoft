@@ -84,6 +84,7 @@ class GCNNotice:
         type_already_found = []
         gcndict = {}
         add_to_where = 0
+        self.good_gcn_notices = []
         for gcn in self.gcn_notices:
             partialdict = {}
             # Make sure not a empty string and check to make sure it is long enough
@@ -96,13 +97,13 @@ class GCNNotice:
                 if typesplit[0] != 'NOTICE_TYPE':
                     print 'THIRD LINE IS NOT NOTICE_TYPE!' 
                     print gcnsplit[2:5]
-                    add_to_where += 1
-                    # sys.exit()
                 else:
+                    # Append the GCN to the list of well-formatted notices
+                    self.good_gcn_notices.append(gcn)
+                    # Append the type of the GCN to the gcn type list
                     gcn_type_list.append(typesplit[1])
             else: 
                 print "Split Line in GCN web Page is not long enough."
-                add_to_where += 1 
         # DETERMINE WHAT THE LATEST OF THAT TYPE IS
         # for gcn_type in gcn_type_list:
         for gcn_type in gcn_type_list:
@@ -115,13 +116,13 @@ class GCNNotice:
                 # Use my defined 'where' function to return a list of indices
                 gcn_wherelist = where(gcn_type_list,gcn_type)
                 # Grab the latest index from the list; + add_to_where because first is ''
-                gcn_index = gcn_wherelist[-1] + add_to_where
+                gcn_index = gcn_wherelist[-1] #+ add_to_where 
                 if typecount > 1:
                     print "%s instances of %s found; choosing the latest" % (typecount, gcn_type)
                     type_already_found.append(gcn_type)
                 else:
                     print "1 instance of %s found" % gcn_type
-                gcnstring = self.gcn_notices[gcn_index]
+                gcnstring = self.good_gcn_notices[gcn_index]
                 gcnlines = gcnstring.splitlines()
                 for line in gcnlines:
                     # Strip to avoid splitting issues with ':  '
@@ -139,8 +140,16 @@ class GCNNotice:
                             commentstring += linelist[1].strip() + ';'
                             subdict = {'COMMENTS':commentstring}
                             partialdict.update(subdict)
+                
+                ########### Error checking############            
+                print(partialdict['NOTICE_TYPE'],gcn_type)
+                if not partialdict['NOTICE_TYPE'] == gcn_type:
+                    raise Exception
+                ######################################
+                    
                 subdict = {gcn_type:partialdict}
                 self.dict.update(subdict)
+
                 self.last_notice_loaded = gcn_type
         print "Finished populating dictionary for trigger %s" % self.triggerid
     
