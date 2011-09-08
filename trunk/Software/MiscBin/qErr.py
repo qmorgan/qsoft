@@ -33,6 +33,7 @@ def qErr(mail=True,mail_to='qmorgan@gmail.com',errtitle="An error has occured!",
     IndexError: list index out of range
     '''
     print "Exception Triggered, traceback info forwarded to log file."
+    print errtitle
     errfilepath = storepath + 'errlog.txt'
     
     errfile = open(errfilepath,"a")
