@@ -17,6 +17,7 @@ import os
 import time
 from AutoRedux import send_gmail
 from MiscBin.q import where
+from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -30,9 +31,10 @@ class GCNNotice:
     sub-keys being the entries in the Notice.  
     
     '''
-    def __init__(self,triggerid,filetype="NoType"):
+    def __init__(self,triggerid,filetype="NoType",clobber=False):
         self.filetype = filetype
         self.triggerid = triggerid
+        self.clobber = clobber
         # Be sure to update if the web version has changed!
         # If not already saved on disk, grab the gcn from web
         try:
@@ -41,10 +43,10 @@ class GCNNotice:
             self.createdict()
             self.successful_load = True
         except ValueError: 
-            print "Cannot Load GCN Notice."
+            qErr.qErr(errtitle="Cannot Load GCN Notice.")
             self.successful_load = False
         except AttributeError:
-            print "ATTRIBUTE ERROR. Cannot Create dictionary?"    
+            qErr.qErr(errtitle="ATTRIBUTE ERROR. Cannot Create dictionary?")    
             self.successful_load = False
     
     def grabgcnfromweb(self):
@@ -53,19 +55,39 @@ class GCNNotice:
         the GCN information and puts it in a list of strings.
         """
         import urllib2
-        try:
-            gcnaddress = 'http://gcn.gsfc.nasa.gov/gcn/other/%s.swift' % str(self.triggerid)
-            gcnwebsite = urllib2.urlopen(gcnaddress)
-            gcnstring = gcnwebsite.read()
-            thedelimiter = '//////////////////////////////////////////////////////////////////////'
-            # Split up the text file by GCN Notice - make it a list of strings
-            gcn_notices = gcnstring.split(thedelimiter)
-            num_of_gcns = len(gcn_notices)
-            self.gcn_notices = gcn_notices
-            self.num_of_gcns = num_of_gcns
-            print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
-        except:
-            print "Cannot load GCN Notice from web."
+        gcnpath = storepath + 'gcn_notices/' + str(self.triggerid) + '.swift'
+        if self.clobber or not os.path.exists(gcnpath):
+            try:
+                gcnaddress = 'http://gcn.gsfc.nasa.gov/gcn/other/%s.swift' % str(self.triggerid)
+                gcnwebsite = urllib2.urlopen(gcnaddress)
+                gcnstring = gcnwebsite.read()
+                thedelimiter = '//////////////////////////////////////////////////////////////////////'
+                # Split up the text file by GCN Notice - make it a list of strings
+                gcn_notices = gcnstring.split(thedelimiter)
+                num_of_gcns = len(gcn_notices)
+                self.gcn_notices = gcn_notices
+                self.num_of_gcns = num_of_gcns
+                f = file(gcnpath,'w')
+                f.write(gcnstring)
+                f.close()
+                print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
+            except:
+                qErr.qErr(errtitle="Cannot load GCN Notice from web.")
+        else:
+            try:
+                f = file(gcnpath,'r')
+                gcnstring = f.read()
+                thedelimiter = '//////////////////////////////////////////////////////////////////////'
+                # Split up the text file by GCN Notice - make it a list of strings
+                gcn_notices = gcnstring.split(thedelimiter)
+                num_of_gcns = len(gcn_notices)
+                self.gcn_notices = gcn_notices
+                self.num_of_gcns = num_of_gcns
+                f.close()
+                print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
+            except:
+                errtitle = "Cannot read GCN Notice from file %s" % (gcnpath)
+                qErr.qErr(errtitle=errtitle) 
     
     def createdict(self):
         '''Creates the dictionary From the web-based GCN notices; this function
