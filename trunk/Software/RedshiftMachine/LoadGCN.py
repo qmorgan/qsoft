@@ -32,7 +32,7 @@ storepath = os.environ.get("Q_DIR") + '/store/'
 
 # May want to set clobber = True if, e.g., new notices have been added since
 # we last checked.
-def LoadGCN(triggerid, clobber=False):
+def LoadGCN(triggerid, clobber=False, redownload_gcn=False):
     ### LOAD or CREATE PICKLE STORAGE FILE 
     # Attempt to load pickle file
     pklpath = storepath+'sw'+str(triggerid)+'GCN.pkl'
@@ -40,7 +40,7 @@ def LoadGCN(triggerid, clobber=False):
     # If couldn't load, or clobber == True, create a new instance of the class
     if clobber or not loadedgcn:
         # Create new instance of GCN Notice
-        loadedgcn = GCNNotice(triggerid)
+        loadedgcn = GCNNotice(triggerid, clobber=redownload_gcn)
         try:
             # Extract values from GCN Notice
             loadedgcn.extract_values()

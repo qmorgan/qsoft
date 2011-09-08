@@ -234,7 +234,7 @@ def whatis(keyword):
     else: 
         print 'Keyword unknown.  Check keyword or tell Adam to update his dictionary'
 
-def LoadDB(name, clobber=False):
+def LoadDB(name, clobber=False, redownload_gcn=False):
     ### LOAD or CREATE PICKLE STORAGE FILE 
     # Attempt to load pickle file
     pklpath = storepath+'DB_'+str(name)+'.pkl'
@@ -242,7 +242,7 @@ def LoadDB(name, clobber=False):
     # If couldn't load, or clobber == True, create a new instance of the class
     if clobber or not loadeddb:
         # Create new instance of db Notice
-        loadeddb = GRBdb(name)
+        loadeddb = GRBdb(name,redownload_gcn=redownload_gcn)
         try:
             # Extract values from GCN Notice
             # loadeddb.extract_values()
@@ -267,7 +267,7 @@ def SaveDB(loadeddb):
 class GRBdb:
     '''Instance of a grb database'''
     def __init__(self,name,incl_nat=True,incl_nat_web=True,incl_fc=False,incl_reg=True,
-                make_html=True,html_path='/home/amorgan/www/swift/'):
+                make_html=True,html_path='/home/amorgan/www/swift/',redownload_gcn=False):
         
         self.date_created = time.ctime()
         try: 
@@ -279,6 +279,7 @@ class GRBdb:
             self.make_html = make_html
             self.html_path = html_path
             self.class_updated = False
+            self.redownload_gcn = redownload_gcn
             self.dict = self.collect()
         
             if len(self.name) > 20:
@@ -376,7 +377,7 @@ class GRBdb:
                 print '\nNow collecting GCN entries for trigger %s, GRB %s' % (trigid_str, grb_str)
                 try:
                     triggerid=int(trigid_str)
-                    loaded_gcn = LoadGCN.LoadGCN(triggerid)
+                    loaded_gcn = LoadGCN.LoadGCN(triggerid,clobber=self.redownload_gcn, redownload_gcn=self.redownload_gcn)
                     loaded_gcn.extract_values()
                     loaded_gcn.get_positions()
                     source_name = 'Swift_%s-GRB%s' % (trigid_str, grb_str)
@@ -1649,12 +1650,13 @@ class GRBdb:
         if hist:
             self.DistHist(keylist=keys_to_hist)
 
-def TestReloadAlldb():
-    db_full = LoadDB('GRB_full', clobber=True)
+def TestReloadAlldb(redownload_gcn=False):
+    db_full = LoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn)
     SaveDB(db_full)
     
-    # Remove all bursts newer than 100621A
-    # Remove all bursts without a calculated MAX_SNR value
+    # Remove all bursts newer than 100621A. TJD for 10/06/22 is 15369
+    #grb_date_tjd
+    # Remove all bursts without a calculated S/N value
     db_full.removeValues('MAX_SNR', '< 0.0', removeNAN=True)
     db_full.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
     

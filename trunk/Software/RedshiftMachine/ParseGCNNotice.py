@@ -43,10 +43,12 @@ class GCNNotice:
             self.createdict()
             self.successful_load = True
         except ValueError: 
-            qErr.qErr(errtitle="Cannot Load GCN Notice.")
+            errtitle="Cannot Load GCN Notice for trigger %s" % str(triggerid)
+            qErr.qErr(errtitle=errtitle)
             self.successful_load = False
         except AttributeError:
-            qErr.qErr(errtitle="ATTRIBUTE ERROR. Cannot Create dictionary?")    
+            errtitle="ATTRIBUTE ERROR. Cannot Create dictionary for trigger %s?" % str(triggerid)
+            qErr.qErr(errtitle=errtitle)    
             self.successful_load = False
     
     def grabgcnfromweb(self):
@@ -56,20 +58,26 @@ class GCNNotice:
         """
         import urllib2
         gcnpath = storepath + 'gcn_notices/' + str(self.triggerid) + '.swift'
+        gcnappendpath = storepath + 'gcn_notices/' + str(self.triggerid) + '.swift.append'
         if self.clobber or not os.path.exists(gcnpath):
             try:
                 gcnaddress = 'http://gcn.gsfc.nasa.gov/gcn/other/%s.swift' % str(self.triggerid)
                 gcnwebsite = urllib2.urlopen(gcnaddress)
                 gcnstring = gcnwebsite.read()
+                f = file(gcnpath,'w')
+                f.write(gcnstring)
+                f.close()
                 thedelimiter = '//////////////////////////////////////////////////////////////////////'
+                if os.path.exists(gcnappendpath):
+                    g = file(gcnappendpath,'r')
+                    gcn_append = g.read() 
+                    gcnstring += '\n' + thedelimiter + '\n' + gcn_append
+                    g.close()
                 # Split up the text file by GCN Notice - make it a list of strings
                 gcn_notices = gcnstring.split(thedelimiter)
                 num_of_gcns = len(gcn_notices)
                 self.gcn_notices = gcn_notices
                 self.num_of_gcns = num_of_gcns
-                f = file(gcnpath,'w')
-                f.write(gcnstring)
-                f.close()
                 print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
             except:
                 qErr.qErr(errtitle="Cannot load GCN Notice from web.")
@@ -79,6 +87,11 @@ class GCNNotice:
                 gcnstring = f.read()
                 thedelimiter = '//////////////////////////////////////////////////////////////////////'
                 # Split up the text file by GCN Notice - make it a list of strings
+                if os.path.exists(gcnappendpath):
+                    g = file(gcnappendpath,'r')
+                    gcn_append = g.read() 
+                    gcnstring += '\n' + thedelimiter + '\n' + gcn_append
+                    g.close()
                 gcn_notices = gcnstring.split(thedelimiter)
                 num_of_gcns = len(gcn_notices)
                 self.gcn_notices = gcn_notices
