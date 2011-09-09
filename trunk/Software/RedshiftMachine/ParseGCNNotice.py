@@ -80,7 +80,9 @@ class GCNNotice:
                 self.num_of_gcns = num_of_gcns
                 print "Finished loading GCN Notices from web for trigger %s" % self.triggerid
             except:
-                qErr.qErr(errtitle="Cannot load GCN Notice from web.")
+                errtitle="Cannot load GCN Notice from web."
+                errtext = "Cannot load GCN Notice %s" % self.triggerid
+                qErr.qErr(errtitle=errtitle,errtext=errtext)
         else:
             try:
                 f = file(gcnpath,'r')
