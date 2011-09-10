@@ -1,0 +1,42 @@
+TITLE:           GCN/SWIFT NOTICE
+NOTICE_DATE:     Wed 26 May 10 19:02:11 UT
+NOTICE_TYPE:     Swift-BAT GRB Position
+TRIGGER_NUM:     423184,   Seg_Num: 0
+GRB_RA:            0.700d {+00h 02m 48s} (J2000),
+                  0.832d {+00h 03m 20s} (current),
+                  0.061d {+00h 00m 15s} (1950)
+GRB_DEC:         -37.902d {-37d 54' 07"} (J2000),
+                -37.844d {-37d 50' 39"} (current),
+                -38.181d {-38d 10' 50"} (1950)
+GRB_ERROR:       3.00 [arcmin radius, statistical only]
+GRB_INTEN:       96589 [cnts]    Image_Peak=903 [image_cnts]
+TRIGGER_DUR:     26.880 [sec]
+TRIGGER_INDEX:   463     E_range: 15-50 keV
+BKG_INTEN:       218148 [cnts]
+BKG_TIME:        68330.16 SOD {18:58:50.16} UT
+BKG_DUR:         64 [sec]
+GRB_DATE:        15342 TJD;   146 DOY;   10/05/26
+GRB_TIME:        68438.51 SOD {19:00:38.51} UT
+GRB_PHI:         123.58 [deg]
+GRB_THETA:        10.35 [deg]
+SOLN_STATUS:     0x83
+RATE_SIGNIF:     6.92 [sigma]
+IMAGE_SIGNIF:    6.89 [sigma]
+MERIT_PARAMS:     +1  +0  +0  +5  +1  -3  +0  +0 -11  +0
+SUN_POSTN:        63.50d {+04h 14m 01s}  +21.20d {+21d 12' 18"}
+SUN_DIST:         83.33 [deg]   Sun_angle= 4.2 [hr] (West of Sun)
+MOON_POSTN:      227.28d {+15h 09m 07s}  -21.80d {-21d 48' 16"}
+MOON_DIST:       106.10 [deg]
+MOON_ILLUM:      98 [%]
+GAL_COORDS:      343.37,-75.15 [deg] galactic lon,lat of the burst (or transient)
+ECL_COORDS:      343.38,-34.57 [deg] ecliptic lon,lat of the burst (or transient)
+COMMENTS:        SWIFT-BAT GRB Coordinates.
+COMMENTS:        This Notice was delayed by more than 60 sec past the end of the trigger integration interval;
+COMMENTS:        probably due to it occurring during a Malindi downlink session.
+COMMENTS:        This is a rate trigger.
+COMMENTS:        A point_source was found.
+COMMENTS:        This does not match any source in the on-board catalog.
+COMMENTS:        This does not match any source in the ground catalog.
+COMMENTS:        This is a GRB.
+COMMENTS:        Since the IMAGE_SIGNIF is less than 7 sigma, this is a questionable detection.
+COMMENTS:        This trigger occurred at longitude,latitude = 256.35,18.92 [deg].

@@ -1,0 +1,41 @@
+TITLE:           GCN/SWIFT NOTICE
+NOTICE_DATE:     Tue 08 May 07 04:31:59 UT
+NOTICE_TYPE:     Swift-BAT GRB Position
+TRIGGER_NUM:     278854,   Seg_Num: 0
+GRB_RA:          312.783d {+20h 51m 08s} (J2000),
+                313.022d {+20h 52m 05s} (current),
+                311.128d {+20h 44m 31s} (1950)
+GRB_DEC:         -78.368d {-78d 22' 04"} (J2000),
+                -78.340d {-78d 20' 24"} (current),
+                -78.554d {-78d 33' 14"} (1950)
+GRB_ERROR:       3.00 [arcmin radius, statistical only]
+GRB_INTEN:       8588 [cnts]    Image_Peak=882 [image_cnts]
+TRIGGER_DUR:     1.024 [sec]
+TRIGGER_INDEX:   146     E_range: 50-350 keV
+BKG_INTEN:       37508 [cnts]
+BKG_TIME:        15486.05 SOD {04:18:06.05} UT
+BKG_DUR:         8 [sec]
+GRB_DATE:        14228 TJD;   128 DOY;   07/05/08
+GRB_TIME:        15497.83 SOD {04:18:17.83} UT
+GRB_PHI:         -126.96 [deg]
+GRB_THETA:        28.25 [deg]
+SOLN_STATUS:     0x3
+RATE_SIGNIF:     51.03 [sigma]
+IMAGE_SIGNIF:    19.90 [sigma]
+MERIT_PARAMS:     +1  +0  +0  +0  +3 +35  +0  +0 +29  +1
+SUN_POSTN:        44.76d {+02h 59m 02s}  +16.98d {+16d 58' 33"}
+SUN_DIST:        106.97 [deg]   Sun_angle= 6.1 [hr] (West of Sun)
+MOON_POSTN:      295.22d {+19h 40m 53s}  -25.43d {-25d 25' 38"}
+MOON_DIST:        53.54 [deg]
+MOON_ILLUM:      71 [%]
+GAL_COORDS:      314.88,-32.42 [deg] galactic lon,lat of the burst (or transient)
+ECL_COORDS:      284.61,-57.12 [deg] ecliptic lon,lat of the burst (or transient)
+COMMENTS:        SWIFT-BAT GRB Coordinates.
+COMMENTS:        This Notice was delayed by more than 60 sec past the end of the trigger integration interval;
+COMMENTS:        probably due to it occurring during a Malindi downlink session.
+COMMENTS:        This is a rate trigger.
+COMMENTS:        A point_source was found.
+COMMENTS:        This does not match any source in the on-board catalog.
+COMMENTS:        This does not match any source in the ground catalog.
+COMMENTS:        This is a GRB.
+COMMENTS:        This trigger occurred at longitude,latitude = 12.73,-9.64 [deg].

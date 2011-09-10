@@ -1,0 +1,40 @@
+TITLE:           GCN/SWIFT NOTICE
+NOTICE_DATE:     Tue 28 Jul 09 14:46:30 UT
+NOTICE_TYPE:     Swift-BAT GRB Position
+TRIGGER_NUM:     358574,   Seg_Num: 0
+GRB_RA:           29.660d {+01h 58m 38s} (J2000),
+                 29.806d {+01h 59m 14s} (current),
+                 28.899d {+01h 55m 36s} (1950)
+GRB_DEC:         +41.647d {+41d 38' 49"} (J2000),
+                +41.693d {+41d 41' 36"} (current),
+                +41.404d {+41d 24' 15"} (1950)
+GRB_ERROR:       3.00 [arcmin radius, statistical only]
+GRB_INTEN:       15322 [cnts]    Image_Peak=373 [image_cnts]
+TRIGGER_DUR:     4.096 [sec]
+TRIGGER_INDEX:   301     E_range: 25-100 keV
+BKG_INTEN:       133846 [cnts]
+BKG_TIME:        53091.05 SOD {14:44:51.05} UT
+BKG_DUR:         40 [sec]
+GRB_DATE:        15040 TJD;   209 DOY;   09/07/28
+GRB_TIME:        53145.96 SOD {14:45:45.96} UT
+GRB_PHI:         -15.22 [deg]
+GRB_THETA:        46.31 [deg]
+SOLN_STATUS:     0x2003
+RATE_SIGNIF:     10.95 [sigma]
+IMAGE_SIGNIF:    9.64 [sigma]
+MERIT_PARAMS:     +1  +0  +0  +2  +2  +0  +0  +0 -10  +0
+SUN_POSTN:       128.02d {+08h 32m 05s}  +18.86d {+18d 51' 22"}
+SUN_DIST:         83.45 [deg]   Sun_angle= 6.5 [hr] (West of Sun)
+MOON_POSTN:      208.17d {+13h 52m 41s}  -17.25d {-17d 15' 04"}
+MOON_DIST:       155.52 [deg]
+MOON_ILLUM:      47 [%]
+GAL_COORDS:      136.18,-19.49 [deg] galactic lon,lat of the burst (or transient)
+ECL_COORDS:       42.91, 27.56 [deg] ecliptic lon,lat of the burst (or transient)
+COMMENTS:        SWIFT-BAT GRB Coordinates.
+COMMENTS:        This is a rate trigger.
+COMMENTS:        A point_source was found.
+COMMENTS:        This does not match any source in the on-board catalog.
+COMMENTS:        This does not match any source in the ground catalog.
+COMMENTS:        There is a bright star (mag=6.78) 8.35 arcmin from this position.
+COMMENTS:        This is a GRB.
+COMMENTS:        This trigger occurred at longitude,latitude = 235.69,16.48 [deg].

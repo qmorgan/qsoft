@@ -1,0 +1,41 @@
+TITLE:           GCN/SWIFT NOTICE
+NOTICE_DATE:     Fri 22 Aug 08 21:17:46 UT
+NOTICE_TYPE:     Swift-BAT GRB Position
+TRIGGER_NUM:     321376,   Seg_Num: 0
+GRB_RA:           63.495d {+04h 13m 59s} (J2000),
+                 63.627d {+04h 14m 30s} (current),
+                 62.735d {+04h 10m 56s} (1950)
+GRB_DEC:         +25.743d {+25d 44' 34"} (J2000),
+                +25.764d {+25d 45' 51"} (current),
+                +25.617d {+25d 37' 01"} (1950)
+GRB_ERROR:       3.00 [arcmin radius, statistical only]
+GRB_INTEN:       0 [cnts]    Image_Peak=1609 [image_cnts]
+TRIGGER_DUR:     64.000 [sec]
+TRIGGER_INDEX:   20000     E_range: 15-50 keV
+BKG_INTEN:       0 [cnts]
+BKG_TIME:        0.00 SOD {00:00:00.00} UT
+BKG_DUR:         0 [sec]
+GRB_DATE:        14700 TJD;   235 DOY;   08/08/22
+GRB_TIME:        75772.96 SOD {21:02:52.96} UT
+GRB_PHI:          28.79 [deg]
+GRB_THETA:        21.69 [deg]
+SOLN_STATUS:     0x13
+RATE_SIGNIF:     0.00 [sigma]
+IMAGE_SIGNIF:    7.15 [sigma]
+MERIT_PARAMS:     +1  +0  +0  +6  +1  -3  -5  +0 -10  +1
+SUN_POSTN:       152.21d {+10h 08m 51s}  +11.43d {+11d 25' 30"}
+SUN_DIST:         83.81 [deg]   Sun_angle= 5.9 [hr] (West of Sun)
+MOON_POSTN:       41.44d {+02h 45m 46s}  +21.55d {+21d 32' 46"}
+MOON_DIST:        20.73 [deg]
+MOON_ILLUM:      63 [%]
+GAL_COORDS:      170.04,-18.08 [deg] galactic lon,lat of the burst (or transient)
+ECL_COORDS:       66.22,  4.47 [deg] ecliptic lon,lat of the burst (or transient)
+COMMENTS:        SWIFT-BAT GRB Coordinates.
+COMMENTS:        This Notice was delayed by more than 60 sec past the end of the trigger integration interval;
+COMMENTS:        probably due to it occurring during a Malindi downlink session.
+COMMENTS:        This is an image trigger.  (The RATE_SIGNIF & BKG_{INTEN, TIME, DUR} are undefined.)
+COMMENTS:        A point_source was found.
+COMMENTS:        This does not match any source in the on-board catalog.
+COMMENTS:        This does not match any source in the ground catalog.
+COMMENTS:        This is a GRB.
+COMMENTS:        This trigger occurred at longitude,latitude = 181.74,7.09 [deg].
