@@ -35,6 +35,7 @@ class GCNNotice:
         self.filetype = filetype
         self.triggerid = triggerid
         self.clobber = clobber
+        self.parsed_types = []
         # Be sure to update if the web version has changed!
         # If not already saved on disk, grab the gcn from web
         try:
@@ -331,9 +332,14 @@ class GCNNotice:
                 easyparselist = eval("self."+self.parseable_types[noticetype]+"()")
                 self.ext_do_easy_parse(noticetype,noticedict,easyparselist)
                 print "Parsed %s" % noticetype
+                if noticetype not in self.parsed_types:
+                    self.parsed_types.append(noticetype)
             else:
                 print "**Cannot yet parse %s" % noticetype
-    
+        print 'Parsed: %s' % str(self.parsed_types)
+        sub_dict = {'notices_parsed':self.parsed_types}   
+        self.pdict.update(sub_dict)
+        
     def e_bat_pos(self):
         easyparselist=\
             [['GRB_DEC',['bat_dec','f','d ',0,'',''] ],\
