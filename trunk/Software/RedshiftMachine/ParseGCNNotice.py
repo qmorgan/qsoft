@@ -36,6 +36,7 @@ class GCNNotice:
         self.triggerid = triggerid
         self.clobber = clobber
         self.parsed_types = []
+        self.available_types = []
         # Be sure to update if the web version has changed!
         # If not already saved on disk, grab the gcn from web
         try:
@@ -327,6 +328,8 @@ class GCNNotice:
         self.parseable_types = {"Swift-BAT GRB Position":"e_bat_pos",\
             "Swift-XRT Position":"e_xrt_pos","Swift-UVOT Position":"e_uvot_pos"}  
         for noticetype,noticedict in self.dict.iteritems():
+            if noticetype not in self.available_types:
+                self.available_types.append(noticetype)
             if self.parseable_types.has_key(noticetype):
                 self.current_comment_string = noticedict['COMMENTS']   
                 easyparselist = eval("self."+self.parseable_types[noticetype]+"()")
@@ -338,6 +341,8 @@ class GCNNotice:
                 print "**Cannot yet parse %s" % noticetype
         print 'Parsed: %s' % str(self.parsed_types)
         sub_dict = {'notices_parsed':self.parsed_types}   
+        self.pdict.update(sub_dict)
+        sub_dict = {'notices_available':self.available_types}   
         self.pdict.update(sub_dict)
         
     def e_bat_pos(self):
