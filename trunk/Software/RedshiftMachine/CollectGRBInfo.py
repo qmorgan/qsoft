@@ -224,7 +224,9 @@ def whatis(keyword):
     'web_Bayes_Ep_[keV]' : {'definition':'Bayes E_peak: One of the 4 parameters in the Band-function fit to the BAT gamma-ray spectrum.  E_Peak is the energy (frequency) at which most of the energy is emitted.','type':'double','source':'NatBat Spectra - found with a model fit to the spectrum, using bayesian techniques. More trustworthy than EP0.','speed':'processed','sample':161.47},
     'web_Energy_Fluence_(15-350_keV)_[erg/cm^2]' : {'definition':'Energy Fluence (15-350 keV) [erg/cm^2] - mathematically, the integral of the BAT gamma-ray light curve over time','type':'double','source':'NatBat Spectra','speed':'processed','sample':4.1281000000000003e-06},
     'web_S/N' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
-    'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48}
+    'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
+    'notices_parsed' : {'definition':'list of all successfully parsed GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-UVOT Source List', 'Swift-XRT Position']},
+    'notices_possible' : {'definition':'list of all possible GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-XRT Position']}
     }
     
     if keyword in helpdict:
@@ -244,9 +246,6 @@ def LoadDB(name, clobber=False, redownload_gcn=False):
         # Create new instance of db Notice
         loadeddb = GRBdb(name,redownload_gcn=redownload_gcn)
         try:
-            # Extract values from GCN Notice
-            # loadeddb.extract_values()
-            # loadeddb.get_positions()
             if loadeddb.successful_load:
                 # Save new Pickle file
                 qPickle.save(loadeddb,pklpath,clobber=True)
@@ -377,7 +376,7 @@ class GRBdb:
                 print '\nNow collecting GCN entries for trigger %s, GRB %s' % (trigid_str, grb_str)
                 try:
                     triggerid=int(trigid_str)
-                    loaded_gcn = LoadGCN.LoadGCN(triggerid,clobber=self.redownload_gcn, redownload_gcn=self.redownload_gcn)
+                    loaded_gcn = LoadGCN.LoadGCN(triggerid,clobber=True, redownload_gcn=self.redownload_gcn)
                     loaded_gcn.extract_values()
                     loaded_gcn.get_positions()
                     source_name = 'Swift_%s-GRB%s' % (trigid_str, grb_str)
@@ -549,7 +548,7 @@ class GRBdb:
             # Might want to change the observation epoch.
             # load a pickle file containing the extinction information
             # if it already has been loaded, in order to save some time.
-            
+
             if 'best_ra' in self.dict[grb] and 'best_dec' in self.dict[grb]:
                 try:
                     gal_EB_V = extinction.qExtinction(grb,self.dict[grb]['best_ra'],self.dict[grb]['best_dec'])
@@ -557,7 +556,9 @@ class GRBdb:
                     print 'Cannot grab extinction values for %s' % (grb)
                     print self.dict[grb]['best_ra'],self.dict[grb]['best_dec'] 
                     gal_EB_V = numpy.NAN
-
+            else: # if have no best position, undefined gal_EB_V
+                gal_EB_V = numpy.NAN 
+                
             self.dict[grb]['gal_EB_V'] = gal_EB_V
             self.class_updated = True
 
