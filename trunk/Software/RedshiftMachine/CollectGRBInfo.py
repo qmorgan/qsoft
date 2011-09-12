@@ -1159,7 +1159,7 @@ class GRBdb:
         '''
         remove_list = []
         # Quick check to see if the argument is kind of formatted correctly
-        allowed_arguments = ['>','<','=','!']
+        allowed_arguments = ['>','<','=','!','.']
         arg_flag = 0
         for arg in allowed_arguments:
             if argument[0] == arg:
@@ -1175,7 +1175,7 @@ class GRBdb:
                 keyval = 'unknown'
             
             if not keyval == 'unknown':
-                execstring = 'if keyval %s: remove_list.append(ii); already_removed=True '\
+                execstring = 'if keyval%s: remove_list.append(ii); already_removed=True '\
                     % (argument)
             elif removeNAN:
                 execstring = 'remove_list.append(ii); already_removed=True'
@@ -1658,8 +1658,10 @@ def TestReloadAlldb(redownload_gcn=False):
     # Remove all bursts newer than 100621A. TJD for 10/06/22 is 15369
     #grb_date_tjd
     # Remove all bursts without a calculated S/N value
-    db_full.removeValues('MAX_SNR', '< 0.0', removeNAN=True)
+    db_full.removeValues('web_S/N', '< 0.0', removeNAN=True)
     db_full.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
+    db_full.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)
+    
     
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
