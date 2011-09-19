@@ -33,7 +33,8 @@ from Plotting.GridPlot import GridPlot
 from Phot import extinction
 from AutoRedux import GRBHTML
 from MiscBin import qErr
-
+import pyfits
+import ephem
 
 #from MiscBin.q import Standardize
 
@@ -1315,6 +1316,52 @@ class GRBdb:
         ### CONVERT HEADER SECTION 
         
         #for line in headlines:
+    
+    def fillInMissingGCNs(self):
+        if not self.dict:
+            return
+        self.GCNs_filled_in=[]
+        self.missing_BAT_notices=[]
+        self.missing_all_notices=[]
+        self.GCNs_could_not_fill_in=[]
+        try_fill=True
+        for ii in iter(self.dict):
+            if 'notices_parsed' in self.dict[ii]:
+                keyval = self.dict[ii]['notices_parsed']
+                if keyval.count("Swift-BAT GRB Position") == 0:
+                    self.missing_BAT_notices.append(ii)
+                    try_fill=True
+                else:
+                    try_fill=False
+            else:
+                self.missing_all_notices.append(ii)
+                try_fill=True
+                
+            if try_fill:
+                try:
+                    gcnpath = storepath + '/gcn_notices/TDRSS/sw00' + self.dict[ii]['triggerid_str'].strip() + '000msbce.fits'
+                    if os.path.exists(gcnpath):
+                        hdulist = pyfits.open(gcnpath)
+                        header = hdulist[0].header
+                        self.dict[ii]['bat_image_signif']=header['IMGSNR']
+                        self.dict[ii]['bat_img_peak']=header['PEAKRATE']
+                        self.dict[ii]['bat_trigger_dur']=header['FOREEXPO']
+                        
+                        datetrig=header['DATETRIG'][0:10]
+                        tjd = ephem.Date(datetrig) - 24571.5 # converting ephem dates to TJD
+                        self.dict[ii]['grb_date_tjd'] = tjd
+                                                
+                        if str(header['IMAGETRG']).strip() == 'False':
+                            self.dict[ii]['bat_is_rate_trig'] = 'yes'
+                        if str(header['IMAGETRG']).strip() == 'True':
+                            self.dict[ii]['bat_is_rate_trig'] = 'no'
+                        self.GCNs_filled_in.append(ii)
+                    else:
+                        raise ValueError
+                except:
+                    self.GCNs_could_not_fill_in.append(ii)
+            # db_full.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)
+            
         
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
@@ -1653,6 +1700,7 @@ class GRBdb:
 
 def TestReloadAlldb(redownload_gcn=False):
     db_full = LoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn)
+    db_full.fillInMissingGCNs()
     SaveDB(db_full)
     
     # Remove all bursts newer than 100621A. TJD for 10/06/22 is 15369
@@ -1660,7 +1708,8 @@ def TestReloadAlldb(redownload_gcn=False):
     # Remove all bursts without a calculated S/N value
     db_full.removeValues('web_S/N', '< 0.0', removeNAN=True)
     db_full.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
-    db_full.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)
+    db_full.removeValues('grb_date_tjd','> 15370', removeNAN=True)
+#   db_full.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)
     
     
     db_full.Reload_DB(remove_short=True)   
