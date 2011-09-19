@@ -126,8 +126,17 @@ class GCNNotice:
         self.good_gcn_notices = []
         for gcn in self.gcn_notices:
             partialdict = {}
+            
+            # Pre July 2005 there was a change in the format of the GCN Notices
+            # However, these values are all the same in the TDRSS. The true
+            # Units are c/s according to the TDRSS help, even though it says otherwise
+            if '[cnts/sec]' in gcn:
+                gcn = gcn.replace('cnts/sec','image_cnts')
+                gcn = gcn.replace(' Peak=',' Image_Peak=')
+            
             # Make sure not a empty string and check to make sure it is long enough
             # Q Edits 8/24/09
+            
             gcnsplit = gcn.splitlines()
             if '' in gcnsplit: gcnsplit.remove('')
             if ' ' in gcnsplit: gcnsplit.remove(' ')
