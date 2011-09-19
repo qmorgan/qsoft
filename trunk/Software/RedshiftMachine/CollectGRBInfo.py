@@ -1231,7 +1231,7 @@ class GRBdb:
                     
     def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],
         namelist=None,caption='My awesome Table', tab_append='',inclerr=True,sortkey='',rotate=False,
-        label=None):
+        label=None,roundval=3):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
@@ -1275,7 +1275,7 @@ class GRBdb:
         tab_path = storepath+self.name+tab_append+'.ta'
         tab_path_2 = tab_path + 'b'
         if not arffpath:
-            arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr,ignore_types=True,sortkey=sortkey)
+            arffpath = self.makeArffFromArray(time_list=time_list,attrlist=attrlist,arff_append='',inclerr=inclerr,ignore_types=True,sortkey=sortkey,roundval=roundval)
         datapath = arffpath + '_data'
         
         ### CONVERT DATA SECTION
@@ -1379,8 +1379,8 @@ class GRBdb:
                       'PROB_Z_LT_4','PROB_Z_LT_5','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4',
                       'triggerid_str'
                       ],
-                      arff_append='',inclerr=True, ignore_types=False, sortkey='',roundval=4,
-                      remove_outliers=False):
+                      arff_append='',inclerr=True, ignore_types=False, sortkey='',
+                      remove_outliers=False,roundval=4):
         '''Create .arff file from array of attributes
         MUST Run self.MakeAllAttr() first.
         
@@ -1784,7 +1784,7 @@ def TestReloadAlldb(redownload_gcn=False):
     ######## Make reduced training set Full Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+noZ_removed_fulltab'
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_reduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
@@ -1795,32 +1795,32 @@ def TestReloadAlldb(redownload_gcn=False):
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
     # create arff using ignore_types to make a table
-    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training')
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training',roundval=3)
     
     ######## Make reduced training set small Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+noZ_removed_tab'
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_reduced_tab'
     table_list = ['grb','Q_hat_train','Z']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
     # create arff using ignore_types to make a table
-    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data')
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data',roundval=3)
 
     ######## Make reduced test (no-z) set small Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
-    db_noz_tab.name = 'GRB_short+Z_removed_tab'
+    db_noz_tab.name = 'GRB_short+Z_removed_reduced_tab'
     table_list = ['grb','Q_hat']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{z=4}$']
-    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data')
+    arffpath=db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_noz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data',roundval=3)
     
     ######## Make reduced test (no-z) set Full Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
-    db_noz_tab.name = 'GRB_short+Z_removed_fulltab'
+    db_noz_tab.name = 'GRB_short+Z_removed_reduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
@@ -1829,8 +1829,8 @@ def TestReloadAlldb(redownload_gcn=False):
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
-    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown')
+    arffpath=db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_noz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown',roundval=3)
     
     
     db_outliersremoved.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
@@ -1871,7 +1871,7 @@ def TestReloadAlldb(redownload_gcn=False):
     ######## Make reduced training set Full Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+noZ_removed_fulltab'
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_webreduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
@@ -1882,32 +1882,32 @@ def TestReloadAlldb(redownload_gcn=False):
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
     # create arff using ignore_types to make a table
-    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training')
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training',roundval=3)
     
     ######## Make reduced training set small Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
-    db_onlyz_tab.name = 'GRB_short+noZ_removed_tab'
+    db_onlyz_tab.name = 'GRB_short+noZ_removed_webreduced_tab'
     table_list = ['grb','Q_hat_train','Z']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
     # create arff using ignore_types to make a table
-    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data')
+    arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data',roundval=3)
 
     ######## Make reduced test (no-z) set small Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
-    db_noz_tab.name = 'GRB_short+Z_removed_tab'
+    db_noz_tab.name = 'GRB_short+Z_removed_webreduced_tab'
     table_list = ['grb','Q_hat']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{z=4}$']
-    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data')
+    arffpath=db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_noz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data',roundval=3)
     
     ######## Make reduced test (no-z) set Full Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
-    db_noz_tab.name = 'GRB_short+Z_removed_fulltab'
+    db_noz_tab.name = 'GRB_short+Z_removed_webreduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
@@ -1916,8 +1916,8 @@ def TestReloadAlldb(redownload_gcn=False):
                         'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
-    db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb')
-    db_noz_tab.makeDeluxeTable(attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown')
+    arffpath=db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_noz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Test Data',label='tab:unknown',roundval=3)
     
     
     db_outliersremoved.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
