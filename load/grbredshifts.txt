@@ -120,3 +120,57 @@
 081029	3.8479	ab	delia08a	gcn8438
 081118	2.58	ab	delia08b	gcn8531
 081121	2.512	ab	berger08c	gcn8542
+081203A	2.05	ab	kuin09a		paper, mnras 395 also see landsman08 gcn8601
+081222	2.77	ab	cucchiara08c	gcn8713
+090102	1.547	ab	postigo09a	gcn8766
+090205	4.6503	ab	davanzo10a	paper a&a
+090313	3.375	ab	chornock09a	gcn8994 do not include; too late uvot/xrt
+090418A	1.608	ab	chornock09b	gcn9151
+090423	8.2		ab	salvaterra09a,tanvir09a two refs
+090424	0.544	hem	chornock09c	gcn9243
+090516A	4.109	ab	postigo09b	gcn9383
+090519	3.85	ab	levan09a	gcn9409
+090529	2.625	ab	malesani09a	gcn9457
+090618	0.54	ab	cenko09a	gcn9518
+090715B	3.00	ab	wiersema09a	gcn9673
+090726	2.71	ab	fatkhullin09a	gcn9712	new
+090809	2.737	ab	malesani09b	gcn9761
+090812	2.452	ab	postigo09c	gcn9771
+post here verify on paper
+090814A	<2.2	ab	jakobsson09a	gcn9797 0.696 < z < 2.2
+090926B	1.24	ab	fynbo09b	gcn9947
+090927	1.37	ab	levan09b	gcn9958 short?
+091018	0.971	ab	chen09a		gcn10038
+091020	1.71	ab	xu09a		gcn10053
+091024	1.092	ab	cucchiara09a	gcn10065
+091029	2.752	ab	chornock09d	gcn10100
+091109A	3.076	ab	rau09a		gcn10350
+091127	0.490	em	cucchiara09b	gcn10202
+091208B	1.0633	ab	perley09b	gcn10272
+100219A	4.6667	ab	postigo10a	gcn10445
+100302A	4.813	ab	chornock10a	gcn10466
+100316D	0.0593	em	chornock10b	arxiv1004.2262
+100418A	0.6235	ab	antonelli10a	gcn10620
+100425A	1.755	ab	goldoni10a	gcn10684
+100513A	4.772	ab	cenko10a	gcn10752
+100621A	0.542	hem	jensen10a	gcn10876
+post here validation set - check greiner webpages as well
+100728B	2.106	ab	flores10a	gcn11317
+100814A	1.44	ab	omeara10a	gcn11089
+100816A	0.8035	em	tanvir10a	gcn11123 short?
+100901A	1.408	ab	chornock10c	gcn11164
+100906A	1.727	ab	tanvir10b	gcn11230
+101219A	0.718	hem	chornock10d	gcn11518
+101219B	0.5519	ab	postigo11a	gcn11579
+110106B	0.618?	em	chornock11a	gcn11538 Uncertain host? exclude?
+110128A	2.339	ab	tanvir11a	gcn11607
+110205A	2.22	ab	cenko11a	gcn11638
+110213A	1.46	ab	milne11a	gcn11708 Without the detection of fine structure lines or a DLA system, we cannot definitively identify this as the redshift of the GRB host galaxy, but z <2.3 
+110328A	0.354	em	thoene11a	gcn11834	TDF exclude
+110422A	1.770	ab	malesani11a,postigo11b	gcn11977,gcn11978
+110503A	1.613	ab	postigo11c	gcn11993
+110715A	0.82	ab	piranomonte11a	gcn12164
+110726A	1.036	ab	cucchiara11a	gcn12202	strictly 1.036 < z < 2.7
+110731A	2.83	ab	tanvir11b	gcn12225
+110801A	1.858	ab	lavers11a	gcn12234
+110808A	1.348	em	postigo11d	gcn12258
