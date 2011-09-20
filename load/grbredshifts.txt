@@ -1,0 +1,122 @@
+050126	1.29	hem	berger05a	gcn3088	new
+050223	0.5915	hem	berger06a	gcn5283
+050315	1.949	ab	kelson05	gcn3101
+050318	1.44	ab	berger05b	gcn3122	
+050319	3.2425	ab	jakobsson06	also see gcn3136
+050401	2.8983	ab	watson06	also see gcn3176	new
+050416A	0.6535	hem	cenko05		gcn3542	
+050505	4.27	ab	berger05c	gcn3368
+050525A	0.606	ab	foley05		gcn3483
+050603	2.821	em	berger05d	gcn3520	new
+050730	3.9693	ab	delia05		paper
+050801	<2.3	ab	fynbo09		oates09 phot give z=1.38. new
+050802	1.71	ab	fynbo05		gcn3749
+050803	???		hem	bloom05		unconfirmed! remove!
+050814	~5.3	ph	jakobsson06b	photometric redshift!! remove and test?		
+050820A	2.6147	ab	ledoux06	gcn3860
+050824	0.8278	ab	sollerman07	paper
+050826	0.296	hem	mirabal07	paper
+050904	6.29	ab	kawai05		gcn3937
+050908	3.35	ab	fugazza05	gcn3948
+050922C	2.1995	ab	jakobsson06	also see gcn4044
+051016B	0.9364	hem	soderberg05	gcn4186 new
+051109A	2.346	ab	quimby05	gcn4221
+051109B	0.080	hem	perley06	gcn5387
+051111	1.54948	ab	penprase06	also see gcn4255
+051227	???		hem	foley05b	Ambiguous-duration burst near z~0.7 galaxy. Fainter, coincident galaxy may be actual host.
+060108	~2.03	ph	melandri06	gcn4539 phot - remove?
+060115	3.5328	ab	fynbo09		also see piranomonte06 gcn
+060116	~6.6	ph	grazian06	photometric redshift!
+060124	2.296	ab	prochaska06	gcn4593
+060202	??		??	??			remove
+060206	4.0559	ab	fynbo06		paper- A&A 451L
+060210	3.913	ab	cucciara06	proceedings NCimB
+060218	0.0331	hem	mirabel06	gcn4792
+060223A	4.41	ab	berger06b	gcn4815
+060418	1.49	ab	vreeswijk07	paper a&a
+060428B	????	hem	fugazza06	gcn5075 says unlikely to be host. remove.
+060502A	1.5026	ab	fynbo09		see also cucciara06 gcn5052
+060510B	4.9		ab	price06		gcn5104 lyman break estimate
+060512	2.1		ab	fynbo09		see also starling06 gcn
+060522	5.11	ab	cenko06		gcn5155 lyman break
+060526	3.2213	ab	jakobsson06	also see berger gcn5170
+060604	<3		ab	fynbo09		also see castro-tirado 2006 gcn. include?
+060605	3.78	ab	savaglio07	gcn6166
+060607A	3.082	ab	ledoux06	gcn5237
+060614	0.1257	hem	delia06		paper
+060707	3.4240	ab	jakobsson06	see also gcn5298
+060708	1.92	ab	fynbo09		lyman break + photometric
+060714	2.7108	ab	jakobsson06	see also jakobsson gcn5320
+060719	<4.6?	ab	fynbo09		new but don't include; not constraining enough.
+060729	0.5428	ab	fynbo09		also see theone gcn5373
+060807	<3.4?	ab	fynbo09		new but not constraining?
+060904B	0.7029	ab	fynbo09		see also fugazza gcn5513
+060906	3.6856	ab	jakobsson06	see also vreeswijk gcn 5535
+060908	1.8836	ab	fynbo09		not rol2006 z=2.43
+060912	0.937	hem	jakobsson06c	gcn5617
+060926	3.20	ab	piranomonte06b	gcn5626
+060927	5.4636	ab	ruiz07		paper apj 669
+061004	???		??	??			Dark burst. Possibly variable/high-z source is not associated. remove
+061007	1.261	ab	osip06		gcn5715
+061021	0.3463	ab	fynbo09		new
+061110A	0.7578	ab	fynbo09		also see theone gcn5182
+061110B	3.4344	ab	fynbo09		also see fynbo gcn5809
+061121	1.314	ab	fynbo09		also see bloom06 gcn5826
+061126	1.1588	hem	perley08	host; paper apj 672
+061222A	2.088	hem	perley09	host; paper apj 138 new
+061222B	3.355	ab	berger06c	gcn5962
+070110	2.3521	ab	fynbo09		also see jaunsen07	gcn6010
+070129	<3.4?	ab	fynbo09		new but not constraining?	
+070208	1.165	ab	cucchiara07	gcn6083
+070306	1.49594	hem	jaunsen08	paper apj 681
+070318	0.8397	ab	fynbo09		see also jaunsen gcn6216
+070411	2.9538	ab	fynbo09		see also jakobsson gcn6283
+070419A	0.9705	ab	fynbo09		see also cenko07 gcn6322
+070506	2.3090	ab	fynbo09		see also theone07	gcn6379
+070508	<3.0?	ab	fynbo09		not constraining? remove?
+070518	<0.7	ph	cucchiara07b	gcn6419 remove?
+070529	2.4996	ab	berger07a	gcn6470
+070611	2.0394	ab	fynbo09		see also thoene07a gcn6499
+070714B	0.92	hem	graham07	short burst claimed despite t90=64! remove?
+070721B	3.6298	ab	fynbo09		see also malesani07 gcn6651
+070802	2.4541	ab	fynbo09		see also prochaska07 gcn6698
+070810A	2.17	ab	thoene07b	gcn6741
+071020	2.1462	ab	fynbo09		see also jakobsson07a gcn6952 new
+071025	5.2?	ph	perley10	not included due to photometric, but maybe be consistent and include? new
+071031	2.6918	ab	fynbo09		see also ledoux07 gcn7023
+071112C	0.8227	ab	fynbo09		see also jakobsson07b gcn7088	new
+071117	1.3308	hem	fynbo09		see also jakobsson07c gcn7117
+071122	1.14	ab	cucchiara07c	gcn7124
+071227	0.383	hem	davanzo07	gcn7152 - short burst?
+080129	4.349	ab	greiner09a	paper- apj693 1912
+080210	2.6419	ab	fynbo09		also see jakobsson08a gcn7286
+080310	2.4274	ab	fynbo09		also see prochaska08a gcn7397
+080319B	0.9382	ab	fynbo09		also see vreeswijk08a,b gcn7444, gcn7451
+080319C	1.9492	ab	fynbo09		also see wiersema08a gcn7517
+080330	1.5119	ab	fynbo09		also see malesani08 gcn7544
+080411	1.03	ab	thoene08a	gcn7587 do not include; no early UVOT info
+080413A	2.433	ab	thoene08b	gcn7602
+080413B	1.1014	ab	fynbo09		also see vreeswijk08b gcn7601
+080430	0.767	ab	cucchiara08a	gcn7654
+080520	1.5457	ab	fynbo09		also see jakobsson08b gcn7757
+080523	<3.0?	ab	fynbo09		not constraining? remove?
+080603B	2.6892	ab	fynbo09		also see fynbo08a gcn7797
+080604	1.4171	ab	fynbo09		also see wiersema08b gcn7818
+080605	1.6403	ab	fynbo09		also see jakobsson08c gcn7832
+080607	3.0363	ab	prochaska09a	paper apj 691
+080707	1.2322	ab	fynbo09		also see fynbo08b gcn7949
+080710	0.8454	ab	fynbo09		also see perley08b gcn7962
+080721	2.5914	ab	fynbo09		also see davanzo08 gcn7997
+080804	2.2045	ab	fynbo09		also see thoene08c gcn8058
+080805	1.5042	ab	fynbo09		also see jakobsson08d gcn8077
+080810	3.3604	ab	fynbo09		also see prochaska08b gcn8083
+080905B	2.3739	ab	fynbo09		also see vreeswijk08c gcn8191
+080913	6.7		ab	greiner09b	paper apj 693 1610
+080916A	0.6887	ab	fynbo09		also see fynbo08c gcn8254
+080928	1.6919	ab	fynbo09		also see vreeswijk08d gcn8301
+081007	0.5295	ab	berger08a	gcn8335
+081008	1.967	ab	cucchiara08b	gcn8346
+081028A	3.038	ab	berger08b	gcn8434
+081029	3.8479	ab	delia08a	gcn8438
+081118	2.58	ab	delia08b	gcn8531
+081121	2.512	ab	berger08c	gcn8542
