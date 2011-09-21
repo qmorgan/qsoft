@@ -47,6 +47,10 @@ def flux2mag():
     """docstring for flux2mag"""
     pass
 
+def mag2abmag(mag, zp):
+    AB_mag = -2.5*numpy.log10(q.mag2flux(mag,0,zp)) - 48.60
+    return AB_mag
+
 def mag2flux(mag_1=99,mag_2=99,flux_2=0):
     """Given a magnitude and a flux """
     if mag_1 == 99:
