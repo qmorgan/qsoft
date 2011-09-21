@@ -2415,10 +2415,13 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
         j_mag = j_list[index] # sort by ascending frequencies
 
         # These aren't fluxes.. they are converted to AB magnitude
-        k_flux = -2.5*numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) - 48.60 # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
-        h_flux = -2.5*numpy.log10(q.mag2flux(h_mag,0,1.024e-20)) - 48.60
-        j_flux = -2.5*numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) -48.60
+        #k_flux = -2.5*numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) - 48.60 # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
+        #h_flux = -2.5*numpy.log10(q.mag2flux(h_mag,0,1.024e-20)) - 48.60
+        #j_flux = -2.5*numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) -48.60
 
+        k_flux = numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
+        h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
+        j_flux = numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) 
 #        k_flux = q.mag2flux(k_mag,0,666.7e6) # zeropoints are in microjansky
 #        h_flux = q.mag2flux(h_mag,0,1024e6)
 #        j_flux = q.mag2flux(j_mag,0,1594e6) 
@@ -2427,7 +2430,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
         specmag_error = numpy.array([k_errlist[index], h_errlist[index], j_errlist[index]])
 
         p_freqs = numpy.array([1.394383526e+14,1.816923988e+14,2.398339664e+14]) # placeholder values, get the actual values!
-        log_freqs = log10(p_freqs)
+        log_freqs = log10(p_freqs) 
         log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
 
 #        fitfunc = lambda p, x: p[0] + p[1] * x # the linear function in log-log space
@@ -2582,3 +2585,16 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     savefig(savepath)    
     matplotlib.pyplot.close()
 
+def test_fit():
+    from MiscBin import q
+    k_mag = 13.3697
+    j_mag = 15.1144
+    k_flux = -2.5*numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) - 48.60 # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
+    j_flux = -2.5*numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) - 48.60
+
+    k_length = -2.5*numpy.log10(2.398*10**14) - 48.60
+    j_length = -2.5*numpy.log10(1.394*10**14) - 48.60
+
+    result = (k_flux - j_flux)/(k_length - j_length)
+    
+    return result
