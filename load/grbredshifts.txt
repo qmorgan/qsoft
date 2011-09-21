@@ -147,31 +147,32 @@ x091029	2.752	ab	chornock09d	gcn10100
 x091109A	3.076	ab	rau10a		gcn10350
 x091127	0.490	em	cucchiara09b	gcn10202
 x091208B	1.0633	ab	perley09b	gcn10272
-100219A	4.6667	ab	postigo10a	gcn10445
-100302A	4.813	ab	chornock10a	gcn10466
-100316B	1.063	ab	vergani10a	gcn10495	strictly z<1.6
-100316D	0.0593	em	chornock10b	arxiv1004.2262
-100418A	0.6235	ab	antonelli10a	gcn10620
-100425A	1.755	ab	goldoni10a	gcn10684
-100513A	4.772	ab	cenko10a	gcn10752
-100621A	0.542	hem	jensen10a	gcn10876
+x100219A	4.6667	ab	postigo10a,cenko10a	gcn10445
+x100302A	4.813	ab	chornock10a	gcn10466
+x100316B	1.063	ab	vergani10a	gcn10495	strictly z<1.6
+x100316D	0.0593	em	chornock10b	arxiv1004.2262
+x100418A	0.6235	ab	antonelli10a,cucchiara10a	gcn10620
+x100425A	1.755	ab	goldoni10a	gcn10684
+x100513A	4.772	ab	cenko10b	gcn10752
+x100621A	0.542	hem	jensen10a	gcn10876
+
 post here validation set - check greiner webpages as well
-100728B	2.106	ab	flores10a	gcn11317
-100814A	1.44	ab	omeara10a	gcn11089
-100816A	0.8035	em	tanvir10a	gcn11123 short?
-100901A	1.408	ab	chornock10c	gcn11164
-100906A	1.727	ab	tanvir10b	gcn11230
-101219A	0.718	hem	chornock10d	gcn11518
-101219B	0.5519	ab	postigo11a	gcn11579
-110106B	0.618?	em	chornock11a	gcn11538 Uncertain host? exclude?
-110128A	2.339	ab	tanvir11a	gcn11607
-110205A	2.22	ab	cenko11a	gcn11638
-110213A	1.46	ab	milne11a	gcn11708 Without the detection of fine structure lines or a DLA system, we cannot definitively identify this as the redshift of the GRB host galaxy, but z <2.3 
-110328A	0.354	em	thoene11a	gcn11834	TDF exclude
-110422A	1.770	ab	malesani11a,postigo11b	gcn11977,gcn11978
-110503A	1.613	ab	postigo11c	gcn11993
-110715A	0.82	ab	piranomonte11a	gcn12164
-110726A	1.036	ab	cucchiara11a	gcn12202	strictly 1.036 < z < 2.7
-110731A	2.83	ab	tanvir11b	gcn12225
-110801A	1.858	ab	lavers11a	gcn12234
-110808A	1.348	em	postigo11d	gcn12258
+x100728B	2.106	ab	flores10a	gcn11317
+x100814A	1.44	ab	omeara10a	gcn11089
+x100816A	0.8035	em	tanvir10a,tanvir10b	gcn11123 short?
+x100901A	1.408	ab	chornock10c	gcn11164
+x100906A	1.727	ab	tanvir10c	gcn11230
+x101219A	0.718	hem	chornock11a	gcn11518
+x101219B	0.5519	ab	postigo11a	gcn11579
+x110106B	0.618?	em	chornock11b	gcn11538 Uncertain host? exclude?
+x110128A	2.339	ab	sparre11a	gcn11607
+x110205A	2.22	ab	cenko11a	gcn11638
+x110213A	1.46	ab	milne11a	gcn11708 Without the detection of fine structure lines or a DLA system, we cannot definitively identify this as the redshift of the GRB host galaxy, but z <2.3 
+x110328A	0.354	em	??	gcn11834	TDF exclude
+x110422A	1.770	ab	malesani11a,postigo11b	gcn11977,gcn11978x
+x110503A	1.613	ab	postigo11c	gcn11993
+x110715A	0.82	ab	piranomonte11a	gcn12164
+x110726A	1.036	ab	cucchiara11a	gcn12202	strictly 1.036 < z < 2.7
+x110731A	2.83	ab	tanvir11a	gcn12225
+x110801A	1.858	ab	lavers11a	gcn12234
+x110808A	1.348	em	postigo11d	gcn12258
