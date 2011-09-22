@@ -225,7 +225,14 @@ def whatis(keyword):
     'web_Bayes_Ep_[keV]' : {'definition':'Bayes E_peak: One of the 4 parameters in the Band-function fit to the BAT gamma-ray spectrum.  E_Peak is the energy (frequency) at which most of the energy is emitted.','type':'double','source':'NatBat Spectra - found with a model fit to the spectrum, using bayesian techniques. More trustworthy than EP0.','speed':'processed','sample':161.47},
     'web_Energy_Fluence_(15-350_keV)_[erg/cm^2]' : {'definition':'Energy Fluence (15-350 keV) [erg/cm^2] - mathematically, the integral of the BAT gamma-ray light curve over time','type':'double','source':'NatBat Spectra','speed':'processed','sample':4.1281000000000003e-06},
     'web_S/N' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
-    'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
+    'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},    
+    'z_man_use' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
+    'z_man_best' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
+    'z_man_lowlim' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
+    'z_man_uplim' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
+    'z_man_type' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
+    'z_man_trust' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
+    'z_man_refs' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
     'notices_parsed' : {'definition':'list of all successfully parsed GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-UVOT Source List', 'Swift-XRT Position']},
     'notices_possible' : {'definition':'list of all possible GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-XRT Position']}
     }
@@ -342,6 +349,7 @@ class GRBdb:
         print '\nNow loading Swift Online Catalog Entries'
         
         RATE_GRBdict = ParseRATEGRB()
+        man_z_dict = ParseManualZ()
         
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
@@ -455,10 +463,36 @@ class GRBdb:
             
                 subdict = {grb_str:catdict}
                 collected_dict.update(subdict)
+                
+                
+                print "Now collecting Manual Z Catalog entries for GRB %s" % (grb_str)
+                try:
+                    catdict.update(man_z_dict[grb_str])
+                except:
+                    try:
+                        # Try stripping the trailing A off the name and see if its in nat's cat
+                        catdict.update(man_z_dict[grb_str.strip('A')])
+                    except:
+                        try:
+                            # Try ADDING the trailing A onto the name and see if it's in natcat
+                            catdict.update(man_z_dict[grb_str+'A'])
+                        except:
+                            print "No manual redshift information for GRB %s" % (grb_str)
+                
+                            
+                subdict = {grb_str:catdict}
+                collected_dict.update(subdict)
+        
+        unnacounted_man_z =[]
+        for grbid in man_z_dict.iterkeys():
+            if grbid not in collected_dict.keys():
+                unnacounted_man_z.append(grbid)
+                
         
         failed_nat_grbs.sort()
         failed_gcn_grbs.sort()
         failed_finding_charts.sort()
+        self.unnacounted_man_z=unnacounted_man_z
         self.failed_gcn_grbs = failed_gcn_grbs
         self.failed_nat_grbs = failed_nat_grbs
         self.failed_nat_web_grbs = failed_nat_web_grbs
@@ -1007,6 +1041,11 @@ class GRBdb:
         self.MakeAttrArr('Q_hat_train')
         self.MakeAttrArr('prob_high')
         self.MakeAttrArr('prob_low')
+        
+        #manual_z_values
+        self.MakeNomArr('z_man_use')
+        self.MakeAttrArr('z_man_best')
+        self.MakeAllAttr('z_man_trust')
         
         #Nat Web Values
         self.MakeAttrArr('web_alpha')
@@ -1999,8 +2038,27 @@ def ParseRATEGRB():
     
     return rategrbdict
     
-        
-
+def ParseManualZ():
+    manredpath = loadpath + 'grbredshifts.txt'  
+    man_z_dict = {}      
+    f = file(manredpath,'r')
+    for line in f.readlines():
+        linesplit = line.split()
+        if linesplit[0] != 'use':
+            z_man_use = linesplit[0]
+            z_man_best = linesplit[2]
+            z_man_lowlim = linesplit[3]
+            z_man_uplim = linesplit[4]
+            z_man_trust = linesplit[5]
+            z_man_type = linesplit[6]
+            z_man_refs = linesplit[7].split(',')
+            z_man_comments = ''
+            for item in iter(linesplit[8:]):
+                z_man_comments += item + ' '
+            subdict = {'z_man_use':z_man_use, 'z_man_best':z_man_best,'z_man_lowlim':z_man_lowlim,'z_man_uplim':z_man_uplim,'z_man_trust':z_man_trust,'z_man_type':z_man_type,'z_man_refs':z_man_refs,'z_man_comments':z_man_comments}
+            man_z_dict.update({linesplit[1]:subdict})
+    return man_z_dict
+    
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
     # TODO: Label colorbar
