@@ -1,178 +1,177 @@
-x050126	1.29	hem	berger05a	gcn3088	new
-x050223	0.5915	hem	berger06a	gcn5283
-x050315	1.949	ab	kelson05a	gcn3101
-x050318	1.44	ab	berger05b	gcn3122	
-x050319	3.2425	ab	fynbo05a,jakobsson06a,fynbo09 gcn3136
-x050401	2.8983	ab	fynbo05b,watson06	also see  gcn3176	new
-x050416A	0.6535	hem	cenko05a	gcn3542	
-x050505	4.27	ab	berger05c	gcn3368
-x050525A	0.606	ab	foley05a	gcn3483
-x050603	2.821	em	berger05d	gcn3520	new
-x050730	3.969	ab	chen05a,delia07a		paper
-x050801	1.38	ph	fynbo09,oates09a		fynbo09 < 2.3 from ab spec, oates09 phot give z=1.38. new
-x050802	1.71	ab	fynbo05c	gcn3749
-050803	???		hem	bloom05		unconfirmed! remove!
-x050814	~5.3	ph	jakobsson06b	photometric redshift!! remove and test?		
-x050820A	2.6147	ab	ledoux05a	gcn3860
-x050824	0.8278	ab	sollerman07a	paper
-x050826	0.296	hem	mirabal07a	paper
-x050904	6.29	ab	kawai05a,price06c		gcn3937, also phot by price
-x050908	3.35	ab	fugazza05a	gcn3948
-x050922C	2.1995	ab	delia05a,jakobsson06a,fynbo09	also see gcn4044
-x051016B	0.9364	hem	soderberg05a	gcn4186 new
-x051109A	2.346	ab	quimby05a	gcn4221
-x051109B	0.080	hem	perley06a	gcn5387
-x051111	1.54948	ab	hill05a,penprase06a	see gcn4255
-051227	???		hem	foley05b	???? short? Ambiguous-duration burst near z~0.7 galaxy. Fainter, coincident galaxy may be actual host.
-x060108	~2.03	ph	melandri06	gcn4539 phot - remove? Conservatively, we derive z<2.7 with z_best = 2.03 and
-x060115	3.5328	ab	piranomonte06a,fynbo09		also see  gcn
-x060116	~6.6	ph	grazian06a	photometric redshift!
-x060124	2.296	ab	prochaska06a	gcn4593
-060202	??		??	??			remove
-x060206	4.0559	ab	fynbo06a	paper- A&A 451L
-x060210	3.913	ab	cucchiara06a	proceedings NCimB
-x060218	0.0331	hem	mirabal06a	gcn4792
-x060223A	4.41	ab	berger06b	gcn4815
-x060418	1.49	ab	vreeswijk07a	paper a&a
-060428B	????	hem	fugazza06	gcn5075 says unlikely to be host. remove.
-x060502A	1.5026	ab	cucchiara06b,fynbo09		see also  gcn5052
-x060510B	4.9		ab	price06a		gcn5104 lyman break estimate
-x060512	2.1		ab	starling06a,fynbo09		see also  gcn5131
-x060522	5.11	ab	cenko06a		gcn5155 lyman break
-x060526	3.2213	ab	berger06d,jakobsson06a,fynbo09	also see x  gcn5170
-x060604	<3		ab	fynbo09		also see tirado06a 2006 gcn. fynbo09 do not agree with tirado. include?
-x060605	3.78	ab	savaglio07a	gcn6166
-x060607A	3.082	ab	ledoux06a	gcn5237
-x060614	0.1257	hem	price06b,dellavalle06a		paper
-x060707	3.4240	ab	jakobsson06a,fynbo09	see also gcn5298
-x060708	1.92	ab	fynbo09		lyman break + photometric
-x060714	2.7108	ab	jakobsson06a,fynbo09	see also jakobsson gcn5320
-x060719	<4.6?	ab	fynbo09		new but don't include; not constraining enough.
-x060729	0.5428	ab	thoene06a,fynbo09		also see  gcn5373
-x060807	<3.4?	ab	fynbo09		new but not constraining?
-x060904B	0.7029	ab	fynbo09		see also fugazza gcn5513
-x060906	3.6856	ab	vreeswijk06a,jakobsson06a,fynbo09	see also  gcn 5535
-x060908	1.8836	ab	fynbo09		not rol2006 z=2.43
-x060912	0.937	hem	jakobsson06c	gcn5617
-x060926	3.20	ab	piranomonte06b,delia06a	gcn5626
-x060927	5.4636	ab	velasco07a		paper apj 669
-061004	???		??	??			Dark burst. Possibly variable/high-z source is not associated. remove
-x061007	1.261	ab	osip06a		gcn5715
-x061021	0.3463	ab	fynbo09		new
-x061110A	0.7578	ab	thoene06b,fynbo09		gcn5182
-x061110B	3.4344	ab	fynbo06b,fynbo09		 gcn5809
-x061121	1.314	ab	bloom06a,fynbo09		 gcn5826
-x061126	1.1588	hem	perley08a	host; paper apj 672
-x061222A	2.088	hem	perley09a	host; paper apj 138 new
-x061222B	3.355	ab	berger06c	gcn5962
-x070110	2.3521	ab	jaunsen07a,fynbo09		also see 	gcn6010
-x070129	<3.4?	ab	fynbo09		new but not constraining?	
-x070208	1.165	ab	cucchiara07a	gcn6083
-x070306	1.49594	hem	jaunsen08a	paper apj 681
-x070318	0.8397	ab	jaunsen07b,fynbo09		  gcn6216
-x070411	2.9538	ab	jakobsson07a,fynbo09  gcn6283
-x070419A	0.9705	ab	cenko07a,fynbo09		see also  gcn6322
-x070506	2.3090	ab	thoene07a,fynbo09			gcn6379
-x070508	<3.0?	ab	fynbo09		not constraining? remove?
-x070518	<0.7	ph	cucchiara07b	gcn6419 remove?
-x070529	2.4996	ab	berger07a	gcn6470
-x070611	2.0394	ab	thoene07b,fynbo09		  gcn6499
-x070612A	0.617	em	cenko07b no early time NFI followup; don't include
-x070714B	0.92	hem	graham07a	short burst claimed despite t90=64! remove?
-x070721B	3.6298	ab	fynbo09		see also malesani07 gcn6651
-x070802	2.4541	ab	prochaska07a,fynbo09		see also  gcn6698
-x070810A	2.17	ab	thoene07c	gcn6741
-x071020	2.1462	ab	jakobsson07b,fynbo09	 gcn6952 new
-x071025	5.2?	ph	fynbo09,perley10a	not included due to photometric, but maybe be consistent and include? new
-x071031	2.6918	ab	ledoux07a,fynbo09	gcn7023
-x071112C	0.8227	ab	jakobsson07c,cucchiara07c,fynbo09	  gcn7088	new
-x071117	1.3308	hem	jakobsson07d,fynbo09		 gcn7117
-x071122	1.14	ab	cucchiara07d	gcn7124
-x071227	0.383	hem	davanzo07a	gcn7152 - short burst?
-x080129	4.349	ab	greiner09a	paper- apj693 1912
-x080210	2.6419	ab	jakobsson08a,fynbo09	  gcn7286
-x080310	2.4274	ab	prochaska08a,fynbo09	 gcn7397
-x080319B	0.9382	ab	vreeswijk08a,vreeswijk08b,fynbo09	  gcn7444, gcn7451
-x080319C	1.9492	ab	wiersema08a,fynbo09	 gcn7517
-x080330	1.5119	ab	malesani08a,fynbo09		 gcn7544
-x080411	1.03	ab	thoene08a	gcn7587 do not include; no early UVOT info
-x080413A	2.433	ab	thoene08b	gcn7602
-x080413B	1.1014	ab	vreeswijk08c,fynbo09  gcn7601
-x080430	0.767	ab	cucchiara08a	gcn7654
-x080520	1.5457	ab	jakobsson08b,fynbo09		 gcn7757
-x080523	<3.0?	ab	fynbo09		not constraining? remove?
-x080603B	2.6892	ab	fynbo08a,fynbo09	gcn7797
-x080604	1.4171	ab	wiersema08b,fynbo09	 gcn7818
-x080605	1.6403	ab	jakobsson08c,fynbo09		 gcn7832
-x080607	3.0363	ab	prochaska09a	paper apj 691
-x080707	1.2322	ab	fynbo08b,fynbo09		 gcn7949
-x080710	0.8454	ab	perley08b,fynbo09		 gcn7962
-x080721	2.5914	ab	davanzo08a,jakobsson08d,fynbo09		 gcn7997, 
-x080804	2.2045	ab	thoene08c,cucchiara08b,fynbo09	 gcn8058
-x080805	1.5042	ab	jakobsson08e,jakobsson08f,fynbo09		also see  gcn8077
-x080810	3.3604	ab	prochaska08b,fynbo09		also see  gcn8083
-x080905B	2.3739	ab	vreeswijk08d,fynbo09		 gcn8191
-x080913	6.7		ab	greiner09b	paper apj 693 1610
-x080916A	0.6887	ab	fynbo08c,fynbo09		 gcn8254
-x080928	1.6919	ab	vreeswijk08e,fynbo09	  gcn8301
-x081007	0.5295	ab	berger08a	gcn8335
-x081008	1.967	ab	cucchiara08c,davanzo08b	gcn8346 
-x081028A	3.038	ab	berger08b	gcn8434
-x081029	3.8479	ab	delia08a,cucchiara08d	gcn8438
-x081118	2.58	ab	delia08b	gcn8531
-x081121	2.512	ab	berger08c	gcn8542
-x081203A	2.05	ab	kuin09a		paper, mnras 395 also see landsman08 gcn8601
-x081222	2.77	ab	cucchiara08e	gcn8713
-x090102	1.547	ab	postigo09a	gcn8766
-x090205	4.6503	ab	davanzo10a	paper a&a
-x090313	3.375	ab	chornock09a	gcn8994 do not include; too late uvot/xrt
-x090418A	1.608	ab	chornock09b	gcn9151
-x090423	8.2		ab	salvaterra09a,tanvir09a two refs
-x090424	0.544	hem	chornock09c	gcn9243
-x090516A	4.109	ab	postigo09b	gcn9383
-x090519	3.85	ab	levan09a	gcn9409
-x090529	2.625	ab	malesani09a	gcn9457
-x090618	0.54	ab	cenko09a	gcn9518
-x090715B	3.00	ab	wiersema09a	gcn9673
-x090726	2.71	ab	fatkhullin09a	gcn9712	new
-x090809	2.737	ab	malesani09b	gcn9761
-x090812	2.452	ab	postigo09c	gcn9771
-x090814A	<2.2	ab	jakobsson09a	gcn9797 0.696 < z < 2.2
-x090926B	1.24	ab	fynbo09b	gcn9947
-x090927	1.37	ab	levan09b	gcn9958 short?
-x091018	0.971	ab	chen09a		gcn10038
-x091020	1.71	ab	xu09a		gcn10053
-x091024	1.092	ab	cucchiara09a,cenko09b	gcn10065 new
-x091029	2.752	ab	chornock09d	gcn10100
-x091109A	3.076	ab	rau10a		gcn10350
-x091127	0.490	em	cucchiara09b	gcn10202
-x091208B	1.0633	ab	perley09b	gcn10272
-x100219A	4.6667	ab	postigo10a,cenko10a	gcn10445
-x100302A	4.813	ab	chornock10a	gcn10466
-x100316B	1.063	ab	vergani10a	gcn10495	strictly z<1.6
-x100316D	0.0593	em	chornock10b	arxiv1004.2262
-x100418A	0.6235	ab	antonelli10a,cucchiara10a	gcn10620
-x100425A	1.755	ab	goldoni10a	gcn10684
-x100513A	4.772	ab	cenko10b	gcn10752
-x100621A	0.542	hem	jensen10a	gcn10876
-
-post here validation set - check greiner webpages as well
-x100728B	2.106	ab	flores10a	gcn11317
-x100814A	1.44	ab	omeara10a	gcn11089
-x100816A	0.8035	em	tanvir10a,tanvir10b	gcn11123 short?
-x100901A	1.408	ab	chornock10c	gcn11164
-x100906A	1.727	ab	tanvir10c	gcn11230
-x101219A	0.718	hem	chornock11a	gcn11518
-x101219B	0.5519	ab	postigo11a	gcn11579
-x110106B	0.618?	em	chornock11b	gcn11538 Uncertain host? exclude?
-x110128A	2.339	ab	sparre11a	gcn11607
-x110205A	2.22	ab	cenko11a	gcn11638
-x110213A	1.46	ab	milne11a	gcn11708 Without the detection of fine structure lines or a DLA system, we cannot definitively identify this as the redshift of the GRB host galaxy, but z <2.3 
-x110328A	0.354	em	??	gcn11834	TDF exclude
-x110422A	1.770	ab	malesani11a,postigo11b	gcn11977,gcn11978x
-x110503A	1.613	ab	postigo11c	gcn11993
-x110715A	0.82	ab	piranomonte11a	gcn12164
-x110726A	1.036	ab	cucchiara11a	gcn12202	strictly 1.036 < z < 2.7
-x110731A	2.83	ab	tanvir11a	gcn12225
-x110801A	1.858	ab	lavers11a	gcn12234
-x110808A	1.348	em	postigo11d	gcn12258
+use	grbid	z		z_ll	z_ul	trust?	abs	source		comments
+y	050126	1.29	1.29   	1.29   	4		hem	berger05a	gcn3088	new
+y	050223	0.5915	0.5915 	0.5915 	4		hem	berger06a	gcn5283
+y	050315	1.949	1.949  	1.949  	5		ab	kelson05a	gcn3101
+y	050318	1.44	1.44   	1.44   	5		ab	berger05b	gcn3122	
+y	050319	3.2425	3.2425 	3.2425 	5		ab	fynbo05a,jakobsson06a,fynbo09 gcn3136
+y	050401	2.8983	2.8983 	2.8983 	5		ab	fynbo05b,watson06	also see  gcn3176	new
+y	050416A	0.6535	0.6535 	0.6535 	4		hem	cenko05a	gcn3542	
+y	050505	4.27	4.27   	4.27   	5		ab	berger05c	gcn3368 
+y	050525A	0.606	0.606  	0.606  	5		ab	foley05a	gcn3483 
+y	050603	2.821	2.821  	2.821  	5		em	berger05d	gcn3520	new
+y	050730	3.969	3.969  	3.969  	5		ab	chen05a,delia07a		paper
+y	050801	1.38	1.38   	2.3   	5		ph	fynbo09,oates09a		fynbo09 < 2.3 from ab spec, oates09 phot give z=1.38. new
+y	050802	1.71	1.71   	1.71   	5		ab	fynbo05c	gcn3749
+n	050803	???		???	   	???	  	1		hem	bloom05		unconfirmed! remove!
+y	050814	5.3		4.7   	5.6   	4		ph	jakobsson06b	photometric redshift!! remove and test?		
+y	050820A	2.6147	2.6147 	2.6147 	5		ab	ledouy	05a	gcn3860
+y	050824	0.8278	0.8278 	0.8278 	5		ab	sollerman07a	paper
+y	050826	0.296	0.296  	0.296  	5		hem	mirabal07a	paper
+y	050904	6.29	6.28   	6.30   	5		ab	kawai05a,price06c		gcn3937, also phot by price
+y	050908	3.35	3.35   	3.35   	5		ab	fugazza05a	gcn3948
+y	050922C	2.1995	2.1995 	2.1995 	5		ab	delia05a,jakobsson06a,fynbo09	also see gcn4044
+y	051016B	0.9364	0.9364 	0.9364 	4		hem	soderberg05a	gcn4186 new
+y	051109A	2.346	2.346  	2.346  	5		ab	quimby05a	gcn4221
+y	051109B	0.080	0.080  	0.080  	5		hem	perley06a	gcn5387
+y	051111	1.54948	1.54948	1.54948	5		ab	hill05a,penprase06a	see gcn4255
+n	051227	???		???	   	???	  	1		hem	foley05b	???? short? Ambiguous-duration burst near z~0.7 galaxy. Fainter, coincident galaxy may be actual host.
+y	060108	2.03	0.00  	2.7  	2		ph	melandri06	gcn4539 phot - remove? Conservatively, we derive z<2.7 with z_best = 2.03 and
+y	060115	3.5328	3.5328 	3.5328 	5		ab	piranomonte06a,fynbo09		also see  gcn
+y	060116	6.60	6.45   	6.75  	4		ph	grazian06a	photometric redshift!
+y	060124	2.296	2.296  	2.296  	5		ab	prochaska06a	gcn4593
+n	060202	??		??	   	??	  	1		??	??			remove
+y	060206	4.0559	4.0559 	4.0559 	5		ab	fynbo06a	paper- A&A 451L
+y	060210	3.913	3.913  	3.913  	5		ab	cucchiara06a	proceedings NCimB
+y	060218	0.0331	0.0331 	0.0331 	4		hem	mirabal06a	gcn4792
+y	060223A	4.41	4.41   	4.41   	5		ab	berger06b	gcn4815
+y	060418	1.49	1.49   	1.49   	5		ab	vreeswijk07a	paper a&a
+n	060428B	????	????   	????   	1		hem	fugazza06	gcn5075 says unlikely to be host. remove.
+y	060502A	1.5026	1.5026 	1.5026 	5		ab	cucchiara06b,fynbo09		see also  gcn5052
+y	060510B	4.9		4.9	   	4.9	  	4		ab	price06a		gcn5104 lyman break estimate
+y	060512	2.1		2.1	   	2.1	  	3		ab	starling06a,fynbo09		gcn5131. bloom2006a measure foreground galaxy of 0.44
+y	060522	5.11	5.10   	5.12   	5		ab	cenko06a		gcn5155 lyman break
+y	060526	3.2213	3.2213 	3.2213 	5		ab	berger06d,jakobsson06a,fynbo09	also see x  gcn5170
+n	060604	?		0.0	   	3	  	2		ab	fynbo09		also see tirado06a 2006 gcn. fynbo09 do not agree with tirado. include?
+y	060605	3.78	3.78   	3.78   	5		ab	savaglio07a	gcn6166
+y	060607A	3.082	3.082  	3.082  	5		ab	ledouy	06a	gcn5237
+y	060614	0.1257	0.1257 	0.1257 	5		hem	price06b,dellavalle06a		paper
+y	060707	3.4240	3.4240 	3.4240 	5		ab	jakobsson06a,fynbo09 gcn5298
+y	060708	1.92	1.92   	2.8   	4		ab	fynbo09,schady06a		lyman break + photometric -schady and moretti gcn5329
+y	060714	2.7108	2.7108 	2.7108 	5		ab	jakobsson06a,fynbo09	see also jakobsson gcn5320
+n	060719	?		0.0  	4.6  	2		ab	fynbo09		new but don't include; not constraining enough.
+y	060729	0.5428	0.5428 	2.1 	4		ab	thoene06a,fynbo09	  gcn5373
+n	060807	3.28	0	  	3.4		2  		ab	fynbo09		new but not constraining?
+y	060904B	0.7029	0.7029 	2.5 	4		ab	fynbo09,fugazza06a		 gcn5513
+y	060906	3.6856	3.6856 	3.6856 	5		ab	vreeswijk06a,jakobsson06a,fynbo09	see also  gcn 5535
+y	060908	1.8836	1.8836 	1.8836 	5		ab	fynbo09		also B. Milvang-Jensen 2010 in prep? not rol2006 z=2.43. consistent with uvot morgan06a
+y	060912	0.937	0.937  	0.937  	4		hem	jakobsson06c	gcn5617
+y	060926	3.2086	3.2086  3.2086  5 		ab	piranomonte06b,delia06a,fynbo09	gcn5626
+y	060927	5.4636	5.5 	5.6 	5		ab	velasco07a,fynbo09		paper apj 669
+n	061004	???		???	   	???	  	1		??	??			Dark burst. Possibly variable/high-z source is not associated. remove
+y	061007	1.2622	1.2622  1.2622  5		ab	osip06a,fynbo09		gcn5715
+y	061021	0.3463	0.3463 	0.3463 	5		ab	fynbo09		new (also Hjorth et. al 2010 in prep)
+y	061110A	0.7578	0.7578 	0.7578 	5		ab	thoene06b,fynbo09		gcn5182
+y	061110B	3.4344	3.4344 	3.4344 	5		ab	fynbo06b,fynbo09		 gcn5809
+y	061121	1.3145	1.3145 	1.3145  5		ab	bloom06a,fynbo09		 gcn5826
+y	061126	1.1588	1.1588 	1.1588 	4		hem	perley08a	host; paper apj 672
+y	061222A	2.088	2.088  	2.088  	4		hem	perley09a	host; paper apj 138 new
+y	061222B	3.355	3.355  	3.355  	5		ab	berger06c	gcn5962
+y	070110	2.3521	2.3521 	2.3521 	5		ab	jaunsen07a,fynbo09		also see 	gcn6010
+n	070129	?		0.0	  	3.4  	2		ab	fynbo09		new but not constraining?	
+y	070208	1.165	1.165  	1.165  	5		ab	cucchiara07a	gcn6083
+y	070306	1.49594	1.49594	1.49594	4		hem	jaunsen08a	paper apj 681
+y	070318	0.8397	0.8397 	2.1 	5		ab	jaunsen07b,fynbo09		  gcn6216
+y	070411	2.9538	2.9538 	2.9538 	5		ab	jakobsson07a,fynbo09  gcn6283
+y	070419A	0.9705	0.9705 	0.9705 	5		ab	cenko07a,fynbo09		see also  gcn6322
+y	070506	2.3090	2.3090 	2.3090 	5		ab	thoene07a,fynbo09			gcn6379
+n	070508	?		0.0  	3.0  	2		ab	fynbo09		not constraining? remove?
+n	070518	?		0.0   	0.7   	2		ph	cucchiara07b	gcn6419 remove?
+y	070529	2.4996	2.4996 	2.4996 	5		ab	berger07a	gcn6470
+y	070611	2.0394	2.0394 	2.0394 	5		ab	thoene07b,fynbo09		  gcn6499, 
+n	070612A	0.617	0.617  	0.617  	3		em	cenko07b no early time NFI followup; don't include
+n	070714B	0.92	0.92   	0.92   	4		hem	graham07a	short burst claimed despite t90=64! remove?
+y	070721B	3.6298	3.6298 	3.6298 	5		ab	malesani07a,fynbo09		 gcn6651, milvang-jensen et al 2010 (in prep)
+y	070802	2.4541	2.4541 	2.4541 	5		ab	prochaska07a,fynbo09		see also  gcn6698
+y	070810A	2.17	2.17   	2.17   	5		ab	thoene07c	gcn6741
+y	071020	2.1462	2.1462 	3.0 	5		ab	jakobsson07b,fynbo09	 gcn6952 new
+y	071025	5.2		4.4   	5.2   	4		ph	fynbo09,perley10a	not included due to photometric, but maybe be consistent and include? new
+y	071031	2.6918	2.6918 	2.6918 	5		ab	ledouy	07a,fynbo09	gcn7023
+y	071112C	0.8227	0.8227 	0.8227 	5		ab	jakobsson07c,cucchiara07c,fynbo09	  gcn7088	new
+y	071117	1.3308	1.3308 	1.3308 	3		hem	jakobsson07d,fynbo09		 gcn7117
+y	071122	1.14	1.14   	1.14   	4		ab	cucchiara07d	gcn7124
+y	071227	0.383	0.383  	0.383  	4		hem	davanzo07a	gcn7152 - short burst?
+y	080129	4.349	4.349  	4.349  	5		ab	greiner09a	paper- apj693 1912
+y	080210	2.6419	2.6419 	2.6419 	5		ab	jakobsson08a,fynbo09	  gcn7286
+y	080310	2.4274	2.4274 	2.4274 	5		ab	prochaska08a,fynbo09	 gcn7397
+y	080319B	0.9382	0.9382 	0.9382 	5		ab	vreeswijk08a,vreeswijk08b,fynbo09	  gcn7444, gcn7451
+y	080319C	1.9492	1.9492 	2.7 	5		ab	wiersema08a,fynbo09	 gcn7517
+y	080330	1.5119	1.5119 	1.5119 	5		ab	malesani08a,fynbo09		 gcn7544
+n	080411	1.0301	1.0301  1.0301  5 		ab	thoene08a,fynbo09	gcn7587 do not include; no early UVOT info
+y	080413A	2.433	2.433  	2.433  	5		ab	thoene08b,fynbo09	gcn7602
+y	080413B	1.1014	1.1014 	1.1014 	5		ab	vreeswijk08c,fynbo09  gcn7601
+y	080430	0.767	0.767  	0.767  	5		ab	cucchiara08a	gcn7654
+y	080520	1.5457	1.5457 	1.5457 	5		ab	jakobsson08b,fynbo09		 gcn7757
+n	080523	?		0.0		3.0  	2		ab	fynbo09		not constraining? remove?
+y	080603B	2.6892	2.6892 	2.6892 	5		ab	fynbo08a,fynbo09	gcn7797
+y	080604	1.4171	1.4171 	3.1 	5		ab	wiersema08b,fynbo09	 gcn7818
+y	080605	1.6403	1.6403 	1.6403 	5		ab	jakobsson08c,fynbo09		 gcn7832
+y	080607	3.0363	3.0363 	3.0363 	5		ab	prochaska09a,fynbo09	paper apj 691
+y	080707	1.2322	1.2322 	2.2 	5		ab	fynbo08b,fynbo09		 gcn7949
+y	080710	0.8454	0.8454 	0.8454 	5		ab	perley08b,fynbo09		 gcn7962
+y	080721	2.5914	2.5914 	2.5914 	5		ab	davanzo08a,jakobsson08d,fynbo09		 gcn7997, 
+y	080804	2.2045	2.2045 	2.2045 	5		ab	thoene08c,cucchiara08b,fynbo09	 gcn8058
+y	080805	1.5042	1.5042 	1.5042 	5		ab	jakobsson08e,jakobsson08f,fynbo09		also see  gcn8077
+y	080810	3.3604	3.3604 	3.3604 	5		ab	prochaska08b,fynbo09		also see  gcn8083
+y	080905B	2.3739	2.3739 	2.3739 	5		ab	vreeswijk08d,fynbo09		 gcn8191
+y	080913	6.7		6.7	   	6.7	  	5		ab	greiner09b	paper apj gunn-peterson 693 1610
+y	080916A	0.6887	0.6887 	0.6887 	5		ab	fynbo08c,fynbo09		 gcn8254
+y	080928	1.6919	1.6919 	2.1 	5		ab	vreeswijk08e,fynbo09	  gcn8301
+y	081007	0.5295	0.5295 	0.5295 	5		ab	berger08a	gcn8335
+y	081008	1.967	1.967  	1.967  	5		ab	cucchiara08c,davanzo08b	gcn8346 
+y	081028A	3.038	3.038  	3.038  	5		ab	berger08b	gcn8434
+y	081029	3.8479	3.8479 	3.8479 	5		ab	delia08a,cucchiara08d	gcn8438
+y	081118	2.58	2.58   	2.58   	5		ab	delia08b	gcn8531
+y	081121	2.512	2.512  	2.512  	5		ab	berger08c	gcn8542
+y	081203A	2.05	2.05   	2.05   	5		ab	kuin09a		paper, mnras 395 also see landsman08 gcn8601
+y	081222	2.77	2.77   	2.77   	5		ab	cucchiara08e	gcn8713
+y	090102	1.547	1.547  	1.547  	5		ab	postigo09a	gcn8766
+y	090205	4.6503	4.6503 	4.6503 	5		ab	davanzo10a	paper a&a
+n	090313	3.375	3.375  	3.375  	5		ab	chornock09a	gcn8994 do not include; too late uvot/xrt
+y	090418A	1.608	1.608  	1.608  	5		ab	chornock09b	gcn9151
+y	090423	8.2		8.1	   	8.2	  	5		ab	salvaterra09a,tanvir09a two refs
+y	090424	0.544	0.544  	0.544  	4		hem	chornock09c	gcn9243
+y	090516A	4.109	4.109  	4.109  	5		ab	postigo09b	gcn9383
+y	090519	3.85	3.85   	3.85   	5		ab	levan09a	gcn9409
+y	090529	2.625	2.625  	2.625  	5		ab	malesani09a	gcn9457
+y	090618	0.54	0.54   	0.54   	5		ab	cenko09a	gcn9518
+y	090715B	3.00	3.00   	3.00   	5		ab	wiersema09a	gcn9673
+y	090726	2.71	2.71   	2.71   	5		ab	fatkhullin09a	gcn9712	new
+y	090809	2.737	2.737  	2.737  	5		ab	malesani09b	gcn9761
+y	090812	2.452	2.452  	2.452  	5		ab	postigo09c	gcn9771
+y	090814A	0.696	0.696   2.2   	3		ab	jakobsson09a	gcn9797 0.696 < z < 2.2
+y	090926B	1.24	1.24   	1.24   	5		ab	fynbo09b	gcn9947
+y	090927	1.37	1.37   	1.37   	5		ab	levan09b	gcn9958 short?
+y	091018	0.971	0.971  	0.971  	5		ab	chen09a		gcn10038
+y	091020	1.71	1.71   	1.71   	5		ab	xu09a		gcn10053
+y	091024	1.092	1.092  	1.092  	5		ab	cucchiara09a,cenko09b	gcn10065 new
+y	091029	2.752	2.752  	2.752  	5		ab	chornock09d	gcn10100
+y	091109A	3.076	3.076  	3.076  	5		ab	rau10a		gcn10350
+y	091127	0.490	0.490  	0.490  	5		em	cucchiara09b	gcn10202
+y	091208B	1.0633	1.0633 	1.0633 	5		ab	perley09b	gcn10272
+y	100219A	4.6667	4.6667 	4.6667 	5		ab	postigo10a,cenko10a	gcn10445
+y	100302A	4.813	4.813  	4.813  	5		ab	chornock10a	gcn10466
+y	100316B	1.063	1.063  	1.6  	5		ab	vergani10a	gcn10495	strictly z<1.6
+y	100316D	0.0593	0.0593 	0.0593 	4		em	chornock10b	arxiv1004.2262
+y	100418A	0.6235	0.6235 	0.6235 	5		ab	antonelli10a,cucchiara10a	gcn10620
+y	100425A	1.755	1.755  	1.755  	5		ab	goldoni10a	gcn10684
+y	100513A	4.772	4.772  	4.772  	5		ab	cenko10b	gcn10752
+y	100621A	0.542	0.542  	0.542  	4		hem	jensen10a	gcn10876
+y	100728B	2.106	2.106  	2.106  	5		ab	flores10a	gcn11317
+y	100814A	1.44	1.44   	1.44   	5		ab	omeara10a	gcn11089
+y	100816A	0.8035	0.8035 	0.8035 	5		em	tanvir10a,tanvir10b	gcn11123 short?
+y	100901A	1.408	1.408  	1.408  	5		ab	chornock10c	gcn11164
+y	100906A	1.727	1.727  	1.727  	5		ab	tanvir10c	gcn11230
+y	101219A	0.718	0.718  	0.718  	5		hem	chornock11a	gcn11518
+y	101219B	0.5519	0.5519 	0.5519 	5		ab	postigo11a	gcn11579
+n	110106B	0.618	0.618 	0.618 	2		em	chornock11b	gcn11538 Uncertain host? exclude?
+y	110128A	2.339	2.339  	2.339  	5		ab	sparre11a	gcn11607
+y	110205A	2.22	2.22   	2.22   	5		ab	cenko11a	gcn11638
+y	110213A	1.46	1.46   	2.3   	5		ab	milne11a	gcn11708 Without the detection of fine structure lines or a DLA system, we cannot definitively identify this as the redshift of the GRB host galaxy, but z <2.3 
+n	110328A	0.354	0.354  	0.354  	5		em	??	gcn11834	TDF exclude
+y	110422A	1.770	1.770  	1.770  	5		ab	malesani11a,postigo11b	gcn11977,gcn11978x
+y	110503A	1.613	1.613  	1.613  	5		ab	postigo11c	gcn11993
+y	110715A	0.82	0.82   	0.82   	5		ab	piranomonte11a	gcn12164
+y	110726A	1.036	1.036  	1.036  	5		ab	cucchiara11a	gcn12202	strictly 1.036 < z < 2.7
+y	110731A	2.83	2.83   	2.83   	5		ab	tanvir11a	gcn12225
+y	110801A	1.858	1.858  	1.858  	5		ab	lavers11a	gcn12234
+y	110808A	1.348	1.348  	1.348  	5		em	postigo11d	gcn12258	
