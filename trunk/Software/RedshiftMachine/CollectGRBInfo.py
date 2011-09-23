@@ -1214,9 +1214,9 @@ class GRBdb:
             else:
                 keyval = 'unknown'
             
-            # if removeNAN, remove it if the actual value is numpy.nan, or if there is no dictionary value (below)
-            if removeNAN and numpy.isnan(keyval):
-                keyval = 'unknown'
+            # # if removeNAN, remove it if the actual value is numpy.nan, or if there is no dictionary value (below)
+            # if removeNAN and numpy.isnan(keyval):
+            #     keyval = 'unknown'
 
             if not keyval == 'unknown':
                 execstring = 'if keyval%s: remove_list.append(ii); already_removed=True '\
@@ -1756,7 +1756,7 @@ def TestReloadAlldb(redownload_gcn=False):
     SaveDB(db_full)
     
     db_outliersremoved = copy.deepcopy(db_full)
-    db_full.removeValues('z_man_best','< 0', removeNAN=True)
+    db_full.removeValues('z_man_best','< 0', removeNAN=False)
     db_outliersremoved.Reload_DB(remove_short=True, remove_outliers = True, outlier_threshold=0.32)
     db_outliersremoved.name = 'GRB_short+outliers+noZ_removed'
     SaveDB(db_outliersremoved)
@@ -1774,7 +1774,7 @@ def TestReloadAlldb(redownload_gcn=False):
     
     
     db_full.Reload_DB(remove_short=True, remove_outliers=False)
-    db_full.name = 'GRB_short+outliers_removed' 
+    db_full.name = 'GRB_short_removed' 
     SaveDB(db_full)
         
     
@@ -2066,7 +2066,19 @@ def ParseManualZ():
             z_man_comments = ''
             for item in iter(linesplit[8:]):
                 z_man_comments += item + ' '
-            subdict = {'z_man_use':z_man_use, 'z_man_best':z_man_best,'z_man_lowlim':z_man_lowlim,'z_man_uplim':z_man_uplim,'z_man_trust':z_man_trust,'z_man_type':z_man_type,'z_man_refs':z_man_refs,'z_man_comments':z_man_comments}
+            
+            subdict = {'z_man_use':z_man_use, 'z_man_trust':z_man_trust,'z_man_type':z_man_type,'z_man_refs':z_man_refs,'z_man_comments':z_man_comments}
+            subdict_floats = {'z_man_best':z_man_best,'z_man_lowlim':z_man_lowlim,'z_man_uplim':z_man_uplim}
+            rm_list =[]
+            
+            #remove the nans from the dictionary
+            for key, val in subdict_floats.iteritems():
+                if numpy.isnan(val):
+                    rm_list.append(key)
+            for key in rm_list:        
+                subdict_floats.pop(key)
+            
+            subdict.update(subdict_floats)
             man_z_dict.update({linesplit[1]:subdict})
     return man_z_dict
     
