@@ -1239,7 +1239,7 @@ class GRBdb:
         self.MakeAllAttr()
         
         
-    def removeShort(self,remove_no_redshift=True):
+    def removeShort(self):
         '''Removes all short bursts with T90 < 2 and, if remove_no_redshift==
         True, those without a redshift'''
         remove_list = []
@@ -1756,7 +1756,8 @@ def TestReloadAlldb(redownload_gcn=False):
     SaveDB(db_full)
     
     db_outliersremoved = copy.deepcopy(db_full)
-    db_outliersremoved.Reload_DB(remove_short=True, remove_no_redshift=True, remove_outliers = True, outlier_threshold=0.32)
+    db_outliersremoved.Reload_DB(remove_short=True, remove_outliers = True, outlier_threshold=0.32)
+    db_full.removeValues('z_man_best','< 0', removeNAN=True)
     db_outliersremoved.name = 'GRB_short+outliers+noZ_removed'
     SaveDB(db_outliersremoved)
     
@@ -1778,7 +1779,8 @@ def TestReloadAlldb(redownload_gcn=False):
         
     
     db_onlyz = copy.deepcopy(db_full)
-    db_onlyz.Reload_DB(remove_short=True, remove_no_redshift=True)
+    db_onlyz.Reload_DB(remove_short=True)
+    db_onlyz.removeValues('z_man_best','< 0', removeNAN=True)
     db_onlyz.name = 'GRB_short+noZ_removed'
     SaveDB(db_onlyz)
     
