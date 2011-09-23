@@ -530,8 +530,8 @@ class GRBdb:
         '''
         for grb in self.dict:
             self.dict[grb]['grb']=grb   #set the identity value
-            if 'z' in self.dict[grb]:
-                if self.dict[grb]['z'] > 5.0:
+            if 'z_man_best' in self.dict[grb]:
+                if self.dict[grb]['z_man_best'] > 4.0:
                     self.dict[grb]['z_class'] = 'high_z'
                 else:
                     self.dict[grb]['z_class'] = 'low_z'
@@ -791,7 +791,7 @@ class GRBdb:
         pylab.scatter(a,b,s=80,marker='o',edgecolors='r',facecolors='none',linewidths=2)
         
         to set standard colorbar, set vmin and vmax kwargs
-        db_highz.grbplot('log_MAX_SNR','log_FL',z_key='Z',vmin=0,vmax=8.2)
+        db_highz.grbplot('log_MAX_SNR','log_FL',z_key='z_man_best',vmin=0,vmax=8.2)
         
         
         '''
@@ -826,7 +826,7 @@ class GRBdb:
     def gridplot(self,fig=None,\
         keys=['log_T90','log_FL','log_MAX_SNR','PROB_Z_GT_4'],
         labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/N_{peak,BAT})$','$P_{z>4}$'],\
-        z_key='Z', hist=True, histbins=None, histloc=None, color='black',
+        z_key='z_man_best', hist=True, histbins=None, histloc=None, color='black',
         discrete=None, gethistrangelist=False, histrangelist=None, **kwargs):
         keylist = [getattr(self,key)['array'] for key in keys]
         if z_key:
@@ -849,7 +849,7 @@ class GRBdb:
     def grbannotesubplot(self,\
         x_keys=['NH_PC','NH_PC','NH_WT','NH_WT'],\
         y_keys=['NH_PC','NH_WT','NH_PC','NH_WT'],\
-        z_keys=['Z','Z','Z','Z'],\
+        z_keys=['z_man_best','z_man_best','z_man_best','z_man_best'],\
         logx=False,logy=False):
         '''Create an annotated sub plot of the GRB parameters specified in the
         keys.
@@ -1251,10 +1251,6 @@ class GRBdb:
                 t90 = self.dict[i]['t90']
             else:
                 t90 = 'unknown'
-            if 'Z' not in self.dict[i]:
-                z = None
-            else:
-                z = self.dict[i]['Z']
             if t90 < 2.0: 
                 remove_list.append(i)
                 already_removed=True
@@ -1404,7 +1400,7 @@ class GRBdb:
         
     def makeArffFromArray(self,
             time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed'],
-            attrlist=['Z','A','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
+            attrlist=['z_man_best','A','DT_MAX_SNR','EP','EP0','FL','FLX_PC',
                       'FLX_PC_LATE','FLX_WT','GAM_PC','GAM_PC_LATE','GAM_WT',
                       'MAX_SNR','NH_GAL','NH_PC','NH_PC_LATE','NH_WT',
                       'NU','PK_O_CTS','RT45','T50','T90','bat_bkg_inten',
@@ -1692,7 +1688,7 @@ class GRBdb:
                         'log_NH_PC_LATE', 'log_PK_O_CTS', 'log_T90', 'log_RT45', 
                         'log_MAX_SNR', 'log_DT_MAX_SNR', 'log_peakflux', 
                         'log_bat_inten', 'log_xrt_column','log_FL_over_SQRT_T90'],
-        keys_to_plot = ['Z', 'log_uvot_time_delta','norm_log_xrt_signif', 
+        keys_to_plot = ['z_man_best', 'log_uvot_time_delta','norm_log_xrt_signif', 
                         'norm_log_bat_rate_signif', 'norm_log_bat_image_signif', 
                         'norm_log_EP', 'norm_log_EP0', 'norm_log_FL', 'norm_log_NH_PC', 
                         'norm_log_NH_WT', 'norm_log_NH_PC_LATE', 'norm_log_PK_O_CTS', 
@@ -1733,7 +1729,7 @@ class GRBdb:
         if re_norm:   
             self.norm_update_class(keys_to_norm)
         if plot:
-            self.plotallvall(keylist=keys_to_plot,zval='Z')
+            self.plotallvall(keylist=keys_to_plot,zval='z_man_best')
         if hist:
             self.DistHist(keylist=keys_to_hist)
 
@@ -1763,8 +1759,8 @@ def TestReloadAlldb(redownload_gcn=False):
     
     db_highz = copy.deepcopy(db_full)
     db_lowz = copy.deepcopy(db_full)
-    db_highz.removeValues('Z','<4')
-    db_lowz.removeValues('Z','>=4')
+    db_highz.removeValues('z_man_best','<4')
+    db_lowz.removeValues('z_man_best','>=4')
     db_highz.Reload_DB()
     db_lowz.Reload_DB()
     db_lowz.name = 'GRB_short+noZ+z>4_removed'
@@ -1785,7 +1781,7 @@ def TestReloadAlldb(redownload_gcn=False):
     SaveDB(db_onlyz)
     
     db_noz = copy.deepcopy(db_full)
-    db_noz.removeValues('Z','>=0.0') #remove all bursts with known redshifts
+    db_noz.removeValues('z_man_best','>=0.0') #remove all bursts with known redshifts
     db_noz.Reload_DB()
     db_noz.name = 'GRB_short+Z_removed'
     SaveDB(db_noz)
@@ -1793,8 +1789,8 @@ def TestReloadAlldb(redownload_gcn=False):
     
     db_highz = copy.deepcopy(db_onlyz)
     db_lowz = copy.deepcopy(db_onlyz)
-    db_highz.removeValues('Z','<4')
-    db_lowz.removeValues('Z','>=4')
+    db_highz.removeValues('z_man_best','<4')
+    db_lowz.removeValues('z_man_best','>=4')
     db_highz.Reload_DB()
     db_lowz.Reload_DB()
     db_lowz.name = 'GRB_short+noZ+z>4_removed'
@@ -1805,7 +1801,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz.makeArffFromArray(arff_append='_Full',inclerr=False)
     db_onlyz.makeArffFromArray(arff_append='_Full_with_errors',inclerr=True)
     
-    # reduced_attr_list = ['Z','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
+    # reduced_attr_list = ['z_man_best','A','B','EP0','FL','FLX_PC_LATE','GAM_PC','MAX_SNR',
     #                       'NH_PC','T90','bat_image_signif','bat_img_peak',
     #                       'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
     #                       'PROB_Z_GT_4','triggerid_str']    
@@ -1813,7 +1809,7 @@ def TestReloadAlldb(redownload_gcn=False):
     
     ##### BEGIN REDUCED FEATURE SET #####
     #####################################
-    reduced_attr_list = ['Z','A','EP0','FL','MAX_SNR',
+    reduced_attr_list = ['z_man_best','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4','triggerid_str']
@@ -1831,7 +1827,7 @@ def TestReloadAlldb(redownload_gcn=False):
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','trigger','','detect','']
     
-    table_list = ['grb','Q_hat_train','Z','A','EP0','FL','MAX_SNR',
+    table_list = ['grb','Q_hat_train','z_man_best','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
@@ -1843,7 +1839,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_reduced_tab'
-    table_list = ['grb','Q_hat_train','Z']
+    table_list = ['grb','Q_hat_train','z_man_best']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
     # create arff using ignore_types to make a table
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
@@ -1875,11 +1871,11 @@ def TestReloadAlldb(redownload_gcn=False):
     
     
     db_outliersremoved.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
-    # May need to remove 'Z' from the attr list for use with R code.
+    # May need to remove 'z_man_best' from the attr list for use with R code.
     
     # Make an arff for one of each removing one of each of the reduced features
     for feature in reduced_attr_list:
-        if feature == 'Z' or feature == 'triggerid_str':
+        if feature == 'z_man_best' or feature == 'triggerid_str':
             continue
         newlist = copy.copy(reduced_attr_list)
         newlist.remove(feature)
@@ -1900,7 +1896,7 @@ def TestReloadAlldb(redownload_gcn=False):
     #########################################
     ##### BEGIN REDUCED WEB FEATURE SET #####
     #####################################
-    reduced_attr_list = ['Z','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+    reduced_attr_list = ['z_man_best','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
                         'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4','triggerid_str']
@@ -1918,7 +1914,7 @@ def TestReloadAlldb(redownload_gcn=False):
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','trigger','','detect','']
     
-    table_list = ['grb','Q_hat_train','Z','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+    table_list = ['grb','Q_hat_train','z_man_best','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
                         'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
@@ -1930,7 +1926,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_webreduced_tab'
-    table_list = ['grb','Q_hat_train','Z']
+    table_list = ['grb','Q_hat_train','z_man_best']
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
     # create arff using ignore_types to make a table
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
@@ -1962,11 +1958,11 @@ def TestReloadAlldb(redownload_gcn=False):
     
     
     db_outliersremoved.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_reduced',inclerr=False)
-    # May need to remove 'Z' from the attr list for use with R code.
+    # May need to remove 'z_man_best' from the attr list for use with R code.
     
     # Make an arff for one of each removing one of each of the reduced features
     for feature in reduced_attr_list:
-        if feature == 'Z' or feature == 'triggerid_str':
+        if feature == 'z_man_best' or feature == 'triggerid_str':
             continue
         newlist = copy.copy(reduced_attr_list)
         newlist.remove(feature)
@@ -1978,7 +1974,7 @@ def TestReloadAlldb(redownload_gcn=False):
         #####################################
     
     
-    reduced_allzpredict_attr_list = ['Z','A','EP0','FL','MAX_SNR',
+    reduced_allzpredict_attr_list = ['z_man_best','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_1','PROB_Z_GT_2','PROB_Z_GT_3','PROB_Z_GT_4','PROB_Z_GT_5',
@@ -1986,24 +1982,24 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz.makeArffFromArray(attrlist=reduced_allzpredict_attr_list,arff_append='_reduced_allzpredict',inclerr=False)
     
     
-    reduced_nozpredict_attr_list = ['Z','A','EP0','FL','MAX_SNR',
+    reduced_nozpredict_attr_list = ['z_man_best','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'triggerid_str']    
     db_onlyz.makeArffFromArray(attrlist=reduced_nozpredict_attr_list,arff_append='_reduced_nozpredict',inclerr=False)
                         
-    single_list = ['Z','uvot_detection','triggerid_str']
+    single_list = ['z_man_best','uvot_detection','triggerid_str']
     db_onlyz.makeArffFromArray(attrlist=single_list,
                                 arff_append='_UVOTonly', inclerr=False)
                                 
-    #nat_z_pred_list = ['Z','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
+    #nat_z_pred_list = ['z_man_best','PROB_Z_GT_5','PROB_Z_GT_4','PROB_Z_GT_3','PROB_Z_GT_2',
     #                    'PROB_Z_LT_1','MOST_PROB_Z','Z_LT_1_OVER_Z_GT_4']
-    nat_z_pred_list = ['Z','PROB_Z_GT_4','triggerid_str']               
+    nat_z_pred_list = ['z_man_best','PROB_Z_GT_4','triggerid_str']               
                         
     db_onlyz.makeArffFromArray(attrlist=nat_z_pred_list,
                                 arff_append='_Nat_Zprediction', inclerr=False)
     
-    uvot_and_z_pred_list = ['Z','uvot_detection','PROB_Z_GT_4','triggerid_str']                           
+    uvot_and_z_pred_list = ['z_man_best','uvot_detection','PROB_Z_GT_4','triggerid_str']                           
                    
     
     db_onlyz.makeArffFromArray(attrlist=uvot_and_z_pred_list,
@@ -2077,15 +2073,15 @@ def TestMakeNicePlot():
     # db_full.Reload_DB() # remove all the outliers before splitting
     # db_highz = copy.deepcopy(db_full)
     # db_lowz = copy.deepcopy(db_full)
-    # db_highz.removeValues('Z','<4')
-    # db_lowz.removeValues('Z','>=4')
+    # db_highz.removeValues('z_man_best','<4')
+    # db_lowz.removeValues('z_man_best','>=4')
     # db_highz.Reload_DB()
     # db_lowz.Reload_DB()
     db_lowz = LoadDB('GRB_short+noZ+z>4_removed')
     db_highz = LoadDB('GRB_short+noZ+z<4_removed')
     
-    ax = db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='Z',vmin=0,vmax=8.2)
-    jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=0.2,z_key='Z',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
+    ax = db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='z_man_best',vmin=0,vmax=8.2)
+    jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=0.2,z_key='z_man_best',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
     db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=jitter[1],vmin=0,vmax=8.2,colorbar=False,s=80, marker='o', edgecolors='r', facecolors='none', linewidths=2)
     pylab.yticks((0,1),('no','yes'))
     pylab.ylabel("UVOT Detection?")
