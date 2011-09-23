@@ -53,17 +53,6 @@ findFolds = function(len,k){
 
 
 
-# used to get the astro data to look right, converts continuous redshift Z into
-# high / low factor class, high is greater than Zcutoff
-cleanData = function(data1,Zcutoff){
-	classZ = factor(rep("low",nrow(data1)),levels=c("low","high"))
-	classZ[data1$Z > Zcutoff] = "high"
-	data1$Z = classZ
-	names(data1) = c("class",names(data1)[2:length(data1)])
-	return(data1)
-}
-
-
 
 ##
 ## implementation of Tamara's "algorithm 1" (see pseudocode in email)

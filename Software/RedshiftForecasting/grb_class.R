@@ -84,14 +84,31 @@ library(missForest)
 
 read_data = function(filename='./Data/GRB_short+noZ_removed_webreduced.arff',high_cutoff=4,impute=TRUE,missForestImpute=FALSE){
    data1 = read.arff(filename)
-   Z = data1$Z
+   
+   Z = data1$z_man_best
+   #if(is.null(Z)){Z = data1$Z}
    ####### define above high_cutoff as high, below as low $ ####### 
    num_high = length(Z[Z >= high_cutoff])
    num_low = length(Z[Z < high_cutoff])
    triggerids = data1$triggerid_str
    data1$triggerid_str = NULL # meaningless feature in the data sets
    data1 = removeErrors(data1)
-   data1 = cleanData(data1,high_cutoff) 
+   
+   # data1 = cleanData(data1,high_cutoff) 
+   
+   # used to get the astro data to look right, converts continuous redshift Z into
+   # high / low factor class, high is greater than Zcutoff
+   # cleanData = function(data1,Zcutoff){
+   classZ = factor(rep("low",nrow(data1)),levels=c("low","high"))
+   classZ[data1$z_man_best > high_cutoff] = "high"
+   data1$z_man_best = classZ
+   names(data1) = c("class",names(data1)[2:length(data1)])
+      # return(data1)
+   # }
+
+   
+   
+   
    ## by default do simple median / mode imputing
    if(impute == TRUE & missForestImpute == FALSE){
      data1 = na.roughfix(data1)
@@ -702,12 +719,12 @@ forest.fit = function(x,y,mtry=NULL,weights=NULL,n.trees=500,seed=sample(1:10^5,
   n = length(y)
   p = length(table(y))
   if(is.null(mtry)){ # default for mtry
-    mtry = ceiling(sqrt(dim(x)[2]))
+    mtry = floor(sqrt(dim(x)[2]))
   }
   train = cbind(y,x) # set up data to read into randomForest
   names(train)[1] = "y"
   # fit random forest
-  rf.fit = randomForest(y~.,data=train,
+  rf.fit = randomForest(y~.,data=train, mtry=mtry, ntree=n.trees,
     classwt=c("low"=weights[1],"high"=weights[2]))
   return(rf.fit)
 }
@@ -787,7 +804,7 @@ forest.cv = function(x,y,nfolds=10,folds=NULL,mtry=NULL,weights=NULL,n.trees=500
   ### END JAMES CODE
   
   if(is.null(mtry)){
-    mtry = ceiling(sqrt(dim(x)[2]))
+    mtry = floor(sqrt(dim(x)[2]))
   }
 
   for(ii in 1:nfolds){
