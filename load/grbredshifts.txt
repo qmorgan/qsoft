@@ -50,7 +50,7 @@ y	060708	1.92	1.92   	2.8   	4		ab	fynbo09,schady06a		lyman break + photometric 
 y	060714	2.7108	2.7108 	2.7108 	5		ab	jakobsson06a,fynbo09	see also jakobsson gcn5320
 n	060719	?		0.0  	4.6  	2		ab	fynbo09		new but don't include; not constraining enough.
 y	060729	0.5428	0.5428 	2.1 	4		ab	thoene06a,fynbo09	  gcn5373
-n	060807	3.28	0	  	3.4		2  		ab	fynbo09		new but not constraining?
+y	060807	3.28	0	  	3.4		3  		ab	fynbo09		new but not constraining?
 y	060904B	0.7029	0.7029 	2.5 	4		ab	fynbo09,fugazza06a		 gcn5513
 y	060906	3.6856	3.6856 	3.6856 	5		ab	vreeswijk06a,jakobsson06a,fynbo09	see also  gcn 5535
 y	060908	1.8836	1.8836 	1.8836 	5		ab	fynbo09		also B. Milvang-Jensen 2010 in prep? not rol2006 z=2.43. consistent with uvot morgan06a
@@ -74,8 +74,8 @@ y	070318	0.8397	0.8397 	2.1 	5		ab	jaunsen07b,fynbo09		  gcn6216
 y	070411	2.9538	2.9538 	2.9538 	5		ab	jakobsson07a,fynbo09  gcn6283
 y	070419A	0.9705	0.9705 	0.9705 	5		ab	cenko07a,fynbo09		see also  gcn6322
 y	070506	2.3090	2.3090 	2.3090 	5		ab	thoene07a,fynbo09			gcn6379
-n	070508	?		0.0  	3.0  	2		ab	fynbo09		not constraining? remove?
-n	070518	?		0.0   	0.7   	2		ph	cucchiara07b	gcn6419 remove?
+y	070508	0.82	0.0  	2.3 	3		ab	jakobsson07e,fynbo09		not constraining? remove?
+y	070518	0.7		0.0   	0.7   	3		ph	cucchiara07b	gcn6419 remove?
 y	070529	2.4996	2.4996 	2.4996 	5		ab	berger07a	gcn6470
 y	070611	2.0394	2.0394 	2.0394 	5		ab	thoene07b,fynbo09		  gcn6499, 
 n	070612A	0.617	0.617  	0.617  	3		em	cenko07b no early time NFI followup; don't include
