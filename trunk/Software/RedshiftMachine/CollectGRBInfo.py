@@ -1214,6 +1214,10 @@ class GRBdb:
             else:
                 keyval = 'unknown'
             
+            # if removeNAN, remove it if the actual value is numpy.nan, or if there is no dictionary value (below)
+            if removeNAN and numpy.isnan(keyval):
+                keyval = 'unknown'
+
             if not keyval == 'unknown':
                 execstring = 'if keyval%s: remove_list.append(ii); already_removed=True '\
                     % (argument)
@@ -1752,8 +1756,8 @@ def TestReloadAlldb(redownload_gcn=False):
     SaveDB(db_full)
     
     db_outliersremoved = copy.deepcopy(db_full)
-    db_outliersremoved.Reload_DB(remove_short=True, remove_outliers = True, outlier_threshold=0.32)
     db_full.removeValues('z_man_best','< 0', removeNAN=True)
+    db_outliersremoved.Reload_DB(remove_short=True, remove_outliers = True, outlier_threshold=0.32)
     db_outliersremoved.name = 'GRB_short+outliers+noZ_removed'
     SaveDB(db_outliersremoved)
     
@@ -1775,8 +1779,8 @@ def TestReloadAlldb(redownload_gcn=False):
         
     
     db_onlyz = copy.deepcopy(db_full)
-    db_onlyz.Reload_DB(remove_short=True)
     db_onlyz.removeValues('z_man_best','< 0', removeNAN=True)
+    db_onlyz.Reload_DB(remove_short=True)
     db_onlyz.name = 'GRB_short+noZ_removed'
     SaveDB(db_onlyz)
     
