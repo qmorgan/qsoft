@@ -226,13 +226,13 @@ def whatis(keyword):
     'web_Energy_Fluence_(15-350_keV)_[erg/cm^2]' : {'definition':'Energy Fluence (15-350 keV) [erg/cm^2] - mathematically, the integral of the BAT gamma-ray light curve over time','type':'double','source':'NatBat Spectra','speed':'processed','sample':4.1281000000000003e-06},
     'web_S/N' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
     'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},    
-    'z_man_use' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
-    'z_man_best' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
-    'z_man_lowlim' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
-    'z_man_uplim' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
-    'z_man_type' : {'definition':'Max BAT S/N','type':'double','source':'NatBat Spectra','speed':'processed','sample':28.0},
-    'z_man_trust' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
-    'z_man_refs' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},
+    'z_man_use' : {'definition':'Use this redshift for classification or not? y/n','type':'string','source':'ManZ','speed':'late_processed','sample':'y'},
+    'z_man_best' : {'definition':'the best value of the redshift as determined by various references','type':'double','source':'ManZ','speed':'late_processed','sample':1.6777},
+    'z_man_lowlim' : {'definition':'lower-limit on the redshift','type':'double','source':'ManZ','speed':'late_processed','sample':0.0},
+    'z_man_uplim' : {'definition':'upper-limit on the redshift','type':'double','source':'ManZ','speed':'late_processed','sample':2.3},
+    'z_man_type' : {'definition':'Absorption or host emission?','type':'string','source':'ManZ','speed':'late_processed','sample':'ab'},
+    'z_man_trust' : {'definition':'Ranking of 1 (dont trust) to 5 (totally trust) of the redshift value','type':'integer','source':'ManZ','speed':'late_processed','sample':5},
+    'z_man_refs' : {'definition':'list of references utilized in determining this redshift. calls to bibtex file.','type':'list','source':'ManZ','speed':'late_processed','sample':['morgan06a','perley09a']},
     'notices_parsed' : {'definition':'list of all successfully parsed GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-UVOT Source List', 'Swift-XRT Position']},
     'notices_possible' : {'definition':'list of all possible GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-XRT Position']}
     }
@@ -1045,7 +1045,7 @@ class GRBdb:
         #manual_z_values
         self.MakeNomArr('z_man_use')
         self.MakeAttrArr('z_man_best')
-        self.MakeAllAttr('z_man_trust')
+        self.MakeAttrArr('z_man_trust')
         
         #Nat Web Values
         self.MakeAttrArr('web_alpha')
@@ -1258,8 +1258,8 @@ class GRBdb:
             if t90 < 2.0: 
                 remove_list.append(i)
                 already_removed=True
-            if remove_no_redshift and not z and not already_removed:
-                remove_list.append(i)
+            # if remove_no_redshift and not z and not already_removed:
+            #     remove_list.append(i)
         print 'initial length of dictionary: ' + str(len(self.dict))
         print ' removing ' + str(len(remove_list)) + 'short GRBs'
         for key in remove_list:
@@ -1681,7 +1681,7 @@ class GRBdb:
         return arffpath
         
     def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
-        remove_outliers = False, remove_no_redshift=False, re_norm = True,
+        remove_outliers = False, re_norm = True,
         keys_to_log = ['gal_EB_V','uvot_time_delta','xrt_signif', 'bat_rate_signif', 
                        'bat_image_signif', 'EP', 'EP0', 'FL', 'NH_PC', 'NH_WT', 
                        'NH_PC_LATE', 'PK_O_CTS', 'T90', 'RT45', 'MAX_SNR', 
@@ -1720,7 +1720,7 @@ class GRBdb:
         '''
         # Remove the shorts before removing outliers so as to not bias the sample
         if remove_short:
-            self.removeShort(remove_no_redshift=remove_no_redshift)
+            self.removeShort()
         
         if not self.class_updated:
             self.update_class()
@@ -2048,10 +2048,19 @@ def ParseManualZ():
         linesplit = line.split()
         if linesplit[0] != 'use':
             z_man_use = linesplit[0]
-            z_man_best = linesplit[2]
-            z_man_lowlim = linesplit[3]
-            z_man_uplim = linesplit[4]
-            z_man_trust = linesplit[5]
+            try:
+                z_man_best = float(linesplit[2])
+            except:
+                z_man_best = numpy.nan
+            try:
+                z_man_lowlim = float(linesplit[3])
+            except:
+                z_man_lowlim = numpy.nan
+            try:
+                z_man_uplim = float(linesplit[4])
+            except:
+                z_man_lowlim = numpy.nan
+            z_man_trust = int(linesplit[5])
             z_man_type = linesplit[6]
             z_man_refs = linesplit[7].split(',')
             z_man_comments = ''
