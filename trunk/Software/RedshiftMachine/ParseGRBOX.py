@@ -124,16 +124,19 @@ def parse_grbox_xml(ignore_nonswift=True,filename=default_filename,cutoff_date=(
     return grbox_dict
 
 
-def Make_Z_Plot(grbox_dict):
+def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
+    '''Given any dictionary which has the redshift as one of the keywords, plot
+    a histogram of those redshifts.
+    '''
     z_list = []
     zname_list = []
     date_list = []
 
 
     # 'un'zip all_grbs (is there a better way to do this? just assign rather than a for loop?)
-    for key,value in grbox_dict.iteritems():
-        date_list.append(value['date'])
-        z_list.append(value['grbox_z'])
+    for key,value in grbdict.iteritems():
+        # date_list.append(value['date'])
+        z_list.append(value[z_key])
         zname_list.append(key)
     print '***All***'
     print ' '
@@ -144,26 +147,26 @@ def Make_Z_Plot(grbox_dict):
     ### Print out the most distant GRB as a function of time
     zmax = 0.0
     rr = []
-    for key,value in grbox_dict.iteritems():
-        if value['grbox_z'] > zmax:
+    for key,value in grbdict.iteritems():
+        if value[z_key] > zmax:
             rr.append(key)
-            zmax = value['grbox_z']
-            print value['date'].year + value['date'].timetuple().tm_yday/365.0, zmax, "#  ", key
+            zmax = value[z_key]
+            # print value['date'].year + value['date'].timetuple().tm_yday/365.0, zmax, "#  ", key
     
 
     ax = plt.subplot(111)
-    n, bins, patches = plt.hist(plt.log10(z_list),bins=29,facecolor='grey',edgecolor='grey',alpha=0.95)
+    n, bins, patches = plt.hist(plt.log10(z_list),bins=Nbins,facecolor='grey',edgecolor='grey',alpha=0.95)
 
     # Define pre-swift burst index as bursts before 041210
-    high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
+    # high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
 
-    high_z_list = [z_list[i] for i in list(high_z_i[0])]
+    # high_z_list = [z_list[i] for i in list(high_z_i[0])]
     #print high_z_list
-    n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.6)
+    # n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.6)
 
     if overplot_high_z:
-        high_z_list = [z for z in z_list if z > 4.0]
-        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red')
+        high_z_list = [z for z in z_list if z > z_cutoff]
+        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.95)
 
 
     ay = ax.twinx()
@@ -234,7 +237,7 @@ def Make_Z_Plot(grbox_dict):
     #plt.bar(l,a['yy'],width=w,log=False)
     #ax.set_xscale("log",nonposx='clip')
 
-    ## Now plot inset plot of GRBs greater than z=4.0
+    ## Now plot inset plot of GRBs greater than z=z_cutoff
 
     axins = inset_axes(ax2,
                         width="30%", # width = 30% of parent_bbox
@@ -244,24 +247,24 @@ def Make_Z_Plot(grbox_dict):
     locator.set_bbox_to_anchor((-0.8,-0.45,1.35,1.35), ax.transAxes)
     locator.borderpad = 0.0
 
-    high_z_list = [z for z in z_list if z > 4.0]
+    high_z_list = [z for z in z_list if z > z_cutoff]
     if high_z_list: # if there are any high-z's, plot them
-        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red', edgecolor='red')
-    axins.set_xlim(4.0,8.5)
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red', edgecolor='red',alpha=0.95)
+    axins.set_xlim(z_cutoff,8.5)
     axins.set_xlabel("z")
     axins.set_ylabel("N")
 
-    high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
-    high_z_list = [z_list[i] for i in list(high_z_i[0]) if z_list[i] > 4.0]
+    # high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
+    # high_z_list = [z_list[i] for i in list(high_z_i[0]) if z_list[i] > z_cutoff]
 
-    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='red',edgecolor='red')
+    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.95)
 
-    high_z_list = [z for z in z_list if z > 4.0]
+    high_z_list = [z for z in z_list if z > z_cutoff]
 
     if high_z_list: # if there are any high-z's, plot them
-        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red',edgecolor='red')
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red',edgecolor='red',alpha=0.95)
 
-    axins.set_xlim(4.0,9.0)
+    axins.set_xlim(z_cutoff,9.0)
     #mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
 
     #axins2.set_xlabel("Time since Big Bang [Gyr]",fontsize=20)
