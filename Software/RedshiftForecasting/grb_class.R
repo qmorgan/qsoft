@@ -633,7 +633,7 @@ make_obj_fcn_plot = function(forest_order,data_obj=NULL,alpha_vec=seq(0.1,0.9,0.
 }
 
 ####### makes bumps plot, writes it to an image file, and saves the data that made it in a text file ####### 
-make_bumps_plot = function(res_avg_over_seeds,data_obj=NULL,xlabel="log high-z weight",ylabel=expression(widehat(Q)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
+make_bumps_plot = function(res_avg_over_seeds,data_obj=NULL,xlabel=expression(log(w[h])),ylabel=expression(widehat(Q)),n_colors=128,z_width=3,imagefile="forest_probs_pred_bumps.pdf",textfile="forest_probs_pred.txt"){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
       print("data_obj not specified; using default values")
@@ -976,7 +976,7 @@ multiple_efficiency_vs_alpha_residuals = function(reference_data_obj,data_obj_li
    reference_avg_obj_high = reference_avg_obj + reference_obj_uncertainty
    reference_avg_obj_low = reference_avg_obj - reference_obj_uncertainty
    
-	plot(x = c(0,1), y = c(-0.13,0.13), xlim = c(0,1), ylim=c(-0.13,0.13), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+	plot(x = c(0,1), y = c(-0.16,0.16), xlim = c(0,1), ylim=c(-0.16,0.16), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Efficiency", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
    col = tim.colors(n_curves)
@@ -1032,7 +1032,7 @@ multiple_purity_vs_alpha_residuals = function(reference_data_obj,data_obj_list,w
    reference_avg_obj_high = reference_avg_obj + reference_obj_uncertainty
    reference_avg_obj_low = reference_avg_obj - reference_obj_uncertainty
    
-	plot(x = c(0,1), y = c(-0.12,0.12), xlim = c(0,1), ylim=c(-0.12,0.12), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
+	plot(x = c(0,1), y = c(-0.16,0.16), xlim = c(0,1), ylim=c(-0.16,0.16), cex.lab=1.5,cex.axis=1.25,cex.main=2.5, pch="",main="Change in Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab) # initialize plot))
   # title(main=expression("Efficiency"))
    n_curves = length(data_obj_list)
    col = tim.colors(n_curves)
