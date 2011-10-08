@@ -1786,6 +1786,57 @@ def TestReloadAlldb(redownload_gcn=False):
     db_full.fillInMissingGCNs()
     SaveDB(db_full)
     
+    
+    #### BEGIN VALIDATION SET ###
+    db_validation = copy.deepcopy(db_full)
+    
+    db_validation.removeValues('web_S/N', '< 0.0', removeNAN=True)
+    db_validation.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
+    db_validation.removeValues('grb_date_tjd','<= 15370', removeNAN=True)
+    db_validation.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)
+    db_validation.removeValues('z_man_best','< 0', removeNAN=True)
+    db_validation.removeValues('z_man_use','=="n"')
+    
+    
+    db_validation.Reload_DB(remove_short=True)   
+    db_validation.name = 'GRB_short_removed_validation'
+    
+    reduced_attr_list = ['z_man_best','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+                        'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4','triggerid_str']
+    ### Make web Reduced validation Set Arff
+    db_validation.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced_validation',inclerr=False)
+    
+    ######## Make web reduced validation (no-z) set Full Table ########
+    db_validation_tab = copy.deepcopy(db_validation)
+    db_validation_tab.Reload_DB()
+    db_validation_tab.name = 'GRB_short_removed_webreduced_validation_fulltab'
+    namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
+                        'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
+                        '','','','','','','','','','','','trigger','','detect','']
+    table_list = ['grb','Q_hat','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+                        'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4']
+    arffpath=db_validation_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_validation_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Validation Data',label='tab:validation',roundval=3)
+    
+    
+    #make small table
+    db_validation_tab = copy.deepcopy(db_validation)
+    db_validation_tab.Reload_DB()
+    db_validation_tab.name = 'GRB_short_removed_webreduced_validation_tab'
+    table_list = ['grb','Q_hat','z_man_best_str','z_man_refs_str']
+    namelist = ['GRB','$\widehat{\mathcal{Q}}$','$z$','References']
+    arffpath=db_validation_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
+    db_validation_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Validation Redshifts and Predictions',,label='tab:validationredshifts',roundval=3)
+    
+    
+    SaveDB(db_validation)
+    ### END VALIDATION SET ###
+    
     # Remove all bursts newer than 100621A. TJD for 10/06/22 is 15369
     #grb_date_tjd
     # Remove all bursts without a calculated S/N value
@@ -1797,10 +1848,12 @@ def TestReloadAlldb(redownload_gcn=False):
     
     db_full.Reload_DB(remove_short=True)   
     db_full.name = 'GRB_short_removed'
+    
     SaveDB(db_full)
     
     db_outliersremoved = copy.deepcopy(db_full)
     db_full.removeValues('z_man_best','< 0', removeNAN=False)
+    db_full.removeValues('z_man_use','=="n"')
     db_outliersremoved.Reload_DB(remove_short=True, remove_outliers = True, outlier_threshold=0.32)
     db_outliersremoved.name = 'GRB_short+outliers+noZ_removed'
     SaveDB(db_outliersremoved)
