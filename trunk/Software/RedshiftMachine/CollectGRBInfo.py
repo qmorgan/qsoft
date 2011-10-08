@@ -228,11 +228,14 @@ def whatis(keyword):
     'web_T_90' : {'definition':'BAT T90 Difference between 95th and 5th percentile time of total counts above background level relative to start of burst interval - loosely consistant with Swift T90; Highly dependent on burst start & stop times','type':'double','source':'NatBat Timing','speed':'processed','sample':18.48},    
     'z_man_use' : {'definition':'Use this redshift for classification or not? y/n','type':'string','source':'ManZ','speed':'late_processed','sample':'y'},
     'z_man_best' : {'definition':'the best value of the redshift as determined by various references','type':'double','source':'ManZ','speed':'late_processed','sample':1.6777},
+    'z_man_best_str' : {'definition':'string of the best value of the redshift as determined by various references','type':'string','source':'ManZ','speed':'late_processed','sample':'1.6777'},
     'z_man_lowlim' : {'definition':'lower-limit on the redshift','type':'double','source':'ManZ','speed':'late_processed','sample':0.0},
     'z_man_uplim' : {'definition':'upper-limit on the redshift','type':'double','source':'ManZ','speed':'late_processed','sample':2.3},
     'z_man_type' : {'definition':'Absorption or host emission?','type':'string','source':'ManZ','speed':'late_processed','sample':'ab'},
     'z_man_trust' : {'definition':'Ranking of 1 (dont trust) to 5 (totally trust) of the redshift value','type':'integer','source':'ManZ','speed':'late_processed','sample':5},
     'z_man_refs' : {'definition':'list of references utilized in determining this redshift. calls to bibtex file.','type':'list','source':'ManZ','speed':'late_processed','sample':['morgan06a','perley09a']},
+    'z_man_refs_str' : {'definition':'string of references utilized in determining this redshift. calls to bibtex file.','type':'string','source':'ManZ','speed':'late_processed','sample':'\citealt{morgan06a,perley09a}'},
+    'z_man_refs_nums' : {'definition':'numerical index of references utilized in determining this redshift.','type':'string','source':'ManZ','speed':'late_processed','sample':'[1, 2]'},
     'notices_parsed' : {'definition':'list of all successfully parsed GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-UVOT Source List', 'Swift-XRT Position']},
     'notices_possible' : {'definition':'list of all possible GCN Notices for this burst','type':'list','source':'GCN','speed':'processed','sample':['Swift-BAT GRB Position', 'Swift-XRT Position']}
     }
@@ -1046,6 +1049,8 @@ class GRBdb:
         self.MakeNomArr('z_man_use')
         self.MakeAttrArr('z_man_best')
         self.MakeAttrArr('z_man_trust')
+        self.MakeNomArr('z_man_refs_str')
+        self.MakeNomArr('z_man_best_str')
         
         #Nat Web Values
         self.MakeAttrArr('web_alpha')
@@ -1270,13 +1275,18 @@ class GRBdb:
                     
     def makeDeluxeTable(self,arffpath=None,attrlist=['grb','Q_hat', 'uvot_detection', 'PROB_Z_GT_4'],
         namelist=None,caption='My awesome Table', tab_append='',inclerr=True,sortkey='',rotate=False,
-        label=None,roundval=3):
+        label=None,roundval=3, add_refs=False):
         '''Create a AAS style deluxe table for latex out of features.  Wraps around makeArffFromArray
         
         grab @ATTRIBUTE lines, split based on spaces, take index 1 -> gives you name of feature
         
         '''
         time_list=['na','nfi_prompt', 'processed', 'bat_prompt', 'late_processed']
+        
+        if add_refs:
+            do_ref = True
+        else:
+            do_ref = False
         
         if rotate:
             head1 = '''\\begin{landscape}
@@ -1342,6 +1352,9 @@ class GRBdb:
             f_new.write(new_line)
             
         f_new.write('\enddata\n')
+        if add_refs:
+            reftext = '\\tablerefs{%s}\n' % (self.citestr)
+            f_new.write(reftext)
         if label:
             labeltext = '\label{%s}\n' % (label)
             f_new.write(labeltext)
@@ -1581,7 +1594,7 @@ class GRBdb:
             
             nomtotarrlist = nomtotarr
             # have to specify the datatype explicitly here, else it defaults to just 8 characters
-            nomtotarr = numpy.array(nomtotarr,dtype='|S20')
+            nomtotarr = numpy.array(nomtotarr,dtype='|S60')
             nomarr2 = nomtotarr
             nonominal = False
             
@@ -1631,7 +1644,7 @@ class GRBdb:
         os.system(cmd)
         
         
-        fixedarray = numpy.genfromtxt(numnomsubpath,delimiter=',',dtype='|S20')
+        fixedarray = numpy.genfromtxt(numnomsubpath,delimiter=',',dtype='|S60')
         numpy.savetxt(subpath,fixedarray.T,delimiter=',',fmt='%s')
         
         
@@ -1672,13 +1685,44 @@ class GRBdb:
             myarray.sort(order=sortkey)    
             rec2csv(myarray,arffpathdata,withheader=False)
 
+
         # Combine the Header with the data
         cmd = 'cat %s %s > %s' %(arffpathpartial,subpath2,arffpath)
         os.system(cmd)
         
-
-        
         return arffpath
+    
+    def AssignRefKey(self,citekey):
+        '''Assuming we are sorting by the GRB name, make a new attribute for the redshift
+        citations in the array.
+        '''
+        grbs = self.dict.keys()
+        grbs.sort()
+        self.cite_list = []
+        cite_index = 1
+        for grb in grbs:
+            cite_num_list = []
+            for citation in self.dict[grb][citekey]:
+                if citation in self.cite_list:
+                    cite_num = self.cite_list.index(citation) + 1
+                else:
+                    cite_num = len(self.cite_list) + 1
+                    self.cite_list.append(citation)
+                cite_num_list.append(cite_num) 
+                cite_index += 1
+            cite_num_list.sort()    
+            print str(cite_num_list)
+            cite_num_key = citekey + '_nums'
+            self.dict[grb][cite_num_key] = str(cite_num_list).replace(',',';')
+        
+        self.MakeNomArr(cite_num_key)
+        
+        self.citestr = ''
+        cite_index = 1
+        for ref in self.cite_list:
+            self.citestr += '(' + str(cite_index) + ') \citealt{' + ref + '}; '
+            cite_index += 1  
+        self.citestr = self.citestr.rstrip(' ;') + '.'
         
     def Reload_DB(self,plot=False,hist=False,outlier_threshold=0.32,remove_short=False,
         remove_outliers = False, re_norm = True,
@@ -1826,18 +1870,20 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_reduced_fulltab'
-    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$z$ Refs.','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
-                        '','','','','','','','','','','','trigger','','detect','']
+                        '','','','','','','','','','','','','trigger','','detect','']
     
-    table_list = ['grb','Q_hat_train','z_man_best','A','EP0','FL','MAX_SNR',
+    table_list = ['grb','Q_hat_train','z_man_best','z_man_refs_nums','A','EP0','FL','MAX_SNR',
                         'NH_PC','T90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
     # create arff using ignore_types to make a table
+    db_onlyz_tab.AssignRefKey('z_man_refs')
+    db_onlyz_tab.Reload_DB()
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training',roundval=3,add_refs=True)
     
     ######## Make reduced training set small Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
@@ -1909,34 +1955,36 @@ def TestReloadAlldb(redownload_gcn=False):
     ### Make Reduced Test Set Arff
     db_noz.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced',inclerr=False)
     
-    ######## Make reduced training set Full Table ########
+    ######## Make web reduced training set Full Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_webreduced_fulltab'
-    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
+    namelist = ['GRB','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
                         '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
-                        '','','','','','','','','','','','trigger','','detect','']
+                        '','','','','','','','','','','','','trigger','','detect','']
     
-    table_list = ['grb','Q_hat_train','z_man_best','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+    table_list = ['grb','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
                         'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
                         'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
                         'PROB_Z_GT_4']
     # create arff using ignore_types to make a table
+    db_onlyz_tab.AssignRefKey('z_man_refs')
+    db_onlyz_tab.Reload_DB()
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',rotate=True,caption='Training Data',label='tab:training',roundval=3,add_refs=False)
     
-    ######## Make reduced training set small Table ########
+    ######## Make web reduced training set small Table ########
     db_onlyz_tab = copy.deepcopy(db_onlyz)
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_webreduced_tab'
-    table_list = ['grb','Q_hat_train','z_man_best']
-    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$']
+    table_list = ['grb','Q_hat_train','z_man_best_str','z_man_refs_str']
+    namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','References']
     # create arff using ignore_types to make a table
     arffpath=db_onlyz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
-    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data',roundval=3)
+    db_onlyz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Training Data Redshifts',label='tab:trainingredshifts',roundval=3)
 
-    ######## Make reduced test (no-z) set small Table ########
+    ######## Make web reduced test (no-z) set small Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+Z_removed_webreduced_tab'
@@ -1945,7 +1993,7 @@ def TestReloadAlldb(redownload_gcn=False):
     arffpath=db_noz_tab.makeArffFromArray(attrlist=table_list,ignore_types=True,arff_append='',inclerr=False,sortkey='grb',roundval=3)
     db_noz_tab.makeDeluxeTable(arffpath=arffpath,attrlist=table_list,namelist=namelist,inclerr=False,sortkey='grb',caption='Test Data',roundval=3)
     
-    ######## Make reduced test (no-z) set Full Table ########
+    ######## Make web reduced test (no-z) set Full Table ########
     db_noz_tab = copy.deepcopy(db_noz)
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+Z_removed_webreduced_fulltab'
@@ -2048,6 +2096,7 @@ def ParseManualZ():
         linesplit = line.split()
         if linesplit[0] != 'use':
             z_man_use = linesplit[0]
+            z_man_best_str = 'z='+ linesplit[2]
             try:
                 z_man_best = float(linesplit[2])
             except:
@@ -2067,7 +2116,13 @@ def ParseManualZ():
             for item in iter(linesplit[8:]):
                 z_man_comments += item + ' '
             
-            subdict = {'z_man_use':z_man_use, 'z_man_trust':z_man_trust,'z_man_type':z_man_type,'z_man_refs':z_man_refs,'z_man_comments':z_man_comments}
+            z_man_refs_str='\citealt{'
+            for ref in z_man_refs:
+                z_man_refs_str += str(ref) + ';'
+            z_man_refs_str = z_man_refs_str.rstrip(';')
+            z_man_refs_str += '}'
+            
+            subdict = {'z_man_best_str':z_man_best_str,'z_man_use':z_man_use, 'z_man_trust':z_man_trust,'z_man_type':z_man_type,'z_man_refs':z_man_refs,'z_man_refs_str':z_man_refs_str,'z_man_comments':z_man_comments}
             subdict_floats = {'z_man_best':z_man_best,'z_man_lowlim':z_man_lowlim,'z_man_uplim':z_man_uplim}
             rm_list =[]
             
@@ -2103,12 +2158,14 @@ def TestMakeNicePlot():
     pylab.ylabel("UVOT Detection?")
     pylab.xlabel("log(BAT SNR) (Normalized)")
  
-def TestMakeGridPlot(keys=['A','log_EP0','log_FL','log_MAX_SNR',
-                    'log_NH_PC','log_T90','log_bat_image_signif','bat_img_peak',
-                     'bat_trigger_dur','PROB_Z_GT_4'],
-                        labels=['$A$','$\log(E_{p,0})$','$\log(FL)$','$\log(MAX_SNR)$','$\log(N_{H,pc})$',
-                        '$\log(t_{90})$','$\log(BAT Image Significance)$','$(BAT Img Peak)$',
-                        '$(bat_trigger_duration)$','$P_{z>4}$']):
+def TestMakeGridPlot(keys=['log_T90', 'log_FL','log_MAX_SNR', 'PROB_Z_GT_4'],
+                            labels=['$\log(T_{90})$','$\log(S)$','$\log(S/N_{max})$','$P_{z>4}$']):
+    # keys=['A','log_EP0','log_FL','log_MAX_SNR',
+    #                     'log_NH_PC','log_T90','log_bat_image_signif','bat_img_peak',
+    #                      'bat_trigger_dur','PROB_Z_GT_4'],
+    #                         labels=['$A$','$\log(E_{p,0})$','$\log(FL)$','$\log(MAX_SNR)$','$\log(N_{H,pc})$',
+    #                         '$\log(T_{90})$','$\log(BAT Image Significance)$','$(BAT Img Peak)$',
+    #                         '$(bat_trigger_duration)$','$P_{z>4}$']
     db = LoadDB('GRB_short_removed')
     db.Reload_DB()
     histrangelist = db.gridplot(gethistrangelist=True)
