@@ -828,7 +828,7 @@ class GRBdb:
     
     def gridplot(self,fig=None,\
         keys=['log_T90','log_FL','log_MAX_SNR','PROB_Z_GT_4'],
-        labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/N_{peak,BAT})$','$P_{z>4}$'],\
+        labels=['$\log(t_{90})$','$\log(FL)$','$\log(S/R_{peak,BAT})$','$P_{z>4}$'],\
         z_key='z_man_best', hist=True, histbins=None, histloc=None, color='black',
         discrete=None, gethistrangelist=False, histrangelist=None, **kwargs):
         keylist = [getattr(self,key)['array'] for key in keys]
@@ -1813,7 +1813,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_validation_tab.Reload_DB()
     db_validation_tab.name = 'GRB_short_removed_webreduced_validation_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$R_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
                         '','','','','','','','','','','','trigger','','detect','']
     table_list = ['grb','Q_hat','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
@@ -1924,7 +1924,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_reduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}_{train}$','$z$','$z$ Refs.','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$R_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','','trigger','','detect','']
     
@@ -1962,7 +1962,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+Z_removed_reduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$R_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
                         '','','','','','','','','','','','trigger','','detect','']
     table_list = ['grb','Q_hat','A','EP0','FL','MAX_SNR',
@@ -2013,7 +2013,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_onlyz_tab.Reload_DB()
     db_onlyz_tab.name = 'GRB_short+noZ_removed_webreduced_fulltab'
     namelist = ['GRB','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$R_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$',
                         '','','','','','','','','','','','','trigger','','detect','']
     
@@ -2051,7 +2051,7 @@ def TestReloadAlldb(redownload_gcn=False):
     db_noz_tab.Reload_DB()
     db_noz_tab.name = 'GRB_short+Z_removed_webreduced_fulltab'
     namelist = ['GRB','$\widehat{\mathcal{Q}}$','$\\alpha$','$E_{peak}$','$S$','$S/N_{max}$',
-                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$N_{peak,BAT}$',
+                        '$N_{H,pc}$','$T_{90}$','$\\sigma_{BAT}$','$R_{peak,BAT}$',
                         'Rate','$t_{BAT}$','UVOT', '$P_{z>4}$'
                         '','','','','','','','','','','','trigger','','detect','']
     table_list = ['grb','Q_hat','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
