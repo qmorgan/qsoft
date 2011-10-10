@@ -47,17 +47,28 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
         # loop through every column
         for td in cols:
             currentval = td.findAll(text=True)
+            
             if currentval and colcount == 0:
                 if td.find('a') and currentval[1].strip():
+                    # currentval of the form [u' ', u' GRB111005x ', u' (00504779) ']
                     grbname = currentval[1].strip()
+                    # For some reason the dictionary is converting the trigid to a float,
+                    # so tack on 'id' to make it stay a string
+                    webtrigid = 'id'+str(currentval[2].strip().rstrip(')').lstrip('('))
                     colcount += 1
+                    
                     continue
                 elif currentval[0].split('(')[0].strip():
+                    # currentval of the form [u' GRB111005x (00504779) ']
                     grbname = currentval[0].split('(')[0].strip()
+                    webtrigid = 'id'+str(currentval[0].split('(')[1].strip().strip(')'))
                     colcount += 1
+                    
                     continue
                 else: 
                     continue    
+                
+                
             elif currentval and colcount != 0:
                 val = currentval[0].strip()
                 valname = headerlist[colcount].strip()
@@ -78,12 +89,15 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
                     subdict.update({valname:value,errname:error})
                 else:
                     subdict.update({valname:val})
-        
+                
+                
                 if grbname:
+                    subdict.update({'webtrigid':webtrigid})
                     grbdict.update({grbname:subdict})
 
             else:
                 pass
+            
             
             colcount += 1
             # Don't try to parse blank columns at the end
