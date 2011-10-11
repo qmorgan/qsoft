@@ -111,8 +111,8 @@ def load_natcats(bat_catlist,xrt_catlist):
     batcat = combine_natcats(bat_catlist,remove_zeros=True)
     print "length of bat nat cat: ", len(batcat)
     batxrtcat = combine_natbatxrt(batcat,xrtcat)
-    # Update to grab Nat's redshift probabilities
-    batxrtcat = grab_nat_web_data(batxrtcat,filename='/bat/zprob.txt')
+    # Update to grab Nat's redshift probabilities - [now do this through ParseNatWeb]
+    #batxrtcat = grab_nat_web_data(batxrtcat,filename='/bat/zprob.txt')
     return batxrtcat
 
 def download_file(url,outfile):
@@ -122,30 +122,53 @@ def download_file(url,outfile):
     f.write(html)
     f.close()
 
-def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
+
+def download_nat_web_file(grbname, webtrigid, filename='/bat/zprob.txt', clobber=False):
+    
     base_url = 'http://astro.berkeley.edu/~nat/swift/'
     outpath = storepath + 'grbs/'
-    for grbname in natcatdict.keys():
-        fullurl = base_url + grbname + filename
-        fullout = outpath + grbname + filename
-        if not os.path.exists(os.path.dirname(fullout)):
-            os.makedirs(os.path.dirname(fullout))
-            
-            # Try to download the file, if can't, skip to the next one
-            try:
-                download_file(fullurl,fullout)
-            except:
-                print 'Cannot download %s to %s' % (fullurl,fullout)
-                continue 
-        elif clobber == True:
-            try:
+    
+    fullurl = base_url + webtrigid + filename
+    fullout = outpath + grbname + filename
+    if grbname == ".DS_Store": return
+    
+    if not os.path.exists(os.path.dirname(fullout)):
+        os.makedirs(os.path.dirname(fullout))
+        
+        # Try to download the file, if can't, skip to the next one
+        try:
+            download_file(fullurl,fullout)
+            print 'Successful download of  %s to %s' % (fullurl,fullout)
+        except:
+            print 'Cannot download %s to %s' % (fullurl,fullout)
+            return 
+    elif clobber == True:
+        try:
+            if os.path.exists(fullout):
                 os.remove(fullout)
-                download_file(fullurl,fullout)
-            except:
-                print 'Cannot download %s to %s' % (fullurl,fullout)
-                continue
-        else:
-            pass
+            download_file(fullurl,fullout)
+            print 'Successful overwrite of  %s to %s' % (fullurl,fullout)
+        except:
+            print 'Cannot override %s to %s' % (fullurl,fullout)
+            return
+    else:
+        pass
+    
+
+def grab_nat_web_data(grbdict, filename='/bat/zprob.txt', clobber=False):
+    base_url = 'http://astro.berkeley.edu/~nat/swift/'
+    outpath = storepath + 'grbs/'
+        
+    # natzprobdict = {}
+        
+    # for grbname in os.listdir(outpath):
+    for grbname in grbdict.keys():
+        fullout = outpath + grbname + filename
+        if grbname == ".DS_Store": continue
+        webtrigid = grbdict[grbname]['webtrigid'].lstrip('id')
+        
+        # Download the file
+        download_nat_web_file(grbname,webtrigid,filename=filename, clobber=clobber)
         # Grab probabilities if we're looking at that filename
         if filename == '/bat/zprob.txt':
             ##z prob
@@ -155,57 +178,58 @@ def grab_nat_web_data(natcatdict, filename='/bat/zprob.txt', clobber=False):
             #0.300999999046 0.0685398958379
             try:
                 response = f = open(fullout,'r')
-                html = f.readlines()
-                z_pred_arr = []
-                prob_arr = []
-                ind = 0 # Grab the index to mark where redshifts are for summing probs
-                for line in html:
-                    if line[0] == '#':
-                        continue
-                    z_prob = line.rstrip('\n').split(' ')
-                    z_pred_arr.append(float(z_prob[0]))
-                    prob_arr.append(float(z_prob[1]))
-                    # What follows is very embarassing but I am lazy today
-                    if line[0:3] == '1.0': ind1 = ind
-                    if line[0:3] == '2.0': ind2 = ind
-                    if line[0:3] == '3.0': ind3 = ind
-                    if line[0:3] == '4.0': ind4 = ind
-                    if line[0:3] == '5.0': ind5 = ind
-                    ind += 1
-                # Now sum up the probabilities to get the prob that lt some value
-                norm_total = numpy.sum(numpy.array(prob_arr))
-            
-                prob_gt_1 = 1 - numpy.sum(numpy.array(prob_arr[0:ind1]))/norm_total
-                prob_gt_2 = 1 - numpy.sum(numpy.array(prob_arr[0:ind2]))/norm_total
-                prob_gt_3 = 1 - numpy.sum(numpy.array(prob_arr[0:ind3]))/norm_total
-                prob_gt_4 = 1 - numpy.sum(numpy.array(prob_arr[0:ind4]))/norm_total
-                prob_gt_5 = 1 - numpy.sum(numpy.array(prob_arr[0:ind5]))/norm_total
-                
-                # Prob less than is just 1-prob greater than, since these are normalized to 1
-                prob_lt_1 = 1 - prob_gt_1
-                prob_lt_2 = 1 - prob_gt_2
-                prob_lt_3 = 1 - prob_gt_3
-                prob_lt_4 = 1 - prob_gt_4
-                prob_lt_5 = 1 - prob_gt_5
-                
-                # get the most probable z (maximum of the probability array)
-                most_prob_z = z_pred_arr[prob_arr.index(max(prob_arr))]
-                
-                natcatdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
-                natcatdict[grbname].update({'PROB_Z_GT_2':prob_gt_2})
-                natcatdict[grbname].update({'PROB_Z_GT_3':prob_gt_3})
-                natcatdict[grbname].update({'PROB_Z_GT_4':prob_gt_4})
-                natcatdict[grbname].update({'PROB_Z_GT_5':prob_gt_5})
-                
-                natcatdict[grbname].update({'PROB_Z_LT_1':prob_lt_1})
-                natcatdict[grbname].update({'PROB_Z_LT_2':prob_lt_2})
-                natcatdict[grbname].update({'PROB_Z_LT_3':prob_lt_3})
-                natcatdict[grbname].update({'PROB_Z_LT_4':prob_lt_4})
-                natcatdict[grbname].update({'PROB_Z_LT_5':prob_lt_5})
-                
-                natcatdict[grbname].update({'MOST_PROB_Z':most_prob_z})
-                
+                html = f.readlines()            
             except:
-                print 'Cannot load %s ' % (fullout)
-                continue
-    return natcatdict
+                  print 'Cannot load %s ' % (fullout)
+                  continue
+            z_pred_arr = []
+            prob_arr = []
+            ind = 0 # Grab the index to mark where redshifts are for summing probs
+            for line in html:
+                if line[0] == '#':
+                    continue
+                z_prob = line.rstrip('\n').split(' ')
+                z_pred_arr.append(float(z_prob[0]))
+                prob_arr.append(float(z_prob[1]))
+                # What follows is very embarassing but I am lazy today
+                if line[0:3] == '1.0': ind1 = ind
+                if line[0:3] == '2.0': ind2 = ind
+                if line[0:3] == '3.0': ind3 = ind
+                if line[0:3] == '4.0': ind4 = ind
+                if line[0:3] == '5.0': ind5 = ind
+                ind += 1
+            # Now sum up the probabilities to get the prob that lt some value
+            norm_total = numpy.sum(numpy.array(prob_arr))
+    
+            prob_gt_1 = 1 - numpy.sum(numpy.array(prob_arr[0:ind1]))/norm_total
+            prob_gt_2 = 1 - numpy.sum(numpy.array(prob_arr[0:ind2]))/norm_total
+            prob_gt_3 = 1 - numpy.sum(numpy.array(prob_arr[0:ind3]))/norm_total
+            prob_gt_4 = 1 - numpy.sum(numpy.array(prob_arr[0:ind4]))/norm_total
+            prob_gt_5 = 1 - numpy.sum(numpy.array(prob_arr[0:ind5]))/norm_total
+        
+            # Prob less than is just 1-prob greater than, since these are normalized to 1
+            prob_lt_1 = 1 - prob_gt_1
+            prob_lt_2 = 1 - prob_gt_2
+            prob_lt_3 = 1 - prob_gt_3
+            prob_lt_4 = 1 - prob_gt_4
+            prob_lt_5 = 1 - prob_gt_5
+        
+            # get the most probable z (maximum of the probability array)
+            most_prob_z = z_pred_arr[prob_arr.index(max(prob_arr))]
+        
+            # natzprobdict[grbname]={}
+        
+            grbdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
+            grbdict[grbname].update({'PROB_Z_GT_2':prob_gt_2})
+            grbdict[grbname].update({'PROB_Z_GT_3':prob_gt_3})
+            grbdict[grbname].update({'PROB_Z_GT_4':prob_gt_4})
+            grbdict[grbname].update({'PROB_Z_GT_5':prob_gt_5})
+        
+            grbdict[grbname].update({'PROB_Z_LT_1':prob_lt_1})
+            grbdict[grbname].update({'PROB_Z_LT_2':prob_lt_2})
+            grbdict[grbname].update({'PROB_Z_LT_3':prob_lt_3})
+            grbdict[grbname].update({'PROB_Z_LT_4':prob_lt_4})
+            grbdict[grbname].update({'PROB_Z_LT_5':prob_lt_5})
+        
+            grbdict[grbname].update({'MOST_PROB_Z':most_prob_z})
+    return grbdict

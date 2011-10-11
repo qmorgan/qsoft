@@ -178,9 +178,15 @@ def RemoveBadInstances(fulldict,remove_list=['#t90']):
                 xx = newdict.pop(key)
     return newdict
 
+def ObtainPZGT4(fulldict,filename='/bat/zprob.txt',clobber=False):
+    from RedshiftMachine import ParseNatCat
+    return ParseNatCat.grab_nat_web_data(fulldict,filename=filename,clobber=clobber)
+    
+
 def CombineRemoveConvert():
     grbdict = CombineWebResults()
     grbdict = RemoveBadInstances(grbdict)
     grbdict = RemoveUnknownVals(grbdict)
     grbdict = ConvertToFloat(grbdict)
+    grbdict = ObtainPZGT4(grbdict)
     return grbdict
