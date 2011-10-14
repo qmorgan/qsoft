@@ -300,12 +300,16 @@ smooth_random_forest_weights = function(data_obj=NULL,log_weights_try=seq(-1,1,0
  }
 
 
-extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results/smooth_weights_webreduced_4",return_probhigh_only=FALSE){
+extract_stats = function(data_obj=NULL, forest_res_dir=NULL,return_probhigh_only=FALSE){
    ##### If data object is not defined, create the default data object ######
    ##### Results are then stored in the fres list within the data object ####
    if(is.null(data_obj)){
-      print("data_obj not specified; using default values")
+      print("data_obj not specified for extract_stats; using default values")
       data_obj = read_data()
+   }
+   if(is.null(forest_res_dir)){
+      print("forest_res_dir not specified for extract_stats, using default value w/cutoff 4")
+      forest_res_dir="./smooth_weights_results/smooth_weights_webreduced_4"
    }
    ###########################################################################
 	# collect files in directory
@@ -465,21 +469,28 @@ extract_stats = function(data_obj=NULL, forest_res_dir="./smooth_weights_results
 	return(data_obj)
 }
 
-pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,plot=TRUE,plot_train=TRUE,weight_index=11){
+# data_obj_test = read_data(filename='./Data/GRB_short+Z_removed_webreduced+validation.arff')
+# pred_new_data(data_obj_test=data_obj_test)
+pred_new_data = function(data_obj_train=NULL,data_obj_test=NULL,forest_res_dir=NULL,
+               plot=TRUE,plot_train=TRUE,weight_index=11){
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj_train)){
-      print("data_obj_test not specified; using default values")
+      print("data_obj_train not specified; using default values")
       data_obj_train = read_data()
-      log_weight_try = ((weight_index-6)/5)
-      data_obj_train = add_forest_to_obj(data_obj_train,log_weight_try=log_weight_try)
    }
+   log_weight_try = ((weight_index-6)/5)
+   data_obj_train = add_forest_to_obj(data_obj=data_obj_train,log_weight_try=log_weight_try)
    if(is.null(data_obj_test)){
       print("data_obj_test not specified; using default values")
       
       data_obj_test = read_data(filename='./Data/GRB_short+Z_removed_webreduced.arff')
    }
+   if(is.null(forest_res_dir)){
+      print("forest_res_dir not specified for extract_stats, using default value w/cutoff 4")
+      forest_res_dir="./smooth_weights_results/smooth_weights_webreduced_4"
+   }
    ###########################################################################
-	pred.train=extract_stats(return_probhigh_only=TRUE)[,weight_index]
+	pred.train=extract_stats(data_obj=data_obj_train,forest_res_dir=forest_res_dir,return_probhigh_only=TRUE)[,weight_index]
 	pred_vals = forest.pred(data_obj_train$forest,data_obj_test$features,pred.train)
 	data_obj_test$pred_vals = pred_vals
 	
@@ -556,7 +567,7 @@ add_forest_to_obj = function(data_obj=NULL,log_weight_try=1){
     
    ##### If data object is not defined, create the default data object ######
    if(is.null(data_obj)){
-      print("data_obj not specified; using default values")
+      print("data_obj not specified for add_forest_to_obj; using default values")
       data_obj = read_data()
    }
    ###########################################################################
@@ -565,7 +576,7 @@ add_forest_to_obj = function(data_obj=NULL,log_weight_try=1){
       weights_vec = 1*(data_obj$data1$class == "low") + weight_try*(data_obj$data1$class == "high")
 	}
 	else{weights_vec=NULL}
-	forest = forest.fit(data_obj$features,data_obj$classes,mtry=NULL,weights=weights_vec,n.trees=500,seed=sample(1:10^5,1))
+	forest = forest.fit(data_obj$features,data_obj$classes,mtry=NULL,weights=weights_vec,n.trees=10000,seed=sample(1:10^5,1))
    data_obj$forest = forest
    
    return(data_obj)
@@ -869,12 +880,15 @@ purity_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    
 	plot(x = c(0,1), y = c(0,1), xlim = c(0,1), ylim=c(0,1), cex.lab=1.5,cex.axis=1.25,cex.main=2.5,main="Purity", xlab=expression("Fraction of GRBs Followed Up"), ylab=newylab, pch="") # initialize plot))
   # title(main=expression("Purity"), sub=data_obj$data_string)
-   lines(alpha_tries, avg_pur, lty=1, lwd=2, col='black')
-   xx = c(alpha_tries, rev(alpha_tries))
-   yy = c(avg_pur_high, rev(avg_pur_low))
-   col='black'
-   col_alpha = "#9999994D"
+
+  xx = c(alpha_tries, rev(alpha_tries))
+  yy = c(avg_pur_high, rev(avg_pur_low))
+  col='black'
+  col_alpha = "#CCCCCC"
    polygon(xx,yy, col=col_alpha)
+
+   lines(alpha_tries, avg_pur, lty=1, lwd=2, col='black')
+
    lines(alpha_try_array,base_purity,lty=1,lwd=2)
    
    percent_frame=as.data.frame(alpha_try_array)
@@ -911,7 +925,7 @@ efficiency_vs_alpha = function(data_obj,weight_index=5,imagefile='test.pdf'){
    xx = c(alpha_tries, rev(alpha_tries))
    yy = c(avg_obj_high, rev(avg_obj_low))
    col='black'
-   col_alpha = "#9999994D"
+   col_alpha = "#CCCCCC"
    polygon(xx,yy, col=col_alpha)
    
    lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
@@ -954,7 +968,7 @@ efficiency_vs_purity = function(data_obj,weight_index=5,imagefile='test'){
    xx = c(alpha_tries, rev(alpha_tries))
    yy = c(avg_obj_high, rev(avg_obj_low))
    col='black'
-   col_alpha = "#9999994D"
+   col_alpha = "#CCCCCC"
 #   polygon(xx,yy, col=col_alpha)
    
 #   lines(alpha_try_array,alpha_try_array,lty=1,lwd=2)
@@ -990,7 +1004,7 @@ multiple_efficiency_vs_alpha_residuals = function(reference_data_obj,data_obj_li
       alpha_tries = seq(0,1,1/Zlen_1)
       xx = c(alpha_tries, rev(alpha_tries))
       yy = c(reference_obj_uncertainty, rev(reference_obj_uncertainty*-1))
-      polygon(xx,yy, col="#9999994D")         
+      polygon(xx,yy, col="#CCCCCC")         
    }
    
    for(data_obj_name in ls(data_obj_list)){
@@ -1046,7 +1060,7 @@ multiple_purity_vs_alpha_residuals = function(reference_data_obj,data_obj_list,w
       alpha_tries = seq(0,1,1/Zlen_1)
       xx = c(alpha_tries, rev(alpha_tries))
       yy = c(reference_obj_uncertainty, rev(reference_obj_uncertainty*-1))
-      polygon(xx,yy, col="#9999994D")         
+      polygon(xx,yy, col="#CCCCCC")         
    }
    
    for(data_obj_name in ls(data_obj_list)){
