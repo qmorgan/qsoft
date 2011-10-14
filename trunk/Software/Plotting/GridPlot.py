@@ -13,8 +13,10 @@ from Plotting.q_hist import histOutline
 
 def GridPlot(data,fig=None,zdata=None,labels=None,no_tick_labels=False,hist=True, 
             histbins=None, histrangelist=None, histloc='tl',color='black',
-            colorbar=None, show=True, **kwargs):
-    '''hist text: tr, br, tl, bl, ce'''
+            colorbar=None, show=True, noalpha=False, **kwargs):
+    '''hist text: tr, br, tl, bl, ce
+    noalpha means dont use alpha for the boxes.
+    '''
     
     histfill = True
     
@@ -119,10 +121,16 @@ def GridPlot(data,fig=None,zdata=None,labels=None,no_tick_labels=False,hist=True
                         horiloc = 0.85
                     
                     histtext = '''N=%i\nMax=%i''' % (numpy.sum(nn)/2,numpy.max(nn))
-                    ax1.text(horiloc,vertloc,histtext,color=color,fontsize=10,
+                    
+                    if noalpha: 
+                        bbox = dict(color='black',edgecolor='black',facecolor='white')
+                    else:
+                        bbox=dict(color='black',edgecolor='black',facecolor='white', alpha=0.7)
+                    
+                    ax1.text(horiloc,vertloc,histtext,color=color,fontsize=8,
                         horizontalalignment=ha, verticalalignment=va,
-                        transform=ax1.transAxes,
-                        bbox=dict(color='black',edgecolor='black',facecolor='white', alpha=0.7))
+                        transform=ax1.transAxes, bbox=bbox)
+                            
             elif ii != jj:    
                 scatter(matr[ii],matr[jj],z=zdata,axis=ax1,s=point_size,color=color,colorbar=colorbar, **kwargs)
             else:
