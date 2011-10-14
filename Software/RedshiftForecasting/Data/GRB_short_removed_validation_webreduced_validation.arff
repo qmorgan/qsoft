@@ -1,0 +1,50 @@
+% 1. Title: Redshift Predictor for Swift GRBs
+% 
+% 2. Sources:
+%     (a) Creator: Adam N. Morgan
+%     (b) Data From: GCN Notices (http://gcn.gsfc.nasa.gov/),
+%                    http://astro.berkeley.edu/~nat/Swift/
+%                    http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table.html/
+%     (c) Date: Fri Oct  7 22:06:18 2011
+% 
+% 3. This file was created automatically. 
+%    CHECK THE ATTRIBUTES before running Weka. 
+% 
+@RELATION swift_redshift
+
+% !CHECK ME:
+% !CHECK ME:
+% !CHECK ME:
+@ATTRIBUTE z_man_best NUMERIC
+@ATTRIBUTE web_alpha NUMERIC
+@ATTRIBUTE web_Bayes_Ep_keV NUMERIC
+@ATTRIBUTE web_Energy_Fluence_15_350_keV_erg_cme2 NUMERIC
+@ATTRIBUTE web_S_N NUMERIC
+@ATTRIBUTE web_N_H_excess_10e22_cme_2_2 NUMERIC
+@ATTRIBUTE web_T_90 NUMERIC
+@ATTRIBUTE bat_image_signif NUMERIC
+@ATTRIBUTE bat_img_peak NUMERIC
+@ATTRIBUTE bat_trigger_dur NUMERIC
+@ATTRIBUTE PROB_Z_GT_4 NUMERIC
+@ATTRIBUTE bat_is_rate_trig {yes, no}
+@ATTRIBUTE uvot_detection {yes, no}
+@ATTRIBUTE triggerid_str {yes, no}
+
+@DATA
+1.770e+00,-6.227e-01,1.105e+02,5.167e-05,2.101e+02,1.580e-01,2.673e+01,7.190e+00,8.200e+01,1.280e-01,?,yes,yes,451901
+1.348e+00,?,2.592e+01,4.267e-07,1.010e+01,2.170e-01,3.938e+01,7.190e+00,4.260e+02,8.192e+00,?,yes,yes,458918
+1.440e+00,-1.109e+00,1.350e+02,9.328e-06,9.800e+01,?,1.770e+02,1.915e+01,8.340e+02,1.024e+00,?,yes,yes,431605
+1.460e+00,-1.816e+00,6.703e+01,8.773e-06,3.100e+01,4.000e-02,4.312e+01,1.208e+01,2.050e+02,1.024e+00,?,yes,yes,445414
+8.200e-01,-1.058e+00,8.936e+01,1.402e-05,2.023e+02,1.640e-01,1.315e+01,1.186e+01,1.470e+02,1.280e-01,?,yes,yes,457330
+1.408e+00,-1.546e+00,1.284e+02,3.406e-06,1.780e+01,4.000e-02,4.592e+02,7.700e+00,4.500e+02,8.192e+00,?,yes,yes,433065
+5.519e-01,-1.892e+00,4.966e+01,3.746e-06,1.000e+01,-8.000e-03,4.180e+01,7.630e+00,8.440e+02,6.400e+01,?,no,yes,440635
+1.036e+00,-2.970e-01,4.274e+01,2.075e-07,1.510e+01,-4.900e-02,5.400e+00,8.600e+00,2.240e+02,1.024e+00,?,yes,yes,458059
+1.613e+00,-8.184e-01,1.419e+02,1.428e-05,6.270e+01,2.600e-02,9.310e+00,2.040e+01,1.256e+03,1.024e+00,?,yes,yes,452685
+2.106e+00,-1.638e+00,8.187e+01,2.538e-06,2.060e+01,3.900e-02,1.152e+01,9.070e+00,1.470e+02,1.024e+00,?,yes,yes,430172
+2.830e+00,-1.189e+00,4.055e+02,1.252e-05,1.303e+02,7.200e-02,4.656e+01,2.457e+01,2.317e+03,1.024e+00,?,yes,yes,458448
+6.180e-01,-1.810e+00,6.376e+01,2.900e-06,2.970e+01,1.470e-01,2.668e+01,7.630e+00,1.460e+02,1.024e+00,?,yes,no,441676
+8.035e-01,-5.709e-01,1.419e+02,2.713e-06,5.800e+01,1.130e-01,2.500e+00,2.291e+01,1.418e+03,1.024e+00,?,yes,yes,431764
+1.727e+00,-1.664e+00,1.568e+02,1.369e-05,1.356e+02,?,1.169e+02,1.050e+01,1.910e+02,5.120e-01,?,yes,yes,433509
+1.858e+00,-1.838e+00,6.065e+01,6.855e-06,3.560e+01,2.900e-02,4.004e+02,7.830e+00,3.500e+02,4.096e+00,?,yes,yes,458521
+2.220e+00,-1.388e+00,9.753e+01,1.976e-05,1.504e+02,1.100e-02,2.770e+02,1.004e+01,1.476e+03,6.400e+01,?,no,yes,444643
+3.540e-01,?,1.000e+02,4.266e-08,0.000e+00,6.680e-01,3.000e+00,7.600e+00,7.382e+03,1.208e+03,?,no,no,450158
