@@ -1,3 +1,3 @@
 #!/bin/bash
-export Q_DIR="/Users/amorgan/q_soft/"
-python /Users/amorgan/q_soft/Software/Misc/PolarisHeartCheck.py
+export Q_DIR="/Users/amorgan/qrepo/"
+python /Users/amorgan/qrepo/Software/Misc/PolarisHeartCheck.py
