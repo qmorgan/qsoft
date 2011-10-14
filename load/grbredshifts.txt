@@ -14,7 +14,7 @@ y	050801	1.38	1.38   	2.3   	5		ph	fynbo09,oates09a		fynbo09 < 2.3 from ab spec,
 y	050802	1.71	1.71   	1.71   	5		ab	fynbo05c	gcn3749
 n	050803	???		???	   	???	  	1		hem	bloom05		unconfirmed! remove!
 y	050814	5.3		4.7   	5.6   	4		ph	jakobsson06b	photometric redshift!! remove and test?		
-y	050820A	2.6147	2.6147 	2.6147 	5		ab	ledouy	05a	gcn3860
+y	050820A	2.6147	2.6147 	2.6147 	5		ab	ledoux05a	gcn3860
 y	050824	0.8278	0.8278 	0.8278 	5		ab	sollerman07a	paper
 y	050826	0.296	0.296  	0.296  	5		hem	mirabal07a	paper
 y	050904	6.29	6.28   	6.30   	5		ab	kawai05a,price06c		gcn3937, also phot by price
@@ -25,7 +25,7 @@ y	051109A	2.346	2.346  	2.346  	5		ab	quimby05a	gcn4221
 y	051109B	0.080	0.080  	0.080  	5		hem	perley06a	gcn5387
 y	051111	1.54948	1.54948	1.54948	5		ab	hill05a,penprase06a	see gcn4255
 n	051227	???		???	   	???	  	1		hem	foley05b	???? short? Ambiguous-duration burst near z~0.7 galaxy. Fainter, coincident galaxy may be actual host.
-y	060108	2.03	0.00  	2.7  	2		ph	melandri06	gcn4539 phot - remove? Conservatively, we derive z<2.7 with z_best = 2.03 and
+y	060108	2.03	0.00  	2.7  	2		ph	melandri06a	gcn4539 phot - remove? Conservatively, we derive z<2.7 with z_best = 2.03 and
 y	060115	3.5328	3.5328 	3.5328 	5		ab	piranomonte06a,fynbo09		also see  gcn
 y	060116	6.60	6.45   	6.75  	4		ph	grazian06a	photometric redshift!
 y	060124	2.296	2.296  	2.296  	5		ab	prochaska06a	gcn4593
@@ -43,7 +43,7 @@ y	060522	5.11	5.10   	5.12   	5		ab	cenko06a		gcn5155 lyman break
 y	060526	3.2213	3.2213 	3.2213 	5		ab	berger06d,jakobsson06a,fynbo09	also see x  gcn5170
 n	060604	?		0.0	   	3	  	2		ab	fynbo09		also see tirado06a 2006 gcn. fynbo09 do not agree with tirado. include?
 y	060605	3.78	3.78   	3.78   	5		ab	savaglio07a	gcn6166
-y	060607A	3.082	3.082  	3.082  	5		ab	ledouy	06a	gcn5237
+y	060607A	3.082	3.082  	3.082  	5		ab	ledoux06a	gcn5237
 y	060614	0.1257	0.1257 	0.1257 	5		hem	price06b,dellavalle06a		paper
 y	060707	3.4240	3.4240 	3.4240 	5		ab	jakobsson06a,fynbo09 gcn5298
 y	060708	1.92	1.92   	2.8   	4		ab	fynbo09,schady06a		lyman break + photometric -schady and moretti gcn5329
@@ -79,13 +79,13 @@ y	070518	0.7		0.0   	0.7   	3		ph	cucchiara07b	gcn6419 remove?
 y	070529	2.4996	2.4996 	2.4996 	5		ab	berger07a	gcn6470
 y	070611	2.0394	2.0394 	2.0394 	5		ab	thoene07b,fynbo09		  gcn6499, 
 n	070612A	0.617	0.617  	0.617  	3		em	cenko07b no early time NFI followup; don't include
-n	070714B	0.92	0.92   	0.92   	4		hem	graham07a	short burst claimed despite t90=64! remove?
+y	070714B	0.92	0.92   	0.92   	4		hem	graham07a	short burst claimed despite t90=64! remove?
 y	070721B	3.6298	3.6298 	3.6298 	5		ab	malesani07a,fynbo09		 gcn6651, milvang-jensen et al 2010 (in prep)
 y	070802	2.4541	2.4541 	2.4541 	5		ab	prochaska07a,fynbo09		see also  gcn6698
 y	070810A	2.17	2.17   	2.17   	5		ab	thoene07c	gcn6741
 y	071020	2.1462	2.1462 	3.0 	5		ab	jakobsson07b,fynbo09	 gcn6952 new
-y	071025	5.2		4.4   	5.2   	4		ph	fynbo09,perley10a	not included due to photometric, but maybe be consistent and include? new
-y	071031	2.6918	2.6918 	2.6918 	5		ab	ledouy	07a,fynbo09	gcn7023
+y	071025	5.2	4.4   	5.2   	4		ph	fynbo09,perley10a	not included due to photometric, but maybe be consistent and include? new
+y	071031	2.6918	2.6918 	2.6918 	5		ab	ledoux07a,fynbo09	gcn7023
 y	071112C	0.8227	0.8227 	0.8227 	5		ab	jakobsson07c,cucchiara07c,fynbo09	  gcn7088	new
 y	071117	1.3308	1.3308 	1.3308 	3		hem	jakobsson07d,fynbo09		 gcn7117
 y	071122	1.14	1.14   	1.14   	4		ab	cucchiara07d	gcn7124
@@ -175,3 +175,4 @@ y	110726A	1.036	1.036  	1.036  	5		ab	cucchiara11a	gcn12202	strictly 1.036 < z <
 y	110731A	2.83	2.83   	2.83   	5		ab	tanvir11a	gcn12225
 y	110801A	1.858	1.858  	1.858  	5		ab	lavers11a	gcn12234
 y	110808A	1.348	1.348  	1.348  	5		em	postigo11d	gcn12258	
+y	111008A	5.0	5.0	5.0	5		ab	levan11a,wiersema11a gcn12431
