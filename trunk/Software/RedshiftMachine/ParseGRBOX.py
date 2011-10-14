@@ -155,18 +155,18 @@ def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
     
 
     ax = plt.subplot(111)
-    n, bins, patches = plt.hist(plt.log10(z_list),bins=Nbins,facecolor='grey',edgecolor='grey',alpha=0.95)
+    n, bins, patches = plt.hist(plt.log10(z_list),bins=Nbins,facecolor='grey',edgecolor='grey')
 
     # Define pre-swift burst index as bursts before 041210
     # high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
 
     # high_z_list = [z_list[i] for i in list(high_z_i[0])]
     #print high_z_list
-    # n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.6)
+    # n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='black',edgecolor='black',alpha=0.6)
 
     if overplot_high_z:
         high_z_list = [z for z in z_list if z > z_cutoff]
-        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.95)
+        n, bins1, patches = plt.hist(plt.log10(high_z_list),bins=bins,facecolor='black',edgecolor='black')
 
 
     ay = ax.twinx()
@@ -181,7 +181,7 @@ def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
     yy.extend(argg)
     
     
-    ay.plot(tmp,yy,aa=True,linewidth = 4,color='black',alpha=0.95)
+    ay.plot(tmp,yy,aa=True,linewidth = 4,color='black')
 
     argg = list(plt.ones(len(high_z_list)).cumsum().repeat(2))
     zz = copy.copy(high_z_list)
@@ -193,7 +193,7 @@ def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
     yy.extend(argg)
 
 
-    ay.plot(tmp,yy,aa=True,linewidth = 2,color='#222222',alpha=0.75)
+    ay.plot(tmp,yy,aa=True,linewidth = 2,color='grey')
     ay.set_ylim((0,len(z_list)*1.05))
     ay.set_ylabel("Cumulative Number",fontsize=20)
     # formatter for bottom x axis 
@@ -249,7 +249,7 @@ def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
 
     high_z_list = [z for z in z_list if z > z_cutoff]
     if high_z_list: # if there are any high-z's, plot them
-        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red', edgecolor='red',alpha=0.95)
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='black', edgecolor='black')
     axins.set_xlim(z_cutoff,8.5)
     axins.set_xlabel("z")
     axins.set_ylabel("N")
@@ -257,12 +257,12 @@ def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
     # high_z_i = plt.where(plt.array(date_list) < datetime.date(2004,12,10))
     # high_z_list = [z_list[i] for i in list(high_z_i[0]) if z_list[i] > z_cutoff]
 
-    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='red',edgecolor='red',alpha=0.95)
+    n, bins, patches = plt.hist(plt.array(high_z_list),bins=bins,facecolor='black',edgecolor='black')
 
     high_z_list = [z for z in z_list if z > z_cutoff]
 
     if high_z_list: # if there are any high-z's, plot them
-        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='red',edgecolor='red',alpha=0.95)
+        n, bins, patches = plt.hist(plt.array(high_z_list),facecolor='black',edgecolor='black')
 
     axins.set_xlim(z_cutoff,9.0)
     #mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
@@ -280,7 +280,7 @@ def Make_Z_Plot(grbdict,z_key='grbox_z',Nbins=31,z_cutoff=4.0):
     xlabels = ay.get_yticklabels()
     plt.setp(xlabels, size=14, name='times', weight='light', color='k')
 
-
+    plt.savefig('z_plot.eps')
     plt.draw()
     return z_list
 #for i in range(len(z_list)):
