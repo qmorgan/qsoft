@@ -204,7 +204,7 @@ class qImage:
          <tspan x="15" dy="1em">%s</tspan>
          </text>
          <text x = "15" y = "630" fill = "#222222" font-size = "11">
-         <tspan x="15" dy="1em">Created automatically from Swift GCN Notices on %s.  Contact: Adam N. Morgan (qmorgan@gmail.com).</tspan>
+         <tspan x="15" dy="1em">Created from http://fc.qmorgan.com on %s.  Contact: Adam N. Morgan (qmorgan@gmail.com).</tspan>
          </text>
 
          <text x ="288" y="%d" fill="blue" font-size="12">
