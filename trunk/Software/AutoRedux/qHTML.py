@@ -49,7 +49,10 @@ class qHTML:
     
     def copy_file(self, file_path):
         try:
-            shutil.copy(file_path,self.out_dir)
+            cmd = "cp %s %s" % (file_path,self.out_dir)
+            # having problems with shutil.copy
+            # shutil.copy(file_path,self.out_dir)
+            os.system(cmd)
             newpath = self.out_dir + '/' + os.path.basename(file_path)
             return newpath
         except:
