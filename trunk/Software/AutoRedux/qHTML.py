@@ -48,12 +48,17 @@ class qHTML:
             os.mkdir(self.out_dir)
     
     def copy_file(self, file_path):
-        if os.path.exists(file_path):
+        try:
             shutil.copy(file_path,self.out_dir)
             newpath = self.out_dir + '/' + os.path.basename(file_path)
             return newpath
-        else:
-            print "File %s does not exist" % (file_path)
+        except:
+            if not os.path.exists(file_path):
+                errmesg = "File %s does not exist. Could not copy to %s" % (file_path,self.out_dir)
+                qErr.qErr(errtitle=errmesg)
+            else:
+                errmesg = "Could not copy file %s to %s" % (file_path,self.out_dir)
+                qErr.qErr(errtitle=errmesg)
             
     def create_header(self,title=''):
         self.header = '''
