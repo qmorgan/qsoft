@@ -16,6 +16,7 @@ import time
 from MiscBin import q
 from MiscBin import qErr
 from Phot import extinction
+from AutoRedux import qHTML
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -32,9 +33,12 @@ class GRBHTML:
         if not os.path.exists(base_dir):
             print "Output Directory %s does not exist. Exiting" % (base_dir)
             sys.exit(1)
+        
+        self.qHTML = qHTML.qHTML(triggerid,base_dir)
         self.triggerid = triggerid
-        self.create_folder()
-        self.add_header()
+        self.qHTML.create_folder()
+        title = "Swift Trigger %s" % str(self.triggerid)
+        self.qHTML.create_header(title=title)
         self.successful_export = False
     
     def create_folder(self):
@@ -42,45 +46,20 @@ class GRBHTML:
         self.out_dir_name = os.path.basename(self.out_dir)
         if not os.path.exists(self.out_dir):
             os.mkdir(self.out_dir)
-    
-    def copy_file(self, file_path):
-
-        if os.path.exists(file_path):
-            shutil.copy(file_path,self.out_dir)
-            newpath = self.out_dir + '/' + os.path.basename(file_path)
-            return newpath
-        else:
-            print "File %s does not exist" % (file_path)
-                
-    
-    def add_header(self):
-        self.html_block = '''
-        <html><head><title>Swift Trigger %s</title></head>
-        <body background="http://static.tumblr.com/snnreod/Fx4l8ig9j/background_dark.jpg" bgcolor="#363636" text="#FFFFFF" link="#EEEEEE" alink="#EEEEEE" vlink="#AAAAAA">
-        <center>
-        <font size="+2">Swift Trigger %s</font><p>
         
-        ''' % (self.triggerid, self.triggerid)
     
     def add_timing_info(self,grb_time=None):
         '''Requires burst time as string, t90 as float or string'''
         if grb_time:
-            self.html_block += '''
-            <hr width="50%%">
-            <b>Temporal Information:</b><p>
-            <b>Burst Time:</b> %s
-            
-            ''' % (grb_time)
+            content = "Burst Time: " + str(grb_time)
+            self.qHTML.add_post(title='Temporal Information',content=content)
         
     def add_position_info(self,bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None):
         '''Requires bat_pos, xrt_pos, uvot_pos in format of (ra,dec,uncertainty), 
         where uncertainty is in arcseconds. 
         
         '''
-        self.html_block += '''
-        <hr width="50%%">
-        <b>Spatial Information:</b><p>
-        '''
+        content = ""
         if bat_pos: 
             bat_pos_sex = q.dec2sex((bat_pos[0],bat_pos[1]))
             self.best_pos = bat_pos
@@ -95,19 +74,19 @@ class GRBHTML:
             self.best_pos_type = 'UVOT'
         
         if bat_pos != None:
-            self.html_block += '''
+            content += '''
             <b>BAT</b>: RA = %s, Dec = %s, Uncertainty: %s"<br>
             (RA = %s, Dec = %s)<br><br>
             ''' % (str(bat_pos[0]).rstrip('0'),str(bat_pos[1]).rstrip('0'),str(bat_pos[2]).rstrip('0'),\
                    bat_pos_sex[0],bat_pos_sex[1])
         if xrt_pos != None:
-            self.html_block += '''
+            content += '''
             <b>XRT</b>: RA = %s, Dec = %s, Uncertainty: %s"<br>
             (RA = %s, Dec = %s)<br><br>
             ''' % (str(xrt_pos[0]).rstrip('0'),str(xrt_pos[1]).rstrip('0'),str(xrt_pos[2]).rstrip('0'),\
             xrt_pos_sex[0],xrt_pos_sex[1])
         if uvot_pos != None:
-            self.html_block += '''
+            content += '''
             <b>UVOT</b>: RA = %s, Dec = %s, Uncertainty: %s"<br>
             (RA = %s, Dec = %s)<br><br>
             ''' % (str(uvot_pos[0]).rstrip('0'),str(uvot_pos[1]).rstrip('0'),str(uvot_pos[2]).rstrip('0'),\
@@ -119,14 +98,14 @@ class GRBHTML:
                 Gal_EB_V = extinction.qExtinction(source_name,self.best_pos[0],self.best_pos[1])
             except:
                 Gal_EB_V = 'Unknown'
-            self.html_block += '''
+            content += '''
             <b>Extinction</b>: E_(B-V) = %s<br><br>
             ''' % (str(Gal_EB_V))
         
         if reg_path != None:
             if os.path.exists(reg_path):
-                self.copy_file(reg_path)
-                self.html_block += '''
+                self.qHTML.copy_file(reg_path)
+                content += '''
                 <a href='./%s'>DS9 Region File</a>
         
                 ''' % (os.path.basename(reg_path))
@@ -134,68 +113,59 @@ class GRBHTML:
                 print reg_path + ' does not exist.  Not including region file.'
             self.reg_path = reg_path
             self.reg_name = os.path.basename(reg_path)
+        if content:
+            self.qHTML.add_post(title='Spatial Information',content=content)
+            
     
     def add_finder_chart_info(self,fc_path):
+        content = ''
         if fc_path:
             if os.path.exists(fc_path):
                 fc_base = os.path.basename(fc_path)
-                self.copy_file(fc_path)
-                self.html_block += '''
-                <hr width="50%%">
-                <b>Finder Charts:</b><p>
-                DSS Finder Chart<br>
-                <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=200, height=200></a>
-                <br>
-                <a href='http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=%f&err_shape=combo&incl_scale=yes&size=AUTO&src_name=Swift_%s&pos_label=%s&cont_str=&survey=sdss'>SDSS Finding Chart</a>
-                <br>(May not be available)
-                ''' % (fc_base,fc_base,self.best_pos[0],self.best_pos[1],self.best_pos[2],self.triggerid,self.best_pos_type)
+                self.qHTML.copy_file(fc_path)
+                content += '''
+                <a href='http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=%f&err_shape=combo&incl_scale=yes&size=AUTO&src_name=Swift_%s&pos_label=%s&cont_str=&survey=sdss'>SDSS Finding Chart</a> (May not be available)<br>
+                DSS Finding Chart:<br>
+                <a href='./%s'><img src='%s' alt="Finder Chart", title="Finder Chart",width=500></a>
+                ''' % (self.best_pos[0],self.best_pos[1],self.best_pos[2],self.triggerid,self.best_pos_type,fc_base,fc_base)
             else:
                 print fc_path + ' does not exist.  Not including Finder Chart.'
             self.fc_path = fc_path
             self.fc_name = os.path.basename(fc_path)
+        if content:
+            self.qHTML.add_post(title='Finding Charts',content=content)
+            
     
     def add_telescope_info(self):
         too_str = ''
+        content = ''
         if hasattr(self, 'best_pos'):
             too_str = '?ra=%f&dec=%f' % (self.best_pos[0],self.best_pos[1])
             react_str = 'http://www.srl.caltech.edu/~react/Swift%s.html' % (self.triggerid)
-            datascope_str = '?position=%f+%f&size=0.05' % (self.best_pos[0],self.best_pos[1])
-            self.html_block += '''
-                <hr width="50%%">
-                <b>Useful Links:</b><p>
+            datascope_str = '?position=%f+%f&size=0.05' % (self.best_pos[0],self.best_pos[1])            
+            content += '''
                 <a href='http://lyra.berkeley.edu/GRB/too/too.php%s'>GRAASP ToO Page</a><br>
                 <a href='%s'>Caltech React Page</a><br>
                 <a href='http://heasarc.gsfc.nasa.gov/cgi-bin/vo/datascope/jds.pl%s'>NVO DataScope Query</a><br>
                 ''' % (too_str,react_str,datascope_str)
-        self.html_block += '''
+        content += '''
         <a href='http://gcn.gsfc.nasa.gov/other/%s.swift'>GCN Notices for this Trigger</a><br>
         ''' % (str(self.triggerid))
+        if content:
+            self.qHTML.add_post(title='Useful Links',content=content)
+            
     
     def add_footer(self):
         update_time = time.ctime(time.time())
-        self.html_block += '''
-        <HR WIDTH="50%%">
+        footercontent = '''
         This page is updated automatically as more information arrives.<br>
         Last Updated: %s <P>
         <ADDRESS> Adam N. Morgan (qmorgan@gmail.com)</ADDRESS>
         </center>
         </html>
         ''' % (update_time)
+        self.qHTML.create_footer(footercontent)
         
-    def export_html(self):
-        '''
-        Export the html_block string into the created folder.
-        '''
-        try:
-            filename = self.out_dir + '/index.html'
-            f = open(filename,'w')
-            f.write(self.html_block)
-            f.close()
-            self.successful_export = True
-        except:
-            self.successful_export = False
-    
-
 
 def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
                 bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None,\
@@ -208,7 +178,7 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
     inst.add_telescope_info()
     inst.add_finder_chart_info(fc_path)
     inst.add_footer()
-    inst.export_html()
+    inst.qHTML.export_html()
     return inst
 
 def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
@@ -333,9 +303,9 @@ def test():
     uvot_pos=(132.4526,3.6234,1.1)
     reg_path='/Users/amorgan/Desktop/123456.reg'
     grb_time='09/09/27 10:07:16.92'
-    fc_path = '/Users/amorgan/Desktop/test.png'
+    fc_path = '/Users/amorgan/Desktop/fcserver.png'
     
-    MakeGRBPage(triggerid=triggerid,bat_pos=bat_pos,xrt_pos=xrt_pos,uvot_pos=uvot_pos,
+    MakeGRBPage(html_path='/Users/amorgan/Desktop/',triggerid=triggerid,bat_pos=bat_pos,xrt_pos=xrt_pos,uvot_pos=uvot_pos,
                 reg_path=reg_path, grb_time=grb_time,fc_path=fc_path)
     # inst = GRBHTML('123416','/Users/amorgan/Public/TestDir')
     #     inst.add_position_info(bat_pos=(13.45,-32.52,22),xrt_pos=(13.452,-32.622,2.5),reg_path='/Users/amorgan/Desktop/123456.reg')
