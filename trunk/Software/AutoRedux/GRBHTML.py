@@ -189,12 +189,10 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
 
 def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
         incl_keys = ['triggerid_str','z','Q_hat'],
-        table_columns=('GRB','Region File','Finding Chart','Trigger ID','z','Q_hat')
+        table_columns=('GRB','Region File','Finding Chart','z','Q_hat'),
         repeat_header=20):
-        '''Repeat the headers ever repeat_header rows'''
-
+    '''Repeat the headers ever repeat_header rows'''
     failed_grbs=[]
-    
     if not table_columns or len(table_columns) != len(incl_keys) + len(incl_files) + 1:
         table_columns = ['GRB']
         for inst in incl_files:
@@ -265,7 +263,9 @@ def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
     html page for all the GRBs
     '''
     update_time = time.ctime(time.time())
-    html_block = MakeGRBTable(collected_grb_dict)
+    html_block = MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
+        incl_keys=['z_man_best','Q_hat'],table_columns=('GRB','Region File','Finding Chart','z','Q_hat'))
+    
     grbind = qHTML.qHTML("Swift GRB Pages",html_path)
     grbind.sidebar = ''
     grbind.create_header(title="Swift GRB Pages")
