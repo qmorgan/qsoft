@@ -35,6 +35,7 @@ class qHTML:
             sys.exit(1)
         self.name = name
         self.posts = []
+        self.plainhtmls = []
         self.create_folder()
         self.create_header()
         self.create_footer()
@@ -220,7 +221,10 @@ class qHTML:
                       </div>
                     <!-- end #header -->  
         ''' % (title, title)
-    def create_sidebar(self,linkdict={"Home":"./index.html","A website":"http://www.google.com"},logo_url="http://i.imgur.com/rWYK2.png"):
+        
+        
+    def create_sidebar(self,linkdict={"Home":"./index.html","A website":"http://www.google.com"},
+        sidebar_title='',logo_url="http://i.imgur.com/rWYK2.png"):
         sidelinks = ''
         for title, link in linkdict.iteritems():
             sidelink = '''<a class="page_link" href="%s"><span>%s</span></a>
@@ -235,7 +239,7 @@ class qHTML:
                  <img id="tumblr_portrait" src="%s" width="128" height="128" alt="Q"/>
 
                     <!-- title under sidebar logo -->      
-                    Website description
+                    %s
             </div>
                 
                 <!-- sidebar links -->      
@@ -247,7 +251,7 @@ class qHTML:
             <div class="postcontainer clearfix">        
                 <!-- begin .post_inner_container -->      
                 <div class="post_inner_container clearfix">
-                ''' % (logo_url,sidelinks)
+                ''' % (logo_url,sidebar_title,sidelinks)
                 
     def create_footer(self,footercontent=""):
         self.footer = '''
@@ -266,6 +270,12 @@ class qHTML:
                 </div>
             </body>
         </html>''' % (footercontent)
+        
+    def add_plain_html(self,content=''):
+        plainhtml = '''%s
+        ''' % content
+        self.plainhtmls += plainhtml
+        
     def add_post(self,title='',content=''):
         post = '''
         <!-- begin a post -->
@@ -297,6 +307,8 @@ class qHTML:
         self.html_block += self.sidebar
         for post in self.posts:
             self.html_block += post
+        for plainhtml in self.plainhtmls:
+            self.html_block += plainhtml
         self.html_block += self.footer
 
         try:
