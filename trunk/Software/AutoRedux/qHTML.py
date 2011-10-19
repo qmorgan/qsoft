@@ -14,12 +14,15 @@ import shutil
 import time
 from MiscBin import q
 from MiscBin import qErr
+import glob
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
 
 class qHTML:
     '''The base block for a q website. The basic form for this website is a 
@@ -28,7 +31,8 @@ class qHTML:
     this qHTML object.
     '''
     
-    def __init__(self,name,base_dir,logo=None):
+    def __init__(self,name,base_dir,create_folder=True,logo=None):
+        '''If not create_folder, then dump all the files in the current base directory.'''
         self.base_dir = base_dir
         if not os.path.exists(base_dir):
             print "Output Directory %s does not exist. Exiting" % (base_dir)
@@ -36,7 +40,19 @@ class qHTML:
         self.name = name
         self.posts = []
         self.plainhtmls = []
-        self.create_folder()
+        if create_folder:
+            self.create_folder()
+        else:
+            self.out_dir = self.base_dir
+            self.out_dir_name = os.path.basename(self.out_dir)
+        
+        # Check to make sure we can find the relevant css files. If not, put them there.
+        css_path = loadpath + '*.css'
+        check_path1 = self.out_dir + '/*.css'
+        check_path2 = self.base_dir + '/*.css'
+        if not glob.glob(check_path1) and not glob.glob(check_path2):
+            self.copy_file(css_path)
+        
         self.create_header()
         self.create_footer()
         self.create_sidebar()
@@ -85,7 +101,11 @@ class qHTML:
                 <meta name="if:Dark Layout" content="" />
                 <link rel="apple-touch-icon" href="http://i.imgur.com/rWYK2.png"/> 
                 <link rel="stylesheet" href="http://static.tumblr.com/snnreod/yt6l8jer7/screen.css" type="text/css" media="screen" charset="utf-8" />  
+                <link rel="stylesheet" href="../screen_backup.css" type="text/css" media="screen" charset="utf-8" />  
+                <link rel="stylesheet" href="screen_backup.css" type="text/css" media="screen" charset="utf-8" />  
+                <link rel="stylesheet" href="../table.css" type="table/css" media="screen" charset="utf-8" />
                 <link rel="stylesheet" href="table.css" type="table/css" media="screen" charset="utf-8" />
+                
                 <style type="text/css">
 
                   html, body {

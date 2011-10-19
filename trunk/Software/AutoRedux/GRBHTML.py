@@ -271,7 +271,8 @@ def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
     html_block = MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
         incl_keys=['z_man_best','Q_hat'],table_columns=('GRB','Region File','Finding Chart','z','Q_hat'))
     
-    grbind = qHTML.qHTML("Swift GRB Pages",html_path)
+    # set create_folder to false since we want this remaining in the base directory
+    grbind = qHTML.qHTML("Swift GRB Pages",html_path,create_folder=False)
     grbind.sidebar = ''
     grbind.create_header(title="Swift GRB Pages")
 
