@@ -182,7 +182,7 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
     inst.add_finder_chart_info(fc_path)
     inst.add_footer()
     title = "Swift Trigger %s" % str(triggerid)
-    self.qHTML.create_header(title=title)
+    inst.qHTML.create_header(title=title)
     inst.qHTML.create_sidebar(linkdict)
     inst.qHTML.export_html()
     return inst
