@@ -171,6 +171,9 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
                 bat_pos=None,xrt_pos=None,uvot_pos=None,reg_path=None,\
                 grb_time=None,fc_path=None):
     '''Make a GRB page given inputs and return the instance of the html.'''
+    
+    linkdict={"Swift GRB Pages":"http://swift.qmorgan.com","RSS Feed":"http://swift.qmorgan.com/rss",
+                "Finding Chart Generator":"http://fc.qmorgan.com","A. N. Morgan's Webpage":"http://qmorgan.com"}
     triggerid = str(triggerid)
     inst = GRBHTML(triggerid,html_path)
     inst.add_timing_info(grb_time)
@@ -178,56 +181,35 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
     inst.add_telescope_info()
     inst.add_finder_chart_info(fc_path)
     inst.add_footer()
+    inst.qHTML.create_header()
+    inst.qHTML.create_sidebar(linkdict)
     inst.qHTML.export_html()
     return inst
 
-def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
-    '''Takes a collected dictionary from CollectGRBInfo and creates an index
-    html page for all the GRBs
-    '''
-    failed_grbs = []
-    incl_files = ['reg_path','fc_path']
-    incl_keys = ['triggerid_str','z','Q_hat']
-    html_block = '''
-    <html><head><title>Q's GRB Pages</title></head>
-    <body background="http://static.tumblr.com/snnreod/Fx4l8ig9j/background_dark.jpg" bgcolor="#363636" text="#000000" link="#111111" alink="#111111" vlink="#333333">
-    <center><font size="+2" color="#FFFFFF">Q's GRB Pages</font><p></center>
-    
-    <style type="text/css">
-    table.sample {
-    border-width: 1px;
-    border-spacing: ;
-    border-style: outset;
-    border-color: white;
-    border-collapse: collapse;
-    background-color: rgb(255, 255, 240);
-    }
-    table.sample th {
-    border-width: 3px;
-    padding: 3px;
-    border-style: solid;
-    border-color: black;
-    background-color: white;
-    -moz-border-radius: ;
-    }
-    table.sample td {
-    border-width: 3px;
-    padding: 3px;
-    border-style: solid;
-    border-color: black;
-    background-color: white;
-    -moz-border-radius: ;
-    }
 
-    </style>
+def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
+        incl_keys = ['triggerid_str','z','Q_hat'],
+        table_columns=('GRB','Region File','Finding Chart','Trigger ID','z','Q_hat')
+        repeat_header=20):
+        '''Repeat the headers ever repeat_header rows'''
+
+    failed_grbs=[]
     
-    <table class="sample" align="center">
-    ''' 
-    table_columns = ('GRB','Region File','Finding Chart','Trigger #','Redshift','Q_hat')
+    if not table_columns or len(table_columns) != len(incl_keys) + len(incl_files) + 1:
+        table_columns = ['GRB']
+        for inst in incl_files:
+            table_columns.append(inst)
+        for inst in incl_keys:
+            table_columns.append(inst)
+        table_columns = tuple(table_columns)
+    
+    html_block = ''' <table class="sample" align="center">
+    '''
+    
     table_label = '<tr>'
     for column_name in table_columns:
-        table_label += '<td align=center><b>%s</b></td>' % column_name
-    table_label += '<tr>'
+        table_label += '<th>%s</th>' % column_name
+    table_label += '</tr>'
     
     html_block += table_label
     
@@ -261,33 +243,44 @@ def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
                     html_block += "<td></td>"
 #            html_block += "<td>%s</td>" % (grbdict['triggerid_str'])
 #            html_block += "<td>%f</td>" % (grbdict['z'])
-            html_block += "</tr>"
-            if table_entry_count == 20:
+            html_block += """</tr>
+            """
+            if table_entry_count == repeat_header:
                 html_block += table_label
                 table_entry_count = 0
             table_entry_count += 1
         except:
             failed_grbs.append(grb)
-    
-    update_time = time.ctime(time.time())
-    
+        
     print failed_grbs
     
     html_block += '''
-    </table>
+    </table>'''
+    return html_block
+
     
-    <HR WIDTH="50%%">
+
+def MakeGRBIndex(collected_grb_dict,html_path='/home/amorgan/www/swift'):
+    '''Takes a collected dictionary from CollectGRBInfo and creates an index
+    html page for all the GRBs
+    '''
+    update_time = time.ctime(time.time())
+    html_block = MakeGRBTable(collected_grb_dict)
+    grbind = qHTML.qHTML("Swift GRB Pages",html_path)
+    grbind.sidebar = ''
+    grbind.create_header(title="Swift GRB Pages")
+
+    footer_content = '''
     This page is updated automatically as more information arrives.<br>
     Last Updated: %s <P>
     <ADDRESS> Adam N. Morgan (qmorgan@gmail.com)</ADDRESS>
     </center>
     </html>
     ''' % (update_time)
-
-    filename = html_path + '/index.html'
-    f = open(filename,'w')
-    f.write(html_block)
-    f.close()
+    grbind.create_footer(footer_content)
+    grbind.add_plain_html(html_block)
+    grbind.export_html()
+    
 
 def SortGRBDict(collected_grb_dict):
     keys = collected_grb_dict.keys()
