@@ -236,7 +236,7 @@ class qHTML:
                     <!-- begin #header -->      
                     <div id="header" class="clearfix">
                         <h1>
-                              <a class="no_header" href="/">%s</a>
+                              <a class="no_header">%s</a>
                         </h1>
                       </div>
                     <!-- end #header -->  
