@@ -525,6 +525,27 @@ class GRBdb:
         return collected_dict
     
     
+    def update_db_info_for_single_key(self,grbid,newdict,add_key_if_not_exist=False,Reload=False):
+        """
+        Given a grbid and a dictionary of items, update the dictionary in the 
+        database for that GRB, and reload the database.
+        If add_key_if_not_exist=True, then this is treated as a new GRB and will be
+        added to the dictionary.
+        """
+        msg = 'Updating entry %s' % (grbid)
+        print msg 
+        if grbid in self.dict:
+            self.dict[grbid].update(newdict)
+        elif add_key_if_not_exist:
+            self.dict.update({grbid:newdict})
+        else:
+            errtitle = '%s not in dictionary and add_key_if_not_exist=False.' % str(grbid)
+            errtext = 'Cannot add dictionary %s:%s' % (str(grbid),str(newdict))
+            qErr.qErr(errtitle=errtitle,errtext=errtext)
+        if Reload:
+            print "Reloading database"
+            self.Reload_DB()
+    
     def update_class(self):
         '''
         Given conditions, assign and update the redshift class and create 
