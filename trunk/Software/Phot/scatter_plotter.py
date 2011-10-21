@@ -100,7 +100,7 @@ def plotall(all_GRB_dict, time_correct=True):
 
         if len(maglist):
             matplotlib.pyplot.errorbar(timelist, maglist, yerr=mag_errlist, xerr=time_errlist, \
-                        marker = 'o', linestyle = 'None', label = 'GRB')
+                        marker = 'o', linestyle = 'None', label = GRB)
         if len(upper_list):
             matplotlib.pyplot.errorbar(time_upperlist, upper_list , xerr=time_upper_errlist,linestyle = 'None', marker = 'v')
              
@@ -173,3 +173,30 @@ def testtry():
     b = getproperty(GRB_list, 't90')
 
     scatterplot(j_3min,a)
+
+
+def multibeuermann_test():
+    import matplotlib
+    from MiscBin import qPickle
+    matplotlib.pyplot.clf()
+#    s = s + f_c,f * ( (t/tbk_c,f) ^ (-sh_c * alpha_c,b) +  (t/tbk_c,f) ^ (-sh_c * alpha_c,a) )^(-1./sh_c)
+    t = []
+    photdict = qPickle.load('/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/071025_goodpickle.data')
+    for epoch in photdict:
+        if 'h' in epoch:
+            t += [float(photdict[epoch]['t_mid'][0])]
+    t = numpy.array(t)
+    print t
+    s = -2.5*numpy.log10(6100 * ((t/574.66) ** (-1 * -1.782) + (t/574.66) ** (-1 * 1.576)) ** (-1./1)  +  1394.88  * ((t/1436.927) ** (- 1 * 10.218) + (t/1436.927) ** (-1 *-1.242)) ** (-1./1))
+    matplotlib.pyplot.errorbar(t, s, linestyle = 'None', marker = 'o')
+    print s
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
+    savepath ='./071025_multibeuermann_test.png'
+    print 'lightcurve saved to ' + savepath
+    matplotlib.pyplot.savefig(savepath)
+    matplotlib.pyplot.close()
