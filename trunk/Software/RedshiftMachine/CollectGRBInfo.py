@@ -532,7 +532,7 @@ class GRBdb:
         If add_key_if_not_exist=True, then this is treated as a new GRB and will be
         added to the dictionary.
         """
-        msg = 'Updating entry %s' % (grbid)
+        msg = 'Updating entry %s with new values' % (grbid)
         print msg 
         if grbid in self.dict:
             self.dict[grbid].update(newdict)
@@ -2259,6 +2259,19 @@ def TestMakeGridPlot(keys=['log_T90', 'log_FL','log_MAX_SNR', 'PROB_Z_GT_4'],
        z_key=None,color='red',histbins=20,histrangelist=histrangelist,fig=fig,histloc='br',noalpha=noalpha)
     fig2.savefig('gridplot.eps')
     fig2.show()
+
+
+def GrabLatestEventDicts(numevents=10):
+    db = LoadDB('GRB_full')
+    keys=db.dict.keys()
+    keys.sort()
+    newkeys = keys[-numevents:]
+    newdict={}
+    for key in newkeys:
+        newdict.update({key:db.dict[key]})
+    return newdict
+    
+    
     
 def Cleanup():
     cmd = 'rm ' + storepath + '/*_head'
