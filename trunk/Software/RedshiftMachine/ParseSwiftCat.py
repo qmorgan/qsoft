@@ -65,7 +65,6 @@ import sys
 import os
 from MiscBin.q import sex2dec
 import urllib2
-from AutoRedux.Signal import DownloadFile
 
 
 if not os.environ.has_key("Q_DIR"):
@@ -73,6 +72,31 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 loadpath = os.environ.get("Q_DIR") + '/load/'
+
+def DownloadFile(base_url,file_name,out_path):
+    from urllib2 import Request, urlopen, URLError, HTTPError
+    
+    #create the url and the request
+    url = base_url + file_name
+    req = Request(url)
+    file_mode = 'b'
+    
+    # Open the url
+    try:
+        f = urlopen(req)
+        print "downloading " + url
+        
+        # Open our local file for writing
+        local_file = open(out_path, "w" + file_mode)
+        #Write to our local file
+        local_file.write(f.read())
+        local_file.close()
+
+    #handle errors
+    except HTTPError, e:
+        print "HTTP Error:",e.code , url
+    except URLError, e:
+        print "URL Error:",e.reason , url
 
 def GetNewCatFromWeb():
     swift_cat_web_address = "http://swift.gsfc.nasa.gov/docs/swift/archive/grb_table/fullview/"
