@@ -17,6 +17,7 @@ import time
 import copy
 from RedshiftMachine import ParseSwiftCat
 from RedshiftMachine import LoadGCN
+from RedshiftMachine import LoadDB
 from AutoRedux import Signal
 from MiscBin.q import RemoveNaN
 from MiscBin.q import object2dict
@@ -248,32 +249,11 @@ def whatis(keyword):
         print 'Keyword unknown.  Check keyword or tell Adam to update his dictionary'
 
 def LoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False):
-    ### LOAD or CREATE PICKLE STORAGE FILE 
-    # Attempt to load pickle file
-    pklpath = storepath+'DB_'+str(name)+'.pkl'
-    loadeddb = qPickle.load(pklpath)
-    # If couldn't load, or clobber == True, create a new instance of the class
-    if clobber or not loadeddb:
-        # Create new instance of db Notice
-        loadeddb = GRBdb(name,redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
-        try:
-            if loadeddb.successful_load:
-                # Save new Pickle file
-                qPickle.save(loadeddb,pklpath,clobber=True)
-            else:
-                print 'Could not succesfully load db.'
-                return
-        except:
-            print "Could not Extract Values for db."
-            qErr.qErr()
-    return loadeddb
+    return LoadDB.LoadDB(name, clobber=clobber, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc):
 
 def SaveDB(loadeddb):
-    # If the attributes of the loaded GCN have changed since loading, use 
-    # this to save the new version of the GCN.
-    pklpath = storepath+'DB_'+str(getattr(loadeddb,'name'))+'.pkl'
-    qPickle.save(loadeddb,pklpath,clobber=True)
-
+    LoadDB.SaveDB(loadeddb)
+    
 class GRBdb:
     '''Instance of a grb database'''
     def __init__(self,name,incl_nat=True,incl_nat_web=True,incl_fc=False,incl_reg=True,
