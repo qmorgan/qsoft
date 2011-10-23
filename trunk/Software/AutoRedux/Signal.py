@@ -25,7 +25,7 @@ import os
 from AutoRedux import send_gmail
 from AutoRedux import GRBHTML
 from RedshiftMachine import LoadGCN
-from RedshiftMachine import CollectGRBInfo
+from RedshiftMachine import CollectGRBInfo as ColGRBInfo
 from MiscBin import qErr
 from MiscBin import qPickle
 import glob
@@ -157,7 +157,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
     
     if update_database:
-        db = CollectGRBInfo.LoadDB(update_database)
+        db = ColGRBInfo.LoadDB(update_database)
         
     
     triggerid = triggerid.lstrip('0')
@@ -242,7 +242,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
         gcn.extract_values()
         gcn.get_positions()
         db.update_db_info_for_single_key(grb_name,gcn.pdict,add_key_if_not_exist=new_grb,Reload=False)
-        CollectGRBInfo.SaveDB(db)
+        ColGRBInfo.SaveDB(db)
     
 def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=False):
     from AutoRedux import qRSS
