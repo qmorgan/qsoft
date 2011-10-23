@@ -25,6 +25,7 @@ import os
 from AutoRedux import send_gmail
 from AutoRedux import GRBHTML
 from RedshiftMachine import LoadGCN
+from RedshiftMachine import CollectGRBInfo
 from MiscBin import qErr
 from MiscBin import qPickle
 import glob
@@ -151,12 +152,55 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_html=True, feed_type = 'talons', tweet = True, force_mail=False,\
                         feed_url="http://www.thinkingtelescopes.lanl.gov/rss/talons_swift.xml",
                         update_rss=True, rss_path='/home/amorgan/www/swift/rss.xml',
-                        out_url_path='http://swift.qmorgan.com/'):
+                        out_url_path='http://swift.qmorgan.com/',
+                        update_database='GRB_full',grb_name=None):
     #out_url_path used to be 'http://astro.berkeley.edu/~amorgan/Swift/'
+    
+    if update_database:
+        db = CollectGRBInfo.LoadDB(update_database)
+        
     
     triggerid = triggerid.lstrip('0')
     print 'Loading GCN for trigger %s' % (triggerid)
     gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
+    
+    # From the date of the GRB, we can take a guess as to what the GRB name will be.
+    # Note this takes the new naming convention of putting A after each new burst.
+    # With this info, we can add it to the database.
+    if 'grb_date_str' in gcn.pdict:
+        grb_name_guess_A = gcn.pdict['grb_date_str'].translate(None,'/') + 'A'
+        grb_name_guess_B = gcn.pdict['grb_date_str'].translate(None,'/') + 'B'
+        grb_name_guess_C = gcn.pdict['grb_date_str'].translate(None,'/') + 'C'
+        grb_name_guess_D = gcn.pdict['grb_date_str'].translate(None,'/') + 'D'
+        # Look for the latest instances of the possible grb names for this trigger date
+        new_grb=False
+        if update_database and not grb_name:
+            if grb_name_guess_D in db.dict: 
+                grb_name = grb_name_guess_D
+            elif grb_name_guess_C in db.dict:
+                grb_name = grb_name_guess_C
+            elif grb_name_guess_B in db.dict:
+                grb_name = grb_name_guess_B
+            elif grb_name_guess_A in db.dict:
+                grb_name = grb_name_guess_A
+            else:
+                grb_name = grb_name_guess_A
+                new_grb=True
+                errtitle='New GRB %s added to database!' % (grb_name)
+                qErr.qErr(errtitle)
+            if not new_grb:
+                # if not a new grb, double check that our name guess was correct by comparing triggerids
+                if not db.dict[new_grb]['triggerid_str'] == str(triggerid):
+                    update_database=None
+                    errtitle='GRB Triggerid/name mismatch! not adding to database'
+                    errtext="""Attempting to update the database entry for GRB %s
+                    with triggerid %s failed. The correct triggerid in the database for
+                    that GRB name is %s. The correct GRB name needs to be determined
+                    for this GRB to be added to the database.""" % (grb_name,str(triggerid),db.dict[new_grb]['triggerid_str'])
+                    qErr.qErr(errtitle=errtitle,errtext=errtext)
+    
+    newdict = {}
+        
     # Eventually want to depreciate the following function
     # and make a generic ds9 region file creating function
             #reg_file_path = gcn.get_positions(create_reg_file=True)
@@ -166,6 +210,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             if not reg_path: 
                 print '\nCOULDNT FIND REG PATH\n'
                 qErr.qErr(errtitle='COULDNT FIND REG PATH')
+            newdict.update({"reg_path":reg_path})
         except: qErr.qErr()
     if incl_fc:
         try:
@@ -173,6 +218,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             if not fc_path: 
                 print '\nCOULDNT FIND FC PATH\n'
                 qErr.qErr(errtitle='COULDNT FIND FC PATH')
+            newdict.update({"fc_path":fc_path})
         except: qErr.qErr()
     if mail_reg:
         try:
@@ -181,6 +227,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
     if make_html:
         try:
             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
+            newdict.update({"out_dir":grb_html.out_dir})
             if mail_html and grbhtml.successful_export:
                 _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
@@ -190,6 +237,13 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             print "Updating RSS Feed"
         except: qErr.qErr()
 
+    if update_database:
+        db.update_db_info_for_single_key(grb_name,newdict,add_key_if_not_exist=new_grb,Reload=False)
+        gcn.extract_values()
+        gcn.get_positions()
+        db.update_db_info_for_single_key(grb_name,gcn.pdict,add_key_if_not_exist=new_grb,Reload=False)
+        CollectGRBInfo.SaveDB(db)
+    
 def _update_rss(gcn,rss_path,out_url_path='http://swift.qmorgan.com/',clear_rss=False):
     from AutoRedux import qRSS
   
@@ -355,6 +409,7 @@ def make_grb_html(gcn,html_path='/home/amorgan/www/swift',reg_path=None,fc_path=
     fc_path=fc_path, grb_time=grb_time, html_path=html_path)
     
     return grbhtml_inst
+    
     
 def mail_grb_region(gcn,mail_to,reg_file_path):
     from AutoRedux import qImage
