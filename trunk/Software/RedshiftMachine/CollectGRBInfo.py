@@ -249,7 +249,7 @@ def whatis(keyword):
         print 'Keyword unknown.  Check keyword or tell Adam to update his dictionary'
 
 def LoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False):
-    return LoadDB.LoadDB(name, clobber=clobber, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc):
+    return LoadDB.LoadDB(name, clobber=clobber, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
 
 def SaveDB(loadeddb):
     LoadDB.SaveDB(loadeddb)
