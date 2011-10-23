@@ -227,7 +227,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
     if make_html:
         try:
             grbhtml = make_grb_html(gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
-            newdict.update({"out_dir":grb_html.out_dir})
+            newdict.update({"out_dir":grbhtml.out_dir})
             if mail_html and grbhtml.successful_export:
                 _mail_html(gcn,mail_to,clobber=force_mail,tweet=tweet,out_url_path=out_url_path,grbhtml=grbhtml)
         except: qErr.qErr()
