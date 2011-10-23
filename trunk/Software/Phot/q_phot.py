@@ -2598,3 +2598,13 @@ def test_fit():
     result = (k_flux - j_flux)/(k_length - j_length)
     
     return result
+
+def update_z(photdict, z, z_err):
+    '''Updates the redshifts of photdicts'''
+    z_dict = {'z': (z,z_err)}
+    photdict.update(z_dict)
+
+def update_all_z(photloop_result, z, z_err):
+    '''Updates all redshifts in a photloop dictionary result'''
+    for epoch in photloop_result:
+        update_z(photloop_result[epoch] , z, z_err)
