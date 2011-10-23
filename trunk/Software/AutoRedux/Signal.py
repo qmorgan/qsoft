@@ -190,7 +190,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                 qErr.qErr(errtitle)
             if not new_grb:
                 # if not a new grb, double check that our name guess was correct by comparing triggerids
-                if not db.dict[new_grb]['triggerid_str'] == str(triggerid):
+                if not db.dict[grb_name]['triggerid_str'] == str(triggerid):
                     update_database=None
                     errtitle='GRB Triggerid/name mismatch! not adding to database'
                     errtext="""Attempting to update the database entry for GRB %s
