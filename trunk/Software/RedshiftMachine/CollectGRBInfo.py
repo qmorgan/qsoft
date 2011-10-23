@@ -17,7 +17,8 @@ import time
 import copy
 from RedshiftMachine import ParseSwiftCat
 from RedshiftMachine import LoadGCN
-from RedshiftMachine import LoadDB
+from RedshiftMachine.LoadDB import LoadDB
+from RedshiftMachine.LoadDB import SaveDB
 from AutoRedux import Signal
 from MiscBin.q import RemoveNaN
 from MiscBin.q import object2dict
@@ -247,12 +248,6 @@ def whatis(keyword):
         return helpdict
     else: 
         print 'Keyword unknown.  Check keyword or tell Adam to update his dictionary'
-
-def LoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False):
-    return LoadDB.LoadDB(name, clobber=clobber, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
-
-def SaveDB(loadeddb):
-    LoadDB.SaveDB(loadeddb)
     
 class GRBdb:
     '''Instance of a grb database'''
@@ -1781,6 +1776,16 @@ class GRBdb:
             self.plotallvall(keylist=keys_to_plot,zval='z_man_best')
         if hist:
             self.DistHist(keylist=keys_to_hist)
+
+def FindFilePaths(db='GRB_full'):
+    db_full = LoadDB(db)
+    for key, val in db_full.dict.iteritems():
+        if 'triggerid_str' in val:
+            triggerid = val['triggerid_str']
+        else:
+            continue
+        Signal._do_all_trigger_actions(triggerid,update_rss=False, update_database='GRB_full',grb_name=key)
+    SaveDB(db_full)
 
 def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
     db_full = LoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
