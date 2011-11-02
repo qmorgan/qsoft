@@ -2,9 +2,12 @@ import datetime
 import pyfits
 from RedshiftMachine import LoadGCN
 
-def t_mid(filepath, GRBid=None, delta=None, trigger=None):
-    '''Given a fitts file and the GRB time, this program determines the t-mid 
-    for PAIRITEL. If delta = True, t_mid will find the difference of StartCPU 
+def t_mid(filepath, GRBid=None, delta=None, trigger=None, forcenongrb=False):
+    '''
+    Given a fits file and the GRBid or trigger of a GRB, 
+    this program returns the t-mid for PAIRITEL as a float in seconds. 
+    
+    If delta = True, t_mid will find the difference of StartCPU 
     and StopCPU in seconds
     '''
     header = pyfits.open(filepath)
@@ -20,56 +23,86 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None):
         #print "durdiv2 is " +  str(durdiv2)
         print 'start time is ' + str(start)
         print 'stop time is ' + str(stop)
+        
+        known_grb = False
+        
         if not GRBid:
-            if trigger == None :
-                trg = int(header[0].header['TRGTNAME'][6:])
+            if trigger == None:
+                targetname = header[0].header['TRGTNAME']
+                if targetname[0:5] == 'swift':
+                    try:
+                        trg = int(targetname[6:])
+                        print "GRB Trigger ID determined to be %i" % trg
+                        known_grb = True                        
+                    except:
+                        print 'Cannot Parse target id from swift target name %s' % targetname
             else:
                 trg = trigger
-            dict = LoadGCN.LoadGCN(trg)
+            
+            if trg:
+                gcndict = LoadGCN.LoadGCN(trg)
+                known_grb = gcndict.successful_load                    
         else:
-            dict = LoadGCN.LoadGCN(GRBid)
+            gcndict = LoadGCN.LoadGCN(GRBid)
+            known_grb = gcndict.successful_load
+        
+        if forcenongrb:
+            known_grb=False
+        print "It is %s that this event is a known GRB." % str(known_grb)
+        
+        if known_grb:
+            GRBtime = gcndict.pdict['grb_time_str']
+            GRBdate = gcndict.pdict['grb_date_str']
 
-        GRBtime = dict.pdict['grb_time_str']
-        GRBdate = dict.pdict['grb_date_str']
+            GRBcomb = GRBdate + ' ' + GRBtime
 
-        GRBcomb = GRBdate + ' ' + GRBtime
+            GRB = datetime.datetime.strptime(GRBcomb.split('.')[0], "%y/%m/%d %H:%M:%S")
 
-        GRB = datetime.datetime.strptime(GRBcomb.split('.')[0], "%y/%m/%d %H:%M:%S")
+            t_mid = durdiv2 - GRB  
+            print durdiv2
+            
+            t_mid_str = str(t_mid)
 
-        t_mid = durdiv2 - GRB  
-        t_mid_str = str(t_mid)
+            #print t_mid_str
 
-        #print t_mid_str
+            if 'days' in t_mid_str:
+                t_mid_days = float(t_mid_str.split(' days')[0]) * (24.)
+            elif 'day' in t_mid_str:
+                t_mid_days = float(t_mid_str.split(' day')[0]) * (24.)
+            else:
+                t_mid_days = 0.
 
-        if 'days' in t_mid_str:
-            t_mid_days = float(t_mid_str.split(' days')[0]) * (24.)
-        elif 'day' in t_mid_str:
-            t_mid_days = float(t_mid_str.split(' day')[0]) * (24.)
+
+            #edited for photloop-------
+            t_mid_str_2 = t_mid_str.split()[-1]
+            t_mid_time_list = t_mid_str_2.split(':')
+
+            #print t_mid_time_list
+            t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)
+            t_mid_hour = t_mid_days + t_mid_time_hour
+            t_mid_sec = t_mid_hour*3600.
+
+
+            #original-------
+
+            #t_mid_time_list = t_mid_str[::-1][0:8][::-1].split(':')
+
+            #print t_mid_time_list
+            #t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)
+            #t_mid_hour = t_mid_days + t_mid_time_hour
+
+
+
         else:
-            t_mid_days = 0.
+            # tmid is just the mjd middle point between start and stop exposure times
+            mjd_start = datetime.datetime(1858, 11, 17)
+            mjd = durdiv2 - mjd_start
+            t_mid_sec = mjd.days*86400 + mjd.seconds + mjd.microseconds/1e6
+        
+        print 't_mid in seconds is ' + str(t_mid_sec)
+        return float(t_mid_sec)
+                        
 
-
-    #edited for photloop-------
-        t_mid_str_2 = t_mid_str.split()[-1]
-        t_mid_time_list = t_mid_str_2.split(':')
-
-        #print t_mid_time_list
-        t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)
-        t_mid_hour = t_mid_days + t_mid_time_hour
-        t_mid_sec = t_mid_hour*3600.
-
-
-    #original-------
-
-        #t_mid_time_list = t_mid_str[::-1][0:8][::-1].split(':')
-
-        #print t_mid_time_list
-        #t_mid_time_hour = float(t_mid_time_list[0]) + float(t_mid_time_list[1])*(1/60.) + float(t_mid_time_list[2])*(1/3600.)
-        #t_mid_hour = t_mid_days + t_mid_time_hour
-
-
-        print 't_mid in second is ' + str(t_mid_sec)
-        return t_mid_sec
 
     else:
         
@@ -88,6 +121,7 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None):
         dur_hour = durdays + dur_time_hour
         dur_sec = dur_hour*3600.
 
-        print 'duration in second is ' + str(dur_sec)
-        return dur_sec
-
+        print 'duration in seconds is ' + str(dur_sec)
+        if delta:
+            return dur_sec
+        
