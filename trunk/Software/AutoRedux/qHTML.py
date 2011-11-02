@@ -103,8 +103,8 @@ class qHTML:
                 <link rel="stylesheet" href="http://static.tumblr.com/snnreod/yt6l8jer7/screen.css" type="text/css" media="screen" charset="utf-8" />  
                 <link rel="stylesheet" href="../screen_backup.css" type="text/css" media="screen" charset="utf-8" />  
                 <link rel="stylesheet" href="screen_backup.css" type="text/css" media="screen" charset="utf-8" />  
-                <link rel="stylesheet" href="../table.css" type="table/css" media="screen" charset="utf-8" />
-                <link rel="stylesheet" href="table.css" type="table/css" media="screen" charset="utf-8" />
+                <link rel="stylesheet" href="../table.css" type="text/css" media="screen" charset="utf-8" />
+                <link rel="stylesheet" href="table.css" type="text/css" media="screen" charset="utf-8" />
                 
                 <style type="text/css">
 
