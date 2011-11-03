@@ -1800,7 +1800,7 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 
-def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap=False):
+def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap=False, logx=True):
     '''Plots a graph from photdict'''
     import matplotlib
     import glob
@@ -1899,7 +1899,8 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
     matplotlib.pyplot.ylabel('Mag')
     #matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
-    ax.set_xscale('log')
+    if logx:
+        ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
     if no_ap:

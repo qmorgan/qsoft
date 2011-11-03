@@ -26,6 +26,8 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None, forcenongrb=False):
         
         known_grb = False
         
+        trg = None
+        
         if not GRBid:
             if trigger == None:
                 targetname = header[0].header['TRGTNAME']
