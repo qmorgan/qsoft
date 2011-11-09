@@ -1800,8 +1800,19 @@ def tmp_phot_plot(photdict):
     pylab.semilogx()
 
 
-def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap=False, logx=True):
-    '''Plots a graph from photdict'''
+def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap=False, 
+            ylab="Mag", xlab="Time since Burst (s)", divx=1.0, divy=1.0, logx=True,
+            title=False, round_x_offset=False):
+    '''Plots a graph from photdict
+    
+    title: override the default title with one of your own
+    ylab: Y axis label
+    xlab: X axis label
+    divx: factor to divide the X values by; useful if e.g. want to plot days instead of seconds.
+    divy: Factor to divide the Y values by
+    logx: take the log of the X values?
+    round_x_offset: make the offset of the tickmarks a more resonable round value (useful for when using mjd)
+    '''
     import matplotlib
     import glob
     import datetime
@@ -1822,6 +1833,7 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
 
     ap = None
     
+
     for mosaics in photdict:
         print 'now doing ' + str(mosaics)
         if ap:
@@ -1834,12 +1846,12 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
             pass
         else:
             ap = photdict[mosaics]['Aperture']
-        time = photdict[mosaics]['t_mid'][0]
-        terr = photdict[mosaics]['t_mid'][1]
+        time = photdict[mosaics]['t_mid'][0]/divx
+        terr = photdict[mosaics]['t_mid'][1]/divx
         
         if 'targ_mag' in photdict[mosaics]: 
-            valu = float(photdict[mosaics]['targ_mag'][0])
-            verr = float(photdict[mosaics]['targ_mag'][1])
+            valu = float(photdict[mosaics]['targ_mag'][0])/divy
+            verr = float(photdict[mosaics]['targ_mag'][1])/divy
 
             #there's probably a prettier way to do this, the second if statements 
             #are there so that only 1 label per filter is on the legend
@@ -1895,14 +1907,23 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
-    matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('Mag')
+    if round_x_offset:
+        locs,labels = matplotlib.pyplot.xticks()
+        matplotlib.pyplot.xticks(locs, map(lambda x: "%g" % x, locs-min(locs)))
+        matplotlib.pyplot.text(0.92, -0.07, "+%g" % min(locs), fontsize=10, transform = matplotlib.pyplot.gca().transAxes)
+    
+    
+    matplotlib.pyplot.xlabel(xlab)
+    matplotlib.pyplot.ylabel(ylab)
     #matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
     if logx:
         ax.set_xscale('log')
     matplotlib.pyplot.legend()
     uniquename = photdict.keys()[0].split('_')[2]
+    if title:
+        # override the unique name with the custom title.
+        uniquename = title
     if no_ap:
         matplotlib.pyplot.title(uniquename)
     else:
@@ -2236,7 +2257,7 @@ def textoutput(photdict,utburst,filt=None, day=False):
     savepath = storepath + uniquename + '_data.dat'
     text = file(savepath, "w")
 
-    text.write('@inunit=sec')
+    text.write('@inunit=days')
     text.write('\n')
     text.write('@expunit=sec')
     text.write('\n')
@@ -2245,7 +2266,7 @@ def textoutput(photdict,utburst,filt=None, day=False):
     text.write('\n')
     text.write('@source=PAIRITEL')
     text.write('\n')
-    namelist = ['%', 'tstart', 'tend', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
+    namelist = ['%', 't_mid', 'ut_start_date', 'ut_start_time', 'ut_end_date', 'ut_end_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
     text.write(' '.join(namelist))
     text.write('\n')
 
@@ -2269,6 +2290,10 @@ def textoutput(photdict,utburst,filt=None, day=False):
     burst_time_sec = float(utburst.split(':')[0])*3600 + float(utburst.split(':')[1])*60 + float(utburst.split(':')[2]) 
     
     for mosaics in mosaiclist:
+        
+        strt_cpu = mosaics['STRT_CPU']
+        stop_cpu = mosaics['STOP_CPU']
+        t_mid_days = mosaics['t_mid'][0]/86400.
         
         timestart_str = mosaics['STRT_CPU'].split(' ')[1]
         timestart_sec = float(timestart_str.split(':')[0])*3600. + float(timestart_str.split(':')[1])*60. + float(timestart_str.split(':')[2])
@@ -2317,11 +2342,17 @@ def textoutput(photdict,utburst,filt=None, day=False):
                      filt = 'K'
         else:
             print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)    
-        
+ 
         if 'upper_green' in mosaics:
-            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+            datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr), 'yes']
         else:   
-            datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr)]
+            datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr)]
+        # old    
+        # if 'upper_green' in mosaics:
+        #     datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+        # else:   
+        #     datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr)]
+        # 
 
         text.write(' '.join(datalist))
         text.write('\n')
