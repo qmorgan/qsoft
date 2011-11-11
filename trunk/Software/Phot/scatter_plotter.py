@@ -19,6 +19,12 @@ GRB_with_z_limits = ['061126','080310', '080330', '090618', '080319C', '090530',
 z_list_limits = [1.16, 2.4266, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8]
 
 spectral_index = []
+# For beta_solve: P1 = ([pj, ph, pk], [pj_err, ph_err, pk_err]) As per usual: pj: [a_a, a_b, tbreak, sh, flux]. Use P2 if there is second component.
+GRB_071025_P = ([-1.576, 1.782, 574.66, -1, 6100], [1.242, -10.218, 1436.927, -1, 1394.88])
+
+GRB_071025_P1 = (([-1.576, 1.782, 574.66, -1, 4544.1], [-1.576, 1.782, 574.66, -1, 6100.18], [-1.576, 1.782, 574.66, -1, 10109.1]), ([0.221, 0.347, 1, 1 ,1], [0.221, 0.347, 1, 1 ,1], [0.221, 0.347, 1, 1 ,1]))
+
+GRB_071025_P2 = (([1.242, -10.218, 1436.927, -1, 1039.06], [1.242, -10.218, 1436.927, -1, 1394.88], [1.242, -10.218, 1436.927, -1, 2311.57]), ([0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1], [0.057, 2,714, 1, 1 ,1]))
 
 def update_z_all_GRBs(GRB_list, z_list, very_good_pickle_path='/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/'):
     '''Updates the z values of all GRBs with known z'''
@@ -174,7 +180,6 @@ def testtry():
 
     scatterplot(j_3min,a)
 
-
 def multibeuermann_test():
     import matplotlib
     from MiscBin import qPickle
@@ -200,3 +205,95 @@ def multibeuermann_test():
     print 'lightcurve saved to ' + savepath
     matplotlib.pyplot.savefig(savepath)
     matplotlib.pyplot.close()
+
+def multibeuermann(t, p, sec_comp=False):    
+    ''' p: [a_a, a_b, tbreak, sh, flux]'''
+    #    s = s + f_c,f * ( (t/tbk_c,f) ^ (-sh_c * alpha_c,b) +  (t/tbk_c,f) ^ (-sh_c * alpha_c,a) )^(-1./sh_c)
+    if sec_comp:
+        s = -2.5*numpy.log10(p[4] * ((t/p[2]) ** (p[3] * (-1.*p[1])) + (t/p[2]) ** (p[3] * (-1.*p[0]))) ** (p[3]/1) + sec_comp[4]  * ((t/sec_comp[2]) ** (sec_comp[3] * (-1.*sec_comp[1])) + (t/sec_comp[2]) ** (sec_comp[3] *(-1.*sec_comp[0]))) ** (sec_comp[3]/1))
+    else:
+         s = -2.5*numpy.log10(p[4] * ((t/p[2]) ** (p[3] * p[1]) + (t/p[2]) ** (p[3] * p[0])) ** (p[3]/1))
+    return s
+
+def multibeuermann_test2():
+    import matplotlib
+    from MiscBin import qPickle
+    matplotlib.pyplot.clf()
+#    s = s + f_c,f * ( (t/tbk_c,f) ^ (-sh_c * alpha_c,b) +  (t/tbk_c,f) ^ (-sh_c * alpha_c,a) )^(-1./sh_c)
+    t = []
+    photdict = qPickle.load('/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/071025_goodpickle.data')
+    for epoch in photdict:
+        if 'h' in epoch:
+            t += [float(photdict[epoch]['t_mid'][0])]
+    t = numpy.array(t)
+    print t
+    P1 = [-1.576, 1.782, 574.66, -1, 6100]
+    P2 = [1.242, -10.218, 1436.927, -1, 1394.88]
+    s = multibeuermann(t, P1, sec_comp=P2)
+    matplotlib.pyplot.errorbar(t, s, linestyle = 'None', marker = 'o')
+    print s
+    ax = matplotlib.pyplot.gca()
+    ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
+    matplotlib.pyplot.xlabel('Time since Burst (s)')
+    matplotlib.pyplot.ylabel('Mag')
+    ax = matplotlib.pyplot.gca()
+    ax.set_xscale('log')
+    savepath ='./071025_multibeuermann_test2.png'
+    print 'lightcurve saved to ' + savepath
+    matplotlib.pyplot.savefig(savepath)
+    matplotlib.pyplot.close()
+
+def beta_solve(t, P1, P2=False):
+    '''P1 = ([pj, ph, pk], [pj_err, ph_err, pk_err]) As per usual: pj: [a_a, a_b, tbreak, sh, flux]. Use P2 if there is second component.'''
+    import numpy
+    from scipy import optimize
+    from scipy import log10
+    from MiscBin import q
+    from Phot import pofit
+    
+    matplotlib.pyplot.clf()
+    #Ask Adam: difference between different bands: only in the flux multiplication?
+    if P2:
+        j_mag = multibeuermann(t, P1[0][0], sec_comp=P2[0][0])
+        h_mag = multibeuermann(t, P1[0][1], sec_comp=P2[0][1])
+        k_mag = multibeuermann(t, P1[0][2], sec_comp=P2[0][2])
+    else:
+        j_mag = multibeuermann(t, P1[0][0])
+        h_mag = multibeuermann(t, P1[0][1])
+        k_mag = multibeuermann(t, P1[0][2])
+
+    k_flux = numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
+    h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
+    j_flux = numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) 
+
+    specmag = numpy.array([k_flux, h_flux, j_flux])
+
+    # Calculating the errors in flux using the errors in the parameters
+    if P2:
+        j_mag_with_err = multibeuermann(t, (P1[0][0]+P1[1][0]), sec_comp=(P2[0][0]+P2[1][0]))
+        h_mag_with_err = multibeuermann(t, (P1[0][1]+P1[1][1]), sec_comp=(P2[0][1]+P2[1][1]))
+        k_mag_with_err = multibeuermann(t, (P1[0][2]+P1[1][2]), sec_comp=(P2[0][2]+P2[1][2]))
+                                                                                                         
+    else:
+        j_mag_with_err = multibeuermann(t, P1[0][0]+P1[1][0])
+        h_mag_with_err = multibeuermann(t, P1[0][1]+P1[1][1])
+        k_mag_with_err = multibeuermann(t, P1[0][2]+P1[1][2])
+
+    j_flux_err = numpy.log10(q.mag2flux(j_mag_with_err,0,1.594e-20)) 
+    h_flux_err = numpy.log10(q.mag2flux(h_mag_with_err,0,1.024e-20))
+    k_flux_err = numpy.log10(q.mag2flux(k_mag_with_err,0,6.667e-21))
+        
+    specmag_error = numpy.array([numpy.absolute(j_flux_err-j_flux), numpy.absolute(h_flux_err-h_flux), numpy.absolute(k_flux_err-k_flux)])# What should be the errors?
+
+    p_freqs = numpy.array([1.394383526e+14,1.816923988e+14,2.398339664e+14]) # placeholder values, get the actual values!
+    log_freqs = log10(p_freqs)
+
+    print specmag
+    log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag) # why is this line here?
+    
+    results = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+    return results
+
+def beta_solve_test(t):
+    result = beta_solve(t, GRB_071025_P1, GRB_071025_P2)
+    return result
