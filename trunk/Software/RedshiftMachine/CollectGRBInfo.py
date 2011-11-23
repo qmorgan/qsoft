@@ -1778,7 +1778,9 @@ class GRBdb:
             self.DistHist(keylist=keys_to_hist)
 
 def FindFilePaths(db='GRB_full'):
-    db_full = LoadDB(db)
+    db_full = TryLoadDB(db)
+    if not db_full:
+        db_full = GRBdb(db)
     for key, val in db_full.dict.iteritems():
         if 'triggerid_str' in val:
             triggerid = val['triggerid_str']
@@ -1787,8 +1789,15 @@ def FindFilePaths(db='GRB_full'):
         Signal._do_all_trigger_actions(triggerid,update_rss=False, update_database='GRB_full',grb_name=key)
     SaveDB(db_full)
 
+def TryLoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False):
+    db_return = LoadDB(name, clobber=clobber, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
+    if not db_return:
+        db_return = GRBdb(name, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
+    return db_return
+
+
 def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
-    db_full = LoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
+    db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
     db_full.fillInMissingGCNs()
     SaveDB(db_full)
     
@@ -2204,7 +2213,7 @@ def ParseManualZ():
 def TestMakeNicePlot():
     # TODO: Use proper plt.axes
     # TODO: Label colorbar
-    # db_full = LoadDB('101116_short+noZ_removed')
+    # db_full = TryLoadDB('101116_short+noZ_removed')
     # db_full.Reload_DB() # remove all the outliers before splitting
     # db_highz = copy.deepcopy(db_full)
     # db_lowz = copy.deepcopy(db_full)
@@ -2212,8 +2221,8 @@ def TestMakeNicePlot():
     # db_lowz.removeValues('z_man_best','>=4')
     # db_highz.Reload_DB()
     # db_lowz.Reload_DB()
-    db_lowz = LoadDB('GRB_short+noZ+z>4_removed')
-    db_highz = LoadDB('GRB_short+noZ+z<4_removed')
+    db_lowz = TryLoadDB('GRB_short+noZ+z>4_removed')
+    db_highz = TryLoadDB('GRB_short+noZ+z<4_removed')
     
     ax = db_lowz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',yjitter=0.3,z_key='z_man_best',vmin=0,vmax=8.2)
     jitter=db_highz.grbplot('norm_log_MAX_SNR','uvot_detection_binary',axis=ax,yjitter=0.2,z_key='z_man_best',vmin=0,vmax=8.2,colorbar=False,retjitter=True)
@@ -2231,15 +2240,15 @@ def TestMakeGridPlot(keys=['log_T90', 'log_FL','log_MAX_SNR', 'PROB_Z_GT_4'],
     #                         labels=['$A$','$\log(E_{p,0})$','$\log(FL)$','$\log(MAX_SNR)$','$\log(N_{H,pc})$',
     #                         '$\log(T_{90})$','$\log(BAT Image Significance)$','$(BAT Img Peak)$',
     #                         '$(bat_trigger_duration)$','$P_{z>4}$']
-    db = LoadDB('GRB_short_removed')
+    db = TryLoadDB('GRB_short_removed')
     db.Reload_DB()
     histrangelist = db.gridplot(gethistrangelist=True)
     fig = db.gridplot(keys=keys,labels=labels,
        z_key=None,histbins=20,color='grey',histrangelist=histrangelist,histloc='tl',noalpha=noalpha)
-    db_full = LoadDB('GRB_short+noZ_removed')
+    db_full = TryLoadDB('GRB_short+noZ_removed')
     fig = db_full.gridplot(keys=keys,labels=labels,
     z_key=None,color='black',histbins=20,histrangelist=histrangelist,fig=fig,histloc='tr',noalpha=noalpha)
-    db_highz= LoadDB('GRB_short+noZ+z<4_removed')
+    db_highz= TryLoadDB('GRB_short+noZ+z<4_removed')
     fig2 = db_highz.gridplot(keys=keys, labels=labels,
        z_key=None,color='red',histbins=20,histrangelist=histrangelist,fig=fig,histloc='br',noalpha=noalpha)
     fig2.savefig('gridplot.eps')
@@ -2247,7 +2256,7 @@ def TestMakeGridPlot(keys=['log_T90', 'log_FL','log_MAX_SNR', 'PROB_Z_GT_4'],
 
 
 def GrabLatestEventDicts(numevents=10):
-    db = LoadDB('GRB_full')
+    db = TryLoadDB('GRB_full')
     keys=db.dict.keys()
     keys.sort()
     newkeys = keys[-numevents:]
