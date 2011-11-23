@@ -2481,7 +2481,8 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
         print specmag
         print '----'   
 
-        results = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+        the_fit = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+        results = the_fit[0]
         betalist += [results[1]] # Getting the spectral index
 
     fig = pylab.figure()
@@ -2581,8 +2582,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
 
     # spectral index plot
-    beta_err = list(numpy.zeros(len(timlist)))
-
+    beta_err = the_fit[1][1]
     ax = fig.add_axes([0.1,0.1,0.8,0.3])    
     ax.errorbar(timlist, betalist, yerr = beta_err, xerr=terlist,\
                         marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \

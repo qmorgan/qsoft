@@ -198,7 +198,7 @@ grb050525a = GRB(30.938,120.9655,-1.12,"GRB050525a")
 testgrb = GRB(3,50,-1.2,"TestGRB")
 
 # **MAKE INTO DEFINITION OF LCMODEL**
-def fit(function, parameters, y, yerr, x = None):
+def fit(function, parameters, y, yerr, x = None, return_covar=False):
     '''Fit performs a simle least-squares fit on a function.  To use:
     
     Give initial paramaters:
@@ -240,10 +240,10 @@ def fit(function, parameters, y, yerr, x = None):
     covarmatrix = fitout[1]
     print 'Final Parameters:', paramfinal
     print 'Covariance Matrix', covarmatrix
-    
+    print 'errors are', numpy.sqrt(covarmatrix[0,0]), numpy.sqrt(covarmatrix[1,1])
     # If paramfinal is not an array, make it one to avoid scripting errors
     if not isinstance(paramfinal,numpy.ndarray):
-        paramfinal=numpy.array([paramfinal]) 
+        paramfinal=numpy.array([paramfinal])
         
     # Calculate the chi-squared value, and the reduced chi-squared
     # http://mail.scipy.org/pipermail/scipy-user/2005-June/004632.html    
@@ -252,7 +252,10 @@ def fit(function, parameters, y, yerr, x = None):
     degrees_of_freedom = y.shape[0] - len(paramfinal)
     chi2r = chi2/degrees_of_freedom
     print "reduced chi^2 = %f on %f degrees of freedom" % (chi2r,degrees_of_freedom)
-    return paramfinal
+    if return_covar:
+        return covarmatrix
+    else:
+        return paramfinal
 
 # ==========================================
 # = PORTING OLD CODE. MAKE OBJECT ORIENTY. =

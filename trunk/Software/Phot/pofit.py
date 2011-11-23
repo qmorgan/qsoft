@@ -10,6 +10,7 @@ from pylab import title
 from pylab import *
 from scipy import array
 from OptiCoadd import optiphot
+import numpy
 import os
 
 def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
@@ -56,7 +57,7 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
     print yerr
     print 'logx'
     print logx
-    out = optiphot.fit(fitfunc, [const, slope], ydata, yerr, logx) 
+    out = optiphot.fit(fitfunc, [const, slope], ydata, yerr, logx, return_covar=True) 
     
     if band == 'h':
         plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'green')
@@ -68,6 +69,7 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
         plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
         errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'k') #Data
     elif band == 'beta':
+        clf()
         plot(logx, fitfunc_lambda(logx, const(), slope()), color = 'red')
         errorbar(logx, ydata, yerr=yerr, fmt='k.', color = 'red', label = 'beta') #Data
         #show()
@@ -80,9 +82,9 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
         ax = matplotlib.pyplot.gca()
         ax.set_ylim(ax.get_ylim()[::-1])
         print 'const is'
-        print const()
+        print const(), 'pm', numpy.sqrt(out[0][0])
         print 'beta is'
-        print slope()
+        print slope(), 'pm', numpy.sqrt(out[1][1])
     else:
         xlabel('Log Time After Burst (s)')
         ylabel('Magnitude')
@@ -90,7 +92,7 @@ def fit(xdata, ydata, yerr, band, name='Best Fit Power Law'):
         ax.set_ylim(ax.get_ylim()[::-1])
         print 'slope is'
         print slope()
-    return ([const(), slope()])
+    return ([const(), slope()], [numpy.sqrt(out[0][0]), numpy.sqrt(out[1][1])])
 
 def fitplot(dict, name='GRB', exclude=[]): 
     '''Takes a dictionary containing photometry results (such as the output 

@@ -24,7 +24,7 @@ GRB_071025_P = ([-1.576, 1.782, 574.66, -1, 6100], [1.242, -10.218, 1436.927, -1
 
 GRB_071025_P1 = (([-1.576, 1.782, 574.66, -1, 4544.1], [-1.576, 1.782, 574.66, -1, 6100.18], [-1.576, 1.782, 574.66, -1, 10109.1]), ([0.221, 0.347, 1, 1 ,1], [0.221, 0.347, 1, 1 ,1], [0.221, 0.347, 1, 1 ,1]))
 
-GRB_071025_P2 = (([1.242, -10.218, 1436.927, -1, 1039.06], [1.242, -10.218, 1436.927, -1, 1394.88], [1.242, -10.218, 1436.927, -1, 2311.57]), ([0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1], [0.057, 2,714, 1, 1 ,1]))
+GRB_071025_P2 = (([1.242, -10.218, 1436.927, -1, 1039.06], [1.242, -10.218, 1436.927, -1, 1394.88], [1.242, -10.218, 1436.927, -1, 2311.57]), ([0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1]))
 
 def update_z_all_GRBs(GRB_list, z_list, very_good_pickle_path='/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/'):
     '''Updates the z values of all GRBs with known z'''
@@ -250,17 +250,27 @@ def beta_solve(t, P1, P2=False):
     from scipy import log10
     from MiscBin import q
     from Phot import pofit
+    from numpy import array as arr
     
     matplotlib.pyplot.clf()
     #Ask Adam: difference between different bands: only in the flux multiplication?
+#    P1=numpy.array(P1)
+#    if P2:
+#        P2=numpy.array(P2)
     if P2:
         j_mag = multibeuermann(t, P1[0][0], sec_comp=P2[0][0])
+        print 'j_mag ', j_mag
         h_mag = multibeuermann(t, P1[0][1], sec_comp=P2[0][1])
+        print 'h_mag ', h_mag
         k_mag = multibeuermann(t, P1[0][2], sec_comp=P2[0][2])
+        print 'k_mag ', k_mag
     else:
         j_mag = multibeuermann(t, P1[0][0])
+        print 'j_mag ', j_mag
         h_mag = multibeuermann(t, P1[0][1])
+        print 'h_mag ', h_mag
         k_mag = multibeuermann(t, P1[0][2])
+        print 'k_mag ', k_mag
 
     k_flux = numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
     h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
@@ -270,20 +280,31 @@ def beta_solve(t, P1, P2=False):
 
     # Calculating the errors in flux using the errors in the parameters
     if P2:
-        j_mag_with_err = multibeuermann(t, (P1[0][0]+P1[1][0]), sec_comp=(P2[0][0]+P2[1][0]))
-        h_mag_with_err = multibeuermann(t, (P1[0][1]+P1[1][1]), sec_comp=(P2[0][1]+P2[1][1]))
-        k_mag_with_err = multibeuermann(t, (P1[0][2]+P1[1][2]), sec_comp=(P2[0][2]+P2[1][2]))
+        print 'P1 ', arr(P1[0][0])
+        print 'P1+err ', arr(P1[0][0])+arr(P1[1][0])
+        j_mag_with_err = multibeuermann(t, (arr(P1[0][0])+arr(P1[1][0])), sec_comp=list(arr(P2[0][0])+arr(P2[1][0])))
+        print 'j_mag_with_err ', j_mag_with_err
+        h_mag_with_err = multibeuermann(t, (arr(P1[0][1])+arr(P1[1][1])), sec_comp=list(arr(P2[0][1])+arr(P2[1][1])))
+        print 'h_mag_with_err ', h_mag_with_err
+        k_mag_with_err = multibeuermann(t, (arr(P1[0][2])+arr(P1[1][2])), sec_comp=list(arr(P2[0][2])+arr(P2[1][2])))
+        print 'k_mag_with_err ', k_mag_with_err
                                                                                                          
     else:
-        j_mag_with_err = multibeuermann(t, P1[0][0]+P1[1][0])
-        h_mag_with_err = multibeuermann(t, P1[0][1]+P1[1][1])
-        k_mag_with_err = multibeuermann(t, P1[0][2]+P1[1][2])
-
+        j_mag_with_err = multibeuermann(t, arr(P1[0][0])+arr(P1[1][0]))
+        print 'j_mag_with_err ', j_mag_with_err
+        h_mag_with_err = multibeuermann(t, arr(P1[0][1])+arr(P1[1][1]))
+        print 'h_mag_with_err ', h_mag_with_err
+        k_mag_with_err = multibeuermann(t, arr(P1[0][2])+arr(P1[1][2]))
+        print 'k_mag_with_err ', k_mag_with_err
+ 
     j_flux_err = numpy.log10(q.mag2flux(j_mag_with_err,0,1.594e-20)) 
     h_flux_err = numpy.log10(q.mag2flux(h_mag_with_err,0,1.024e-20))
     k_flux_err = numpy.log10(q.mag2flux(k_mag_with_err,0,6.667e-21))
         
     specmag_error = numpy.array([numpy.absolute(j_flux_err-j_flux), numpy.absolute(h_flux_err-h_flux), numpy.absolute(k_flux_err-k_flux)])# What should be the errors?
+
+    print 'j_flux ',j_flux
+    print 'j_flux_err ', j_flux_err
 
     p_freqs = numpy.array([1.394383526e+14,1.816923988e+14,2.398339664e+14]) # placeholder values, get the actual values!
     log_freqs = log10(p_freqs)
