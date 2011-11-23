@@ -215,8 +215,10 @@ def grab_nat_web_data(grbdict, filename='/bat/zprob.txt', clobber=False):
             prob_lt_5 = 1 - prob_gt_5
         
             # get the most probable z (maximum of the probability array)
-            most_prob_z = z_pred_arr[prob_arr.index(max(prob_arr))]
-        
+            try:
+                most_prob_z = z_pred_arr[prob_arr.index(max(prob_arr))]
+            except(ValueError):
+                most_prob_z = numpy.nan
             # natzprobdict[grbname]={}
         
             grbdict[grbname].update({'PROB_Z_GT_1':prob_gt_1})
