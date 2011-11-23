@@ -30,18 +30,19 @@ def LoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False
     loadeddb = qPickle.load(pklpath)
     # If couldn't load, or clobber == True, create a new instance of the class
     if clobber or not loadeddb:
+        loadeddb = None
         # Create new instance of db Notice
-        loadeddb = GRBdb(name,redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
-        try:
-            if loadeddb.successful_load:
-                # Save new Pickle file
-                qPickle.save(loadeddb,pklpath,clobber=True)
-            else:
-                print 'Could not succesfully load db.'
-                return
-        except:
-            print "Could not Extract Values for db."
-            qErr.qErr()
+        # loadeddb = GRBdb(name,redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
+        # try:
+        #     if loadeddb.successful_load:
+        #         # Save new Pickle file
+        #         qPickle.save(loadeddb,pklpath,clobber=True)
+        #     else:
+        #         print 'Could not succesfully load db.'
+        #         return
+        # except:
+        #     print "Could not Extract Values for db."
+        #     qErr.qErr()
     return loadeddb
 
 def SaveDB(loadeddb):
