@@ -18,6 +18,7 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
 
 def UpdateRSS(xmlpath,rsstitle="Q's Feed",rsslink='http://qmorgan.com/',
     rssdescription='Unknown',entrytitle='Title',entrylink='http://qmorgan.com/newpage.html',
@@ -136,5 +137,42 @@ def HeartBeatMonitor(rssurl='http://swift.qmorgan.com/heartbeat.xml',checktime=6
         HeartBeatCheck(rssurl=rssurl,deadtime=deadtime)
         time.sleep(checktime)
         
-        
-            
+    
+def MonitorFile(filename=None,maxsleep=100,check_interval=1):
+    if not filename:
+        filename = loadpath + "latest_grb_time.txt"
+    
+    f=file(filename,'r')
+    old_grb_time_string = f.read().strip()
+    f.close()
+
+    longsleep=2
+    while True:
+        count = 0
+        restoverride = 30
+        while count < restoverride and count < longsleep:
+            time.sleep(check_interval)
+            f=file(filename,'r')
+            new_grb_time_string=f.read().strip()
+            if new_grb_time_string != old_grb_time_string:
+                # if the latest_grb_time.txt file has changed, this should mean something has been updated.
+                old_grb_time_string = new_grb_time_string
+                print "Sense that Files have changed! Downloading faster."
+                longsleep = 2
+            restoverridedatetime=datetime.datetime.strptime(new_grb_time_string, '%m/%d/%y %H:%M:%S')
+            resttimedelta = datetime.datetime.utcnow() - restoverridedatetime
+            seconds = resttimedelta.seconds + 86400*resttimedelta.days
+            print "It has been %i seconds since last grb. Not downloading for %i seconds" % (seconds, longsleep-count) 
+            f.close()
+            count += 1
+        print  "Downloading file " + str(seconds) # Equivalent to downloading the file    
+        longsleep *=2
+        # if count < restoverride and restoverride < longsleep:
+        #     # count being less than restoverride is due to a change of the timeout file
+        #     # treat as equivalent to a GRB going off, so redownload faster.
+        #     print "Sense that GRB has gone off! Downloading faster."
+        #     longsleep = 2
+        if longsleep > maxsleep:
+            longsleep = maxsleep
+
+    
