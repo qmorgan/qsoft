@@ -338,7 +338,7 @@ class GRBdb:
             from RedshiftMachine import ParseNatWeb
             print "Now loading Nat's Web Catalog"
             natcatwebdict = ParseNatWeb.CombineRemoveConvert()
-        collected_dict = {}
+        self.collected_dict = {}
         failed_gcn_grbs = []
         failed_nat_grbs = []
         failed_nat_web_grbs = []
@@ -346,9 +346,11 @@ class GRBdb:
         failed_nat_grbs_ids = []  # includes just the grb_str e.g. '090313'
         failed_nat_web_grbs_ids = []
         failed_finding_charts = []
-        for grb_str,catdict in swiftcatdict.iteritems():
+        for grb_str in swiftcatdict.iterkeys():
             # If the swiftcat has a TRIGGERID associated with it, grab the trigger id
             # For now, only collect if it has an associated (redshift)/ Triggerid
+            catdict = swiftcatdict[grb_str]
+            
             if 'triggerid_str' in catdict:
                 fc_path=None
                 reg_path=None
@@ -420,7 +422,7 @@ class GRBdb:
                             failed_nat_web_grbs_ids.append(grb_str)
             
                 subdict = {grb_str:catdict}
-                collected_dict.update(subdict)
+                self.collected_dict.update(subdict)
                 
                 
                 print "Now collecting Nat's Web Catalog entries for GRB %s" % (grb_str)
@@ -440,7 +442,7 @@ class GRBdb:
                             failed_nat_grbs_ids.append(grb_str)
             
                 subdict = {grb_str:catdict}
-                collected_dict.update(subdict)
+                self.collected_dict.update(subdict)
                 
                 
                 print "Now collecting Manual Z Catalog entries for GRB %s" % (grb_str)
@@ -459,11 +461,11 @@ class GRBdb:
                 
                             
                 subdict = {grb_str:catdict}
-                collected_dict.update(subdict)
+                self.collected_dict.update(subdict)
         
         unnacounted_man_z =[]
         for grbid in man_z_dict.iterkeys():
-            if grbid not in collected_dict.keys():
+            if grbid not in self.collected_dict.keys():
                 unnacounted_man_z.append(grbid)
                 
         
@@ -478,7 +480,7 @@ class GRBdb:
         self.failed_nat_grbs_ids = failed_nat_grbs_ids
         self.failed_nat_web_grbs_ids = failed_nat_web_grbs_ids
         self.failed_finding_charts = failed_finding_charts
-        self.length = len(collected_dict)
+        self.length = len(self.collected_dict)
         # Can potentially update later to cull out the failed_gcn_grb_ids, etc
         
         # WOULD BE NICE IF THE 'COLLECTED DICT' Was an OBJECT so these could be 
@@ -487,18 +489,21 @@ class GRBdb:
         
         if self.make_html:
             try:
-                newpath = GRBHTML.MakeGRBIndex(collected_dict, html_path='/home/amorgan/www/swift')
+                newpath = GRBHTML.MakeGRBIndex(self.collected_dict, html_path='/home/amorgan/www/swift')
             except:
                 print 'Cannot make index page.. path probably does not exist'
         
         print ''
-        print len(collected_dict), ' entries in the collected dictionary'
+        print len(self.collected_dict), ' entries in the collected dictionary'
         print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
         print "GRBs failed to gather from Nat's FITS Catalogue: ", failed_nat_grbs  
         print "GRBs failed to gather from Nat's Web Catalogue: ", failed_nat_web_grbs  
         print "GRBs failed to obtain finding charts: ", failed_finding_charts           
-        return collected_dict
+        return self.collected_dict
     
+    
+    def _collect_man_z(self,grbid):
+        pass
     
     def update_db_info_for_single_key(self,grbid,newdict,add_key_if_not_exist=False,Reload=False):
         """
