@@ -327,25 +327,25 @@ class GRBdb:
         print '\nNow loading Swift Online Catalog Entries'
         
         RATE_GRBdict = ParseRATEGRB()
-        man_z_dict = ParseManualZ()
+        self.man_z_dict = ParseManualZ()
         
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         if incl_nat:
             from RedshiftMachine import ParseNatCat
             print "Now loading Nat's FITS Catalog"
-            natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
+            self.natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
         if incl_nat_web:
             from RedshiftMachine import ParseNatWeb
             print "Now loading Nat's Web Catalog"
-            natcatwebdict = ParseNatWeb.CombineRemoveConvert()
+            self.natcatwebdict = ParseNatWeb.CombineRemoveConvert()
         self.collected_dict = {}
-        failed_gcn_grbs = []
-        failed_nat_grbs = []
-        failed_nat_web_grbs = []
-        failed_gcn_grbs_ids = []  # includes just the grb_str e.g. '090313'
-        failed_nat_grbs_ids = []  # includes just the grb_str e.g. '090313'
-        failed_nat_web_grbs_ids = []
-        failed_finding_charts = []
+        self.failed_gcn_grbs = []
+        self.failed_nat_grbs = []
+        self.failed_nat_web_grbs = []
+        self.failed_gcn_grbs_ids = []  # includes just the grb_str e.g. '090313'
+        self.failed_nat_grbs_ids = []  # includes just the grb_str e.g. '090313'
+        self.failed_nat_web_grbs_ids = []
+        self.failed_finding_charts = []
         for grb_str in swiftcatdict.iterkeys():
             # If the swiftcat has a TRIGGERID associated with it, grab the trigger id
             # For now, only collect if it has an associated (redshift)/ Triggerid
@@ -381,7 +381,7 @@ class GRBdb:
                         try:
                             fc_path = Signal._incl_fc(loaded_gcn,src_name=source_name)
                         except:
-                            failed_finding_charts.append(source_name)
+                            self.failed_finding_charts.append(source_name)
                     if make_html:
                         try:
                             html_inst = Signal.make_grb_html(loaded_gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
@@ -399,90 +399,29 @@ class GRBdb:
                     #         source_name = 'GRB' + self.current_grb_str
                     #         qImage.MakeFindingChart(ra=loaded_gcn.pdict['xrt_ra'],dec=loaded_gcn.pdict['xrt_dec'],uncertainty=loaded_gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
                     #     except: 
-                    #         failed_finding_charts.append('GRB'+self.current_grb_str+' ('+trigid_str+')')
+                    #         self.failed_finding_charts.append('GRB'+self.current_grb_str+' ('+trigid_str+')')
                 except:
                     print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,self.current_grb_str)
-                    failed_gcn_grbs.append('GRB'+self.current_grb_str+' ('+trigid_str+')')
-                    failed_gcn_grbs_ids.append(self.current_grb_str)
+                    self.failed_gcn_grbs.append('GRB'+self.current_grb_str+' ('+trigid_str+')')
+                    self.failed_gcn_grbs_ids.append(self.current_grb_str)
                 
                     
-            
-                print "Now collecting Nat's FITS Catalog entries for GRB %s" % (self.current_grb_str)
-                self.current_GRBgrb_str = 'GRB'+self.current_grb_str
-                try:
-                    self.current_catdict.update(natcatdict[self.current_GRBgrb_str])
-                except:
-                    try:
-                        # Try stripping the trailing A off the name and see if its in nat's cat
-                        self.current_catdict.update(natcatdict[self.current_GRBgrb_str.strip('A')])
-                    except:
-                        try:
-                            # Try ADDING the trailing A onto the name and see if it's in natcat
-                            self.current_catdict.update(natcatdict[self.current_GRBgrb_str+'A'])
-                        except:
-                            print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
-                            failed_nat_web_grbs.append(self.current_GRBgrb_str) 
-                            failed_nat_web_grbs_ids.append(self.current_grb_str)
-            
-                subdict = {self.current_grb_str:self.current_catdict}
-                self.collected_dict.update(subdict)
                 
-                
-                print "Now collecting Nat's Web Catalog entries for GRB %s" % (self.current_grb_str)
-                try:
-                    self.current_catdict.update(natcatwebdict[self.current_GRBgrb_str]) 
-                except:
-                    try:
-                        # Try stripping the trailing A off the name and see if its in nat's cat
-                        self.current_catdict.update(natcatwebdict[self.current_GRBgrb_str.strip('A')])
-                    except:
-                        try:
-                            # Try ADDING the trailing A onto the name and see if it's in natcat
-                            self.current_catdict.update(natcatwebdict[self.current_GRBgrb_str+'A'])
-                        except:
-                            print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
-                            failed_nat_grbs.append(self.current_GRBgrb_str)
-                            failed_nat_grbs_ids.append(self.current_grb_str)
-            
-                subdict = {self.current_grb_str:self.current_catdict}
-                self.collected_dict.update(subdict)
-                
-                
-                print "Now collecting Manual Z Catalog entries for GRB %s" % (self.current_grb_str)
-                try:
-                    self.current_catdict.update(man_z_dict[self.current_grb_str])
-                except:
-                    try:
-                        # Try stripping the trailing A off the name and see if its in nat's cat
-                        self.current_catdict.update(man_z_dict[self.current_grb_str.strip('A')])
-                    except:
-                        try:
-                            # Try ADDING the trailing A onto the name and see if it's in natcat
-                            self.current_catdict.update(man_z_dict[self.current_grb_str+'A'])
-                        except:
-                            print "No manual redshift information for GRB %s" % (self.current_grb_str)
-                
-                            
-                subdict = {self.current_grb_str:self.current_catdict}
-                self.collected_dict.update(subdict)
+                if incl_nat:
+                    self._collect_nat()                
+                if incl_nat_web:
+                    self._collect_nat_web()                
+                self._collect_man_z()
         
-        unnacounted_man_z =[]
-        for grbid in man_z_dict.iterkeys():
+        self.unnacounted_man_z =[]
+        for grbid in self.man_z_dict.iterkeys():
             if grbid not in self.collected_dict.keys():
-                unnacounted_man_z.append(grbid)
+                self.unnacounted_man_z.append(grbid)
                 
         
-        failed_nat_grbs.sort()
-        failed_gcn_grbs.sort()
-        failed_finding_charts.sort()
-        self.unnacounted_man_z=unnacounted_man_z
-        self.failed_gcn_grbs = failed_gcn_grbs
-        self.failed_nat_grbs = failed_nat_grbs
-        self.failed_nat_web_grbs = failed_nat_web_grbs
-        self.failed_gcn_grbs_ids = failed_gcn_grbs_ids
-        self.failed_nat_grbs_ids = failed_nat_grbs_ids
-        self.failed_nat_web_grbs_ids = failed_nat_web_grbs_ids
-        self.failed_finding_charts = failed_finding_charts
+        self.failed_nat_grbs.sort()
+        self.failed_gcn_grbs.sort()
+        self.failed_finding_charts.sort()
         self.length = len(self.collected_dict)
         # Can potentially update later to cull out the failed_gcn_grb_ids, etc
         
@@ -498,15 +437,72 @@ class GRBdb:
         
         print ''
         print len(self.collected_dict), ' entries in the collected dictionary'
-        print 'GRBs failed to gather from GCN: ', failed_gcn_grbs   
-        print "GRBs failed to gather from Nat's FITS Catalogue: ", failed_nat_grbs  
-        print "GRBs failed to gather from Nat's Web Catalogue: ", failed_nat_web_grbs  
-        print "GRBs failed to obtain finding charts: ", failed_finding_charts           
+        print 'GRBs failed to gather from GCN: ', self.failed_gcn_grbs   
+        print "GRBs failed to gather from Nat's FITS Catalogue: ", self.failed_nat_grbs  
+        print "GRBs failed to gather from Nat's Web Catalogue: ", self.failed_nat_web_grbs  
+        print "GRBs failed to obtain finding charts: ", self.failed_finding_charts           
         return self.collected_dict
     
+    def _collect_nat(self):
+        print "Now collecting Nat's FITS Catalog entries for GRB %s" % (self.current_grb_str)
+        self.current_GRBgrb_str = 'GRB'+self.current_grb_str
+        try:
+            self.current_catdict.update(self.natcatdict[self.current_GRBgrb_str])
+        except:
+            try:
+                # Try stripping the trailing A off the name and see if its in nat's cat
+                self.current_catdict.update(self.natcatdict[self.current_GRBgrb_str.strip('A')])
+            except:
+                try:
+                    # Try ADDING the trailing A onto the name and see if it's in natcat
+                    self.current_catdict.update(self.natcatdict[self.current_GRBgrb_str+'A'])
+                except:
+                    print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
+                    self.failed_nat_web_grbs.append(self.current_GRBgrb_str) 
+                    self.failed_nat_web_grbs_ids.append(self.current_grb_str)
     
-    def _collect_man_z(self,grbid):
-        pass
+        subdict = {self.current_grb_str:self.current_catdict}
+        self.collected_dict.update(subdict)
+    
+    def _collect_nat_web(self):
+        print "Now collecting Nat's Web Catalog entries for GRB %s" % (self.current_grb_str)
+        try:
+            self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str]) 
+        except:
+            try:
+                # Try stripping the trailing A off the name and see if its in nat's cat
+                self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str.strip('A')])
+            except:
+                try:
+                    # Try ADDING the trailing A onto the name and see if it's in natcat
+                    self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str+'A'])
+                except:
+                    print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
+                    self.failed_nat_grbs.append(self.current_GRBgrb_str)
+                    self.failed_nat_grbs_ids.append(self.current_grb_str)
+    
+        subdict = {self.current_grb_str:self.current_catdict}
+        self.collected_dict.update(subdict)
+    
+    def _collect_man_z(self):
+        print "Now collecting Manual Z Catalog entries for GRB %s" % (self.current_grb_str)
+        try:
+            self.current_catdict.update(self.man_z_dict[self.current_grb_str])
+        except:
+            try:
+                # Try stripping the trailing A off the name and see if its in nat's cat
+                self.current_catdict.update(self.man_z_dict[self.current_grb_str.strip('A')])
+            except:
+                try:
+                    # Try ADDING the trailing A onto the name and see if it's in natcat
+                    self.current_catdict.update(self.man_z_dict[self.current_grb_str+'A'])
+                except:
+                    print "No manual redshift information for GRB %s" % (self.current_grb_str)
+        
+                    
+        subdict = {self.current_grb_str:self.current_catdict}
+        self.collected_dict.update(subdict)
+        
     
     def update_db_info_for_single_key(self,grbid,newdict,add_key_if_not_exist=False,Reload=False):
         """
