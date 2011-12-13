@@ -1779,7 +1779,7 @@ def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
     db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
     db_full.fillInMissingGCNs()
     SaveDB(db_full)
-    
+    db_full_full = copy.deepcopy(db_full)
     
     #### BEGIN VALIDATION SET ###
     db_validation = copy.deepcopy(db_full)
@@ -2111,7 +2111,7 @@ def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
                                 
     Cleanup()
                          
-    return db_full
+    return db_full_full
 
 def ParseRATEGRB():
     rategrbpath = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_testdata.txt'
