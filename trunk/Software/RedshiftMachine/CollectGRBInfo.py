@@ -312,29 +312,22 @@ class GRBdb:
         Rate_pk	 (Though Rate_pk/Cts is present)
         Band
         '''
-        
-        incl_fc = self.incl_fc
-        incl_nat = self.incl_nat
-        incl_nat_web = self.incl_nat_web
-        incl_reg = self.incl_reg
-        make_html = self.make_html
-        html_path = self.html_path
-        
+                
         # Download the newest catalog
         if get_new_cat:
             ParseSwiftCat.GetNewCatFromWeb()
         
         print '\nNow loading Swift Online Catalog Entries'
         
-        RATE_GRBdict = ParseRATEGRB()
+        self.RATE_GRBdict = ParseRATEGRB()
         self.man_z_dict = ParseManualZ()
         
         swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
-        if incl_nat:
+        if self.incl_nat:
             from RedshiftMachine import ParseNatCat
             print "Now loading Nat's FITS Catalog"
             self.natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
-        if incl_nat_web:
+        if self.incl_nat_web:
             from RedshiftMachine import ParseNatWeb
             print "Now loading Nat's Web Catalog"
             self.natcatwebdict = ParseNatWeb.CombineRemoveConvert()
@@ -355,64 +348,25 @@ class GRBdb:
             self.current_catdict = swiftcatdict[self.current_grb_str]
             
             if 'triggerid_str' in self.current_catdict:
-                fc_path=None
-                reg_path=None
+                self.current_trigid_str = self.current_catdict['triggerid_str']
+                try:
+                    self.current_triggerid = int(self.current_trigid_str)
+                except:
+                    self.current_triggerid = None
+            else:
+                self.current_trigid_str = None
+                self.current_triggerid = None
             
-                trigid_str = self.current_catdict['triggerid_str']
-                print '\nNow collecting RATE GRB-z Values for trigger %s' % (trigid_str)
-                try:
-                    self.current_catdict.update(RATE_GRBdict[trigid_str])
-                except:
-                    print 'No RATE_GRB info for trigger %s' % trigid_str
-                
-                print '\nNow collecting GCN entries for trigger %s, GRB %s' % (trigid_str, self.current_grb_str)
-                try:
-                    triggerid=int(trigid_str)
-                    loaded_gcn = LoadGCN.LoadGCN(triggerid,clobber=True, redownload_gcn=self.redownload_gcn)
-                    loaded_gcn.extract_values()
-                    loaded_gcn.get_positions()
-                    source_name = 'Swift_%s-GRB%s' % (trigid_str, self.current_grb_str)
-                    if incl_reg:
-                        try:
-                            reg_path = Signal._incl_reg(loaded_gcn)
-                        except:
-                            print 'cannot load reg'
-                    if incl_fc:
-                        try:
-                            fc_path = Signal._incl_fc(loaded_gcn,src_name=source_name)
-                        except:
-                            self.failed_finding_charts.append(source_name)
-                    if make_html:
-                        try:
-                            html_inst = Signal.make_grb_html(loaded_gcn, html_path=html_path, reg_path=reg_path, fc_path=fc_path)
-                            web_dict =  object2dict(html_inst,include=['out_dir','fc_path','reg_path'])
-                            self.current_catdict.update(web_dict)
-                        except:
-                            print 'cannot make html'
+            if self.current_trigid_str:
+                self._collect_RATEGRBz()
+            if self.current_triggerid:
+                self._collect_GCN()
+            if self.incl_nat:
+                self._collect_nat()                
+            if self.incl_nat_web:
+                self._collect_nat_web()                
+            self._collect_man_z()
 
-                    self.current_catdict.update(loaded_gcn.pdict)
-                
-                
-                    # if make_finding_charts:
-                    #     try:
-                    #         from AutoRedux import qImage
-                    #         source_name = 'GRB' + self.current_grb_str
-                    #         qImage.MakeFindingChart(ra=loaded_gcn.pdict['xrt_ra'],dec=loaded_gcn.pdict['xrt_dec'],uncertainty=loaded_gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
-                    #     except: 
-                    #         self.failed_finding_charts.append('GRB'+self.current_grb_str+' ('+trigid_str+')')
-                except:
-                    print "Cannot load GCN for trigger %s for GRB %s" % (trigid_str,self.current_grb_str)
-                    self.failed_gcn_grbs.append('GRB'+self.current_grb_str+' ('+trigid_str+')')
-                    self.failed_gcn_grbs_ids.append(self.current_grb_str)
-                
-                    
-                
-                if incl_nat:
-                    self._collect_nat()                
-                if incl_nat_web:
-                    self._collect_nat_web()                
-                self._collect_man_z()
-        
         self.unnacounted_man_z =[]
         for grbid in self.man_z_dict.iterkeys():
             if grbid not in self.collected_dict.keys():
@@ -442,6 +396,61 @@ class GRBdb:
         print "GRBs failed to gather from Nat's Web Catalogue: ", self.failed_nat_web_grbs  
         print "GRBs failed to obtain finding charts: ", self.failed_finding_charts           
         return self.collected_dict
+
+    def _collect_GCN(self):
+        fc_path=None
+        reg_path=None
+        print '\nNow collecting GCN entries for trigger %s, GRB %s' % (self.current_trigid_str, self.current_grb_str)
+        try:
+            loaded_gcn = LoadGCN.LoadGCN(self.current_triggerid,clobber=True, redownload_gcn=self.redownload_gcn)
+            loaded_gcn.extract_values()
+            loaded_gcn.get_positions()
+            source_name = 'Swift_%s-GRB%s' % (self.current_trigid_str, self.current_grb_str)
+            if self.incl_reg:
+                try:
+                    reg_path = Signal._incl_reg(loaded_gcn)
+                except:
+                    print 'cannot load reg'
+            if self.incl_fc:
+                try:
+                    fc_path = Signal._incl_fc(loaded_gcn,src_name=source_name)
+                except:
+                    self.failed_finding_charts.append(source_name)
+            if self.make_html:
+                try:
+                    html_inst = Signal.make_grb_html(loaded_gcn, html_path=self.html_path, reg_path=reg_path, fc_path=fc_path)
+                    web_dict =  object2dict(html_inst,include=['out_dir','fc_path','reg_path'])
+                    self.current_catdict.update(web_dict)
+                except:
+                    print 'cannot make html'
+
+            self.current_catdict.update(loaded_gcn.pdict)
+    
+    
+            # if make_finding_charts:
+            #     try:
+            #         from AutoRedux import qImage
+            #         source_name = 'GRB' + self.current_grb_str
+            #         qImage.MakeFindingChart(ra=loaded_gcn.pdict['xrt_ra'],dec=loaded_gcn.pdict['xrt_dec'],uncertainty=loaded_gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
+            #     except: 
+            #         self.failed_finding_charts.append('GRB'+self.current_grb_str+' ('+self.current_trigid_str+')')
+        except:
+            print "Cannot load GCN for trigger %s for GRB %s" % (self.current_trigid_str,self.current_grb_str)
+            self.failed_gcn_grbs.append('GRB'+self.current_grb_str+' ('+self.current_trigid_str+')')
+            self.failed_gcn_grbs_ids.append(self.current_grb_str)
+
+    def _collect_RATEGRBz(self):
+        if self.current_trigid_str:
+            print '\nNow collecting RATE GRB-z Values for trigger %s' % (self.current_trigid_str)
+            try:
+                self.current_catdict.update(self.RATE_GRBdict[self.current_trigid_str])
+            except:
+                print 'No RATE_GRB info for trigger %s' % self.current_trigid_str
+        else:
+            print 'no triggerid string for %s' % (self.current_grb_str)
+        subdict = {self.current_grb_str:self.current_catdict}
+        self.collected_dict.update(subdict)
+        
     
     def _collect_nat(self):
         print "Now collecting Nat's FITS Catalog entries for GRB %s" % (self.current_grb_str)
