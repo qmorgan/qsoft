@@ -58,14 +58,16 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
                     colcount += 1
                     
                     continue
-                elif currentval[0].split('(')[0].strip():
+                elif currentval[0].split('(')[0].strip() and currentval[0].find(' (0') != -1:
                     # currentval of the form [u' GRB111005x (00504779) ']
                     grbname = currentval[0].split('(')[0].strip()
-                    webtrigid = 'id'+str(currentval[0].split('(')[1].strip().strip(')'))
+                    webtrigid = 'id'+str(currentval[0].split('(')[1].strip().strip(')')) #
                     colcount += 1
                     
                     continue
                 else: 
+                    print 'Line misformed; Not parsing the row beginning with: %s ' % str(currentval)
+                    colcount += 1
                     continue    
                 
                 
