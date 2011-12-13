@@ -277,60 +277,9 @@ class GRBdb:
         
     def collect(self,get_new_cat=False):
         '''A wrapper around all the parsers written to collect GRB information
-        into a single dictionary, with GRB phone numbers as the keys.  Each key 
-        has several attributes, and as of 01/10/10 the GRBs with the most
-        attributes (131, using incl_nat=True, incl_fc=False, incl_reg=True,
-        make_html=True (at least 3 more attributes, Beta and two limits, also exist
-        but may not be in the 131.  At least 134 total attributes.)) are as follows: 
-        
-    
-        080413B
-        060908 - new redshift (1.8836) from Fynbo et al- redo Nat Values!
-        080916A
-        081008
-        090618
-        081222
-        080319C
-        090424
-        
-        Nat's Norm@15keV (Bat Spectra) not in catalog?
-        Energy Fluence (15-150 keV) [erg/cm^2]
-        Photon Fluence (15-150 keV) [ph/cm^2]	
-        Peak Energy Flux (15-350 keV) [erg/cm^2/s]	
-        Peak Energy Flux (15-150 keV) [erg/cm^2/s]	
-        Peak Photon Flux (15-150 keV) [ph/cm^2/s]	
-        Peak Photon Flux (50-300 keV) [ph/cm^2/s]	
-        Eiso [erg]	
-    
-        rT_0.90	 
-        rT_0.50
-        T_av	 
-        T_max	 
-        T_rise	 
-        T_fall	 
-        Cts	 
-        Rate_pk	 (Though Rate_pk/Cts is present)
-        Band
+        into a single dictionary, with GRB phone numbers as the keys.  
         '''
-                
-        # Download the newest catalog
-        if get_new_cat:
-            ParseSwiftCat.GetNewCatFromWeb()
-        
-        print '\nNow loading Swift Online Catalog Entries'
-        
-        self.RATE_GRBdict = ParseRATEGRB()
-        self.man_z_dict = ParseManualZ()
-        
-        swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
-        if self.incl_nat:
-            from RedshiftMachine import ParseNatCat
-            print "Now loading Nat's FITS Catalog"
-            self.natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
-        if self.incl_nat_web:
-            from RedshiftMachine import ParseNatWeb
-            print "Now loading Nat's Web Catalog"
-            self.natcatwebdict = ParseNatWeb.CombineRemoveConvert()
+        # Initialize the blank variables
         self.collected_dict = {}
         self.failed_gcn_grbs = []
         self.failed_nat_grbs = []
@@ -339,6 +288,31 @@ class GRBdb:
         self.failed_nat_grbs_ids = []  # includes just the grb_str e.g. '090313'
         self.failed_nat_web_grbs_ids = []
         self.failed_finding_charts = []
+        
+        # Download the newest catalog
+        if get_new_cat:
+            print "Downloading new Swift catalog from the web"
+            ParseSwiftCat.GetNewCatFromWeb()
+        
+        print "Now parsing RATE GRBz"
+        self.RATE_GRBdict = ParseRATEGRB()
+        
+        print "Now parsing Manual Z catalog"
+        self.man_z_dict = ParseManualZ()
+        
+        print '\nNow loading Swift Online Catalog Entries'
+        swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
+        
+        if self.incl_nat:
+            from RedshiftMachine import ParseNatCat
+            print "Now loading Nat's FITS Catalog"
+            self.natcatdict = ParseNatCat.load_natcats(def_bat_natcats,def_xrt_natcats)
+            
+        if self.incl_nat_web:
+            from RedshiftMachine import ParseNatWeb
+            print "Now loading Nat's Web Catalog"
+            self.natcatwebdict = ParseNatWeb.CombineRemoveConvert()
+
         for grb_str in swiftcatdict.iterkeys():
             # If the swiftcat has a TRIGGERID associated with it, grab the trigger id
             # For now, only collect if it has an associated (redshift)/ Triggerid
@@ -425,16 +399,8 @@ class GRBdb:
                     print 'cannot make html'
 
             self.current_catdict.update(loaded_gcn.pdict)
-    
-    
-            # if make_finding_charts:
-            #     try:
-            #         from AutoRedux import qImage
-            #         source_name = 'GRB' + self.current_grb_str
-            #         qImage.MakeFindingChart(ra=loaded_gcn.pdict['xrt_ra'],dec=loaded_gcn.pdict['xrt_dec'],uncertainty=loaded_gcn.pdict['xrt_pos_err'],src_name=source_name,pos_label='XRT',survey='dss2red')
-            #     except: 
-            #         self.failed_finding_charts.append('GRB'+self.current_grb_str+' ('+self.current_trigid_str+')')
-        except:
+        
+       except:
             print "Cannot load GCN for trigger %s for GRB %s" % (self.current_trigid_str,self.current_grb_str)
             self.failed_gcn_grbs.append('GRB'+self.current_grb_str+' ('+self.current_trigid_str+')')
             self.failed_gcn_grbs_ids.append(self.current_grb_str)
