@@ -252,7 +252,8 @@ def whatis(keyword):
 class GRBdb:
     '''Instance of a grb database'''
     def __init__(self,name,incl_nat=True,incl_nat_web=True,incl_fc=False,incl_reg=True,
-                make_html=True,html_path='/home/amorgan/www/swift/',redownload_gcn=False):
+                make_html=True,html_path='/home/amorgan/www/swift/',redownload_gcn=False,
+                seed_name=None):
         
         self.date_created = time.ctime()
         try: 
@@ -265,8 +266,10 @@ class GRBdb:
             self.html_path = html_path
             self.class_updated = False
             self.redownload_gcn = redownload_gcn
+            self.seed_name = None
+            self.get_seed()
             self.dict = self.collect()
-        
+            
             if len(self.name) > 20:
                 raise ValueError('Length of db name too long')
             self.successful_load = True
@@ -274,8 +277,13 @@ class GRBdb:
             self.successful_load = False
             qErr.qErr()
         
+    def get_seed(self):
+        self.seed_cat = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
+        db_full = TryLoadDB('GRB_full', clobber=False, redownload_gcn=False)
+        db_full.fillInMissingGCNs()
+        self.seed_cat = db_full.dict
         
-    def collect(self,get_new_cat=False):
+    def collect(self,get_new_cat=False,single_key=None):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  
         '''
@@ -312,14 +320,19 @@ class GRBdb:
             from RedshiftMachine import ParseNatWeb
             print "Now loading Nat's Web Catalog"
             self.natcatwebdict = ParseNatWeb.CombineRemoveConvert()
-
-        for grb_str in swiftcatdict.iterkeys():
-            # If the swiftcat has a TRIGGERID associated with it, grab the trigger id
-            # For now, only collect if it has an associated (redshift)/ Triggerid
+        
+        # if we only want to collect the values for a single key (in order to
+        # save time) you can specify a single key to update from the seed dictionary.
+        # then the for-loop only iterates over this key. 
+        if single_key:
+            dict_to_iterate_over = {single_key:self.seed_cat.get(single_key)}
+        else:
+            dict_to_iterate_over = self.seed_cat
             
-            # note dec 12 2011 - change to try/except and make it so swiftdict isnt the only one to grab from 
+        for grb_str in dict_to_iterate_over.iterkeys():
+            # Begin the for-loop through the seed-cat to update every entry.
             self.current_grb_str = grb_str
-            self.current_catdict = swiftcatdict[self.current_grb_str]
+            self.current_catdict = self.seed_cat[self.current_grb_str]
             
             if 'triggerid_str' in self.current_catdict:
                 self.current_trigid_str = self.current_catdict['triggerid_str']
@@ -400,7 +413,7 @@ class GRBdb:
 
             self.current_catdict.update(loaded_gcn.pdict)
         
-       except:
+        except:
             print "Cannot load GCN for trigger %s for GRB %s" % (self.current_trigid_str,self.current_grb_str)
             self.failed_gcn_grbs.append('GRB'+self.current_grb_str+' ('+self.current_trigid_str+')')
             self.failed_gcn_grbs_ids.append(self.current_grb_str)
@@ -433,8 +446,8 @@ class GRBdb:
                     self.current_catdict.update(self.natcatdict[self.current_GRBgrb_str+'A'])
                 except:
                     print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
-                    self.failed_nat_web_grbs.append(self.current_GRBgrb_str) 
-                    self.failed_nat_web_grbs_ids.append(self.current_grb_str)
+                    self.failed_nat_grbs.append(self.current_GRBgrb_str)
+                    self.failed_nat_grbs_ids.append(self.current_grb_str)
     
         subdict = {self.current_grb_str:self.current_catdict}
         self.collected_dict.update(subdict)
@@ -453,8 +466,9 @@ class GRBdb:
                     self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str+'A'])
                 except:
                     print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
-                    self.failed_nat_grbs.append(self.current_GRBgrb_str)
-                    self.failed_nat_grbs_ids.append(self.current_grb_str)
+                    self.failed_nat_web_grbs.append(self.current_GRBgrb_str) 
+                    self.failed_nat_web_grbs_ids.append(self.current_grb_str)
+
     
         subdict = {self.current_grb_str:self.current_catdict}
         self.collected_dict.update(subdict)
