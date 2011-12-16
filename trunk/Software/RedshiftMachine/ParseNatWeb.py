@@ -178,6 +178,7 @@ def RemoveBadInstances(fulldict,remove_list=['#t90']):
         for subkey, subvalue in value.iteritems():
             if subvalue  in remove_list:
                 xx = newdict.pop(key)
+                print "Key %s is bad; has unknown parameters such as #t90" % (key)
     return newdict
 
 def ObtainPZGT4(fulldict,filename='/bat/zprob.txt',clobber=False):
