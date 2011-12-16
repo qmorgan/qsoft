@@ -458,16 +458,23 @@ class GRBdb:
             self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str]) 
         except:
             try:
+                print "Attempting to remove an A to the name..."
                 # Try stripping the trailing A off the name and see if its in nat's cat
                 self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str.strip('A')])
             except:
                 try:
+                    print "Attempting to add an A to the name..."
                     # Try ADDING the trailing A onto the name and see if it's in natcat
                     self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str+'A'])
                 except:
-                    print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
-                    self.failed_nat_web_grbs.append(self.current_GRBgrb_str) 
-                    self.failed_nat_web_grbs_ids.append(self.current_grb_str)
+                    try:
+                        print "Attempting to replace A with an x in the name..."
+                        # Try ADDING a trailing 'x' onto the name and see if it's in natcat
+                        self.current_catdict.update(self.natcatwebdict[self.current_GRBgrb_str.replace('A','x')])
+                    except:
+                        print "Cannot load Nat's entries for GRB %s" % (self.current_grb_str)
+                        self.failed_nat_web_grbs.append(self.current_GRBgrb_str) 
+                        self.failed_nat_web_grbs_ids.append(self.current_grb_str)
 
     
         subdict = {self.current_grb_str:self.current_catdict}
