@@ -188,7 +188,8 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                 grb_name = grb_name_guess_A
                 new_grb=True
                 errtitle='New GRB %s added to database!' % (grb_name)
-                qErr.qErr(errtitle)
+                print errtitle
+                qErr.qErr(errtitle=errtitle)
             if not new_grb:
                 # if not a new grb, double check that our name guess was correct by comparing triggerids
                 if not db.dict[grb_name]['triggerid_str'] == str(triggerid):
