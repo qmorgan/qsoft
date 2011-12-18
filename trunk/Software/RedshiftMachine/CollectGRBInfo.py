@@ -372,7 +372,8 @@ class GRBdb:
         
         if self.make_html:
             try:
-                newpath = GRBHTML.MakeGRBIndex(self.collected_dict, html_path='/home/amorgan/www/swift')
+                # Changed from collected_dict to dict - ful dictionary
+                newpath = GRBHTML.MakeGRBIndex(self.dict, html_path='/home/amorgan/www/swift')
             except:
                 print 'Cannot make index page.. path probably does not exist'
         
