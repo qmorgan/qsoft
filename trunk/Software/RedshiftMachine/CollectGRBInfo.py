@@ -282,10 +282,12 @@ class GRBdb:
         to collect information are obtained.  '''
         if self.seed_name = 'swift':
             self.seed_cat = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
+            print 'Loaded swift grb table as seed catalog'
         else:
             db_full = TryLoadDB('GRB_full', clobber=False, redownload_gcn=False)
             db_full.fillInMissingGCNs()
             self.seed_cat = db_full.dict
+            print 'Loaded GRB_full DB as seed catalog.'
         
     def collect(self,get_new_cat=False,single_key=None):
         '''A wrapper around all the parsers written to collect GRB information
