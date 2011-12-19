@@ -1230,9 +1230,12 @@ class GRBdb:
                 keyval = 'unknown'
             
             # this needs to be True and not "NotImplemented"    
-            if numpy.isnan(keyval) == True:
-                keyval = 'unknown'
-            
+            try:
+                if numpy.isnan(keyval) == True:
+                    keyval = 'unknown'
+            except(NotImplementedError):
+                pass
+                
             # # if removeNAN, remove it if the actual value is numpy.nan, or if there is no dictionary value (below)
             # if removeNAN and numpy.isnan(keyval):
             #     keyval = 'unknown'
