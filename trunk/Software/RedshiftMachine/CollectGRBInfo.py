@@ -315,7 +315,7 @@ class GRBdb:
         self.man_z_dict = ParseManualZ()
         
         print '\nNow loading Swift Online Catalog Entries'
-        swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
+        self.swiftcatdict = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
         
         if self.incl_nat:
             from RedshiftMachine import ParseNatCat
@@ -350,6 +350,7 @@ class GRBdb:
                 self.current_trigid_str = None
                 self.current_triggerid = None
             
+            self._collect_swiftcat()
             if self.current_trigid_str:
                 self._collect_RATEGRBz()
             if self.current_triggerid:
@@ -397,7 +398,26 @@ class GRBdb:
         print "GRBs failed to gather from Nat's Web Catalogue: ", self.failed_nat_web_grbs  
         print "GRBs failed to obtain finding charts: ", self.failed_finding_charts           
         return self.collected_dict
-
+    
+    def _collect_swiftcat(self):
+        print '\nNow collecting swift online table entries for trigger %s, GRB %s' % (self.current_trigid_str, self.current_grb_str)
+        try:
+            self.current_catdict.update(self.swiftcatdict[self.current_grb_str])
+        except:
+            try:
+                # Try stripping the trailing A off the name and see if its in nat's cat
+                self.current_catdict.update(self.swiftcatdict[self.current_grb_str.strip('A')])
+            except:
+                try:
+                    # Try ADDING the trailing A onto the name and see if it's in natcat
+                    self.current_catdict.update(self.swiftcatdict[self.current_grb_str+'A'])
+                except:
+                    print "No swift online table information for GRB %s" % (self.current_grb_str)
+        
+                    
+        subdict = {self.current_grb_str:self.current_catdict}
+        self.collected_dict.update(subdict)
+        
     def _collect_GCN(self):
         fc_path=None
         reg_path=None
