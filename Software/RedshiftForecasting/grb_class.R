@@ -76,6 +76,9 @@ rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(
 ####### read in GRB functions#######
 source('./algorithm1/algorithm1.R')
 
+base_dir = '/Users/amorgan/qrepo/Software/RedshiftForecasting/'
+store_dir = '/Users/amorgan/qrepo/store/'
+
 ####### read in data: #######
 library(foreign)
 library(fields)
@@ -106,9 +109,6 @@ read_data = function(filename='./Data/GRB_short+noZ_removed_webreduced.arff',hig
       # return(data1)
    # }
 
-   
-   
-   
    ## by default do simple median / mode imputing
    if(impute == TRUE & missForestImpute == FALSE){
      data1 = na.roughfix(data1)
@@ -468,6 +468,71 @@ extract_stats = function(data_obj=NULL, forest_res_dir=NULL,return_probhigh_only
 	
 	return(data_obj)
 }
+
+pred_single_datum = function(data,forest=NULL,data_obj_train=NULL,forest_res_dir=NULL,weight_index=11){
+   if(is.null(data_obj_train)){
+      print("data_obj_train not specified; using default values")
+      data_obj_train = read_data()
+   }   
+   if(is.null(forest_res_dir)){
+      print("forest_res_dir not specified for extract_stats, using default value w/cutoff 4")
+      forest_res_dir=paste(base_dir,"smooth_weights_results/smooth_weights_webreduced_4",sep="")
+   }
+   if(is.null(forest)){
+      print("forest not specified, using default forest")
+      load(paste(base_dir,'rategrbz.forest',sep=""))
+      forest=rategrbzforest
+   }
+   pred.train=extract_stats(data_obj=data_obj_train,forest_res_dir=forest_res_dir,return_probhigh_only=TRUE)[,weight_index]
+   pred_vals = forest.pred(rategrbzforest,data,pred.train)
+	  
+}
+
+# data_obj_test = read_data(filename='./Data/GRB_short+Z_removed_webreduced+validation.arff')
+# pred_new_data(data_obj_test=data_obj_test)
+regenerate_new_rate_values = function(forest=NULL,data_obj_train=NULL,data_obj_test=NULL,forest_res_dir=NULL,weight_index=11,
+   file_out='rate.txt'){
+   ##### If data object is not defined, create the default data object ######
+   if(is.null(data_obj_train)){
+      print("data_obj_train not specified; using default values")
+      data_obj_train = read_data()
+   }
+   log_weight_try = ((weight_index-6)/5)
+   data_obj_train = add_forest_to_obj(data_obj=data_obj_train,log_weight_try=log_weight_try)
+   if(is.null(data_obj_test)){
+      print("data_obj_test not specified; using default values")
+      myfile = paste(store_dir,'GRB_short_removed_rate_webreduced_rate.arff',sep="")
+      data_obj_test = read_data(filename=myfile)
+   }
+   
+   if(is.null(forest_res_dir)){
+      print("forest_res_dir not specified for extract_stats, using default value w/cutoff 4")
+      forest_res_dir="./smooth_weights_results/smooth_weights_webreduced_4"
+   }
+   
+   if(is.null(forest)){
+      print("forest not specified, using default forest")
+      load(paste(base_dir,'rategrbz.forest',sep=""))
+      forest=rategrbzforest
+   }
+   
+   ###########################################################################
+	pred.train=extract_stats(data_obj=data_obj_train,forest_res_dir=forest_res_dir,return_probhigh_only=TRUE)[,weight_index]
+	pred_vals = forest.pred(forest,data_obj_test$features,pred.train)
+	data_obj_test$pred_vals = pred_vals
+	
+	if(!is.null(data_obj_test$triggerids)){
+	   data_obj_test$pred_vals$triggerids = data_obj_test$triggerids
+   }
+	
+
+	textfile=file_out
+	write.table(data_obj_test$pred_vals,textfile)
+	
+
+	return(data_obj_test)
+}
+
 
 # data_obj_test = read_data(filename='./Data/GRB_short+Z_removed_webreduced+validation.arff')
 # pred_new_data(data_obj_test=data_obj_test)
@@ -1413,7 +1478,7 @@ make_all_importance_plots = function(generate_data=FALSE,Nseeds=10,log_weights_t
    make_forest_plots(data_string='webreduced_rem-bat_is_rate_trig',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-bat_trigger_dur',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
    make_forest_plots(data_string='webreduced_rem-uvot_detection',log_weights_try=log_weights_try,generate_data=generate_data,Nseeds=Nseeds, roc_weight=roc_weight,redo_useless=TRUE)
-   custom_namelist=c(expression("Removed " * alpha),expression("Removed " * E[peak]),"Removed S",expression("Removed " * S/N[max]),expression("Removed " * N[H] * " (PC)"),expression("Removed " * P[z>4]),expression("Removed " * T[90]),expression("Removed " * sigma[BAT]),expression("Removed " * N[peak~BAT]),"Removed Rate Trigger?",expression("Removed " * t[BAT]),"Removed UVOT detection?")
+   custom_namelist=c(expression("Removed " * alpha),expression("Removed " * E[peak]),"Removed S",expression("Removed " * S/N[max]),expression("Removed " * N[H] * " (PC)"),expression("Removed " * P[z>4]),expression("Removed " * T[90]),expression("Removed " * sigma[BAT]),expression("Removed " * R[peak~BAT]),"Removed Rate Trigger?",expression("Removed " * t[BAT]),"Removed UVOT detection?")
    make_efficiency_plots(data_string_list=list("webreduced_rem-web_alpha","webreduced_rem-web_Bayes_Ep_keV","webreduced_rem-web_Energy_Fluence_15-350_keV_erg-cm^2","webreduced_rem-web_S-N","webreduced_rem-web_N_H_excess_10^22_cm^-2_2","webreduced_rem-PROB_Z_GT_4","webreduced_rem-web_T_90","webreduced_rem-bat_image_signif","webreduced_rem-bat_img_peak","webreduced_rem-bat_is_rate_trig","webreduced_rem-bat_trigger_dur","webreduced_rem-uvot_detection"),log_weights_try=seq(0.8,1.0,0.2), roc_weight=2, custom_namelist=custom_namelist,plot_suffix='_importance',ref_weight_index=11)
 
 }                   
