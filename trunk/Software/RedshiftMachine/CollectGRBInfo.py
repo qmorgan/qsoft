@@ -1228,7 +1228,8 @@ class GRBdb:
                 keyval = self.dict[ii][key]
             else:
                 keyval = 'unknown'
-                
+            
+            # this needs to be True and not "NotImplemented"    
             if numpy.isnan(keyval) == True:
                 keyval = 'unknown'
             
@@ -2181,7 +2182,7 @@ def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
     return db_full_full
 
 def ParseRATEGRB():
-    rategrbpath = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_testdata.txt'
+    rategrbpath = storepath + 'rate.txt'
     rategrbpath_train = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_traindata.txt'
     f=file(rategrbpath,'r')
     g=file(rategrbpath_train,'r')
