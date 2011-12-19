@@ -378,8 +378,15 @@ class GRBdb:
         
         if self.make_html:
             try:
-                # Changed from collected_dict to dict - ful dictionary
-                newpath = GRBHTML.MakeGRBIndex(self.dict, html_path='/home/amorgan/www/swift')
+                # if single key was collected, the collected dict will only have one entry. This is good 
+                # for speed but not for having the whole dictionary updated.  In this case,
+                # remake the html index for the full dictionary, not the collected.
+                if single_key:
+                    indexdict = self.dict
+                # if whole seed catalog was collected, use collected dict as the index
+                else:
+                    indexdict = self.collected_dict
+                newpath = GRBHTML.MakeGRBIndex(indexdict, html_path='/home/amorgan/www/swift')
             except:
                 print 'Cannot make index page.. path probably does not exist'
         
@@ -1241,7 +1248,12 @@ class GRBdb:
                 return 
         
         print 'initial length of dictionary: ' + str(len(self.dict))
-        print ' removing ' + str(len(remove_list)) + ' GRBs'
+        if removeNAN:
+            removeNANstr = ' and removeNAN'
+        else:
+            removeNANstr = ''
+            
+        print ' removing ' + str(len(remove_list)) + ' GRBs due to ' + key + ' ' + argument + removeNANstr
         for key in remove_list:
             self.dict.pop(key)
         print 'new length of dictionary: ' + str(len(self.dict))
@@ -1802,6 +1814,29 @@ def TryLoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=Fa
         db_return = GRBdb(name, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
     return db_return
 
+
+def Regenerate_RATE_db(clobber=False):
+    '''Regenerates the list of GRBs upon which to calculate Qhat values'''
+    db_full = TryLoadDB('GRB_full', clobber=clobber,incl_reg=False,incl_fc=False)
+    db_full.fillInMissingGCNs()
+    #### BEGIN VALIDATION SET ###
+    db_rate = copy.deepcopy(db_full)
+    
+    db_rate.removeValues('web_S/N', '< 0.0', removeNAN=True)
+    db_rate.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
+    db_rate.removeValues('grb_date_tjd','<= 15370', removeNAN=True)
+    db_rate.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)    
+    
+    db_rate.Reload_DB(remove_short=True)   
+    db_rate.name = 'GRB_short_removed_rate'
+    
+    reduced_attr_list = ['z_man_best','web_alpha','web_Bayes_Ep_[keV]','web_Energy_Fluence_(15-350_keV)_[erg/cm^2]','web_S/N',
+                        'web_N_H_(excess)_[10^22_cm^-2]_2','web_T_90','bat_image_signif','bat_img_peak',
+                        'bat_is_rate_trig','bat_trigger_dur','uvot_detection',
+                        'PROB_Z_GT_4','triggerid_str']
+    ### Make web Reduced validation Set Arff
+    db_rate.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced_rate',inclerr=False)
+    SaveDB(db_rate)
 
 def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
     db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
