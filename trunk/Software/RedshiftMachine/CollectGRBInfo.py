@@ -278,10 +278,14 @@ class GRBdb:
             qErr.qErr()
         
     def get_seed(self):
-        self.seed_cat = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
-        db_full = TryLoadDB('GRB_full', clobber=False, redownload_gcn=False)
-        db_full.fillInMissingGCNs()
-        self.seed_cat = db_full.dict
+        '''The seed catalog is that which the list of keys (grb ids) from which
+        to collect information are obtained.  '''
+        if self.seed_name = 'swift':
+            self.seed_cat = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
+        else:
+            db_full = TryLoadDB('GRB_full', clobber=False, redownload_gcn=False)
+            db_full.fillInMissingGCNs()
+            self.seed_cat = db_full.dict
         
     def collect(self,get_new_cat=False,single_key=None):
         '''A wrapper around all the parsers written to collect GRB information
