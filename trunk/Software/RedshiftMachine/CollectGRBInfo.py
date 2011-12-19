@@ -289,7 +289,7 @@ class GRBdb:
             self.seed_cat = db_full.dict
             print 'Loaded GRB_full DB as seed catalog.'
         
-    def collect(self,get_new_cat=False,single_key=None):
+    def collect(self,get_new_cat=False,single_key=None,overwrite_dict=True):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  
         '''
@@ -390,6 +390,13 @@ class GRBdb:
                 newpath = GRBHTML.MakeGRBIndex(indexdict, html_path='/home/amorgan/www/swift')
             except:
                 print 'Cannot make index page.. path probably does not exist'
+        
+        
+        if overwrite_dict:
+            if not single_key:
+                self.dict = self.collected_dict
+            else:
+                self.dict.update(self.collected_dict)
         
         print ''
         print len(self.collected_dict), ' entries in the collected dictionary'
@@ -1865,6 +1872,7 @@ def Regenerate_RATE_db(clobber=False):
     ### Make web Reduced validation Set Arff
     db_rate.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced_rate',inclerr=False)
     SaveDB(db_rate)
+    return db_rate
 
 def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
     db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
