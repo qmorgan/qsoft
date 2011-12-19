@@ -1228,6 +1228,9 @@ class GRBdb:
                 keyval = self.dict[ii][key]
             else:
                 keyval = 'unknown'
+                
+            if numpy.isnan(keyval) == True:
+                keyval = 'unknown'
             
             # # if removeNAN, remove it if the actual value is numpy.nan, or if there is no dictionary value (below)
             # if removeNAN and numpy.isnan(keyval):
@@ -1826,6 +1829,7 @@ def Regenerate_RATE_db(clobber=False):
     db_rate.removeValues('uvot_time_delta', '> 3600.0', removeNAN=True)
     db_rate.removeValues('grb_date_tjd','<= 15370', removeNAN=True)
     db_rate.removeValues('notices_parsed','.count("Swift-BAT GRB Position") == 0',removeNAN=True)    
+    db_rate.removeValues('PROB_Z_GT_4', '< 0.0', removeNAN=True)
     
     db_rate.Reload_DB(remove_short=True)   
     db_rate.name = 'GRB_short_removed_rate'
