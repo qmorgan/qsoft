@@ -280,7 +280,7 @@ class GRBdb:
     def get_seed(self):
         '''The seed catalog is that which the list of keys (grb ids) from which
         to collect information are obtained.  '''
-        if self.seed_name = 'swift':
+        if self.seed_name == 'swift':
             self.seed_cat = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
             print 'Loaded swift grb table as seed catalog'
         else:
