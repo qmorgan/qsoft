@@ -1871,6 +1871,14 @@ def Regenerate_RATE_db(clobber=False):
                         'PROB_Z_GT_4','triggerid_str']
     ### Make web Reduced validation Set Arff
     db_rate.makeArffFromArray(attrlist=reduced_attr_list,arff_append='_webreduced_rate',inclerr=False)
+     
+    new_arff_path = storepath + "GRB_short_removed_rate_webreduced_rate.arff"
+    old_arff_data_path = storepath + "GRB_short+Z_removed_webreduced.arff_data"
+    combined_arff_path = storepath + "Combined_RATE.arff"
+    cmd = "cat %s %s > %s" % (new_arff_path, old_arff_data_path, combined_arff_path)
+    
+    os.system(cmd)
+    
     SaveDB(db_rate)
     return db_rate
 
@@ -2212,7 +2220,11 @@ def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
                          
     return db_full_full
 
-def ParseRATEGRB():
+def ParseRATEGRB(regenerate=True):
+    
+    if regenerate:
+        Regenerate_RATE_db()
+    
     rategrbpath = storepath + 'rate.txt'
     rategrbpath_train = os.environ.get("Q_DIR") + '/Software/RedshiftForecasting/Calib_traindata.txt'
     f=file(rategrbpath,'r')
