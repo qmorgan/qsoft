@@ -10,7 +10,9 @@ if not os.environ.has_key("Q_DIR"):
     print "directory where you have Q_DIR installed"
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
-swift_cat_path = storepath+'grb_table_1269669883.txt'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
+swift_cat_path = storepath+'grb_table_current.txt'
 
 def update_dict(pteldict,burst):
     '''If a burst is specified on pteldict, this function updates pteldict by adding a formated_time key, which gives date in the form of "http://skycam.mmto.arizona.edu/skycam/YYYYMMDD/night_movie.avi, and an extinction key.'''
