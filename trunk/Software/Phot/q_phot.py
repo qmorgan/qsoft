@@ -2358,8 +2358,8 @@ def textoutput(photdict,utburst,filt=None, day=False):
         text.write('\n')
     text.close()
 
-def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=False):
-    '''Plots spectral indexes vs. time from photdict'''
+def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=False, just_two=False):
+    '''Plots spectral indexes vs. time from photdict. If there is no detection in the k band, set just_two = jh'''
     import matplotlib
     import glob
     import datetime
@@ -2441,29 +2441,57 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     # Note that the length of h, j, k must be the same.
 
     betalist = []
+    notime_list = []
     for index, mosaic in enumerate(j_list):
-        k_mag = k_list[index]
-        h_mag = h_list[index]
-        j_mag = j_list[index] # sort by ascending frequencies
+        if just_two == 'jh':
+            h_mag = h_list[index]
+            j_mag = j_list[index] # sort by ascending frequencies
+        elif just_two == 'kh':
+            k_mag = k_list[index]
+            h_mag = h_list[index] # sort by ascending frequencies
+        else:
+            k_mag = k_list[index]
+            h_mag = h_list[index]
+            j_mag = j_list[index] # sort by ascending frequencies
 
         # These aren't fluxes.. they are converted to AB magnitude
         #k_flux = -2.5*numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) - 48.60 # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
         #h_flux = -2.5*numpy.log10(q.mag2flux(h_mag,0,1.024e-20)) - 48.60
         #j_flux = -2.5*numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) -48.60
-
-        k_flux = numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
-        h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
-        j_flux = numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) 
+        if just_two == 'jh':
+            h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
+            j_flux = numpy.log10(q.mag2flux(j_mag,0,1.594e-20))
+        elif just_two == 'kh':
+            k_flux = numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) 
+            h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
+        else:
+            k_flux = numpy.log10(q.mag2flux(k_mag,0,6.667e-21)) # zeropoints are in erg/s/cm^2/Hz, convert to AB mag
+            h_flux = numpy.log10(q.mag2flux(h_mag,0,1.024e-20))
+            j_flux = numpy.log10(q.mag2flux(j_mag,0,1.594e-20)) 
 #        k_flux = q.mag2flux(k_mag,0,666.7e6) # zeropoints are in microjansky
 #        h_flux = q.mag2flux(h_mag,0,1024e6)
 #        j_flux = q.mag2flux(j_mag,0,1594e6) 
-        
-        specmag = numpy.array([k_flux, h_flux, j_flux])
-        specmag_error = numpy.array([k_errlist[index], h_errlist[index], j_errlist[index]])
 
-        p_freqs = numpy.array([1.394383526e+14,1.816923988e+14,2.398339664e+14]) # placeholder values, get the actual values!
-        log_freqs = log10(p_freqs) 
-        log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
+        if just_two == 'jh':
+            specmag = numpy.array([h_flux, j_flux])
+            specmag_error = numpy.array([h_errlist[index], j_errlist[index]])
+            p_freqs = numpy.array([1.816923988e+14,2.398339664e+14]) 
+            log_freqs = log10(p_freqs) 
+            log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
+
+        elif just_two == 'kh':
+            specmag = numpy.array([k_flux, h_flux])
+            specmag_error = numpy.array([k_errlist[index], h_errlist[index]])
+            p_freqs = numpy.array([1.394383526e+14,1.816923988e+14]) 
+            log_freqs = log10(p_freqs) 
+            log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
+
+        else:
+            specmag = numpy.array([k_flux, h_flux, j_flux])
+            specmag_error = numpy.array([k_errlist[index], h_errlist[index], j_errlist[index]])
+            p_freqs = numpy.array([1.394383526e+14,1.816923988e+14,2.398339664e+14]) 
+            log_freqs = log10(p_freqs) 
+            log_specmag_err = numpy.array(specmag_error)/numpy.array(specmag)
 
 #        fitfunc = lambda p, x: p[0] + p[1] * x # the linear function in log-log space
 #        errfunc = lambda p, x, y, err: (y - fitfunc(p, x)) / err # the error function, this is just the data minus the line of best fit divided by the error
@@ -2475,13 +2503,30 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
 
         print '----'
         print 'index number %s' % index
-        print k_flux
-        print h_flux
-        print j_flux
+        if just_two == 'jh':
+            print h_flux
+            print j_flux
+        elif just_two == 'kh':
+            print k_flux
+            print h_flux
+        else:
+            print k_flux
+            print h_flux
+            print j_flux
         print specmag
         print '----'   
 
-        the_fit = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+        print 'specmag _error is'
+        print specmag_error
+        try:
+            the_fit = pofit.fit(p_freqs, specmag, specmag_error, 'beta', name='spectral fit')
+        except:
+            notime_list += [index]
+            print 'cannot fit!'
+            print 'specmag_error is:'
+            print specmag_error
+            print 'Go investigate!'
+            break
         results = the_fit[0]
         betalist += [results[1]] # Getting the spectral index
 
@@ -2515,7 +2560,18 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
             #there's probably a prettier way to do this, the second if statements 
             #are there so that only 1 label per filter is on the legend
 
-            if 'h_' in mosaics:
+            if 'j_' in mosaics:            
+                if j == True: 
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue')
+                else:
+                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
+                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
+                        ecolor = 'blue', label = 'j')
+                    j = True
+
+            elif 'h_' in mosaics:
                 if h == True: 
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
                         marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
@@ -2526,16 +2582,6 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
                         ecolor = 'green', label = 'h')
                     h = True
 
-            elif 'j_' in mosaics:            
-                if j == True: 
-                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
-                        ecolor = 'blue')
-                else:
-                    matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
-                        marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
-                        ecolor = 'blue', label = 'j')
-                    j = True
 
             elif 'k_' in mosaics:
                 if k == True: 
@@ -2579,20 +2625,32 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
         ax.set_ylim(ylim)
 
     uniquename = photdict_lcurve.keys()[0].split('_')[2]
-    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
+#    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
 
     # spectral index plot
-    beta_err = the_fit[1][1]
-    ax = fig.add_axes([0.1,0.1,0.8,0.3])    
+    beta_err = the_fit[1][1] #why take square-root again? This looks wrong
+    beta_err = numpy.std(betalist)
+    ax = fig.add_axes([0.1,0.1,0.8,0.3])
+    print 'betalist is'
+    print betalist
+    timlist = list(timlist)
+    terlist = list(terlist)
+    for time in notime_list:
+        del timlist[time]
+        del terlist[time]
+    timlist = numpy.array(timlist)
+    terlist = numpy.array(terlist)
+    print 'timlist is'
+    print timlist
     ax.errorbar(timlist, betalist, yerr = beta_err, xerr=terlist,\
                         marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
                         ecolor = 'red')
-        
+
     #ax = matplotlib.pyplot.gca()
     #ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('Beta')
+    matplotlib.pyplot.ylabel('$\beta$')
     matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
     #ax.set_xscale('log')
@@ -2600,7 +2658,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     uniquename = photdict.keys()[0].split('_')[2]
     cname = 'beta'
     #matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
-    savepath = storepath + uniquename + '_' + cname + '_colorevo.png'
+    savepath = storepath + uniquename + '_' + cname + '_colorevo.ps'
     
     if xlim:
         ax.set_xlim(xlim)

@@ -1,6 +1,9 @@
 import matplotlib
 import os
 import numpy
+from pylab import *
+from numpy import array as arr
+import cosmocalc
 
 #from RedshiftMachine import CollectGRBInfo
 #grbdb = CollectGRBInfo.LoadDB('GRB_full') # load the database pickle file. if it doesn't exist yet, it will be created
@@ -9,14 +12,18 @@ import numpy
 #storepath = os.environ.get("Q_DIR") + '/store/'
 
 # GRB list at 3 minutes
-GRB_list = ['061126', '080310', '080330', '090618', '080319C', '090530', '080607', '051109A', '090709A', '070208', '071025']
-j_3min = [8052.06, 3050.04, 324.251, 20082.0, 1443.05, 1070.26, 1879.54, 3210.33, 312.932, 233.877, 714.423]
+GRB_list = ['061126', '080310', '080330', '090618', '080319C', '090530', '080607', '051109A', '090709A', '070208', '071025', '080319A', '090418A']
+j_3min = [8052.06, 3050.04, 324.251, 20082.0, 1443.05, 1070.26, 1879.54, 3210.33, 312.932, 233.877, 714.423, 112.846, 126.616]
+
+GRB_list =  ['061126', '080310', '080330', '090618', '080319C', '090530', '080607', '051109A', '090709A', '070208', '071025']
+beta_3min = []
 
 GRB_with_z = ['080310', '080330', '090618', '080319C', '080607', '051109A', '070208', '071025']
 z_list = [2.4266, 1.51, 0.54, 1.95, 3.036, 2.346, 1.165, 4.8]
 
+# 090530, 090709A not known yet
 GRB_with_z_limits = ['061126','080310', '080330', '090618', '080319C', '090530','080607', '051109A', '090709A','070208', '071025']
-z_list_limits = [1.16, 2.4266, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8]
+z_list_limits = [1.1588, 2.4274, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8]
 
 spectral_index = []
 # For beta_solve: P1 = ([pj, ph, pk], [pj_err, ph_err, pk_err]) As per usual: pj: [a_a, a_b, tbreak, sh, flux]. Use P2 if there is second component.
@@ -60,8 +67,8 @@ def plotall(all_GRB_dict, time_correct=True):
     import matplotlib
     import datetime
     matplotlib.pyplot.clf()
-    # H:
-    for GRB in all_GRB_dict:
+    # J:
+    for index, GRB in enumerate(all_GRB_dict):
         print '--------------'
         print '--------------'
         print 'Doing GRB %s' % (GRB)
@@ -73,7 +80,7 @@ def plotall(all_GRB_dict, time_correct=True):
         time_upperlist = []
         time_upper_errlist = []
         for epoch in all_GRB_dict[GRB]:
-            if 'h' in epoch:
+            if 'j' in epoch:
                 print '--------------'
                 print 'Doing epoch %s' % (epoch)
                 if 'targ_mag' in all_GRB_dict[GRB][epoch]: 
@@ -104,11 +111,18 @@ def plotall(all_GRB_dict, time_correct=True):
         time_upperlist = numpy.array(time_upperlist)
         time_upper_errlist = numpy.array(time_upper_errlist)
 
-        if len(maglist):
-            matplotlib.pyplot.errorbar(timelist, maglist, yerr=mag_errlist, xerr=time_errlist, \
+        if index >= 6:
+            if len(maglist):
+                matplotlib.pyplot.errorbar(timelist, maglist, yerr=mag_errlist, xerr=time_errlist, \
+                        marker = '+', linestyle = 'None', label = GRB)
+            if len(upper_list):
+                matplotlib.pyplot.errorbar(time_upperlist, upper_list , xerr=time_upper_errlist,linestyle = 'None', marker = 'v')
+        else:
+            if len(maglist):
+                matplotlib.pyplot.errorbar(timelist, maglist, yerr=mag_errlist, xerr=time_errlist, \
                         marker = 'o', linestyle = 'None', label = GRB)
-        if len(upper_list):
-            matplotlib.pyplot.errorbar(time_upperlist, upper_list , xerr=time_upper_errlist,linestyle = 'None', marker = 'v')
+            if len(upper_list):
+                matplotlib.pyplot.errorbar(time_upperlist, upper_list , xerr=time_upper_errlist,linestyle = 'None', marker = 'v')
              
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
@@ -117,7 +131,7 @@ def plotall(all_GRB_dict, time_correct=True):
     matplotlib.pyplot.legend()
     ax = matplotlib.pyplot.gca()
     ax.set_xscale('log')
-    savepath ='./all_lightcurve_nocorrect.png'
+    savepath ='./all_lightcurve_nocorrect_j.ps'
     print 'lightcurve saved to ' + savepath
     matplotlib.pyplot.savefig(savepath)
     matplotlib.pyplot.close()
@@ -127,6 +141,31 @@ def Time_corrected_plot():
     correct_time_all(Burstlist)
     plotall(Burstlist)
 #    return Burstlist
+
+def makedict(GRB_list, very_good_pickle_path='/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/'):
+    ''' make dict for all_bursts() '''
+    from Phot import q_phot
+    from MiscBin import qPickle
+    from glob import glob
+
+    all_GRB_dict = {}
+
+    for index, GRB in enumerate(GRB_list):
+        globstr = very_good_pickle_path + GRB + '*'
+        pathstr = glob(globstr)[0]
+        print pathstr
+        result = qPickle.load(pathstr)
+        GRB_dict = {GRB:result}
+        all_GRB_dict.update(GRB_dict)
+    return all_GRB_dict
+
+def all_bursts():
+    #Burstlist = update_z_all_GRBs(GRB_list)
+    GRB_list =  ['061126', '080310', '080330', '090618', '080319C', '090530', '080607', '051109A', '070208', '071025']
+    z_list_bad = [1.1588, 2.4274, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8, 0, 0]
+    Burstlist = makedict(GRB_list)
+    plotall(Burstlist, time_correct=False)
+    return GRB_list
 
 def redshift_corrections(GRBlist, z_list, spectral_index, photometry_result):
     import k_correct
@@ -318,3 +357,77 @@ def beta_solve(t, P1, P2=False):
 def beta_solve_test(t):
     result = beta_solve(t, GRB_071025_P1, GRB_071025_P2)
     return result
+
+def plot_lum():
+    clf()
+    j_3min = [8052.06, 3050.04, 324.251, 20082.0, 1443.05, 1070.26, 1879.54, 3210.33, 312.932, 233.877, 714.423, 112.846, 126.616]
+    j_3min2 = [8052.06, 3050.04, 324.251, 1443.05, 1070.26, 1879.54, 3210.33, 312.932, 233.877, 714.423, 112.846, 126.616]
+    j_3min3 = [3050.04, 324.251, 1443.05, 1070.26, 1879.54, 3210.33, 312.932, 233.877, 714.423, 112.846, 126.616]
+
+    j_3min = [8052.06, 3050.04, 324.251, 20082.0, 1443.05, 1070.26, 1879.54, 3210.33, 312.932, 233.877, 714.423, 188.211, 1594, 57.29, 833466.82317]
+
+    #convert to cgs from microjansky:
+    j_3min = arr(j_3min)*10**(-29)
+
+    #convert to AB magnitude:
+    j_3min = -2.5*numpy.log10(j_3min) - 48.60
+    
+    hist(j_3min,13)
+    xlabel('J Apparent Magnitude')
+    ylabel('Number')
+    savefig('Lum_dist.eps')
+
+    clf()
+ #   hist(j_3min,20,cumulative=True, histtype='step')
+  #  hist(j_3min2,20,cumulative=True, histtype='step')
+   # hist(j_3min3,20,cumulative=True, histtype='step')
+    #ylim(0,14)
+    #xlim(-1000,22000)
+    #xlabel('J Flux at 3 Minutes (Micro Jansky)')
+  #  savefig('lum_dist.eps')
+    return j_3min
+
+def plot_lum_rest():
+    '''f_{rest,V} = f_{rest_corr}*[nu_V/ ((1+z)nu_J)]^beta for  flux \propto nu^beta and beta negative values'''
+    clf()
+    f_rest_corr = [2252.14, 1626.48, 403.717, 20082, 913.329, 549.616, 286.863, 990.110, 14.7689, 174.540, 1419.79, 149309.80115] 
+    beta = [-1.35, -0.8, -0.96, -0.22, -1.73, -0.84, -3.48, -0.42, -3.81, -0.3, -1.7, -0.47]
+    z_list_limits = [1.1588, 2.4274, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8, 0.9382]
+    arrf = arr(f_rest_corr)
+    arrb = arr(beta)
+    arrz = arr(z_list_limits)
+    nu_V = 5.444646098003629764065335753176043557e+14 
+    nu_J = 2.398339664e+14
+    f_rest_V = arrf * (nu_V/ ((1+arrz)*nu_J))**(beta)
+    print 'f_rest_V in microjansky:'
+    print f_rest_V
+
+    #convert to cgs from microjansky:
+    f_rest_V = f_rest_V*10**(-29)
+    print 'f_rest_V in cgs:'
+    print f_rest_V
+
+    #get luminosity distance from cosmocalc (lambdaCDM: omega_M = 0.27 and omega_lambda=0.73)
+    dist = []
+    for redshift in z_list_limits:
+        dist += [cosmocalc.cosmocalc(z=redshift)['DL_cm']]
+
+    arrd = arr(dist)
+    print 'dist:'
+    print arrd
+
+    L_rest_V = f_rest_V*4*numpy.pi*arrd**2./(1.+arrz)
+    print 'L_rest_V:'
+    print L_rest_V
+    #convert to ABSOLUTE AB magnitude:
+    F = L_rest_V/(4 * numpy.pi * (3.085677581e19)**2)    #flux density at 10 parsecs     
+    Absol_Mag = -2.5*numpy.log10(F) - 48.60    #Absolute mag in AB mag
+    
+    hist(Absol_Mag,6)
+    xlabel('V Absolute Magnitude')
+    ylabel('Number')
+    savefig('Lum_dist_rest.eps')
+
+    print 'Done'
+    
+    return L_rest_V
