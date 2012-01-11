@@ -253,7 +253,7 @@ class GRBdb:
     '''Instance of a grb database'''
     def __init__(self,name,incl_nat=True,incl_nat_web=True,incl_fc=False,incl_reg=True,
                 make_html=True,html_path='/home/amorgan/www/swift/',redownload_gcn=False,
-                seed_name=None):
+                seed_name='GRB_full'):
         
         self.date_created = time.ctime()
         try: 
@@ -266,7 +266,7 @@ class GRBdb:
             self.html_path = html_path
             self.class_updated = False
             self.redownload_gcn = redownload_gcn
-            self.seed_name = None
+            self.seed_name = seed_name
             self.get_seed()
             self.dict = self.collect()
             
@@ -283,12 +283,17 @@ class GRBdb:
         if self.seed_name == 'swift':
             self.seed_cat = ParseSwiftCat.parseswiftcat(loadpath+'grb_table_current.txt')
             print 'Loaded swift grb table as seed catalog'
-        else:
+        elif self.seed_name == 'GRB_full':
             db_full = TryLoadDB('GRB_full', clobber=False, redownload_gcn=False)
             db_full.fillInMissingGCNs()
             self.seed_cat = db_full.dict
             print 'Loaded GRB_full DB as seed catalog.'
-        
+        else:
+            db_full = TryLoadDB('GRB_full', clobber=False, redownload_gcn=False)
+            db_full.fillInMissingGCNs()
+            self.seed_cat = db_full.dict
+            print 'No seed catalog specified, using GRB_full DB as seed catalog.'
+            
     def collect(self,get_new_cat=False,single_key=None,overwrite_dict=True):
         '''A wrapper around all the parsers written to collect GRB information
         into a single dictionary, with GRB phone numbers as the keys.  
@@ -1842,12 +1847,12 @@ def FindFilePaths(db='GRB_full'):
         Signal._do_all_trigger_actions(triggerid,update_rss=False, update_database='GRB_full',grb_name=key)
     SaveDB(db_full)
 
-def TryLoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False):
-    db_return = LoadDB(name, clobber=clobber, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
+def TryLoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False,seed_name='GRB_full'):
+    '''Note if clobber=False, then the other keywords aside from name are irrelevant.'''
+    db_return = LoadDB(name, clobber=clobber)
     if not db_return:
-        db_return = GRBdb(name, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc)
+        db_return = GRBdb(name, redownload_gcn=redownload_gcn,incl_reg=incl_reg,incl_fc=incl_fc,seed_name=seed_name)
     return db_return
-
 
 def Regenerate_RATE_db(clobber=False):
     '''Regenerates the list of GRBs upon which to calculate Qhat values'''
@@ -1881,6 +1886,12 @@ def Regenerate_RATE_db(clobber=False):
     
     SaveDB(db_rate)
     return db_rate
+
+def Reboot_GRB_full():
+    ParseSwiftCat.GetNewCatFromWeb() # download new swift cat
+    db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc,seed_name='swift')
+    db_full.fillInMissingGCNs()
+    SaveDB(db_full)
 
 def TestReloadAlldb(redownload_gcn=False,incl_reg=True,incl_fc=False):
     db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc)
