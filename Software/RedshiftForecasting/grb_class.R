@@ -78,7 +78,7 @@ source('./algorithm1/algorithm1.R')
 
 q_dir = Sys.getenv('Q_DIR')
 base_dir = paste(q_dir,'Software/RedshiftForecasting/',sep='')
-store_dir = paste(q_dir,'/Users/amorgan/qrepo/store/',sep='')
+store_dir = paste(q_dir,'qrepo/store/',sep='')
 
 ####### read in data: #######
 library(foreign)
