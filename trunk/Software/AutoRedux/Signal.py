@@ -197,7 +197,7 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                     if not 'gcn_triggerid' in db.dict[grb_name]:
                         update_database=None
                         errtitle='Unidentifiable GRB! Not adding to database'
-                        errtext"""Attempting to update the database entry for GRB %s
+                        errtext="""Attempting to update the database entry for GRB %s
                         with triggerid %s failed. There is no triggerid_str nor
                         gcn_triggerid in the corresponding dictionary for this GRB
                         entry in the database, so a cross-check could not be performed.
