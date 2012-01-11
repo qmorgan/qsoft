@@ -76,8 +76,9 @@ rpart.cv = function(x,y,nfolds=5,method="gini",loss=NULL,prior=NULL,seed=sample(
 ####### read in GRB functions#######
 source('./algorithm1/algorithm1.R')
 
-base_dir = '/Users/amorgan/qrepo/Software/RedshiftForecasting/'
-store_dir = '/Users/amorgan/qrepo/store/'
+q_dir = Sys.getenv('Q_DIR')
+base_dir = paste(q_dir,'Software/RedshiftForecasting/',sep='')
+store_dir = paste(q_dir,'/Users/amorgan/qrepo/store/',sep='')
 
 ####### read in data: #######
 library(foreign)
@@ -493,6 +494,8 @@ pred_single_datum = function(data,forest=NULL,data_obj_train=NULL,forest_res_dir
 regenerate_new_rate_values = function(forest=NULL,data_obj_train=NULL,data_obj_test=NULL,forest_res_dir=NULL,weight_index=11,
    file_out='rate.txt'){
    ##### If data object is not defined, create the default data object ######
+   file_out = paste(store_dir,file_out,sep="")
+   
    if(is.null(data_obj_train)){
       print("data_obj_train not specified; using default values")
       data_obj_train = read_data()
@@ -501,7 +504,7 @@ regenerate_new_rate_values = function(forest=NULL,data_obj_train=NULL,data_obj_t
    data_obj_train = add_forest_to_obj(data_obj=data_obj_train,log_weight_try=log_weight_try)
    if(is.null(data_obj_test)){
       print("data_obj_test not specified; using default values")
-      myfile = paste(store_dir,'GRB_short_removed_rate_webreduced_rate.arff',sep="")
+      myfile = paste(store_dir,'Combined_RATE.arff',sep="")
       data_obj_test = read_data(filename=myfile)
    }
    
