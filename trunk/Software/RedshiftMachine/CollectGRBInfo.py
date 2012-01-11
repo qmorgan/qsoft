@@ -1891,7 +1891,8 @@ def Regenerate_RATE_db(clobber=False):
 def Reboot_GRB_full(get_new_swift_cat=True,seed_name='swift'):
     if get_new_swift_cat:
         ParseSwiftCat.GetNewCatFromWeb() # download new swift cat
-    db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc,seed_name=seed_name)
+    # not sure if i should redownload GCN and incl_fc here..    
+    db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=True,incl_reg=True,incl_fc=True,seed_name=seed_name)
     db_full.fillInMissingGCNs()
     SaveDB(db_full)
 
