@@ -187,12 +187,37 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
             else:
                 grb_name = grb_name_guess_A
                 new_grb=True
-                errtitle='New GRB %s added to database!' % (grb_name)
+                errtitle='New GRB %s added to database! Trigger %s' % (grb_name,str(triggerid))
                 print errtitle
                 qErr.qErr(errtitle=errtitle)
             if not new_grb:
                 # if not a new grb, double check that our name guess was correct by comparing triggerids
-                if not db.dict[grb_name]['triggerid_str'] == str(triggerid):
+                if not 'triggerid_str' in db.dict[grb_name]:
+                    # this means that it hasn't been parsed by the swift online table, so the grb_name is not confirmed correct
+                    if not 'gcn_triggerid' in db.dict[grb_name]:
+                        update_database=None
+                        errtitle='Unidentifiable GRB! Not adding to database'
+                        errtext"""Attempting to update the database entry for GRB %s
+                        with triggerid %s failed. There is no triggerid_str nor
+                        gcn_triggerid in the corresponding dictionary for this GRB
+                        entry in the database, so a cross-check could not be performed.
+                        Update code and re-check accordingly.""" % (grb_name,str(triggerid))
+                        qErr.qErr(errtitle=errtitle,errtext=errtext)
+                    elif not str(db.dict[grb_name]['gcn_triggerid']) == str(triggerid):
+                        update_database=None
+                        errtitle='GRB Triggerid/name mismatch! not adding to database'
+                        errtext="""Attempting to update the database entry for GRB %s
+                        with triggerid %s failed. The correct triggerid in the database for
+                        that GRB name is %s according to GCN notices. This may indicate 
+                        a mismatch in the database; Manually check what the correct GRB/id pair 
+                        is.  The correct GRB name needs to be determined
+                        for this GRB to be added to the database.""" % (grb_name,str(triggerid),str(db.dict[grb_name]['gcn_triggerid']))
+                        qErr.qErr(errtitle=errtitle,errtext=errtext)
+                    else:
+                        errtitle='Updated GRB %s in the database! Trigger %s; double check GRB/ID match is correct.' % (grb_name,str(triggerid))
+                        print errtitle
+                        qErr.qErr(errtitle=errtitle)
+                elif not db.dict[grb_name]['triggerid_str'] == str(triggerid):
                     update_database=None
                     errtitle='GRB Triggerid/name mismatch! not adding to database'
                     errtext="""Attempting to update the database entry for GRB %s
@@ -200,6 +225,10 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                     that GRB name is %s. The correct GRB name needs to be determined
                     for this GRB to be added to the database.""" % (grb_name,str(triggerid),db.dict[new_grb]['triggerid_str'])
                     qErr.qErr(errtitle=errtitle,errtext=errtext)
+                else:
+                    errtitle='Updated GRB %s in the database! Trigger %s' % (grb_name,str(triggerid))
+                    print errtitle
+                    qErr.qErr(errtitle=errtitle)
     
     newdict = {}
         

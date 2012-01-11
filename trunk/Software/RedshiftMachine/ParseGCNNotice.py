@@ -353,6 +353,8 @@ class GCNNotice:
         self.pdict.update(sub_dict)
         sub_dict = {'notices_available':self.available_types}   
         self.pdict.update(sub_dict)
+        sub_dict = {'gcn_triggerid':self.triggerid}
+        self.pdict.update(sub_dict)
         
     def e_bat_pos(self):
         easyparselist=\
