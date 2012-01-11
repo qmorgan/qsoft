@@ -192,9 +192,9 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                 qErr.qErr(errtitle=errtitle)
             if not new_grb:
                 # if not a new grb, double check that our name guess was correct by comparing triggerids
-                if not 'triggerid_str' in db.dict[grb_name]:
+                if not 'triggerid_str' in db.dict[grb_name].keys():
                     # this means that it hasn't been parsed by the swift online table, so the grb_name is not confirmed correct
-                    if not 'gcn_triggerid' in db.dict[grb_name]:
+                    if not 'gcn_triggerid' in db.dict[grb_name].keys():
                         update_database=None
                         errtitle='Unidentifiable GRB! Not adding to database'
                         errtext="""Attempting to update the database entry for GRB %s
