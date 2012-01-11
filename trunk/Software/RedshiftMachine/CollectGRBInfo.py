@@ -1881,15 +1881,17 @@ def Regenerate_RATE_db(clobber=False):
     old_arff_data_path = storepath + "GRB_short+Z_removed_webreduced.arff_data"
     combined_arff_path = storepath + "Combined_RATE.arff"
     cmd = "cat %s %s > %s" % (new_arff_path, old_arff_data_path, combined_arff_path)
-    
+    print "performing command:"
+    print cmd
     os.system(cmd)
     
     SaveDB(db_rate)
     return db_rate
 
-def Reboot_GRB_full():
-    ParseSwiftCat.GetNewCatFromWeb() # download new swift cat
-    db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc,seed_name='swift')
+def Reboot_GRB_full(get_new_swift_cat=True,seed_name='swift'):
+    if get_new_swift_cat:
+        ParseSwiftCat.GetNewCatFromWeb() # download new swift cat
+    db_full = TryLoadDB('GRB_full', clobber=True, redownload_gcn=redownload_gcn,incl_reg=True,incl_fc=incl_fc,seed_name=seed_name)
     db_full.fillInMissingGCNs()
     SaveDB(db_full)
 
