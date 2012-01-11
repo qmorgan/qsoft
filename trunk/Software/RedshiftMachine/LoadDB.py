@@ -23,7 +23,7 @@ storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
 
-def LoadDB(name, clobber=False, redownload_gcn=False,incl_reg=True,incl_fc=False):
+def LoadDB(name, clobber=False):
     ### LOAD or CREATE PICKLE STORAGE FILE 
     # Attempt to load pickle file
     pklpath = storepath+'DB_'+str(name)+'.pkl'
