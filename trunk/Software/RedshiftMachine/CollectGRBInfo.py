@@ -351,9 +351,14 @@ class GRBdb:
                     self.current_triggerid = int(self.current_trigid_str)
                 except:
                     self.current_triggerid = None
+            elif 'gcn_triggerid' in self.current_catdict:
+                self.current_triggerid = self.current_catdict['gcn_triggerid']
+                self.current_trigid_str = str(self.current_catdict['gcn_triggerid'])
             else:
                 self.current_trigid_str = None
                 self.current_triggerid = None
+                errtitle = 'Cannot determine trigger id for GRB %s; not re-collecting GCN or RATEGRBz' % (grb_str)
+                qErr.qErr(errtitle=errtitle)
             
             self._collect_swiftcat()
             if self.current_trigid_str:
