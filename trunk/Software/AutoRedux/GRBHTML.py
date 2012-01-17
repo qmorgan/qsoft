@@ -195,8 +195,15 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
 def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
         incl_keys = ['z','Q_hat'],
         table_columns=('GRB','Region File','Finding Chart','z','Q_hat'),
-        repeat_header=20):
-    '''Repeat the headers ever repeat_header rows'''
+        repeat_header=20, try_round=3):
+    '''Repeat the headers ever repeat_header rows
+    Currently this will sort the GRB table as follows: 
+    GRB Name - incl_files - incl_keys
+    
+    try_round will attempt to round each included key to the specified value
+    currently this is global; Do not want to bother doing it on a key by key
+    basis at the moment.
+    '''
     failed_grbs=[]
     if not table_columns or len(table_columns) != len(incl_keys) + len(incl_files) + 1:
         table_columns = ['GRB']
@@ -241,7 +248,12 @@ def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
                     html_block += "<td></td>"
             for incl_item in incl_keys:
                 try:
-                    html_block += "<td>%s</td>" % str(grbdict[incl_item])
+                    dict_val = grbdict[incl_item]
+                    try: # try to round the value of the key; otherwise just pass
+                        dict_val = round(dict_val,try_round)
+                    except TypeError:
+                        pass
+                    html_block += "<td>%s</td>" % str(dict_val)
                 except:
                     html_block += "<td></td>"
 #            html_block += "<td>%s</td>" % (grbdict['triggerid_str'])
