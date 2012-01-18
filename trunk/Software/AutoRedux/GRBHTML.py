@@ -193,7 +193,7 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
 
 
 def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
-        incl_keys = ['z','Q_hat'], base_path="./"
+        incl_keys = ['z','Q_hat'], base_path="./",
         table_columns=('GRB','Region File','Finding Chart','z','Q_hat'),
         repeat_header=20, try_round=3,maxlength=1E6):
     '''Repeat the headers ever repeat_header rows
