@@ -29,10 +29,14 @@ class qHTML:
     folder of a certain name with an index.html file as the main window. 
     Included in the folder are relavant images, files, and the pickle file for 
     this qHTML object.
+    
+    linklist is a list of Name,Website tuples (not a dict because of ordering issues)
     '''
     
-    def __init__(self,name,base_dir,create_folder=True,logo=None):
+    def __init__(self,name,base_dir,create_folder=True,
+        linklist=[("Home","./index.html"),("A website","http://www.google.com")]):
         '''If not create_folder, then dump all the files in the current base directory.'''
+        self.linklist = linklist
         self.base_dir = base_dir
         if not os.path.exists(base_dir):
             print "Output Directory %s does not exist. Exiting" % (base_dir)
@@ -243,12 +247,14 @@ class qHTML:
         ''' % (title, title)
         
         
-    def create_sidebar(self,linkdict={"Home":"./index.html","A website":"http://www.google.com"},
+    def create_sidebar(self,linklist='',
         sidebar_title='',logo_url="http://i.imgur.com/rWYK2.png"):
+        if linklist:
+            self.linklist=linklist
         sidelinks = ''
-        for title, link in linkdict.iteritems():
+        for linktuple in self.linklist:
             sidelink = '''<a class="page_link" href="%s"><span>%s</span></a>
-            ''' % (link,title)
+            ''' % (linktuple[1],linktuple[0])
             sidelinks += sidelink
             
         self.sidebar = '''

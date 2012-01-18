@@ -172,8 +172,8 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
                 grb_time=None,fc_path=None):
     '''Make a GRB page given inputs and return the instance of the html.'''
     
-    linkdict={"Swift GRB Pages":"http://swift.qmorgan.com","RSS Feed":"http://swift.qmorgan.com/rss.xml",
-                "Finding Chart Generator":"http://fc.qmorgan.com","A. N. Morgan's Webpage":"http://qmorgan.com"}
+    linklist=[("Swift GRB Pages","http://swift.qmorgan.com"),("RSS Feed","http://swift.qmorgan.com/rss.xml"),
+                ("Finding Chart Generator","http://fc.qmorgan.com"),("A. N. Morgan's Webpage","http://qmorgan.com")]
     triggerid = str(triggerid)
     inst = GRBHTML(triggerid,html_path)
     inst.add_timing_info(grb_time)
@@ -183,7 +183,7 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
     inst.add_footer()
     title = "Swift Trigger %s" % str(triggerid)
     inst.qHTML.create_header(title=title)
-    inst.qHTML.create_sidebar(linkdict)
+    inst.qHTML.create_sidebar(linklist)
     inst.qHTML.export_html()
     # Grabbing the keywords from qHTML
     inst.out_dir = inst.qHTML.out_dir
