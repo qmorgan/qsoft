@@ -30,7 +30,7 @@ class RATEHTML:
                         ('How it Works',"./howitworks.html"),
                         ('The Paper',"./paper.html"),
                         ('Contact Us',"./ratecontact.html"),
-                        ('Swift GRB Pages',"http.//swift.qmorgan.com"),
+                        ('Swift GRB Pages',"http://swift.qmorgan.com"),
                         ('RSS Feed',"http://swift.qmorgan.com/rss.xml"),
                         ('Finding Chart Generator',"http://fc.qmorgan.com"),
                         ("A. N. Morgan's Webpage","http://qmorgan.com/")]):
@@ -74,7 +74,7 @@ class RATEHTML:
         inst.add_post(title="Introduction",content=introcontent)
         
         db = LoadDB.LoadDB("GRB_full")
-        GRB_table_html = GRBHTML.MakeGRBTable(db.dict,maxlength=15) 
+        GRB_table_html = GRBHTML.MakeGRBTable(db.dict,base_path="../swift/",maxlength=15) 
         inst.add_post(title="Predictions for Latest GRBs",content = GRB_table_html)
         
         update_time = time.ctime(time.time())
