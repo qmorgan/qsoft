@@ -195,7 +195,7 @@ def MakeGRBPage(html_path='/home/amorgan/www/swift',triggerid='000000',\
 def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
         incl_keys = ['z','Q_hat'],
         table_columns=('GRB','Region File','Finding Chart','z','Q_hat'),
-        repeat_header=20, try_round=3):
+        repeat_header=20, try_round=3,maxlength=1E6):
     '''Repeat the headers ever repeat_header rows
     Currently this will sort the GRB table as follows: 
     GRB Name - incl_files - incl_keys
@@ -203,6 +203,8 @@ def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
     try_round will attempt to round each included key to the specified value
     currently this is global; Do not want to bother doing it on a key by key
     basis at the moment.
+    
+    maxlength is the maximum entry length of the table you want (default ridiculously high)
     '''
     failed_grbs=[]
     if not table_columns or len(table_columns) != len(incl_keys) + len(incl_files) + 1:
@@ -225,7 +227,7 @@ def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
     
     sortedkeys=collected_grb_dict.keys()
     sortedkeys.sort()
-    
+    total_count = 0
     table_entry_count=0
     
     for grb in reversed(sortedkeys):
@@ -266,7 +268,9 @@ def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
             table_entry_count += 1
         except:
             failed_grbs.append(grb)
-        
+        total_count += 1
+        if total_count > maxlength:
+            break
     print failed_grbs
     
     html_block += '''
