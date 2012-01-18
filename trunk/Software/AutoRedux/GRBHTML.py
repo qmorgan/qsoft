@@ -240,14 +240,14 @@ def MakeGRBTable(collected_grb_dict,incl_files=['reg_path','fc_path'],
             html_block += "<tr>"
             try:
                 grbfolder = os.path.basename(grbdict['out_dir'])
-                html_block += "<td><a href='./%s'>%s</a><br></td>" % (grbfolder,grb)
+                html_block += "<td><a href='%s%s'>%s</a><br></td>" % (base_path,grbfolder,grb)
             except:
                 grbfolder = None
                 html_block += "<td>%s</td>" % (grb)
             for incl_file in incl_files:
                 try:
                     file_path = grbfolder + '/' + os.path.basename(grbdict[incl_file])
-                    html_block += "<td align=center><a href='./%s'>Link</td>" % file_path
+                    html_block += "<td align=center><a href='%s%s'>Link</td>" % (base_path,file_path)
                 except:
                     file_path = None
                     html_block += "<td></td>"
