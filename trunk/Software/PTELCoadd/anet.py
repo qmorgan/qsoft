@@ -201,7 +201,10 @@ class ImageContainer:
 				print 'Val: ', c.value
 				print 'Com: ', c.comment		
 				
-		tmp.verify("silentfix")
+		try:
+		    tmp.verify("silentfix")
+		except:
+		    print "CANNOT VERIFY SOMETHING!"
 		tmp.close(output_verify='warn')
 		if delnew:
 			os.remove(self.newhead)
