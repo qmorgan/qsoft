@@ -2568,7 +2568,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
                 else:
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
                         marker = 'o', linestyle ='None', mfc = 'blue', mec = 'green', \
-                        ecolor = 'blue', label = 'j')
+                        ecolor = 'blue', label = 'J')
                     j = True
 
             elif 'h_' in mosaics:
@@ -2579,7 +2579,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
                 else:
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
                         marker = 'o', linestyle ='None', mfc = 'green', mec = 'green', \
-                        ecolor = 'green', label = 'h')
+                        ecolor = 'green', label = 'H')
                     h = True
 
 
@@ -2591,7 +2591,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
                 else:
                     matplotlib.pyplot.errorbar(time, valu, yerr=verr, xerr=terr, \
                         marker = 'o', linestyle ='None', mfc = 'red', mec = 'green', \
-                        ecolor = 'red', label = 'k')
+                        ecolor = 'red', label = 'Ks')
                     k = True
         elif 'upper_green' in photdict_lcurve[mosaics]: 
                 valu = float(photdict_lcurve[mosaics]['upper_green'])
@@ -2612,8 +2612,8 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
-#    matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('Mag')
+#    matplotlib.pyplot.xlabel('Time since Trigger (s)')
+    matplotlib.pyplot.ylabel('Mag', fontsize=26)
     #matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
     ax.set_xscale('log')
@@ -2628,7 +2628,7 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
 #    matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
 
     # spectral index plot
-    beta_err = the_fit[1][1] #why take square-root again? This looks wrong
+#    beta_err = the_fit[1][1] #why take square-root again? This looks wrong
     beta_err = numpy.std(betalist)
     ax = fig.add_axes([0.1,0.1,0.8,0.3])
     print 'betalist is'
@@ -2649,8 +2649,9 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     #ax = matplotlib.pyplot.gca()
     #ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
     
-    matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('$\beta$')
+    matplotlib.pyplot.xlabel('Time since Trigger (s)', fontsize=19)
+    #matplotlib.pyplot.ylabel('$\beta$', fontsize=26)
+    ylabel(r'$\beta$', fontsize=24)
     matplotlib.pyplot.semilogx()
     ax = matplotlib.pyplot.gca()
     #ax.set_xscale('log')
@@ -2658,8 +2659,9 @@ def plotindex(photdict, photdict_lcurve, ylim=None,xlim=None, big=False, dif_ap=
     uniquename = photdict.keys()[0].split('_')[2]
     cname = 'beta'
     #matplotlib.pyplot.title(uniquename+' Color Evolution '+'('+cname+')')
-    savepath = storepath + uniquename + '_' + cname + '_colorevo.ps'
-    
+    savepath = storepath + uniquename + '_' + cname + '_colorevo.eps'
+    print 'savepath'
+    print savepath
     if xlim:
         ax.set_xlim(xlim)
     if ylim:

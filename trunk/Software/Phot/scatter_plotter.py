@@ -126,12 +126,13 @@ def plotall(all_GRB_dict, time_correct=True):
              
     ax = matplotlib.pyplot.gca()
     ax.set_ylim(ax.get_ylim()[::-1]) # reversing the ylimits
-    matplotlib.pyplot.xlabel('Time since Burst (s)')
-    matplotlib.pyplot.ylabel('Mag')
+    matplotlib.pyplot.xlabel('Time since Trigger (s)', fontsize=19)
+    matplotlib.pyplot.ylabel('Mag (J)', fontsize=21)
     matplotlib.pyplot.legend()
     ax = matplotlib.pyplot.gca()
     ax.set_xscale('log')
-    savepath ='./all_lightcurve_nocorrect_j.ps'
+    xlim([80, 2*10**5])
+    savepath ='./all_lightcurve_nocorrect_j2.eps'
     print 'lightcurve saved to ' + savepath
     matplotlib.pyplot.savefig(savepath)
     matplotlib.pyplot.close()
@@ -373,8 +374,11 @@ def plot_lum():
     j_3min = -2.5*numpy.log10(j_3min) - 48.60
     
     hist(j_3min,13)
-    xlabel('J Apparent Magnitude')
-    ylabel('Number')
+    xlabel('$m_j$', fontsize=28)
+    ylabel('Number', fontsize=28)
+    yticks(arr([0, 1., 2., 3., 4.]))
+    ax = matplotlib.pyplot.gca()
+    ax.set_xlim(ax.get_xlim()[::-1]) # reversing the xlimits
     savefig('Lum_dist.eps')
 
     clf()
@@ -424,10 +428,13 @@ def plot_lum_rest():
     Absol_Mag = -2.5*numpy.log10(F) - 48.60    #Absolute mag in AB mag
     
     hist(Absol_Mag,6)
-    xlabel('V Absolute Magnitude')
-    ylabel('Number')
+    xlabel('$M_v$', fontsize=27)
+    ylabel('Number', fontsize=28)
+    yticks(arr([0, 1., 2., 3., 4.]))
+    ax = matplotlib.pyplot.gca()
+    ax.set_xlim(ax.get_xlim()[::-1]) # reversing the xlimits
     savefig('Lum_dist_rest.eps')
 
     print 'Done'
     
-    return L_rest_V
+    return Absol_Mag
