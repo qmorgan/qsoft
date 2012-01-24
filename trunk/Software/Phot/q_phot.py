@@ -234,6 +234,39 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
 
 def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
                             base_dither_error=0.03):
+    '''
+    Dan tested PAIRITEL uncertainty sources extensively for his work on 
+    GRB 071025 (Perley et al. 2010, Sec 2.2).
+    
+    In these mosaics we are resampling (with the Swarp program) from
+    PAIRITEL's native pixel scale of 2"/pix to 1"/pix; since we're
+    drizzling from 1 into 4 fake pixels, the nominal statistical
+    uncertainty is under-sampled by a factor of 2 (actually found to be
+    about 2.4).   The instrumental error is thus multiplied by this factor.
+    
+    The large plate scale of PAIRITEL (2.0arcsec/pix) and the variable sub-pixel 
+    response function of the NICMOS3 arrays creates a significant additional 
+    uncertainty in each position beyond ordinary photometric errors, estimated 
+    at ~3 percent by Blake et al. (2008). To quantify this uncertainty as 
+    accurately as possible, we constructed light curves for standard stars
+    of different magnitudes in regions of the image free of defects by 
+    measuring the image-to-image magnitude variations of bright 
+    (source-dominated) stars. An additional uncertainty of approximately 
+    ~0.02 mag per position was required to incorporate the observed scatter 
+    in the photometry of these objects.
+    
+    email 5/18/11 to pierre
+    ////Grand! Very promising results.  This clearly shows that we've been
+    overestimating the per-dither uncertainty in the photometry code
+    (currently set to 0.1 mag).  At some point we should verify these
+    values with well-detected sources in other fields, but it appears that
+    we're looking at values of 0.02 for J, 0.025 for H, and 0.03 for K.
+    ////
+    
+    The error in zeropoint is added in quadrature with these other two sources
+    of uncertainty to determine the final uncertainty.
+    
+    '''
     uncertainty = float(sqrt(zeropoint_error**2 + (instrumental_error*2.4)**2 
                     + (base_dither_error/sqrt(num_triplestacks))**2))
     return uncertainty
@@ -437,8 +470,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     for info in file_header[0].header:
         if 'STRT' in info:
             STRT_count += 1
-    n_dither = STRT_count - 1
-    print 'Found ' + str(n_dither) + ' dither images'
+    n_dither = STRT_count - 1 # accounting for the STRT_CPU
+    print 'Found ' + str(n_dither) + ' individual images'
     if n_dither == 0:
         num_triplestacks = 1
     elif n_dither == 1:
@@ -448,8 +481,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     if n_dither == 0:
         n_dither = 1
     if n_dither%3 != 0:
-        print 'Warning: Number of dither images is not divisible by 3!'
-    ditherdict = {'N_dither':n_dither}
+        warning = 'Warning: Number of individual images is not divisible by 3! Was this mosaic made of triplestacks?'
+        print warning
+        raise Exception(warning)
+    ditherdict = {'N_dither_pos':num_triplestacks,'N_input_images':n_dither}
     
     if do_upper:
         # Store the image's dimensions.
@@ -1029,7 +1064,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     rebinning from 2"/pix to 1"/pix (should be a factor of two, but
     in testing with GRB 071025, Dan found it to be ~2.4).'''
     
-    num_triplestacks = ditherdict['N_dither']/3
+    num_triplestacks = ditherdict['N_dither_pos']
     if num_triplestacks == 0:
         num_triplestacks = 1    
 
@@ -1657,7 +1692,9 @@ def plots2n(photdict):
     matplotlib.pyplot.close()
 
 def plotproperty(photdict, prop):
-    '''Plots a graph of zp from the pickle output of the photreturn function'''
+    '''Plots a graph of a property from the pickle output of the photreturn function
+    CURRENTLY NOT IMPLEMENTED?
+    '''
     import matplotlib
     import glob
 
