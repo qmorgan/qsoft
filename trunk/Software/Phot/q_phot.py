@@ -232,7 +232,7 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
     return fwhm, fwhm_stdev
     
 
-def find_number_of_dither_positions(progenitor_image_name,override_n_dither=0):
+def find_number_of_dither_positions(progenitor_image_name,fallback_n_dither=0):
     '''Finding the number of triplestacks (dither positions) used in the image
     for use when calulating the uncertainty (an addl source of error occurs
     which reduces as the sqrt of the number of dither positions):
@@ -242,7 +242,7 @@ def find_number_of_dither_positions(progenitor_image_name,override_n_dither=0):
     
     For some manually construceted mosaics these keywords are lost, so the number
     of dither positions will need to be provided either manually (through
-    raw input), or via the override_n_dither keyword which will assign this 
+    raw input), or via the fallback_n_dither keyword which will assign this 
     value.
     '''
     file_header = pyfits.open(progenitor_image_name)
@@ -263,8 +263,9 @@ def find_number_of_dither_positions(progenitor_image_name,override_n_dither=0):
     if n_ind_images > 2:
         print "Assuming the number of dither positions (triplestacks) is 1/3rd the number of images."
         num_triplestacks = n_ind_images/3
-    elif override_n_dither > 0:
-        num_triplestacks = int(override_n_dither)
+    elif fallback_n_dither > 0:
+        print "\n\nCould not auto-detect number of dither positions! Using fallback value of %s\n\n" % (str(fallback_n_dither))
+        num_triplestacks = int(fallback_n_dither)
     else:
         print """Unknown number of dither positions! Needed to estimate PAIRITEL 
 uncertainty. (This is a negligible source of error for large mosaics, 
@@ -323,7 +324,8 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False):
+        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False
+        fallback_n_dither=0):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -511,7 +513,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     photdict.update({'filter':band})
     
     # Obtain the number of dither positions
-    ditherdict = find_number_of_dither_positions(progenitor_image_name)
+    ditherdict = find_number_of_dither_positions(progenitor_image_name,fallback_n_dither=fallback_n_dither)
         
     if do_upper:
         # Store the image's dimensions.
@@ -1492,7 +1494,9 @@ def openCalRegion(reg_path, nonstore=False):
     return callist
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None, 
+    caliblimit=True, verbose=False, autocull=False, find_fwhm=False,
+    fallback_n_dither=0):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1524,10 +1528,10 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm, fallback_n_dither=fallback_n_dither)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm, fallback_n_dither=fallback_n_dither)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1539,7 +1543,8 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
-    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
+    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, 
+    autocull=False, find_fwhm=False, global_fallback_n_dither=0):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1575,7 +1580,8 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
-            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm=find_fwhm)
+            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, 
+            find_fwhm=find_fwhm, fallback_n_dither=global_fallback_n_dither)
     return photout
     
 def plotzp(photdict):
