@@ -232,6 +232,54 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
     return fwhm, fwhm_stdev
     
 
+def find_number_of_dither_positions(progenitor_image_name,override_n_dither=0):
+    '''Finding the number of triplestacks (dither positions) used in the image
+    for use when calulating the uncertainty (an addl source of error occurs
+    which reduces as the sqrt of the number of dither positions):
+    
+    This works by counting the number of images used to make each file, 
+    indicated by the number of STRT0001 type instances in the header.
+    
+    For some manually construceted mosaics these keywords are lost, so the number
+    of dither positions will need to be provided either manually (through
+    raw input), or via the override_n_dither keyword which will assign this 
+    value.
+    '''
+    file_header = pyfits.open(progenitor_image_name)
+    STRT_count = 0
+    for info in file_header[0].header:
+        if 'STRT' in info:
+            STRT_count += 1
+    n_ind_images = STRT_count - 1 # accounting for the STRT_CPU
+    print 'Found ' + str(n_ind_images) + ' individual images'
+    # if n_ind_images == 0:
+    #     num_triplestacks = 1
+    # elif n_ind_images == 1:
+    #     num_triplestacks = 1
+    # else:
+    #     num_triplestacks = n_ind_images/3
+    # if n_ind_images == 0:
+    #     n_ind_images = 1
+    if n_ind_images > 2:
+        print "Assuming the number of dither positions (triplestacks) is 1/3rd the number of images."
+        num_triplestacks = n_ind_images/3
+    elif override_n_dither > 0:
+        num_triplestacks = int(override_n_dither)
+    else:
+        print """Unknown number of dither positions! Needed to estimate PAIRITEL 
+uncertainty. (This is a negligible source of error for large mosaics, 
+so just enter a large number of order 100/hour if this is a mosaic)."""
+        print progenitor_image_name
+        num_triplestacks_str = raw_input("Enter number of dither positions: ")
+        num_triplestacks = int(num_triplestacks_str)
+    if n_ind_images%3 != 0:
+        warning = '\n\n\nWarning: Number of individual images is not divisible by 3! Was this mosaic made of triplestacks?\n\n\n'
+        print warning
+    print "Determined %i input images and %i dither positions" % (n_ind_images,num_triplestacks)
+    ditherdict = {'N_dither_pos':num_triplestacks,'N_input_images':n_ind_images}
+    return ditherdict
+    
+
 def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
                             base_dither_error=0.03):
     '''
@@ -462,30 +510,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     photdict.update({'EXPTIME':exptime})
     photdict.update({'filter':band})
     
-    '''Finding the number of triplestacks (dither positions) used in the image
-    for use when calulating the uncertainty (an addl source of error occurs
-    which reduces as the sqrt of the number of dither positions):'''
-    file_header = pyfits.open(progenitor_image_name)
-    STRT_count = 0
-    for info in file_header[0].header:
-        if 'STRT' in info:
-            STRT_count += 1
-    n_dither = STRT_count - 1 # accounting for the STRT_CPU
-    print 'Found ' + str(n_dither) + ' individual images'
-    if n_dither == 0:
-        num_triplestacks = 1
-    elif n_dither == 1:
-        num_triplestacks = 1
-    else:
-        num_triplestacks = n_dither/3
-    if n_dither == 0:
-        n_dither = 1
-    if n_dither%3 != 0:
-        warning = 'Warning: Number of individual images is not divisible by 3! Was this mosaic made of triplestacks?'
-        print warning
-        raise Exception(warning)
-    ditherdict = {'N_dither_pos':num_triplestacks,'N_input_images':n_dither}
-    
+    # Obtain the number of dither positions
+    ditherdict = find_number_of_dither_positions(progenitor_image_name)
+        
     if do_upper:
         # Store the image's dimensions.
         height, width = image_data.shape[0], image_data.shape[1]
