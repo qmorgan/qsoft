@@ -324,8 +324,8 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False
-        fallback_n_dither=0):
+        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False,
+        fallback_n_dither=0, reuse_old_vizcat=False):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -356,6 +356,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             CURRENTLY NOT WORKING.
         caliblimit: if True, then if a calibration star has a higher stdev than
             our threshold, then stop the program
+        fallback_n_dither: fallback value if the number of dither positions 
+            cannot be determined
+        reuse_old_vizcat: if True, then do not make the call to download a new
+            vizcat and just use the old one in the storepath.
         
     '''
     # Begin timing
@@ -874,34 +878,35 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
 
     # We collect the 2MASS photometry of field sources with a query to vizier.
     # Most of this is forming the query and then formatting the returned text file.
-    viz_input_file = file(storepath + "viz_input.txt", "w")
-    viz_input_file.write(
-        "-source=2MASS/PSC\n" + 
-        "-c=" + str(target_ra_deg) + " " + str(target_dec_deg) + "\n" +
-        "-c.rm=15\n" +
-        "-out=_r RAJ2000 DEJ2000 " + 
-            "Jmag e_Jmag Jsnr " + 
-            "Hmag e_Hmag Hsnr " + 
-            "Kmag e_Kmag Ksnr " + 
-            "Qflg\n" +
-        "-sort=_r\n" + 
-        "Qflg==AAA\n" + 
-        "Jsnr=>10"
-        + "\nJmag=>9"
-        )
-    viz_input_file.close()
-    syscmd = "vizquery -mime=csv -site=cfa %sviz_input.txt > %sviz_output.txt" % (storepath, storepath)
-    system(syscmd)
-    system("rm -f viz_input.txt")
-    viz_output_cropped_file = file(storepath + "viz_output_cropped.txt", "w")
-    viz_output_file = file(storepath + "viz_output.txt", "r")
-    line_num = 0
-    for line in viz_output_file:
-        line_num += 1
-        if line_num > 46 and line != "\n":
-            viz_output_cropped_file.write(line)
-    viz_output_cropped_file.close()
-    viz_output_file.close()
+    if not reuse_old_vizcat:
+        viz_input_file = file(storepath + "viz_input.txt", "w")
+        viz_input_file.write(
+            "-source=2MASS/PSC\n" + 
+            "-c=" + str(target_ra_deg) + " " + str(target_dec_deg) + "\n" +
+            "-c.rm=15\n" +
+            "-out=_r RAJ2000 DEJ2000 " + 
+                "Jmag e_Jmag Jsnr " + 
+                "Hmag e_Hmag Hsnr " + 
+                "Kmag e_Kmag Ksnr " + 
+                "Qflg\n" +
+            "-sort=_r\n" + 
+            "Qflg==AAA\n" + 
+            "Jsnr=>10"
+            + "\nJmag=>9"
+            )
+        viz_input_file.close()
+        syscmd = "vizquery -mime=csv -site=cfa %sviz_input.txt > %sviz_output.txt" % (storepath, storepath)
+        system(syscmd)
+        system("rm -f viz_input.txt")
+        viz_output_cropped_file = file(storepath + "viz_output_cropped.txt", "w")
+        viz_output_file = file(storepath + "viz_output.txt", "r")
+        line_num = 0
+        for line in viz_output_file:
+            line_num += 1
+            if line_num > 46 and line != "\n":
+                viz_output_cropped_file.write(line)
+        viz_output_cropped_file.close()
+        viz_output_file.close()
     # Define the obj_string and band_type from the progenitor_image_name. If the 
     # progenitor_image_name is not in the format used by PARITIEL reduction
     # pipeline 3, these will not work properly.
@@ -1575,13 +1580,19 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
             GRBlist.append(item)
     if not GRBlist:
         raise ValueError('No files to perform photometry on. In right directory?')
+    
+    reuse=False
+    count=0
     for mosaic in GRBlist:
+        if count > 0: reuse = True
         print "=========================================================="
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
             auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, 
-            find_fwhm=find_fwhm, fallback_n_dither=global_fallback_n_dither)
+            find_fwhm=find_fwhm, fallback_n_dither=global_fallback_n_dither,
+            reuse_old_vizcat=reuse)
+        count += 1
     return photout
     
 def plotzp(photdict):
