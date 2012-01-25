@@ -907,6 +907,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
                 viz_output_cropped_file.write(line)
         viz_output_cropped_file.close()
         viz_output_file.close()
+    else:
+        print "Reusing old vizcat in the store directory!"
     # Define the obj_string and band_type from the progenitor_image_name. If the 
     # progenitor_image_name is not in the format used by PARITIEL reduction
     # pipeline 3, these will not work properly.
@@ -1501,7 +1503,7 @@ def openCalRegion(reg_path, nonstore=False):
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     auto_upper=True, calregion = None, trigger_id = None, stardict = None, 
     caliblimit=True, verbose=False, autocull=False, find_fwhm=False,
-    fallback_n_dither=0):
+    fallback_n_dither=0,reuse_old_vizcat=False):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1533,7 +1535,9 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm, fallback_n_dither=fallback_n_dither)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, 
+                caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm, 
+                fallback_n_dither=fallback_n_dither, reuse_old_vizcat=reuse_old_vizcat)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
                 data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm, fallback_n_dither=fallback_n_dither)
@@ -1549,7 +1553,8 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, 
-    autocull=False, find_fwhm=False, global_fallback_n_dither=0):
+    autocull=False, find_fwhm=False, global_fallback_n_dither=0, 
+    reuse_vizcat_after_one_iteration=True):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1584,7 +1589,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     reuse=False
     count=0
     for mosaic in GRBlist:
-        if count > 0: reuse = True
+        if count > 0 and reuse_vizcat_after_one_iteration: reuse = True
         print "=========================================================="
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
