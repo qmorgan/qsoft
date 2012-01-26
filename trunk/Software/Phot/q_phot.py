@@ -2041,7 +2041,8 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
         savefig(savepath)    
         matplotlib.pyplot.close()
 
-def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, caliblimit=True):
+def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, 
+        caliblimit=True, global_fallback_n_dither=0):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
     we loop around images in a directory using PhotLoop and measure the 
@@ -2057,7 +2058,8 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
         
         # Can set auto_upper = False since dont care if source is detected or not
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
-            clobber=True, trigger_id=trigger_id, auto_upper=False, caliblimit=caliblimit) 
+            clobber=True, trigger_id=trigger_id, auto_upper=False, caliblimit=caliblimit,
+            global_fallback_n_dither=global_fallback_n_dither) 
     
         k_delta_list = []
         h_delta_list = []
