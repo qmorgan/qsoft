@@ -2328,7 +2328,10 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
 
 def textoutput(photdict,utburst,filt=None, day=False):
     '''outputs a text file from photdict.  If filt specified, only output that
-    particular filter. Requires a utburst string in the form of hh:mm:ss. Days are integers (e.g. second day observation => day=2. WARNING: If the observations consists of multiple days, care needs to be exercised! Current fix: do it manually!
+    particular filter. Requires a utburst string in the form of hh:mm:ss. 
+    Days are integers (e.g. second day observation => day=2. WARNING: If the 
+    observations consists of multiple days, care needs to be exercised! 
+    Current fix: do it manually!
     '''
 
     import datetime
