@@ -188,8 +188,12 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
 def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
 
-def CrawlThruLyraData(basepath='/PAIRITEL/'):
-    swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+def CrawlThruLyraData(basepath='/PAIRITEL/',objtype='GRB',useswiftdict=True):
+    if useswiftdict:
+        swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+    else:
+        swiftdict = {}
+        
     rawpaths=[]
     ptel_dict={}
     error_paths=[]
@@ -198,7 +202,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/'):
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+            ptel_dict = RawToDatabase(path,objtype=objtype,pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     
@@ -206,7 +210,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/'):
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+            ptel_dict = RawToDatabase(path,objtype=objtype,pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     
@@ -214,7 +218,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/'):
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+            ptel_dict = RawToDatabase(path,objtype=objtype,pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     
