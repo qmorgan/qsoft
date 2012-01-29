@@ -57,8 +57,10 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     import pyfits
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
-    if swiftcatdict=={}:
+    if swiftcatdict=={}: # attempt to load the default swiftcatpath
         swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+    elif swiftcatdict==None:
+        swiftcatdict = {} #None implies that we don't want to load a dictionary (eg for nongrbs)
     
 #    pteldict = {}
     
@@ -192,7 +194,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/',objtype='GRB',useswiftdict=True):
     if useswiftdict:
         swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
     else:
-        swiftdict = {}
+        swiftdict = None
         
     rawpaths=[]
     ptel_dict={}
