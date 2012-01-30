@@ -1235,7 +1235,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
             delta_pos = star[8]
-            delta_mag = abs(new_mag-tmass_mag) # difference between our magnitude and 2mass
+            delta_mag = new_mag-tmass_mag # difference between our magnitude and 2mass
             # new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
             #                 + (base_dither_error/sqrt(num_triplestacks))**2))
             new_e_mag = return_ptel_uncertainty(ptel_e_mag,zeropoint_error,num_triplestacks)
@@ -2067,7 +2067,7 @@ def findOptimalAperture(GRBname, regfile, calregion=None, trigger_id = None, plo
 
         for key, val in data.iteritems():
             for calkey, calval in val['calib_stars'].iteritems():
-                delta = calval['delta_mag']
+                delta = abs(calval['delta_mag'])
                 if val['filter']=='j':
                     j_delta_list.append(delta)
                 elif val['filter']=='h':
