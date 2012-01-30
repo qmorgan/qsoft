@@ -907,6 +907,9 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
     return mosaic_list
 
 def WCS_Transplant(original_image, target_image):
+    """Transplant the WCS information from one image onto another.
+    Useful for when one filter has the correct WCS info but the others do not.
+    """
 
     import pprint
 
