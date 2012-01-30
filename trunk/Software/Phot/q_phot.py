@@ -1628,34 +1628,34 @@ def plotzp(photdict):
         if 'h_' in mosaics:
             if h == True: 
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
-                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
-                    ecolor = 'red')
+                    marker = '.', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green')
             else:
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
-                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
-                    ecolor = 'red', label = 'h')
+                    marker = '.', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
-                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    marker = '.', linestyle ='None', mfc = 'blue', mec = 'blue', \
                     ecolor = 'blue')
             else:
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
-                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    marker = '.', linestyle ='None', mfc = 'blue', mec = 'blue', \
                     ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
-                    marker = 's', linestyle ='None', mfc = 'yellow', \
-                    mec = 'green', ecolor = 'yellow')
+                    marker = '.', linestyle ='None', mfc = 'red', \
+                    mec = 'red', ecolor = 'red')
             else:
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
-                    marker = 's', linestyle ='None', mfc = 'yellow', \
-                    mec = 'green', ecolor = 'yellow', label = 'k')
+                    marker = '.', linestyle ='None', mfc = 'red', \
+                    mec = 'red', ecolor = 'red', label = 'k')
                 k = True
 
     ax = matplotlib.pyplot.gca()
@@ -2041,7 +2041,7 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
         savefig(savepath)    
         matplotlib.pyplot.close()
 
-def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, 
+def findOptimalAperture(GRBname, regfile, calregion=None, trigger_id = None, plot=True, 
         caliblimit=True, global_fallback_n_dither=0):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
