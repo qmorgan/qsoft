@@ -1212,6 +1212,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             #                 + (base_dither_error/sqrt(num_triplestacks))**2))
             new_e_mag = return_ptel_uncertainty(ptel_e_mag,zeropoint_error,num_triplestacks)
             target_e_mag = new_e_mag
+            target_instrumental_e_mag = ptel_e_mag
 
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
@@ -1301,6 +1302,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         # Update the photometry string with updated values
         photdict.update({'targ_mag':(target_mag,target_e_mag)})
         photdict.update({'targ_flux':(target_flux,target_flux_err)})
+        photdict.update({'targ_inst_err':target_instrumental_e_mag})
         photdict.update({'targ_s2n':src_s2n})
     # Print out photometry data.
     print progenitor_image_name, "HJD:", hjd
