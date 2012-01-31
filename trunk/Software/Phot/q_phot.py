@@ -1309,6 +1309,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         str(average(abs_2mass_deviation_list)))
     print "Zeropoint:", zeropoint, "err", zeropoint_error
     
+    photdict.update({'zp_list':zeropoint_list})
+    photdict.update({'zp_err_list':zeropoint_err_list})
     photdict.update({'zp':(zeropoint,zeropoint_error)})
     photdict.update({'2mass_abs_avg_dev':str(average(abs_2mass_deviation_list))})
     
@@ -1600,7 +1602,7 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
         count += 1
     return photout
     
-def plotzp(photdict):
+def plotzp(photdict,ylim=None):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
     import matplotlib
     import glob
@@ -1659,6 +1661,8 @@ def plotzp(photdict):
                 k = True
 
     ax = matplotlib.pyplot.gca()
+    if ylim:
+        ax.set_ylim(ylim)
     ax.set_ylim(ax.get_ylim()[::-1])
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
