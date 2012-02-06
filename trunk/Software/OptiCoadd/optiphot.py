@@ -36,6 +36,8 @@ class LCModel:
         return integrated_model
     
     def simdata(self,tstart=1.21e6,tstop=2.42e6,exptime=1200,cadence=1.21e6, skynoise=0.05*10**-26):  
+        '''Generate fake images with a given start and stop time, exposure time,
+        cadence, and skynoise.'''
         # All times in seconds, flux in cgs
         numpoints=(tstop+1-tstart)/cadence
         # Assume same exptime for each exposure for now.
@@ -54,10 +56,9 @@ class LCModel:
                     'exptime':exptime,'skycounts':skycounts}
         return header
     
-    def plot(self, modelname="NoModelName"):
+    def plotModel(self, modelname="NoModelName"):
         '''Plots the Model Lightcurve; Optimized for built-in RSne'''
         t = numpy.arange(0.1, 10000.0+0.1, 0.1)
-        modelname = 'RSNe Models'
         pylab.loglog(t,self.model(t))
         pylab.xlabel('Time (days)')
         pylab.ylabel('Flux Density (mJy)')
@@ -65,6 +66,7 @@ class LCModel:
         pylab.ylim(0.005,50)
         pylab.xlim(1,10000)
         pylab.show()
+    
     
 
 class GRB(LCModel):
