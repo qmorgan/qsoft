@@ -17,6 +17,22 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None, forcenongrb=False):
     start = datetime.datetime.strptime(starttime.split('.')[0], "%Y-%m-%d %H:%M:%S")
     stop = datetime.datetime.strptime(stoptime.split('.')[0], "%Y-%m-%d %H:%M:%S")
     
+    #handle the fractions of a second:
+    start_microseconds_str = starttime.split('.')[1] 
+    stop_microseconds_str = stoptime.split('.')[1]
+    if len(start_microseconds_str) != 6:
+        raise ValueError("The length of the microseconds split in STRT_CPU is not 6; Check header file")
+    else:
+        start_microseconds = int(start_microseconds_str)
+    if len(start_microseconds_str) != 6:
+        raise ValueError("The length of the microseconds split in STRT_CPU is not 6; Check header file")
+    else:
+        stop_microseconds = int(stop_microseconds_str)
+    
+    start = start + datetime.timedelta(microseconds=start_microseconds)
+    stop = stop + datetime.timedelta(microseconds=stop_microseconds)
+    
+    
     if not delta:
 
         durdiv2 = (stop - start)/2 + start
