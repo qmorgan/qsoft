@@ -59,14 +59,27 @@ def run_swarp(command):
 ### RECORD INFORMATION ABOUT CHANGING THE SEXTRACTOR PARAM FILES
 ### NOTE - TEST HOW CALIB STAR TRENDS CHANGE WITH APERTURE SIZE
 
-def MakeTriplestack(reduced_filelist):
+def MakeTriplestack(reduced_filelist,allow_nontriple=False,sumcombine=False):
+    '''Given a filelist of 3 reduced images that are aligned, combine them
+    and rename them like a triplestack.
+    
+    you will get a Warning: 
+    > WARNING: Several input images and a single weight-map found: applying 
+    the same weight-map to all images
+    
+    This is fine. This is because I am feeding the same bad pixel map to all 3.
+    
+    If you want to make a doublestack for some reason, you can allow_nontriple=True
+    to override the test for making sure there are 3. No difference between 
+    median and sum combine with only two images.
+    '''
     accepted_filters = ['j','h','k']
     filestring = ''
 
     j_stop_list = []
     j_start_list = []
 
-    if len(reduced_filelist) != 3:
+    if len(reduced_filelist) != 3 and not allow_nontriple:
         raise ValueError('filelist should be list or tuple of length 3')
     for reduced_file in reduced_filelist:
 
@@ -101,7 +114,11 @@ def MakeTriplestack(reduced_filelist):
     print filestring
     tmpweightpath =  storepath + '/tmptriplestack.weight.fits '
     tmpimgpath = storepath + '/tmptriplestack.fits '
-    swarpcmd = "swarp -c "+ loadpath + "make_triplestack.swarp " + filestring 
+    if not sumcombine: # use MEDIAN for combine type
+        swarpcmd = "swarp -c "+ loadpath + "make_triplestack.swarp " + filestring 
+    else: # use SUM instead of MEDIAN
+        swarpcmd = "swarp -c "+ loadpath + "make_triplestack_sum.swarp " + filestring 
+
     swarpcmd += " -WEIGHT_IMAGE @" + loadpath + '/' + filt + '_triplestackweights.txt '
     swarpcmd += "-IMAGEOUT_NAME " + tmpimgpath + "-WEIGHTOUT_NAME " + tmpweightpath
     run_swarp(swarpcmd)
