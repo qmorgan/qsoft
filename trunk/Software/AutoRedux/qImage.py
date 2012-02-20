@@ -323,7 +323,7 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
         dec = float(dec)
     except:
         try:
-            float_ra_dec = sex2dec(ra,dec)
+            float_ra_dec = sex2dec((ra,dec))
             uncertainty = float(uncertainty)
             ra=float(float_ra_dec[0])
             dec=float(float_ra_dec[1])
