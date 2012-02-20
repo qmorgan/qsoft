@@ -931,21 +931,25 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         for line in vizcat_file:
             data_list = line.rstrip().lstrip().split(";")
             if len(data_list) == 13: # Check formatting 
-                ra = float(data_list[1]) # degrees
-                dec = float(data_list[2]) # degrees
-                if band == "j":
-                    mag = float(data_list[3])
-                    e_mag = float(data_list[4])
-                    snr = float(data_list[5])
-                if band == "h":
-                    mag = float(data_list[6])
-                    e_mag = float(data_list[7])
-                    snr = float(data_list[8])
-                if band == "k":
-                    mag = float(data_list[9])
-                    e_mag = float(data_list[10])
-                    snr = float(data_list[11])
-                vizcat_starlist.append([ra, dec, mag, e_mag, snr])
+                try:
+                    ra = float(data_list[1]) # degrees
+                    dec = float(data_list[2]) # degrees
+                    if band == "j":
+                        mag = float(data_list[3])
+                        e_mag = float(data_list[4])
+                        snr = float(data_list[5])
+                    if band == "h":
+                        mag = float(data_list[6])
+                        e_mag = float(data_list[7])
+                        snr = float(data_list[8])
+                    if band == "k":
+                        mag = float(data_list[9])
+                        e_mag = float(data_list[10])
+                        snr = float(data_list[11])
+                    vizcat_starlist.append([ra, dec, mag, e_mag, snr])
+                except:
+                    print "Problem parsing line in viz_output.txt:"
+                    print line
         vizcat_file.close()
         
     # Using deepstack of calibration stars as the catalog, instead of 2MASS
