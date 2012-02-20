@@ -13,6 +13,7 @@ import scipy.optimize
 import numpy
 import pylab
 import os, sys
+import matplotlib.pyplot as plt
 
 class LCModel:
     '''Represents a Model Lightcurve'''
@@ -36,6 +37,8 @@ class LCModel:
         return integrated_model
     
     def simdata(self,tstart=1.21e6,tstop=2.42e6,exptime=1200,cadence=1.21e6, skynoise=0.05*10**-26):  
+        '''Generate fake images with a given start and stop time, exposure time,
+        cadence, and skynoise.'''
         # All times in seconds, flux in cgs
         numpoints=(tstop+1-tstart)/cadence
         # Assume same exptime for each exposure for now.
@@ -54,19 +57,76 @@ class LCModel:
                     'exptime':exptime,'skycounts':skycounts}
         return header
     
-    def plot(self, modelname="NoModelName"):
+    def plotModel(self, trange=(0.0005,1), tstep=0.0005, modelname="NoModelName"):
         '''Plots the Model Lightcurve; Optimized for built-in RSne'''
-        t = numpy.arange(0.1, 10000.0+0.1, 0.1)
-        modelname = 'RSNe Models'
-        pylab.loglog(t,self.model(t))
-        pylab.xlabel('Time (days)')
-        pylab.ylabel('Flux Density (mJy)')
-        pylab.title(modelname)
-        pylab.ylim(0.005,50)
-        pylab.xlim(1,10000)
-        pylab.show()
-    
+        t = numpy.arange(trange[0],trange[1]+trange[0], tstep)
+        fig=plt.figure()
+        ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.plot(t,self.model(t))
+        ax.loglog()
+        ax.set_xlabel('Time (days)')
+        ax.set_ylabel('Flux Density (mJy)')
+        ax.set_title(modelname)
+        plt.show()
+        
 
+class GRBspecial(LCModel):
+    '''A special class developed to take into account a changing optical depth
+    with time.  In this class, the initial model is determined first without any
+    tau considerations, and only depends on the temporal and spectral indices.
+    
+    Fake data can then be generated, upon which a lookup table courtesy of CCM
+    determines the initial absorption of the given wavelength, A_lambda_0.
+    
+    Attenuation due to dust is then applied assuming a model tau propto 1/t
+    '''
+    def __init__(self,F_0,t_0,wv_0,wv,alpha,beta,name="NoName"):
+        '''wv in nanometers, t in days'''
+        c = 2.998E10 #cm/s
+        self.F_0 = F_0
+        self.t_0 = t_0
+        self.wv_0 = wv_0
+        self.wv = wv
+        self.nu_0 = c/(wv_0*1E-7)
+        self.nu = c/(wv*1E-7)
+        self.alpha = alpha
+        self.name = name
+        self.model = lambda tt: F_0 * (self.nu/self.nu_0)**beta * (tt/t_0)**alpha
+        print '(Initialized GRB Model: %s)' % self.name
+    def genSpecialData(self,trange=(0.0001,1),tstep=0.0001):
+        self.trange = trange
+        self.timelist = numpy.arange(trange[0],trange[1]+trange[0], tstep)
+        self.datalist = self.model(self.timelist)
+    def determineTau(self,av_0=1,rv_0=3.1):
+        if not hasattr(self,'timelist'):
+            print "This function only acts on a list of data, not the model "
+            print "itself. Run genSpecialData first."
+            return
+        # Determine the absorption in Tau
+        from Phot import absorption #CCM dust law to determine tau_0
+        self.A_lambda_0 = absorption.AbsCalc(self.wv/1E3,av_0,rv_0) #requires wv in microns
+        # tau is related to A_lambda by log_10(e) = 1.086
+        tau_0 = self.A_lambda_0/1.086
+        taumodel = lambda tt: tau_0 * (tt/self.t_0)**(-1)
+        self.taulist = taumodel(self.timelist)
+        self.attenuated_datalist = self.datalist*numpy.e**(-self.taulist)
+    def specialplot(self,color='blue',show=True,fig=None):
+        if not fig:
+            fig=plt.figure()
+            ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        else:
+            ax=fig.get_axes()[0]
+        ax.plot(self.timelist,self.attenuated_datalist,linewidth=2,color=color)
+        ax.plot(self.timelist,self.datalist,linewidth=1,color=color,linestyle='dashed')
+        ax.loglog()
+        ax.set_xlabel('Time (days)')
+        ax.set_ylabel('Flux Density')
+        ax.set_xlim(self.trange)
+        if show:
+            plt.show()
+        else:
+            return(fig)
+        
 class GRB(LCModel):
     '''Represents a GRB Model Lightcurve'''
     def __init__(self,R_1,t_1,alpha,name="NoName"):
@@ -100,7 +160,7 @@ class GRB2(LCModel):
         F_1 = lambda tt: (self.k_1*tt**(-1*a_1))
         F_2 = lambda tt: (self.k_2*tt**(-1*a_2))
         self.model = lambda tt: ((F_1(tt)**(-1*self.n) + (F_2(tt)**(-1*self.n)))**(-1/self.n))
-        print '(Initialized GRB Model: %s)' % self.name
+        print '(Initialized GRB Beuermann Model: %s)' % self.name
         
 class SN(LCModel):
     '''Represents a SN Model Lightcurve'''
@@ -196,6 +256,8 @@ sn1984l = SN(352,301,5,-1.15,-1.56,-2.59,"SN1984l")
 sn1990b = SN(177,12400,5,-1.07,-1.24,-2.83,"SN1990b")
 grb050525a = GRB(30.938,120.9655,-1.12,"GRB050525a")
 testgrb = GRB(3,50,-1.2,"TestGRB")
+# test special, 500 nm, initial flux of 100 at 0.0005days=43.2 seconds
+testspecial = GRBspecial(100,0.0005,500,500,-1.2,-0.5,"TestSpecial")
 
 # **MAKE INTO DEFINITION OF LCMODEL**
 def fit(function, parameters, y, yerr, x = None, return_covar=False):
@@ -402,5 +464,55 @@ def getheaderinfo(images_input):
     header = {'numexp':numexp,'tstart':tstart,'tstop':tstop, \
             'exptime':exptime,'skycounts':skycounts}
     return header
+
+def test_tau_plot(z=1.72,alpha=-1.2,beta=-0.5,Av_0=0.2,Rv_0=3.1):
+    '''Generate a lightcurve in several different filters with time assuming
+    A constant alpha, beta and a decreasing optical depth tau with time 
+    (tau ~ 1/t).
+    '''
+    from MiscBin import qObs
+    twomassfilts = qObs.twomassfilts
+    cousinfilts = qObs.cousinfilts
+    wv_list = []
+    for filtval in twomassfilts.itervalues():
+        wv_list.append(filtval.wave)
+    for filtval in cousinfilts.itervalues():
+        wv_list.append(filtval.wave)
+    wv_list_nm =  numpy.array(wv_list)*1E7 #get the wavelength list in nm
+    wv_list_nm.sort() # sort it
+    # array([  647. ,   786.5,  1250. ,  1650. ,  2150. ])
+    colorlist=['blue','green','yellow','orange','red']
+    count=0
+    
+    fig=plt.figure()
+    ax=fig.add_axes([0.1,0.1,0.8,0.8])
+    
+    # convert filters to rest-frame
+    wv_list_nm = wv_list_nm/(1+z)
+    
+    for wv in wv_list_nm:
+        testspecial = GRBspecial(100,0.0005,647,wv,alpha,beta,"TestSpecial")
+        testspecial.genSpecialData(trange=(0.0001,0.1),tstep=0.00001)
+        testspecial.determineTau(av_0=Av_0,rv_0=Rv_0)
+        testspecial.specialplot(color=colorlist[count],show=False,fig=fig)
+        count+=1
+    fig.text(0.7,0.84,'Obs. Frame:',color='black')    
+    fig.text(0.7,0.8,'R',color='blue')
+    fig.text(0.7,0.76,'I',color='green')
+    fig.text(0.7,0.72,'J',color='yellow')
+    fig.text(0.7,0.68,'H',color='orange')
+    fig.text(0.7,0.64,'Ks',color='red')
+    ztext = "z=%s" % str(z) 
+    fig.text(0.7,0.60,ztext,color='black')
+    alphatext = r"$\alpha=%s$" % str(alpha)
+    betatext = r"$\beta=%s$" % str(beta)
+    avtext = r"$A_{V,0}=%s$" % str(Av_0)
+    rvtext = r"$R_{V,0}=%s$" % str(Rv_0)   
+    fig.text(0.2,0.3,alphatext)
+    fig.text(0.2,0.26,betatext)
+    fig.text(0.2,0.22,avtext)
+    fig.text(0.2,0.18,rvtext)
+
+    fig.show()
 
 # The end.

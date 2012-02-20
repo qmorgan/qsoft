@@ -57,8 +57,10 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
     import pyfits
     if not os.path.exists(swift_cat_path): print "WARNING: %s does not exist." % (swift_cat_path)
     # Feed it a raw data folder, grab a list of all the raw p0-0.fits files
-    if swiftcatdict=={}:
+    if swiftcatdict=={}: # attempt to load the default swiftcatpath
         swiftcatdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+    elif swiftcatdict==None:
+        swiftcatdict = {} #None implies that we don't want to load a dictionary (eg for nongrbs)
     
 #    pteldict = {}
     
@@ -188,8 +190,12 @@ def RawToDatabase(raw_path,objtype='GRB',pteldict={},swiftcatdict={}):
 def testraw2db():
     RawToDatabase('/Users/amorgan/Data/PAIRITEL/tmp/10637/raw/','GRB')
 
-def CrawlThruLyraData(basepath='/PAIRITEL/'):
-    swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+def CrawlThruLyraData(basepath='/PAIRITEL/',objtype='GRB',useswiftdict=True):
+    if useswiftdict:
+        swiftdict = ParseSwiftCat.parseswiftcat(swift_cat_path)
+    else:
+        swiftdict = None
+        
     rawpaths=[]
     ptel_dict={}
     error_paths=[]
@@ -198,7 +204,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/'):
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+            ptel_dict = RawToDatabase(path,objtype=objtype,pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     
@@ -206,7 +212,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/'):
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+            ptel_dict = RawToDatabase(path,objtype=objtype,pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     
@@ -214,7 +220,7 @@ def CrawlThruLyraData(basepath='/PAIRITEL/'):
     rawpaths = glob.glob(globstr)
     for path in rawpaths:
         try:
-            ptel_dict = RawToDatabase(path,objtype='GRB',pteldict=ptel_dict,swiftcatdict=swiftdict)
+            ptel_dict = RawToDatabase(path,objtype=objtype,pteldict=ptel_dict,swiftcatdict=swiftdict)
         except:
             error_paths.append(path)
     

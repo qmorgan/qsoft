@@ -232,8 +232,90 @@ def fit_fwhm(sat_locations, objects_data, fwhm, fwhm_stdev):
     return fwhm, fwhm_stdev
     
 
+def find_number_of_dither_positions(progenitor_image_name,fallback_n_dither=0):
+    '''Finding the number of triplestacks (dither positions) used in the image
+    for use when calulating the uncertainty (an addl source of error occurs
+    which reduces as the sqrt of the number of dither positions):
+    
+    This works by counting the number of images used to make each file, 
+    indicated by the number of STRT0001 type instances in the header.
+    
+    For some manually construceted mosaics these keywords are lost, so the number
+    of dither positions will need to be provided either manually (through
+    raw input), or via the fallback_n_dither keyword which will assign this 
+    value.
+    '''
+    file_header = pyfits.open(progenitor_image_name)
+    STRT_count = 0
+    for info in file_header[0].header:
+        if 'STRT' in info:
+            STRT_count += 1
+    n_ind_images = STRT_count - 1 # accounting for the STRT_CPU
+    print 'Found ' + str(n_ind_images) + ' individual images'
+    # if n_ind_images == 0:
+    #     num_triplestacks = 1
+    # elif n_ind_images == 1:
+    #     num_triplestacks = 1
+    # else:
+    #     num_triplestacks = n_ind_images/3
+    # if n_ind_images == 0:
+    #     n_ind_images = 1
+    if n_ind_images > 2:
+        print "Assuming the number of dither positions (triplestacks) is 1/3rd the number of images."
+        num_triplestacks = n_ind_images/3
+    elif fallback_n_dither > 0:
+        print "\n\nCould not auto-detect number of dither positions! Using fallback value of %s\n\n" % (str(fallback_n_dither))
+        num_triplestacks = int(fallback_n_dither)
+    else:
+        print """Unknown number of dither positions! Needed to estimate PAIRITEL 
+uncertainty. (This is a negligible source of error for large mosaics, 
+so just enter a large number of order 100/hour if this is a mosaic)."""
+        print progenitor_image_name
+        num_triplestacks_str = raw_input("Enter number of dither positions: ")
+        num_triplestacks = int(num_triplestacks_str)
+    if n_ind_images%3 != 0:
+        warning = '\n\n\nWarning: Number of individual images is not divisible by 3! Was this mosaic made of triplestacks?\n\n\n'
+        print warning
+    print "Determined %i input images and %i dither positions" % (n_ind_images,num_triplestacks)
+    ditherdict = {'N_dither_pos':num_triplestacks,'N_input_images':n_ind_images}
+    return ditherdict
+    
+
 def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
                             base_dither_error=0.03):
+    '''
+    Dan tested PAIRITEL uncertainty sources extensively for his work on 
+    GRB 071025 (Perley et al. 2010, Sec 2.2).
+    
+    In these mosaics we are resampling (with the Swarp program) from
+    PAIRITEL's native pixel scale of 2"/pix to 1"/pix; since we're
+    drizzling from 1 into 4 fake pixels, the nominal statistical
+    uncertainty is under-sampled by a factor of 2 (actually found to be
+    about 2.4).   The instrumental error is thus multiplied by this factor.
+    
+    The large plate scale of PAIRITEL (2.0arcsec/pix) and the variable sub-pixel 
+    response function of the NICMOS3 arrays creates a significant additional 
+    uncertainty in each position beyond ordinary photometric errors, estimated 
+    at ~3 percent by Blake et al. (2008). To quantify this uncertainty as 
+    accurately as possible, we constructed light curves for standard stars
+    of different magnitudes in regions of the image free of defects by 
+    measuring the image-to-image magnitude variations of bright 
+    (source-dominated) stars. An additional uncertainty of approximately 
+    ~0.02 mag per position was required to incorporate the observed scatter 
+    in the photometry of these objects.
+    
+    email 5/18/11 to pierre
+    ////Grand! Very promising results.  This clearly shows that we've been
+    overestimating the per-dither uncertainty in the photometry code
+    (currently set to 0.1 mag).  At some point we should verify these
+    values with well-detected sources in other fields, but it appears that
+    we're looking at values of 0.02 for J, 0.025 for H, and 0.03 for K.
+    ////
+    
+    The error in zeropoint is added in quadrature with these other two sources
+    of uncertainty to determine the final uncertainty.
+    
+    '''
     uncertainty = float(sqrt(zeropoint_error**2 + (instrumental_error*2.4)**2 
                     + (base_dither_error/sqrt(num_triplestacks))**2))
     return uncertainty
@@ -242,7 +324,8 @@ def return_ptel_uncertainty(instrumental_error,zeropoint_error,num_triplestacks,
 
 def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         do_upper = False, calstar_reg_output = True, calreg = None, stardict = None,
-        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False):
+        cleanup=True, caliblimit=True, verbose=False, autocull=False, for_wcs_coadd=False,
+        fallback_n_dither=0, reuse_old_vizcat=False):
     '''
     Do photometry on a given image file given a region file with the coordinates.
     
@@ -273,6 +356,10 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             CURRENTLY NOT WORKING.
         caliblimit: if True, then if a calibration star has a higher stdev than
             our threshold, then stop the program
+        fallback_n_dither: fallback value if the number of dither positions 
+            cannot be determined
+        reuse_old_vizcat: if True, then do not make the call to download a new
+            vizcat and just use the old one in the storepath.
         
     '''
     # Begin timing
@@ -429,28 +516,9 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     photdict.update({'EXPTIME':exptime})
     photdict.update({'filter':band})
     
-    '''Finding the number of triplestacks (dither positions) used in the image
-    for use when calulating the uncertainty (an addl source of error occurs
-    which reduces as the sqrt of the number of dither positions):'''
-    file_header = pyfits.open(progenitor_image_name)
-    STRT_count = 0
-    for info in file_header[0].header:
-        if 'STRT' in info:
-            STRT_count += 1
-    n_dither = STRT_count - 1
-    print 'Found ' + str(n_dither) + ' dither images'
-    if n_dither == 0:
-        num_triplestacks = 1
-    elif n_dither == 1:
-        num_triplestacks = 1
-    else:
-        num_triplestacks = n_dither/3
-    if n_dither == 0:
-        n_dither = 1
-    if n_dither%3 != 0:
-        print 'Warning: Number of dither images is not divisible by 3!'
-    ditherdict = {'N_dither':n_dither}
-    
+    # Obtain the number of dither positions
+    ditherdict = find_number_of_dither_positions(progenitor_image_name,fallback_n_dither=fallback_n_dither)
+        
     if do_upper:
         # Store the image's dimensions.
         height, width = image_data.shape[0], image_data.shape[1]
@@ -810,34 +878,37 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
 
     # We collect the 2MASS photometry of field sources with a query to vizier.
     # Most of this is forming the query and then formatting the returned text file.
-    viz_input_file = file(storepath + "viz_input.txt", "w")
-    viz_input_file.write(
-        "-source=2MASS/PSC\n" + 
-        "-c=" + str(target_ra_deg) + " " + str(target_dec_deg) + "\n" +
-        "-c.rm=15\n" +
-        "-out=_r RAJ2000 DEJ2000 " + 
-            "Jmag e_Jmag Jsnr " + 
-            "Hmag e_Hmag Hsnr " + 
-            "Kmag e_Kmag Ksnr " + 
-            "Qflg\n" +
-        "-sort=_r\n" + 
-        "Qflg==AAA\n" + 
-        "Jsnr=>10"
-        + "\nJmag=>9"
-        )
-    viz_input_file.close()
-    syscmd = "vizquery -mime=csv -site=cfa %sviz_input.txt > %sviz_output.txt" % (storepath, storepath)
-    system(syscmd)
-    system("rm -f viz_input.txt")
-    viz_output_cropped_file = file(storepath + "viz_output_cropped.txt", "w")
-    viz_output_file = file(storepath + "viz_output.txt", "r")
-    line_num = 0
-    for line in viz_output_file:
-        line_num += 1
-        if line_num > 46 and line != "\n":
-            viz_output_cropped_file.write(line)
-    viz_output_cropped_file.close()
-    viz_output_file.close()
+    if not reuse_old_vizcat:
+        viz_input_file = file(storepath + "viz_input.txt", "w")
+        viz_input_file.write(
+            "-source=2MASS/PSC\n" + 
+            "-c=" + str(target_ra_deg) + " " + str(target_dec_deg) + "\n" +
+            "-c.rm=15\n" +
+            "-out=_r RAJ2000 DEJ2000 " + 
+                "Jmag e_Jmag Jsnr " + 
+                "Hmag e_Hmag Hsnr " + 
+                "Kmag e_Kmag Ksnr " + 
+                "Qflg\n" +
+            "-sort=_r\n" + 
+            "Qflg==AAA\n" + 
+            "Jsnr=>10"
+            + "\nJmag=>9"
+            )
+        viz_input_file.close()
+        syscmd = "vizquery -mime=csv -site=cfa %sviz_input.txt > %sviz_output.txt" % (storepath, storepath)
+        system(syscmd)
+        system("rm -f viz_input.txt")
+        viz_output_cropped_file = file(storepath + "viz_output_cropped.txt", "w")
+        viz_output_file = file(storepath + "viz_output.txt", "r")
+        line_num = 0
+        for line in viz_output_file:
+            line_num += 1
+            if line_num > 46 and line != "\n":
+                viz_output_cropped_file.write(line)
+        viz_output_cropped_file.close()
+        viz_output_file.close()
+    else:
+        print "Reusing old vizcat in the store directory!"
     # Define the obj_string and band_type from the progenitor_image_name. If the 
     # progenitor_image_name is not in the format used by PARITIEL reduction
     # pipeline 3, these will not work properly.
@@ -1029,7 +1100,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
     rebinning from 2"/pix to 1"/pix (should be a factor of two, but
     in testing with GRB 071025, Dan found it to be ~2.4).'''
     
-    num_triplestacks = ditherdict['N_dither']/3
+    num_triplestacks = ditherdict['N_dither_pos']
     if num_triplestacks == 0:
         num_triplestacks = 1    
 
@@ -1141,6 +1212,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             #                 + (base_dither_error/sqrt(num_triplestacks))**2))
             new_e_mag = return_ptel_uncertainty(ptel_e_mag,zeropoint_error,num_triplestacks)
             target_e_mag = new_e_mag
+            target_instrumental_e_mag = ptel_e_mag
 
             target_flux = src_flux # Note does not take into account zp
             target_flux_err = src_flux_err # Note does not take into account zp
@@ -1164,7 +1236,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
             ptel_flag = star[6]
             new_mag = ptel_mag + zeropoint
             delta_pos = star[8]
-            delta_mag = abs(new_mag-tmass_mag) # difference between our magnitude and 2mass
+            delta_mag = new_mag-tmass_mag # difference between our magnitude and 2mass
             # new_e_mag = float(sqrt(zeropoint_error**2 + (ptel_e_mag*2.4)**2 
             #                 + (base_dither_error/sqrt(num_triplestacks))**2))
             new_e_mag = return_ptel_uncertainty(ptel_e_mag,zeropoint_error,num_triplestacks)
@@ -1230,6 +1302,7 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         # Update the photometry string with updated values
         photdict.update({'targ_mag':(target_mag,target_e_mag)})
         photdict.update({'targ_flux':(target_flux,target_flux_err)})
+        photdict.update({'targ_inst_err':target_instrumental_e_mag})
         photdict.update({'targ_s2n':src_s2n})
     # Print out photometry data.
     print progenitor_image_name, "HJD:", hjd
@@ -1238,6 +1311,8 @@ def dophot(progenitor_image_name,region_file, ap=None, find_fwhm = False, \
         str(average(abs_2mass_deviation_list)))
     print "Zeropoint:", zeropoint, "err", zeropoint_error
     
+    photdict.update({'zp_list':zeropoint_list})
+    photdict.update({'zp_err_list':zeropoint_err_list})
     photdict.update({'zp':(zeropoint,zeropoint_error)})
     photdict.update({'2mass_abs_avg_dev':str(average(abs_2mass_deviation_list))})
     
@@ -1430,7 +1505,9 @@ def openCalRegion(reg_path, nonstore=False):
     return callist
 
 def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
-    auto_upper=True, calregion = None, trigger_id = None, stardict = None, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
+    auto_upper=True, calregion = None, trigger_id = None, stardict = None, 
+    caliblimit=True, verbose=False, autocull=False, find_fwhm=False,
+    fallback_n_dither=0,reuse_old_vizcat=False):
     '''Returns the photometry results of a GRB that was stored in a pickle file. 
     If the pickle file does not exists, this function will create it. Use 
     clobber=True for overwriting existing pickle files. '''
@@ -1462,10 +1539,12 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm)
+            data = dophot(filename, reg, ap=aper, calreg = calregion, stardict=stardict, 
+                caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm = find_fwhm, 
+                fallback_n_dither=fallback_n_dither, reuse_old_vizcat=reuse_old_vizcat)
             if 'targ_mag' not in data and 'upper_green' not in data and auto_upper:
                 print '**Target Magnitude not found. Re-running to find UL**.'
-                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm)
+                data = dophot(filename,reg,aper,do_upper=True, stardict=stardict, calreg=calregion, caliblimit=caliblimit, verbose=verbose, find_fwhm = find_fwhm, fallback_n_dither=fallback_n_dither)
             label = data['FileName']
             time = float(t_mid.t_mid(filename, trigger = trigger_id))
             terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -1477,7 +1556,9 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
             break
     
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
-    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, autocull=False, find_fwhm=False):
+    stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, 
+    autocull=False, find_fwhm=False, global_fallback_n_dither=0, 
+    reuse_vizcat_after_one_iteration=True):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1508,15 +1589,22 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
             GRBlist.append(item)
     if not GRBlist:
         raise ValueError('No files to perform photometry on. In right directory?')
+    
+    reuse=False
+    count=0
     for mosaic in GRBlist:
+        if count > 0 and reuse_vizcat_after_one_iteration: reuse = True
         print "=========================================================="
         print "Now performing photometry for %s \n" % (mosaic)
         photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
-            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, find_fwhm=find_fwhm)
+            auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, 
+            find_fwhm=find_fwhm, fallback_n_dither=global_fallback_n_dither,
+            reuse_old_vizcat=reuse)
+        count += 1
     return photout
     
-def plotzp(photdict):
+def plotzp(photdict,ylim=None):
     '''Plots a graph of zp from the pickle output of the photreturn function'''
     import matplotlib
     import glob
@@ -1544,37 +1632,39 @@ def plotzp(photdict):
         if 'h_' in mosaics:
             if h == True: 
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
-                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
-                    ecolor = 'red')
+                    marker = '.', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green')
             else:
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
-                    marker = 's', linestyle ='None', mfc = 'red', mec = 'green',\
-                    ecolor = 'red', label = 'h')
+                    marker = '.', linestyle ='None', mfc = 'green', mec = 'green',\
+                    ecolor = 'green', label = 'h')
                 h = True
 
         elif 'j_' in mosaics:            
             if j == True: 
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
-                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    marker = '.', linestyle ='None', mfc = 'blue', mec = 'blue', \
                     ecolor = 'blue')
             else:
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr, \
-                    marker = 's', linestyle ='None', mfc = 'blue', mec = 'green', \
+                    marker = '.', linestyle ='None', mfc = 'blue', mec = 'blue', \
                     ecolor = 'blue', label = 'j')
                 j = True
 
         elif 'k_' in mosaics:
             if k == True: 
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
-                    marker = 's', linestyle ='None', mfc = 'yellow', \
-                    mec = 'green', ecolor = 'yellow')
+                    marker = '.', linestyle ='None', mfc = 'red', \
+                    mec = 'red', ecolor = 'red')
             else:
                 matplotlib.pyplot.errorbar(time, valu, yerr = verr, xerr= terr,\
-                    marker = 's', linestyle ='None', mfc = 'yellow', \
-                    mec = 'green', ecolor = 'yellow', label = 'k')
+                    marker = '.', linestyle ='None', mfc = 'red', \
+                    mec = 'red', ecolor = 'red', label = 'k')
                 k = True
 
     ax = matplotlib.pyplot.gca()
+    if ylim:
+        ax.set_ylim(ylim)
     ax.set_ylim(ax.get_ylim()[::-1])
     
     matplotlib.pyplot.xlabel('Time since Burst (s)')
@@ -1657,7 +1747,9 @@ def plots2n(photdict):
     matplotlib.pyplot.close()
 
 def plotproperty(photdict, prop):
-    '''Plots a graph of zp from the pickle output of the photreturn function'''
+    '''Plots a graph of a property from the pickle output of the photreturn function
+    CURRENTLY NOT IMPLEMENTED?
+    '''
     import matplotlib
     import glob
 
@@ -1955,7 +2047,8 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
         savefig(savepath)    
         matplotlib.pyplot.close()
 
-def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=True, caliblimit=True):
+def findOptimalAperture(GRBname, regfile, calregion=None, trigger_id = None, plot=True, 
+        caliblimit=True, global_fallback_n_dither=0):
     ''' Due to sampling and dithering issues, finding the optimal aperture in
     PAIRITEL is not as simple as simply measuring the FWHM of an image.  Here,
     we loop around images in a directory using PhotLoop and measure the 
@@ -1971,7 +2064,8 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
         
         # Can set auto_upper = False since dont care if source is detected or not
         data = photLoop(GRBname,regfile,calregion=calregion, ap=ap, \
-            clobber=True, trigger_id=trigger_id, auto_upper=False, caliblimit=caliblimit) 
+            clobber=True, trigger_id=trigger_id, auto_upper=False, caliblimit=caliblimit,
+            global_fallback_n_dither=global_fallback_n_dither) 
     
         k_delta_list = []
         h_delta_list = []
@@ -1979,7 +2073,7 @@ def findOptimalAperture(GRBname, regfile, calregion, trigger_id = None, plot=Tru
 
         for key, val in data.iteritems():
             for calkey, calval in val['calib_stars'].iteritems():
-                delta = calval['delta_mag']
+                delta = abs(calval['delta_mag'])
                 if val['filter']=='j':
                     j_delta_list.append(delta)
                 elif val['filter']=='h':
@@ -2240,7 +2334,10 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
 
 def textoutput(photdict,utburst,filt=None, day=False):
     '''outputs a text file from photdict.  If filt specified, only output that
-    particular filter. Requires a utburst string in the form of hh:mm:ss. Days are integers (e.g. second day observation => day=2. WARNING: If the observations consists of multiple days, care needs to be exercised! Current fix: do it manually!
+    particular filter. Requires a utburst string in the form of hh:mm:ss. 
+    Days are integers (e.g. second day observation => day=2. WARNING: If the 
+    observations consists of multiple days, care needs to be exercised! 
+    Current fix: do it manually!
     '''
 
     import datetime

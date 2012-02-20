@@ -66,7 +66,8 @@ def mag2flux(mag_1=99,mag_2=99,flux_2=0):
 # Frequency: 5647 Angstroms hc/lambda
 
 def mag2alpha(mag_1=None,mag_2=None,t_1=None,t_2=None):
-    """Given a magnitude and a flux """
+    """Given two magnitudes and two times, determine what the decay index
+    (alpha) would have had to been assuming flux propto t^-alpha """
     if not mag_1:
         mag_1 = raw_input('Please enter mag_1: ')
     if not mag_2:
@@ -84,6 +85,30 @@ def mag2alpha(mag_1=None,mag_2=None,t_1=None,t_2=None):
         return None           
     alpha = 0.4 * (mag_1 - mag_2)/(math.log10(t_1/t_2))
     return alpha
+    
+
+def project_powerlaw_mag(alpha=None,mag_1=None,t_1=None,t_2=None):
+    """Assuming flux propto t^-alpha, and given a magnitude, corresponding
+    time, and time to project to, give the expected mag at the new time. """
+    if not alpha:
+        alpha = raw_input('Please enter alpha: ')
+    if not mag_1:
+        mag_1 = raw_input('Please enter mag_1: ')
+    if not t_1:
+        t_1 = raw_input('Please enter t_1: ')
+    if not t_2:
+        t_2 = raw_input('Please enter t_2: ')
+    try: 
+        mag_1=float(mag_1) 
+        alpha=float(alpha) 
+        t_1=float(t_1)
+        t_2=float(t_2)
+    except:
+        return None
+    mag_2 = mag_1 - alpha*math.log10(t_1/t_2)/0.4
+    print "Assuming powerlaw decline with alpha=%s, the magnitude at" % (str(alpha))
+    print "t = %s is expected to be %s" % (str(t_2), str(mag_2))
+    return mag_2
 
 def tstart_exp_2_tmid_arr(burst_time=None,tstartarr=None,exparr=None,fmt='%y-%m-%d %H:%M:%S'):
     '''Takes the t_start and exposure time and calculates the t_mid
