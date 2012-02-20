@@ -9,6 +9,7 @@ except:
 import base64, Image, string
 import glob
 from MiscBin.q import dec2sex
+from MiscBin.q import sex2dec
 from MiscBin import qErr
 
 if not os.environ.has_key("Q_DIR"):
@@ -321,7 +322,13 @@ def MakeFindingChart(ra=198.40130,dec=8.09730,uncertainty=1.8,src_name='GRB09031
         ra = float(ra)
         dec = float(dec)
     except:
-        raise ValueError('Values need to be float')
+        try:
+            float_ra_dec = sex2dec(ra,dec)
+            uncertainty = float(uncertainty)
+            ra=float(float_ra_dec[0])
+            dec=float(float_ra_dec[1])
+        except:
+            raise ValueError('RA/Dec or uncertainty misformatted.')
     try:
        size = float(size)
     except:
