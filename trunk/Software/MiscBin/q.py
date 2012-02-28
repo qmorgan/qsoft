@@ -43,9 +43,10 @@ def round_sig(x, sig=2):
         roundedsig = x
     return roundedsig
     
-def flux2mag():
-    """docstring for flux2mag"""
-    pass
+def flux2abmag(flux):
+    """Convert a flux in microjanskys to an AB magnitude"""
+    AB_mag = -2.5*numpy.log10(flux*1e-6*1e-23) - 48.60
+    return AB_mag
 
 def mag2abmag(mag, zpflux):
     AB_mag = -2.5*numpy.log10(q.mag2flux(mag,0,zpflux)) - 48.60
