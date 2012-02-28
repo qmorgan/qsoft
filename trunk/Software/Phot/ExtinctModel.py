@@ -24,7 +24,7 @@ class Extinction:
         self.funred = self.flux * 10.**(0.4*self.curve)
     
     
-    def plotModel(self,fig=None,color='blue',show=True,loglog=False):    
+    def plotModel(self,fig=None,color='blue',show=True,loglog=False,xlim=None):    
         if not hasattr(self,'curve'):
             raise Exception("Need to run EvalCurve first")
         if not hasattr(self,'funred'):
@@ -43,6 +43,8 @@ class Extinction:
         ax.set_ylabel('Flux Density')
         if loglog:
             ax.loglog()
+        if xlim:
+            ax.set_xlim(xlim)
         if show:
             plt.show()
         else:
@@ -221,18 +223,220 @@ def avgmw(R_V = 3.1,c3 = 3.23,c4 = 0.41):
     x0 = 4.596
     fmmodel=FM(R_V,c1,c2,c3,c4,gamma,x0)
     return fmmodel
+
+def powerlawExt(wave,flux,Av=0.0,beta=0.0):
+    '''
+    wave = wavelength vector in angstroms 
+    Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
+    
+    FOR NOW JUST USE SMC
+    '''
+    c = 2.998E10 #cm/s
+    nu = c/(wave*1E-8) #hertz, for wave in angstroms
+    nu_0 = min(nu) #valid???
+    flux_normal = flux*(nu/nu_0)**beta
+    
+    Rv=2.74
+    extmodel=avgsmc(R_V=Rv)
+    extmodel.EvalCurve(wave,Av/Rv)
+    extmodel.UnreddenFlux(flux_normal)
+    return extmodel
+
+def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74):
+    #given wave, return the flux
+    fluxarr=np.ones(len(wave)) #just an array of ones
+    c = 2.998E10 #cm/s
+    nu = c/(wave*1E-8) #hertz, for wave in angstroms
+    # nu_0 = const #valid???    
+    
+    extmodel=avgsmc(R_V=Rv)
+    extmodel.EvalCurve(wave,Av/Rv)
+    extmodel.UnreddenFlux(fluxarr)
+    flux_normal = const*extmodel.funred*(10000/wave)**beta
+    # here we're doing 10000/wave to get the constant into a more reasonable
+    # range of values for the fit. if we did actual frequency, the constant
+    # would be too large and the fit would be too difficult.
+    return flux_normal
+
+def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
+    # B          4.52318     1.1
+    # r          17.7811     0.85
+    # R          19.9167     1.00
+    # i          38.1636     2.00
+    # I          48.2493     2.50
+    # z          78.5432     3.90
+    # J          145.145     6
+    # H          288.604     11
+    # K          499.728     20
+    z=1.728
+    
+    fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
+    fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
+    wavearr2=np.array([4420.,6220.,6470.,7630.,7865.,9050.,12500.,16500.,21500.])
+    wavearr=np.array([4458.,6290.,6588.,7706.,8060.,9222.,12350.,16620.,21590.])
+    
+    # correct for galactic extinction
+    galebv=0.11 
+    galAv=galebv*3.1 #Rv=3.1 for mw
+    mw=avgmw()
+    mw.EvalCurve(wavearr,galebv)
+    mw.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
+    galcorrectedfluxarr=mw.funred
+    mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
+    galcorrectedfluxerrarr=mw.funred
+    print galcorrectedfluxarr
+    print galcorrectedfluxerrarr
+    #correct for redshift
+    waverestarr=wavearr/(1+z)
+    print waverestarr
+    
+    #fit model
+    from Phot import qFit
+    
+    Av=qFit.Param(-1.1)
+    beta=qFit.Param(-0.64)
+    const=qFit.Param(1018)
+       
+    if smc:
+        Rv=qFit.Param(2.74)
+        c1 = qFit.Param(-4.959)
+        c2 =  qFit.Param(2.264)
+        c3 = qFit.Param(0.389)
+        c4 = qFit.Param(0.461)
+        gamma= qFit.Param(1.05)
+        x0=qFit.Param(4.626)
+
+    elif lmc:
+        R_V = qFit.param(3.2)    
+        c1 = qFit.param(-1.28)
+        c2 = qFit.param(1.11)
+        c3 = qFit.param(2.73)
+        c4 = qFit.param(0.64)
+        gamma = qFit.param(0.91)
+        x0 = qFit.param(4.596)
+    
+    elif lmc2:
+        R_V = qFit.param(3.1)  
+        c1 = qFit.param(-2.16)
+        c2 = qFit.param(1.31)
+        c3 = qFit.param(1.92)
+        c4 = qFit.param(0.42)
+        gamma = qFit.param(1.05)
+        x0 = qFit.param(4.626)
+    
+    elif mw:
+        R_V = qFit.param(3.1)
+        c3 = qFit.param(3.23)
+        c4 = qFit.param(0.41)
+        c2 = -0.824 + 4.717/R_V.value
+        c1 = 2.030 - 3.007*c2.value
+        c2 = qFit.param(c2)
+        c1 = qFit.param(c1)
+        gamma = qFit.param(0.99)
+        x0 = qFit.param(4.596)
         
+    def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const())
+    qFit.fit(f,[Av,beta,const],galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
+
+    #get model array
+    w=1500. + np.arange(500)*100
+    f = w*0. + 1
+    c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value)
+    # fig = c.plotModel(show=False,color='green')
+    print Av.value
+    print beta.value
+    print Rv.value
+        
+    
+    # plot data
+    fig2=plt.figure()
+    ax=fig2.add_axes([0.1,0.1,0.8,0.8])
+    ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='o')
+    
+    ax.plot(w,c) #underplot the model
+    ax.set_ylabel('Flux (uJy)')
+    ax.set_xlabel('Wavelength')
+    
+    ax.set_xlim((10000,1000))
+    ax.set_ylim((4,1000))
+    ax.loglog()
+    fig2.show
+    # Dan's Solved FM paramters:
+    #            beta = 0.662 +/- 0.019
+    #             A_V = 1.364 +/- 0.193
+    #             R_V = 3.557 +/- 0.712
+    #             C1 =-4.644 +/- 1.295
+    #             C2 = 2.219 +/- 0.431
+    #             C3 = 0.245 +/- 0.507
+    #             C4 = 0.000 +/--0.000  (hit a limit, not well-constrained)
+    #           chi^2/dof = 8.54 / 3
+
+def TestPowerLawExt():
+    w=1250. + np.arange(100)*100.
+    f = w*0. + 1
+    a=powerlawExt(w,f,Av=-0.5,beta=-0.5)
+    fig = a.plotModel(show=False,color='violet',loglog=True,xlim=(12000,1000))
+    
+    b=powerlawExt(w,f,Av=-0.5,beta=-0.7)
+    fig = b.plotModel(fig=fig,show=False,color='blue')
+    
+    c=powerlawExt(w,f,Av=-0.5,beta=-0.9)
+    fig = c.plotModel(fig=fig,show=False,color='green')
+    
+    d=powerlawExt(w,f,Av=-0.5,beta=-1.1)
+    fig = d.plotModel(fig=fig,show=False,color='orange')
+    
+    e=powerlawExt(w,f,Av=-0.5,beta=-1.3)
+    fig = e.plotModel(fig=fig,show=False,color='red')
+    
+    fig.text(0.2,0.54,'SMC law',color='black')
+    fig.text(0.2,0.5,'Rv=2.74',color='black')
+    fig.text(0.2,0.46,'Av=-0.5',color='black')
+    fig.text(0.2,0.42,'beta=-0.5',color='violet')
+    fig.text(0.2,0.38,'beta=-0.7',color='blue')
+    fig.text(0.2,0.34,'beta=-0.9',color='green')
+    fig.text(0.2,0.30,'beta=-1.1',color='orange')
+    fig.text(0.2,0.26,'beta=-1.3',color='red')
+    
+    fig.show()
+    
+    a=powerlawExt(w,f,Av=-0.1,beta=-0.5)
+    fig = a.plotModel(show=False,color='violet',loglog=True,xlim=(12000,1000))
+    
+    b=powerlawExt(w,f,Av=-0.1,beta=-0.7)
+    fig = b.plotModel(fig=fig,show=False,color='blue')
+    
+    c=powerlawExt(w,f,Av=-0.1,beta=-0.9)
+    fig = c.plotModel(fig=fig,show=False,color='green')
+    
+    d=powerlawExt(w,f,Av=-0.1,beta=-1.1)
+    fig = d.plotModel(fig=fig,show=False,color='orange')
+    
+    e=powerlawExt(w,f,Av=-0.1,beta=-1.3)
+    fig = e.plotModel(fig=fig,show=False,color='red')
+    
+    fig.text(0.2,0.54,'SMC law',color='black')
+    fig.text(0.2,0.5,'Rv=2.74',color='black')
+    fig.text(0.2,0.46,'Av=-0.1',color='black')
+    fig.text(0.2,0.42,'beta=-0.5',color='violet')
+    fig.text(0.2,0.38,'beta=-0.7',color='blue')
+    fig.text(0.2,0.34,'beta=-0.9',color='green')
+    fig.text(0.2,0.30,'beta=-1.1',color='orange')
+    fig.text(0.2,0.26,'beta=-1.3',color='red')
+    
+    fig.show()
+    
 def Test120119A():
     z=1.72
     wv_angst=np.array([  6470. ,   7865.,  12500. ,  16500. ,  21500. ])
     wv_angst_rest = wv_angst/(1+z)
     
-    w=1250. + np.arange(100)*50.
+    w=1250. + np.arange(100)*100.
     f = w*0. + 1
     a=lmc2(R_V=3.1)
     a.EvalCurve(w,-0.1)
     a.UnreddenFlux(f)
-    fig = a.plotModel(show=False,color='green')
+    fig = a.plotModel(show=False,color='green',loglog=True,xlim=(12000,1000))
     b=avgsmc(R_V=3.1)
     b.EvalCurve(w,-0.1)
     b.UnreddenFlux(f)
@@ -242,11 +446,11 @@ def Test120119A():
     c.UnreddenFlux(f)
     fig=c.plotModel(fig=fig,show=False,color='red')
     
-    fig.text(0.7,0.5,'E(B-V)=-0.1',color='black')
-    fig.text(0.7,0.46,'Rv=3.1',color='black')
-    fig.text(0.7,0.42,'SMC',color='blue')
-    fig.text(0.7,0.38,'LMC',color='green')
-    fig.text(0.7,0.34,'MW',color='red')
+    fig.text(0.2,0.5,'E(B-V)=-0.1',color='black')
+    fig.text(0.2,0.46,'Rv=3.1',color='black')
+    fig.text(0.2,0.42,'SMC',color='blue')
+    fig.text(0.2,0.38,'LMC',color='green')
+    fig.text(0.2,0.34,'MW',color='red')
     fig.show()
     # Note in the figure above, all extinction models converge in the optical
     # when R_V is set to a given number.
@@ -284,20 +488,20 @@ def Test120119A():
     e.EvalCurve(w,av/rv)
     e.UnreddenFlux(f)
     
-    fig2=q.plotModel(show=False,color='purple')
+    fig2=q.plotModel(show=False,color='purple',loglog=True,xlim=(12000,1000))
     fig2=a.plotModel(fig=fig2,show=False,color='blue')
     fig2=b.plotModel(fig=fig2,show=False,color='green')
     fig2=c.plotModel(fig=fig2,show=False,color='yellow')
     fig2=d.plotModel(fig=fig2,show=False,color='orange')
     fig2=e.plotModel(fig=fig2,show=False,color='red')
-    fig2.text(0.7,0.54,'SMC law',color='black')
-    fig2.text(0.7,0.5,'Av=-0.31',color='black')
-    fig2.text(0.7,0.46,'Rv=4.3',color='purple')
-    fig2.text(0.7,0.42,'Rv=3.9',color='blue')
-    fig2.text(0.7,0.38,'Rv=3.5',color='green')
-    fig2.text(0.7,0.34,'Rv=3.1',color='yellow')
-    fig2.text(0.7,0.30,'Rv=2.7',color='orange')
-    fig2.text(0.7,0.26,'Rv=2.4',color='red')
+    fig2.text(0.2,0.54,'SMC law',color='black')
+    fig2.text(0.2,0.5,'Av=-0.31',color='black')
+    fig2.text(0.2,0.46,'Rv=4.3',color='purple')
+    fig2.text(0.2,0.42,'Rv=3.9',color='blue')
+    fig2.text(0.2,0.38,'Rv=3.5',color='green')
+    fig2.text(0.2,0.34,'Rv=3.1',color='yellow')
+    fig2.text(0.2,0.30,'Rv=2.7',color='orange')
+    fig2.text(0.2,0.26,'Rv=2.4',color='red')
     fig2.show()
     
     #now see how varying Av for a set Rv will affect things.
@@ -333,23 +537,24 @@ def Test120119A():
     e.EvalCurve(w,av/rv)
     e.UnreddenFlux(f)
     
-    fig3=q.plotModel(show=False,color='purple',loglog=False)
+    fig3=q.plotModel(show=False,color='purple',loglog=True,xlim=(12000,1000))
     fig3=a.plotModel(fig=fig3,show=False,color='blue')
     fig3=b.plotModel(fig=fig3,show=False,color='green')
     fig3=c.plotModel(fig=fig3,show=False,color='yellow')
     fig3=d.plotModel(fig=fig3,show=False,color='orange')
     fig3=e.plotModel(fig=fig3,show=False,color='red')
-    fig3.text(0.7,0.54,'SMC law',color='black')
-    fig3.text(0.7,0.5,'Rv=2.74',color='black')
-    fig3.text(0.7,0.46,'Av=-3.0',color='purple')
-    fig3.text(0.7,0.42,'Av=-2.5',color='blue')
-    fig3.text(0.7,0.38,'Av=-2.0',color='green')
-    fig3.text(0.7,0.34,'Av=-1.5',color='yellow')
-    fig3.text(0.7,0.30,'Av=-1.0',color='orange')
-    fig3.text(0.7,0.26,'Av=-0.5',color='red')
+    fig3.text(0.2,0.54,'SMC law',color='black')
+    fig3.text(0.2,0.5,'Rv=2.74',color='black')
+    fig3.text(0.2,0.46,'Av=-3.0',color='purple')
+    fig3.text(0.2,0.42,'Av=-2.5',color='blue')
+    fig3.text(0.2,0.38,'Av=-2.0',color='green')
+    fig3.text(0.2,0.34,'Av=-1.5',color='yellow')
+    fig3.text(0.2,0.30,'Av=-1.0',color='orange')
+    fig3.text(0.2,0.26,'Av=-0.5',color='red')
     
     fig3.show()
     
     
     return b
     
+
