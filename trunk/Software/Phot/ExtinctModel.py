@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+from MiscBin import q
+
 
 class Extinction:
     '''Represents an extinction law'''
@@ -268,12 +270,17 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     # J          145.145     6
     # H          288.604     11
     # K          499.728     20
+    from matplotlib import rc
+    from matplotlib.ticker import FuncFormatter
+    rc('font', family='Times New Roman') 
+    
     z=1.728
     
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
     wavearr2=np.array([4420.,6220.,6470.,7630.,7865.,9050.,12500.,16500.,21500.])
     wavearr=np.array([4458.,6290.,6588.,7706.,8060.,9222.,12350.,16620.,21590.])
+    wavenamearr=(['B','r','R','i','I','z','J','H','Ks'])
     
     # correct for galactic extinction
     galebv=0.11 
@@ -286,6 +293,7 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     galcorrectedfluxerrarr=mw.funred
     print galcorrectedfluxarr
     print galcorrectedfluxerrarr
+    
     #correct for redshift
     waverestarr=wavearr/(1+z)
     print waverestarr
@@ -347,20 +355,61 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     print beta.value
     print Rv.value
         
-    
-    # plot data
     fig2=plt.figure()
     ax=fig2.add_axes([0.1,0.1,0.8,0.8])
-    ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='o')
+
+    #underplot the model
+    ax.plot(w,c) 
+
     
-    ax.plot(w,c) #underplot the model
-    ax.set_ylabel('Flux (uJy)')
-    ax.set_xlabel('Wavelength')
+    # i cant seem to get a scatter plot to appear above a line plot. HMM. 
+    # Forget it. No need to have colors on the points.
+    # ax.scatter(waverestarr,galcorrectedfluxarr,c=wavearr,cmap='jet',s=30,edgecolors='none')
     
-    ax.set_xlim((10000,1000))
-    ax.set_ylim((4,1000))
-    ax.loglog()
-    fig2.show
+    # plot data
+    ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.')
+    # annotate data
+    for name in wavenamearr:
+        ind = wavenamearr.index(name)
+        xy=(waverestarr[ind],galcorrectedfluxarr[ind])
+        xytext=(waverestarr[ind]*0.95,galcorrectedfluxarr[ind]*1.05)
+        ax.annotate(name,xy=xy,xytext=xytext,fontsize='small')
+
+        
+    # get the bounds for the other axes, which are to be AB mags and obs wavelength
+    ylimflux=(4,1000)
+    xlimrest=(10000,1000)
+    ylimmag0=q.flux2abmag(ylimflux[0])
+    ylimmag1=q.flux2abmag(ylimflux[1])
+    ylimmag=(ylimmag0,ylimmag1)
+    xlimobs0=xlimrest[0]*(1+z)
+    xlimobs1=xlimrest[1]*(1+z)
+    xlimobs=(xlimobs0,xlimobs1)   
+
+    ax.loglog()        
+    ax2=ax.twinx()
+    ax3=ax.twiny()
+    ax3.semilogx()
+    
+    ax.set_xlim(xlimrest)
+    ax.set_ylim(ylimflux)    
+    ax3.set_xlim(xlimobs)
+    ax2.set_ylim(ylimmag)
+    
+    ax.set_ylabel(r'$F_\nu$ (uJy)')
+    ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
+    ax2.set_ylabel('AB Mag')
+    ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)')
+
+    formatter = FuncFormatter(log_10_product)
+    ax.set_xticks([10000,6000,4000,2000,1000])
+    ax3.set_xticks([20000,10000,6000,4000,3000])
+
+    ax.xaxis.set_major_formatter(formatter)
+    ax.yaxis.set_major_formatter(formatter)
+    ax3.xaxis.set_major_formatter(formatter)
+
+    fig2.show()
     # Dan's Solved FM paramters:
     #            beta = 0.662 +/- 0.019
     #             A_V = 1.364 +/- 0.193
@@ -370,6 +419,12 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     #             C3 = 0.245 +/- 0.507
     #             C4 = 0.000 +/--0.000  (hit a limit, not well-constrained)
     #           chi^2/dof = 8.54 / 3
+
+
+def log_10_product(x, pos):
+    """The two args are the value and tick position.
+    Label ticks with the product of the exponentiation"""
+    return '%1i' % (x)
 
 def TestPowerLawExt():
     w=1250. + np.arange(100)*100.
