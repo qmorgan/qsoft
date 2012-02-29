@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import copy
 from MiscBin import q
-
+from Phot import qFit
+from matplotlib import rc
+from matplotlib.ticker import FuncFormatter
 
 class Extinction:
     '''Represents an extinction law'''
@@ -244,14 +246,16 @@ def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     extmodel.UnreddenFlux(flux_normal)
     return extmodel
 
-def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74):
+def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
+                        c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
+
     #given wave, return the flux
     fluxarr=np.ones(len(wave)) #just an array of ones
     c = 2.998E10 #cm/s
     nu = c/(wave*1E-8) #hertz, for wave in angstroms
     # nu_0 = const #valid???    
     
-    extmodel=avgsmc(R_V=Rv)
+    extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
     extmodel.EvalCurve(wave,Av/Rv)
     extmodel.UnreddenFlux(fluxarr)
     flux_normal = const*extmodel.funred*(10000/wave)**beta
@@ -260,7 +264,13 @@ def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74):
     # would be too large and the fit would be too difficult.
     return flux_normal
 
-def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
+def SEDFitTest(initial_param='mw'):
+    
+    z=1.728
+    galebv=0.11 
+    SEDFit(initial_param=initial_param,z=z,galebv=galebv)
+
+def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     # B          4.52318     1.1
     # r          17.7811     0.85
     # R          19.9167     1.00
@@ -270,11 +280,15 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     # J          145.145     6
     # H          288.604     11
     # K          499.728     20
-    from matplotlib import rc
-    from matplotlib.ticker import FuncFormatter
-    rc('font', family='Times New Roman') 
     
-    z=1.728
+    # Check if initial parameter list is there
+    acceptable_initial_param_list=['smc','lmc','lmc2','mw']
+    if not initial_param in acceptable_initial_param_list:
+        print 'Initial parameter set of %s is not valid. Please choose from:' % (initial_param)
+        print acceptable_initial_param_list
+        return
+    
+    rc('font', family='Times New Roman') 
     
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
@@ -283,7 +297,9 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     wavenamearr=(['B','r','R','i','I','z','J','H','Ks'])
     
     # correct for galactic extinction
-    galebv=0.11 
+    if galebv == 0.0:
+        print "WARNING: Not correcting for galactic extinction"
+    
     galAv=galebv*3.1 #Rv=3.1 for mw
     mw=avgmw()
     mw.EvalCurve(wavearr,galebv)
@@ -299,13 +315,11 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     print waverestarr
     
     #fit model
-    from Phot import qFit
-    
     Av=qFit.Param(-1.1)
     beta=qFit.Param(-0.64)
     const=qFit.Param(1018)
        
-    if smc:
+    if initial_param == 'smc':
         Rv=qFit.Param(2.74)
         c1 = qFit.Param(-4.959)
         c2 =  qFit.Param(2.264)
@@ -314,42 +328,44 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
         gamma= qFit.Param(1.05)
         x0=qFit.Param(4.626)
 
-    elif lmc:
-        R_V = qFit.param(3.2)    
-        c1 = qFit.param(-1.28)
-        c2 = qFit.param(1.11)
-        c3 = qFit.param(2.73)
-        c4 = qFit.param(0.64)
-        gamma = qFit.param(0.91)
-        x0 = qFit.param(4.596)
+    elif initial_param == 'lmc':
+        Rv = qFit.Param(3.2)    
+        c1 = qFit.Param(-1.28)
+        c2 = qFit.Param(1.11)
+        c3 = qFit.Param(2.73)
+        c4 = qFit.Param(0.64)
+        gamma = qFit.Param(0.91)
+        x0 = qFit.Param(4.596)
     
-    elif lmc2:
-        R_V = qFit.param(3.1)  
-        c1 = qFit.param(-2.16)
-        c2 = qFit.param(1.31)
-        c3 = qFit.param(1.92)
-        c4 = qFit.param(0.42)
-        gamma = qFit.param(1.05)
-        x0 = qFit.param(4.626)
+    elif initial_param == 'lmc2':
+        Rv = qFit.Param(3.1)  
+        c1 = qFit.Param(-2.16)
+        c2 = qFit.Param(1.31)
+        c3 = qFit.Param(1.92)
+        c4 = qFit.Param(0.42)
+        gamma = qFit.Param(1.05)
+        x0 = qFit.Param(4.626)
     
-    elif mw:
-        R_V = qFit.param(3.1)
-        c3 = qFit.param(3.23)
-        c4 = qFit.param(0.41)
-        c2 = -0.824 + 4.717/R_V.value
-        c1 = 2.030 - 3.007*c2.value
-        c2 = qFit.param(c2)
-        c1 = qFit.param(c1)
-        gamma = qFit.param(0.99)
-        x0 = qFit.param(4.596)
+    elif initial_param == 'mw':
+        Rv = qFit.Param(3.1)
+        c3 = qFit.Param(3.23)
+        c4 = qFit.Param(0.41)
+        c2 = -0.824 + 4.717/Rv.value
+        c1 = 2.030 - 3.007*c2
+        c2 = qFit.Param(c2)
+        c1 = qFit.Param(c1)
+        gamma = qFit.Param(0.99)
+        x0 = qFit.Param(4.596)
         
-    def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const())
+    def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
+                c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
     qFit.fit(f,[Av,beta,const],galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
 
     #get model array
-    w=1500. + np.arange(500)*100
+    w=1000. + np.arange(500)*100
     f = w*0. + 1
-    c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value)
+    c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
+        c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
     # fig = c.plotModel(show=False,color='green')
     print Av.value
     print beta.value
@@ -377,6 +393,7 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
 
         
     # get the bounds for the other axes, which are to be AB mags and obs wavelength
+    # this will ensure the shared axes properly line up
     ylimflux=(4,1000)
     xlimrest=(10000,1000)
     ylimmag0=q.flux2abmag(ylimflux[0])
@@ -385,26 +402,32 @@ def SEDFitTest(smc=True,lmc=False,lmc2=False,mw=False):
     xlimobs0=xlimrest[0]*(1+z)
     xlimobs1=xlimrest[1]*(1+z)
     xlimobs=(xlimobs0,xlimobs1)   
-
+    
+    # Initialize the other shared axes and make some of them log axes
     ax.loglog()        
     ax2=ax.twinx()
     ax3=ax.twiny()
     ax3.semilogx()
     
+    # Set the limits of the axes based on our definitions above.
     ax.set_xlim(xlimrest)
     ax.set_ylim(ylimflux)    
     ax3.set_xlim(xlimobs)
     ax2.set_ylim(ylimmag)
     
+    # Label the 4 axes
     ax.set_ylabel(r'$F_\nu$ (uJy)')
     ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
     ax2.set_ylabel('AB Mag')
     ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)')
 
-    formatter = FuncFormatter(log_10_product)
+    # Explicitly define which ticks to label on the x axes
     ax.set_xticks([10000,6000,4000,2000,1000])
     ax3.set_xticks([20000,10000,6000,4000,3000])
 
+    # use the function formatter for the ticks to show them as full integers
+    # rather then exponential format
+    formatter = FuncFormatter(log_10_product)
     ax.xaxis.set_major_formatter(formatter)
     ax.yaxis.set_major_formatter(formatter)
     ax3.xaxis.set_major_formatter(formatter)
@@ -509,7 +532,6 @@ def Test120119A():
     fig.show()
     # Note in the figure above, all extinction models converge in the optical
     # when R_V is set to a given number.
-    
     
     # Now see how a change in Rv manifests with the other parameters set as SMC
     av=-0.31
