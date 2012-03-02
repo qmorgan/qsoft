@@ -298,7 +298,7 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     
     # correct for galactic extinction
     if galebv == 0.0:
-        print "WARNING: Not correcting for galactic extinction"
+        print "\nWARNING: Not correcting for galactic extinction\n"
     
     galAv=galebv*3.1 #Rv=3.1 for mw
     mw=avgmw()
@@ -307,73 +307,78 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     galcorrectedfluxarr=mw.funred
     mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
     galcorrectedfluxerrarr=mw.funred
-    print galcorrectedfluxarr
-    print galcorrectedfluxerrarr
     
     #correct for redshift
     waverestarr=wavearr/(1+z)
-    print waverestarr
     
     #fit model
-    Av=qFit.Param(-1.1)
-    beta=qFit.Param(-0.64)
-    const=qFit.Param(1018)
+    Av=qFit.Param(-1.1,name='Av')
+    beta=qFit.Param(-0.64,name='beta')
+    const=qFit.Param(1000,name='const')
        
     if initial_param == 'smc':
-        Rv=qFit.Param(2.74)
-        c1 = qFit.Param(-4.959)
-        c2 =  qFit.Param(2.264)
-        c3 = qFit.Param(0.389)
-        c4 = qFit.Param(0.461)
-        gamma= qFit.Param(1.05)
-        x0=qFit.Param(4.626)
+        Rv=qFit.Param(2.74,name='Rv')
+        c1 = qFit.Param(-4.959,name='c1')
+        c2 =  qFit.Param(2.264,name='c2')
+        c3 = qFit.Param(0.389,name='c3')
+        c4 = qFit.Param(0.461,name='c4')
+        gamma= qFit.Param(1.05,name='gamma')
+        x0=qFit.Param(4.626,name='x0')
 
     elif initial_param == 'lmc':
-        Rv = qFit.Param(3.2)    
-        c1 = qFit.Param(-1.28)
-        c2 = qFit.Param(1.11)
-        c3 = qFit.Param(2.73)
-        c4 = qFit.Param(0.64)
-        gamma = qFit.Param(0.91)
-        x0 = qFit.Param(4.596)
+        Rv = qFit.Param(3.2,name='Rv')    
+        c1 = qFit.Param(-1.28,name='c1')
+        c2 = qFit.Param(1.11,name='c2')
+        c3 = qFit.Param(2.73,name='c3')
+        c4 = qFit.Param(0.64,name='c4')
+        gamma = qFit.Param(0.91,name='gamma')
+        x0 = qFit.Param(4.596,name='x0')
     
     elif initial_param == 'lmc2':
-        Rv = qFit.Param(3.1)  
-        c1 = qFit.Param(-2.16)
-        c2 = qFit.Param(1.31)
-        c3 = qFit.Param(1.92)
-        c4 = qFit.Param(0.42)
-        gamma = qFit.Param(1.05)
-        x0 = qFit.Param(4.626)
+        Rv = qFit.Param(3.1,name='Rv')  
+        c1 = qFit.Param(-2.16,name='c1')
+        c2 = qFit.Param(1.31,name='c2')
+        c3 = qFit.Param(1.92,name='c3')
+        c4 = qFit.Param(0.42,name='c4')
+        gamma = qFit.Param(1.05,name='gamma')
+        x0 = qFit.Param(4.626,name='x0')
     
     elif initial_param == 'mw':
-        Rv = qFit.Param(3.1)
-        c3 = qFit.Param(3.23)
-        c4 = qFit.Param(0.41)
+        Rv = qFit.Param(3.1,name='Rv')
+        c3 = qFit.Param(3.23,name='c3')
+        c4 = qFit.Param(0.41,name='c4')
         c2 = -0.824 + 4.717/Rv.value
         c1 = 2.030 - 3.007*c2
-        c2 = qFit.Param(c2)
-        c1 = qFit.Param(c1)
-        gamma = qFit.Param(0.99)
-        x0 = qFit.Param(4.596)
+        c2 = qFit.Param(c2,name='c2')
+        c1 = qFit.Param(c1,name='c1')
+        gamma = qFit.Param(0.99,name='gamma')
+        x0 = qFit.Param(4.596,name='x0')
         
     def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
                 c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
-    qFit.fit(f,[Av,beta,const],galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
+    paramlist = [Av,beta,const]
+    fitdict = qFit.fit(f,paramlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
 
+    
     #get model array
     w=1000. + np.arange(500)*100
     f = w*0. + 1
     c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
         c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
     # fig = c.plotModel(show=False,color='green')
-    print Av.value
-    print beta.value
-    print Rv.value
+
         
     fig2=plt.figure()
     ax=fig2.add_axes([0.1,0.1,0.8,0.8])
+    
+    textoffset=0.2
+    for string in fitdict['strings']:
+        if not string.find('const') != -1:
+            fig2.text(0.2,textoffset,string)
+            textoffset+=0.04
 
+    
+    
     #underplot the model
     ax.plot(w,c) 
 
@@ -384,7 +389,7 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     
     # plot data
     ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.')
-    # annotate data
+    # annotate data with the filter names
     for name in wavenamearr:
         ind = wavenamearr.index(name)
         xy=(waverestarr[ind],galcorrectedfluxarr[ind])
