@@ -104,7 +104,35 @@ class filt:
     filt.freq = frequeny in hertz
     filt.energy = energy in erg
     """
-    def __init__(self,val,valtype='wave',fluxconv=0.0,zp=99,comment='None'):
+    def __init__(self,val,valtype='wave',bandwidth=0.0,zpflux=0.0,kval=0.0,fluxconv=0.0,zp=99,comment='None'):
+        '''Given a val and a valtype, convert the relevant value into wavelength,
+        energy, and frequency units.  
+        
+        wave: wavelength in centimeters
+        freq: frequency in hz
+        energy: energy in erg
+        bandwidth: same units as valtype
+        zpflux: in microjanskies
+        kval: such that F = 10^(kval - mag/2.5)
+        fluxconv: flux density conversion factor for uvot in ergs cm^-2 s^-1 angstrom^-1
+        zp: zero point magnitude (currently only for uvot)
+        
+        Given a zpflux, determine the kval for flux conversions, where
+        F = 10^(kval - mag/2.5)
+        log(F) = kval - mag/2.5
+        2.5log(F) = 2.5kval - mag
+        and if zeropoint, mag=0, so if zpflux is in microjanskies, 
+        log(F) = log(zpflux) = kval
+        
+        If zpflux and kval are both given, raise an exception. Only one should 
+        be given, and the other can be converted.
+        
+        '''
+        if zpflux and kval:
+            print 'Cannot initialize; only either zpflux or kval can be specified.'
+            return
+            
+        
         self.val = val
         self.valtype = valtype
         self.fluxconv = fluxconv
@@ -115,6 +143,7 @@ class filt:
             acceptabletypes.index(valtype)
         except:
             print "Cannot initialize, needs to be of type: ", acceptabletypes 
+            return
         if self.valtype == 'wave':
             self.wave = self.val
             self.freq = c/self.wave
