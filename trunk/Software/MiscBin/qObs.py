@@ -158,47 +158,47 @@ class filt:
             self.wave = h*c/self.energy
 
 # UVOT - source: Poole et al. 2008
-uvotfilts={
-    'vv':filt(5402e-8,valtype='wave',fluxconv=2.614e-16,zp=17.89, comment='UVOT V Filter'),
-    'bb':filt(4329e-8,valtype='wave',fluxconv=1.472e-16,zp=19.11, comment='UVOT B Filter'),
-    'uu':filt(3501e-8,valtype='wave',fluxconv=1.63e-16, zp=18.34, comment='UVOT U Filter'),
-    'w1':filt(2634e-8,valtype='wave',fluxconv=4.00e-16, zp=17.49, comment='UVOT UVW1 Filter'),
-    'm2':filt(2231e-8,valtype='wave',fluxconv=8.50e-16, zp=16.82, comment='UVOT UVM2 Filter'),
-    'w2':filt(2030e-8,valtype='wave',fluxconv=6.2e-16,  zp=17.35, comment='UVOT UVW2 Filter'),
-    'wh':filt(3471e-8,valtype='wave',fluxconv=3.7e-17,  zp=20.29, comment='UVOT UVW2 Filter')} 
+VV=filt(5402e-8,valtype='wave',fluxconv=2.614e-16,zp=17.89, comment='UVOT V Filter')
+BB=filt(4329e-8,valtype='wave',fluxconv=1.472e-16,zp=19.11, comment='UVOT B Filter')
+UU=filt(3501e-8,valtype='wave',fluxconv=1.63e-16, zp=18.34, comment='UVOT U Filter')
+W1=filt(2634e-8,valtype='wave',fluxconv=4.00e-16, zp=17.49, comment='UVOT UVW1 Filter')
+M2=filt(2231e-8,valtype='wave',fluxconv=8.50e-16, zp=16.82, comment='UVOT UVM2 Filter')
+W2=filt(2030e-8,valtype='wave',fluxconv=6.2e-16,  zp=17.35, comment='UVOT UVW2 Filter')
+WH=filt(3471e-8,valtype='wave',fluxconv=3.7e-17,  zp=20.29, comment='UVOT UVW2 Filter')
+uvotfilts={'vv':VV,'bb':BB,'uu':UU,'w1':W1,'m2':M2,'w2':W2,'wh':WH} 
 
 # Cousin RI 
-cousinfilts={
-    'Rc':filt(6470e-8,valtype='wave',comment='Cousins R'),
-    'Ic':filt(7865e-8,valtype='wave',comment='Cousins I')}
+Rc=filt(6470e-8,valtype='wave',comment='Cousins R')
+Ic=filt(7865e-8,valtype='wave',comment='Cousins I')
+cousinfilts={'Rc':Rc,'Ic':Ic}
 
 # 2mass
-twomassfilts={
-    'J':filt(1.25e-4,valtype='wave',comment='PAIRITEL J Filter'),
-    'H':filt(1.65e-4,valtype='wave',comment='PAIRITEL H Filter'),
-    'Ks':filt(2.15e-4,valtype='wave',comment='PAIRITEL Ks Filter')}
+J=filt(1.25e-4,valtype='wave',comment='PAIRITEL J Filter')
+H=filt(1.65e-4,valtype='wave',comment='PAIRITEL H Filter')
+Ks=filt(2.15e-4,valtype='wave',comment='PAIRITEL Ks Filter')
+twomassfilts={'J':J,'H':H,'Ks':Ks}
 
 # Sloan
-sloanfilts = {
-    'u':filt(3540e-8,valtype='wave',comment="Sloan u'"),
-    'g':filt(4750e-8,valtype='wave',comment="Sloan g'"),
-    'r':filt(6220e-8,valtype='wave',comment="Sloan r'"),
-    'i':filt(7630e-8,valtype='wave',comment="Sloan i'"),
-    'z':filt(9050e-8,valtype='wave',comment="Sloan z'")}
+u=filt(3540e-8,valtype='wave',comment="Sloan u'")
+g=filt(4750e-8,valtype='wave',comment="Sloan g'")
+r=filt(6220e-8,valtype='wave',comment="Sloan r'")
+i=filt(7630e-8,valtype='wave',comment="Sloan i'")
+z=filt(9050e-8,valtype='wave',comment="Sloan z'")
+sloanfilts = {'u':u,'g':g,'r':r,'i':i,'z':z}
 
 # Johnson
-johnsonfilts = {
-    'U':filt(3640e-8,valtype='wave',comment="Johnson U"),
-    'B':filt(4420e-8,valtype='wave',comment="Johnson B"),
-    'V':filt(5400e-8,valtype='wave',comment="Johnson V")}
+U=filt(3640e-8,valtype='wave',comment="Johnson U")
+B=filt(4420e-8,valtype='wave',comment="Johnson B")
+V=filt(5400e-8,valtype='wave',comment="Johnson V")
+johnsonfilts = {'U':U,'B':B,'V':V}
 
 # UKIDSS (WFCAM)
-ukidssfilts = {
-    'Z':filt(8820e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Z'),
-    'Y':filt(10310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Y'),
-    'J':filt(12480e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey J'),
-    'H':filt(16310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey H'),
-    'K':filt(22010e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey K')}
+ukZ=filt(8820e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Z')
+ukY=filt(10310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Y')
+ukJ=filt(12480e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey J')
+ukH=filt(16310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey H')
+ukK=filt(22010e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey K')
+ukidssfilts = {'Z':ukZ,'Y':ukY,'J':ukJ,'H':ukH,'K':ukK}
 
 # Initialize telescope instances
 # Observatory" instances, which contain "Scopes" that use "Filts"
