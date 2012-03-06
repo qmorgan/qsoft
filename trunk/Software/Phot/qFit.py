@@ -105,7 +105,7 @@ def fit(function, parameters, y, yerr, x = None, return_covar=False):
     for param in retdict['parameters']:
         uncertainty = numpy.sqrt(retdict['covarmatrix'].diagonal()[count])
         param.uncertainty = uncertainty # update the uncertainty in the param object
-        fitstr = param.name + ': ' + str(param.value) + ' +/- ' + str(uncertainty)
+        fitstr = '%s: %.2f +/- %.2f' % (param.name, param.value, uncertainty) 
         print fitstr
         fitstrlist.append(fitstr)
         count += 1
