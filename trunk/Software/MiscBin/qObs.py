@@ -122,15 +122,22 @@ class filt:
         log(F) = kval - mag/2.5
         2.5log(F) = 2.5kval - mag
         and if zeropoint, mag=0, so if zpflux is in microjanskies, 
-        log(F) = log(zpflux) = kval
+        log(F) = log(zpflux) = kval 
         
         If zpflux and kval are both given, raise an exception. Only one should 
         be given, and the other can be converted.
         
         '''
+        self.zpflux = zpflux
+        self.kval = kval
+        
         if zpflux and kval:
             print 'Cannot initialize; only either zpflux or kval can be specified.'
             return
+        if zpflux and not kval:
+            self.kval = log(1e6*zpflux) #assuming zpflux in Jy, for flux conversions to uJy            
+        if kval and not zpflux:            
+            self.zpflux = 10**kval/1e6
             
         self.val = val
         self.valtype = valtype
@@ -170,31 +177,52 @@ uvotfilts={'vv':VV,'bb':BB,'uu':UU,'w1':W1,'m2':M2,'w2':W2,'wh':WH}
 
 # Cousin RI 
 # Fukujita et al. 1995
-Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,comment='Cousins R')
-Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,comment='Cousins I')
+Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,zpflux=3104,comment='Cousins R')
+Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,zpflux=2432,comment='Cousins I')
 cousinfilts={'Rc':Rc,'Ic':Ic}
 
 # 2mass
 # cohen et al. 2003
-J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,comment='PAIRITEL J Filter')
-H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,comment='PAIRITEL H Filter')
-Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,comment='PAIRITEL Ks Filter')
+# zp (jy) J:1594, H:1024, Ks:666.7
+J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,zpflux=1594,comment='PAIRITEL J Filter')
+H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024,comment='PAIRITEL H Filter')
+Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7,comment='PAIRITEL Ks Filter')
 twomassfilts={'J':J,'H':H,'Ks':Ks}
 
 # Sloan
 # Fukujita et al. 1995
-u=filt(3585e-8,valtype='wave',fwhm=556e-8,comment="Sloan u'")
-g=filt(4858e-8,valtype='wave',fwhm=1297e-8,comment="Sloan g'")
-r=filt(6290e-8,valtype='wave',fwhm=1358e-8,comment="Sloan r'")
-i=filt(7706e-8,valtype='wave',fwhm=1547e-8,comment="Sloan i'")
-z=filt(9222e-8,valtype='wave',fwhm=1530e-8,comment="Sloan z'")
+# http://www.sdss3.org/dr8/algorithms/fluxcal.php#SDSStoAB
+# The SDSS photometry is intended to be on the AB system (Oke & Gunn 1983), 
+# by which a magnitude 0 object should have the same counts as a source of 
+# Fν = 3631 Jy. However, this is known not to be exactly true, such that the 
+# photometric zeropoints are slightly off the AB standard. We continue to work 
+# to pin down these shifts. Our present estimate, based on comparison to the 
+# STIS standards of Bohlin, Dickinson, & Calzetti (2001) and confirmed by SDSS 
+# photometry and spectroscopy of fainter hot white dwarfs, is that the u band 
+# zeropoint is in error by 0.04 mag, uAB = uSDSS - 0.04 mag, and that g, r, and 
+# i are close to AB. These statements are certainly not precise to better than 
+# 0.01 mag; in addition, they depend critically on the system response of the
+# SDSS 2.5-meter, which was measured by Doi et al. (2010). The z band zeropoint 
+# is not as certain at this time, but there is mild evidence that it may be s
+# hifted by about 0.02 mag in the sense zAB = zSDSS + 0.02 mag. The large shift
+#  in the u band was expected because the adopted magnitude of the SDSS standard 
+#  BD+17 in Fukugita et al. (1996) was computed at zero airmass, thereby making 
+# the assumed u response bluer than that of the USNO system response.
+# kval = log(3631e6ujy) = 9.56
+# u: 9.56 - 0.04/2.5 = 9.544 => zpflux = 3500
+# z: 9.56 + 0.02/2.5 = 9.568 => zpflux = 3698
+u=filt(3585e-8,valtype='wave',fwhm=556e-8,zpflux=3500,comment="Sloan u'")
+g=filt(4858e-8,valtype='wave',fwhm=1297e-8,zpflux=3631,comment="Sloan g'")
+r=filt(6290e-8,valtype='wave',fwhm=1358e-8,zpflux=3631,comment="Sloan r'")
+i=filt(7706e-8,valtype='wave',fwhm=1547e-8,zpflux=3631,comment="Sloan i'")
+z=filt(9222e-8,valtype='wave',fwhm=1530e-8,zpflux=3698,comment="Sloan z'")
 sloanfilts = {'u':u,'g':g,'r':r,'i':i,'z':z}
 
 # Johnson
 # Fukujita et al. 1995
-U=filt(3652e-8,valtype='wave',fwhm=526e-8,comment="Johnson U")
-B=filt(4458e-8,valtype='wave',fwhm=1008e-8,comment="Johnson B")
-V=filt(5505e-8,valtype='wave',fwhm=827e-8,comment="Johnson V")
+U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923,comment="Johnson U")
+B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130,comment="Johnson B")
+V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689,comment="Johnson V")
 johnsonfilts = {'U':U,'B':B,'V':V}
 
 # UKIDSS (WFCAM)
