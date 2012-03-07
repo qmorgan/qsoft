@@ -135,9 +135,9 @@ class filt:
             print 'Cannot initialize; only either zpflux or kval can be specified.'
             return
         if zpflux and not kval:
-            self.kval = log(1e6*zpflux) #assuming zpflux in Jy, for flux conversions to uJy            
+            self.kval = numpy.log10(zpflux) #assuming zpflux in uJy         
         if kval and not zpflux:            
-            self.zpflux = 10**kval/1e6
+            self.zpflux = 10**kval
             
         self.val = val
         self.valtype = valtype
@@ -177,16 +177,16 @@ uvotfilts={'vv':VV,'bb':BB,'uu':UU,'w1':W1,'m2':M2,'w2':W2,'wh':WH}
 
 # Cousin RI 
 # Fukujita et al. 1995
-Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,zpflux=3104,comment='Cousins R')
-Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,zpflux=2432,comment='Cousins I')
+Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,zpflux=3104e6,comment='Cousins R')
+Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,zpflux=2432e6,comment='Cousins I')
 cousinfilts={'Rc':Rc,'Ic':Ic}
 
 # 2mass
 # cohen et al. 2003
 # zp (jy) J:1594, H:1024, Ks:666.7
-J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,zpflux=1594,comment='PAIRITEL J Filter')
-H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024,comment='PAIRITEL H Filter')
-Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7,comment='PAIRITEL Ks Filter')
+J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,zpflux=1594e6,comment='PAIRITEL J Filter')
+H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024e6,comment='PAIRITEL H Filter')
+Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7e6,comment='PAIRITEL Ks Filter')
 twomassfilts={'J':J,'H':H,'Ks':Ks}
 
 # Sloan
@@ -211,18 +211,18 @@ twomassfilts={'J':J,'H':H,'Ks':Ks}
 # kval = log(3631e6ujy) = 9.56
 # u: 9.56 - 0.04/2.5 = 9.544 => zpflux = 3500
 # z: 9.56 + 0.02/2.5 = 9.568 => zpflux = 3698
-u=filt(3585e-8,valtype='wave',fwhm=556e-8,zpflux=3500,comment="Sloan u'")
-g=filt(4858e-8,valtype='wave',fwhm=1297e-8,zpflux=3631,comment="Sloan g'")
-r=filt(6290e-8,valtype='wave',fwhm=1358e-8,zpflux=3631,comment="Sloan r'")
-i=filt(7706e-8,valtype='wave',fwhm=1547e-8,zpflux=3631,comment="Sloan i'")
-z=filt(9222e-8,valtype='wave',fwhm=1530e-8,zpflux=3698,comment="Sloan z'")
+u=filt(3585e-8,valtype='wave',fwhm=556e-8,zpflux=3500e6,comment="Sloan u'")
+g=filt(4858e-8,valtype='wave',fwhm=1297e-8,zpflux=3631e6,comment="Sloan g'")
+r=filt(6290e-8,valtype='wave',fwhm=1358e-8,zpflux=3631e6,comment="Sloan r'")
+i=filt(7706e-8,valtype='wave',fwhm=1547e-8,zpflux=3631e6,comment="Sloan i'")
+z=filt(9222e-8,valtype='wave',fwhm=1530e-8,zpflux=3698e6,comment="Sloan z'")
 sloanfilts = {'u':u,'g':g,'r':r,'i':i,'z':z}
 
 # Johnson
 # Fukujita et al. 1995
-U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923,comment="Johnson U")
-B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130,comment="Johnson B")
-V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689,comment="Johnson V")
+U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923e6,comment="Johnson U")
+B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130e6,comment="Johnson B")
+V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689e6,comment="Johnson V")
 johnsonfilts = {'U':U,'B':B,'V':V}
 
 # UKIDSS (WFCAM)
