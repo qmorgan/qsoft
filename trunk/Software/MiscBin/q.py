@@ -48,8 +48,8 @@ def flux2abmag(flux):
     AB_mag = -2.5*numpy.log10(flux*1e-6*1e-23) - 48.60
     return AB_mag
 
-def mag2abmag(mag, zpflux):
-    AB_mag = -2.5*numpy.log10(q.mag2flux(mag,0,zpflux)) - 48.60
+def mag2abmag(mag, filt):
+    AB_mag = -2.5*numpy.log10(mag2flux(mag,filt=filt)*1E-29) - 48.60
     return AB_mag
 
 def mag2flux(mag_1=99,mag_2=99,flux_2=0,filt=None):
