@@ -264,7 +264,7 @@ def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
     # would be too large and the fit would be too difficult.
     return flux_normal
 
-def SEDFitTest(initial_param='mw'):
+def SEDFitTest(initial_param='smc'):
     
     z=1.728
     galebv=0.11 
@@ -280,7 +280,7 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     # J          145.145     6
     # H          288.604     11
     # K          499.728     20
-    
+    from MiscBin import qObs
     # Check if initial parameter list is there
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
     if not initial_param in acceptable_initial_param_list:
@@ -292,14 +292,25 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
-    wavearr2=np.array([4420.,6220.,6470.,7630.,7865.,9050.,12500.,16500.,21500.])
-    wavearr=np.array([4458.,6290.,6588.,7706.,8060.,9222.,12350.,16620.,21590.])
-    wavenamearr=(['B','r','R','i','I','z','J','H','Ks'])
+    filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
+    
+    # wavearr2=np.array([4420.,6220.,6470.,7630.,7865.,9050.,12500.,16500.,21500.])
+    # wavearr=np.array([4458.,6290.,6588.,7706.,8060.,9222.,12350.,16620.,21590.])
+    # wavenamearr=(['B','r','R','i','I','z','J','H','Ks'])
+    
+    wavearr=[]
+    wavenamearr=[]
+    for filt in filtlist:
+        wavearr.append(filt.wave_A)
+        wavenamearr.append(filt.name)
+    wavearr=np.array(wavearr)
     
     # correct for galactic extinction
     if galebv == 0.0:
         print "\nWARNING: Not correcting for galactic extinction\n"
     
+    # Use the FM implementation of the average milkyway extinction to unredden
+    # the flux due to the galactic sightlines.
     galAv=galebv*3.1 #Rv=3.1 for mw
     mw=avgmw()
     mw.EvalCurve(wavearr,galebv)
