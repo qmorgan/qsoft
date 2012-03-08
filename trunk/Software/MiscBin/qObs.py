@@ -104,7 +104,7 @@ class filt:
     filt.freq = frequeny in hertz
     filt.energy = energy in erg
     """
-    def __init__(self,val,valtype='wave',fwhm=0.0,zpflux=0.0,kval=0.0,fluxconv=0.0,zp=99,comment='None'):
+    def __init__(self,val,valtype='wave',fwhm=0.0,zpflux=0.0,kval=0.0,fluxconv=0.0,zp=99,name='none',comment='None'):
         '''Given a val and a valtype, convert the relevant value into wavelength,
         energy, and frequency units.  
         
@@ -117,6 +117,9 @@ class filt:
         kval: such that F(uJy) = 10^(kval - mag/2.5)
         fluxconv: flux density conversion factor for uvot in ergs cm^-2 s^-1 angstrom^-1
         zp: zero point magnitude (currently only for uvot)
+        
+        name: name of the filter for plot annotations
+        comment: more info about the filter
         
         Given a zpflux, determine the kval for flux conversions, where
         F = 10^(kval - mag/2.5)
@@ -161,6 +164,7 @@ class filt:
         self.zp = zp
         self.fwhm = fwhm
         self.comment = comment
+        self.name = name
         acceptabletypes = ['wave','freq','energy']
         try:
             acceptabletypes.index(valtype)
@@ -195,27 +199,27 @@ class filt:
 
 # UVOT - source: Poole et al. 2008 and heasarc.nasa.gov/docs/swift/analysis/ for fwhm
 # white values from roming et al 2005 (verified in arxiv/0809.4193)
-VV=filt(5468e-8,valtype='wave',fwhm=769e-8,fluxconv=2.614e-16,zp=17.89, comment='UVOT V Filter')
-BB=filt(4392e-8,valtype='wave',fwhm=975e-8,fluxconv=1.472e-16,zp=19.11, comment='UVOT B Filter')
-UU=filt(3465e-8,valtype='wave',fwhm=785e-8,fluxconv=1.63e-16, zp=18.34, comment='UVOT U Filter')
-W1=filt(2600e-8,valtype='wave',fwhm=700e-8,fluxconv=4.00e-16, zp=17.49, comment='UVOT UVW1 Filter')
-M2=filt(2246e-8,valtype='wave',fwhm=510e-8,fluxconv=8.50e-16, zp=16.82, comment='UVOT UVM2 Filter')
-W2=filt(1928e-8,valtype='wave',fwhm=760e-8,fluxconv=6.2e-16,  zp=17.35, comment='UVOT UVW2 Filter')
-WH=filt(3850e-8,valtype='wave',fwhm=2600e-8,fluxconv=3.7e-17,  zp=20.29, comment='UVOT White Filter')
+VV=filt(5468e-8,valtype='wave',fwhm=769e-8,fluxconv=2.614e-16,zp=17.89,name='UVOT V', comment='UVOT V Filter')
+BB=filt(4392e-8,valtype='wave',fwhm=975e-8,fluxconv=1.472e-16,zp=19.11,name='UVOT B', comment='UVOT B Filter')
+UU=filt(3465e-8,valtype='wave',fwhm=785e-8,fluxconv=1.63e-16, zp=18.34,name='UVOT U', comment='UVOT U Filter')
+W1=filt(2600e-8,valtype='wave',fwhm=700e-8,fluxconv=4.00e-16, zp=17.49,name='UVW1', comment='UVOT UVW1 Filter')
+M2=filt(2246e-8,valtype='wave',fwhm=510e-8,fluxconv=8.50e-16, zp=16.82,name='UVM2', comment='UVOT UVM2 Filter')
+W2=filt(1928e-8,valtype='wave',fwhm=760e-8,fluxconv=6.2e-16,  zp=17.35,name='UVW2', comment='UVOT UVW2 Filter')
+WH=filt(3850e-8,valtype='wave',fwhm=2600e-8,fluxconv=3.7e-17,  zp=20.29,name='White', comment='UVOT White Filter')
 uvotfilts={'vv':VV,'bb':BB,'uu':UU,'w1':W1,'m2':M2,'w2':W2,'wh':WH} 
 
 # Cousin RI 
 # Fukujita et al. 1995
-Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,zpflux=3104e6,comment='Cousins R')
-Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,zpflux=2432e6,comment='Cousins I')
+Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,zpflux=3104e6,name='R',comment='Cousins R')
+Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,zpflux=2432e6,name='I',comment='Cousins I')
 cousinfilts={'Rc':Rc,'Ic':Ic}
 
 # 2mass
 # cohen et al. 2003
 # zp (jy) J:1594, H:1024, Ks:666.7
-J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,zpflux=1594e6,comment='PAIRITEL J Filter')
-H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024e6,comment='PAIRITEL H Filter')
-Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7e6,comment='PAIRITEL Ks Filter')
+J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,zpflux=1594e6,name='J',comment='PAIRITEL J Filter')
+H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024e6,name='H',comment='PAIRITEL H Filter')
+Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7e6,name='Ks',comment='PAIRITEL Ks Filter')
 twomassfilts={'J':J,'H':H,'Ks':Ks}
 
 # Sloan
@@ -240,18 +244,18 @@ twomassfilts={'J':J,'H':H,'Ks':Ks}
 # kval = log(3631e6ujy) = 9.56
 # u: 9.56 - 0.04/2.5 = 9.544 => zpflux = 3500
 # z: 9.56 + 0.02/2.5 = 9.568 => zpflux = 3698
-u=filt(3585e-8,valtype='wave',fwhm=556e-8,zpflux=3500e6,comment="Sloan u'")
-g=filt(4858e-8,valtype='wave',fwhm=1297e-8,zpflux=3631e6,comment="Sloan g'")
-r=filt(6290e-8,valtype='wave',fwhm=1358e-8,zpflux=3631e6,comment="Sloan r'")
-i=filt(7706e-8,valtype='wave',fwhm=1547e-8,zpflux=3631e6,comment="Sloan i'")
-z=filt(9222e-8,valtype='wave',fwhm=1530e-8,zpflux=3698e6,comment="Sloan z'")
+u=filt(3585e-8,valtype='wave',fwhm=556e-8,zpflux=3500e6,name='u',comment="Sloan u'")
+g=filt(4858e-8,valtype='wave',fwhm=1297e-8,zpflux=3631e6,name='g',comment="Sloan g'")
+r=filt(6290e-8,valtype='wave',fwhm=1358e-8,zpflux=3631e6,name='r',comment="Sloan r'")
+i=filt(7706e-8,valtype='wave',fwhm=1547e-8,zpflux=3631e6,name='i',comment="Sloan i'")
+z=filt(9222e-8,valtype='wave',fwhm=1530e-8,zpflux=3698e6,name='z',comment="Sloan z'")
 sloanfilts = {'u':u,'g':g,'r':r,'i':i,'z':z}
 
 # Johnson
 # Fukujita et al. 1995
-U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923e6,comment="Johnson U")
-B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130e6,comment="Johnson B")
-V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689e6,comment="Johnson V")
+U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923e6,name='U',comment="Johnson U")
+B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130e6,name='B',comment="Johnson B")
+V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689e6,name='V',comment="Johnson V")
 johnsonfilts = {'U':U,'B':B,'V':V}
 
 # UKIDSS (WFCAM)
