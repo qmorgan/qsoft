@@ -111,9 +111,10 @@ class filt:
         wave: wavelength in centimeters
         freq: frequency in hz
         energy: energy in erg
+        
         fwhm: same units as valtype
-        zpflux: in microjanskies
-        kval: such that F = 10^(kval - mag/2.5)
+        zpflux: flux corresponding to a magnitude of 0 (in microjanskies)
+        kval: such that F(uJy) = 10^(kval - mag/2.5)
         fluxconv: flux density conversion factor for uvot in ergs cm^-2 s^-1 angstrom^-1
         zp: zero point magnitude (currently only for uvot)
         
@@ -127,6 +128,16 @@ class filt:
         If zpflux and kval are both given, raise an exception. Only one should 
         be given, and the other can be converted.
         
+        For convinience, energy conversions are done:
+        wave_A: wavelength in angstroms
+        wave_nm: wavelength in nanometers
+        wave_um: wavelength in microns 
+        wave_m: wavelength in meters
+        
+        energy_eV: energy in electron volts
+        energy_J: energy in Joules
+        
+        
         '''
         self.zpflux = zpflux
         self.kval = kval
@@ -137,7 +148,12 @@ class filt:
         if zpflux and not kval:
             self.kval = numpy.log10(zpflux) #assuming zpflux in uJy         
         if kval and not zpflux:            
-            self.zpflux = 10**kval
+            self.zpflux = 10**kval # gives zpflux in uJy
+        
+        self.zpflux_uJy = self.zpflux #no conversion
+        self.zpflux_Jy = self.zpflux*1E-6
+        self.zpflux_cgs = self.zpflux_Jy*1E-23 #erg/cm^2/s/Hz
+        self.zpflux_mks = self.zpflux_Jy*1E-26 #W/m^2/Hz
             
         self.val = val
         self.valtype = valtype
@@ -163,6 +179,19 @@ class filt:
             self.energy = self.energy
             self.freq = self.energy/h
             self.wave = h*c/self.energy
+        
+        # do unit conversions for convinience
+        self.wave_cm = self.wave #no conversion
+        self.wave_A = self.wave * 1E8
+        self.wave_nm = self.wave * 1E7
+        self.wave_um = self.wave * 1E4
+        self.wave_m = self.wave * 1E-2
+        
+        self.freq_Hz = self.freq #no conversion
+        
+        self.energy_erg = self.energy #no conversion
+        self.energy_eV = self.energy * 6.24150974*1E11
+        self.energy_J = self.energy * 1E-7
 
 # UVOT - source: Poole et al. 2008 and heasarc.nasa.gov/docs/swift/analysis/ for fwhm
 # white values from roming et al 2005 (verified in arxiv/0809.4193)
