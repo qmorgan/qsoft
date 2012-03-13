@@ -222,6 +222,7 @@ H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024e6,name='H',comment='PAIR
 Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7e6,name='Ks',comment='PAIRITEL Ks Filter')
 twomassfilts={'J':J,'H':H,'Ks':Ks}
 
+
 # Sloan
 # Fukujita et al. 1995
 # http://www.sdss3.org/dr8/algorithms/fluxcal.php#SDSStoAB
@@ -257,6 +258,9 @@ U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923e6,name='U',comment="Johnso
 B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130e6,name='B',comment="Johnson B")
 V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689e6,name='V',comment="Johnson V")
 johnsonfilts = {'U':U,'B':B,'V':V}
+
+
+Kp=filt(2.1240e-4,valtype='wave',fwhm=3510e-8,name='Ks',comment='Kprime Filter')
 
 # UKIDSS (WFCAM)
 # NOT VERIFIED VALUES; be warned
