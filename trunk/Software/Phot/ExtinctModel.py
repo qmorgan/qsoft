@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+from MiscBin.q import filtcheck
+from MiscBin.q import mag2flux
 from MiscBin import q
+from MiscBin import qObs
 from Phot import qFit
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
@@ -265,12 +268,39 @@ def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
     return flux_normal
 
 def SEDFitTest(initial_param='smc'):
-    
+    filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
     z=1.728
     galebv=0.11 
-    SEDFit(initial_param=initial_param,z=z,galebv=galebv)
+    fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
+    fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
+    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
 
-def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
+def SEDFitTest2(initial_param='smc'):
+    '''another SED fit test, this time starting with magnitudes'''
+    filtlist=[qObs.J,qObs.H,qObs.Ks,qObs.Ic]#,qObs.Rc]
+    z=1.728
+    galebv=0.11
+    maglist=[13.61,12.29,11.24,15.64]#,16.68]
+    magerrlist=[0.052,0.048,0.055,0.060]#,0.038]
+    
+    # build up flux array and flux err array
+    fluxarr=[]
+    fluxerrarr=[]
+    count=0
+    for mag in maglist:
+        magerr=magerrlist[count]
+        filt=filtlist[count]
+        fluxtup=mag2flux(mag_1=mag,mag_1err=magerr,filt=filt)
+        flux=fluxtup[0]
+        fluxerr=(fluxtup[1]+fluxtup[2])/2.0 # just take the avg error
+        fluxarr.append(flux)
+        fluxerrarr.append(fluxerr)
+    fluxarr=np.array(fluxarr)
+    fluxerrarr=np.array(fluxerrarr)    
+    
+    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+    
+def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     # B          4.52318     1.1
     # r          17.7811     0.85
     # R          19.9167     1.00
@@ -280,7 +310,13 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
     # J          145.145     6
     # H          288.604     11
     # K          499.728     20
-    from MiscBin import qObs
+
+    # error checking
+    for filt in filtlist:
+        filtcheck(filt)
+    assert len(fluxarr) == len(fluxerrarr)
+    assert len(fluxarr) == len(filtlist)
+    
     # Check if initial parameter list is there
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
     if not initial_param in acceptable_initial_param_list:
@@ -289,15 +325,13 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
         return
     
     rc('font', family='Times New Roman') 
-    
-    fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
-    fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
-    filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
+        
     
     # wavearr2=np.array([4420.,6220.,6470.,7630.,7865.,9050.,12500.,16500.,21500.])
     # wavearr=np.array([4458.,6290.,6588.,7706.,8060.,9222.,12350.,16620.,21590.])
     # wavenamearr=(['B','r','R','i','I','z','J','H','Ks'])
     
+    # extract values from the filter list
     wavearr=[]
     wavenamearr=[]
     for filt in filtlist:
@@ -410,7 +444,8 @@ def SEDFit(initial_param='smc',z=0.0,galebv=0.0):
         
     # get the bounds for the other axes, which are to be AB mags and obs wavelength
     # this will ensure the shared axes properly line up
-    ylimflux=(4,1000)
+    ymax=fluxarr.max()+1.0*fluxarr.max()
+    ylimflux=(4,ymax)
     xlimrest=(10000,1000)
     ylimmag0=q.flux2abmag(ylimflux[0])
     ylimmag1=q.flux2abmag(ylimflux[1])
