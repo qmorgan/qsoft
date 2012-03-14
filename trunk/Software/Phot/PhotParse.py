@@ -29,13 +29,33 @@ class ObsBlock:
     '''
     def __init__(self,indict):
         self.source = indict['source']
-        self.filt = indict['filt'] # convert into filt object?
+        self.filtstr = indict['filt'] # convert into filt object?
+        self.AssignFilter()
         self.maglist=[]
         self.magerrlist=[]
         self.isupperlist=[]
         self.tmidlist=[]
         self.explist=[]
         self.updateObs(indict)
+    
+    def AssignFilter(self):
+        from MiscBin import qObs
+        if self.filtstr == 'J': self.filt=qObs.J
+        if self.filtstr == 'H': self.filt=qObs.H
+        if self.filtstr == 'K' or self.filtstr == 'Ks': self.filt=qObs.Ks
+        if self.filtstr == 'R' or self.filtstr == 'Rc': self.filt=qObs.Rc
+        if self.filtstr == 'I' or self.filtstr == 'Ic': self.filt=qObs.Ic
+        if self.filtstr == "u" or self.filtstr == "u'": self.filt=qObs.u
+        if self.filtstr == "g" or self.filtstr == "g'": self.filt=qObs.g
+        if self.filtstr == "r" or self.filtstr == "r'": self.filt=qObs.r
+        if self.filtstr == "i" or self.filtstr == "i'": self.filt=qObs.i
+        if self.filtstr == "z" or self.filtstr == "z'": self.filt=qObs.z
+        if self.filtstr == 'U': self.filt=qObs.U
+        if self.filtstr == 'B': self.filt=qObs.B
+        if self.filtstr == 'V': self.filt=qObs.V
+        if not hasattr(self,'filt'): 
+            print '  Could not find appropriate filt object for filtstr %s on source %s; assigning as None' % (self.filtstr,self.source)
+            self.filt = None
         
     def updateObs(self,indict):
         # update flux/mag values
@@ -94,10 +114,7 @@ class ObsBlock:
         self.explist.append(exp)                 
         
             
-            
-            
-
-def PhotParse(filename,verbose=True):
+def PhotParse(filename,verbose=False):
     object_block = ObjBlock()
     f=file(filename)
     wholefile=f.read() # read in the whole file as a string
@@ -138,12 +155,13 @@ def PhotParse(filename,verbose=True):
         if head[0] == '@': #special delimiter denoting default param
             key, val = head[1:].split('=')
             if key not in default_keydict:
-                print 'I do not know how to handle key %s, skipping' % (key)
+                print ' I do not know how to handle key %s, skipping' % (key)
             else:
                 default_keydict.update({key:val})
     
     # now loop through the bodyblocks
     for body in bodyblocks:
+        if verbose: print "*Moving on to next source...*"
         bodylines = body.split('\n')
         keydict = copy.copy(default_keydict) # set as default but update if @s are defined
         for bodyline in bodylines: # loop through each line in the bodyblock
@@ -158,9 +176,11 @@ def PhotParse(filename,verbose=True):
                 if key in name_replace_dict:
                     key = name_replace_dict[key]
                 if key not in keydict:
-                    print 'I do not know how to handle key %s, skipping' % (key)
+                    print ' I do not know how to handle key %s, skipping' % (key)
                 else:
                     keydict.update({key:val})
+                    if key == 'source' and verbose:
+                        print ' Now reading in data for source %s' % (val)
                     
             #### Grab the FORMAT of the remaining lines
             elif bodyline[0] == '%': #special delimiter of the format line
@@ -174,7 +194,7 @@ def PhotParse(filename,verbose=True):
                     # rename the format list if necessary
                     for fmtname in fmtlist:
                         if fmtname not in parseable_names:
-                            print "Cannot parse %s, skipping this column" % fmtname
+                            print "  Cannot parse %s, skipping this column" % fmtname
                         
             
             #### Otherwise it is a line of numbers; split and parse and update relevant ObsBlock
@@ -194,7 +214,6 @@ def PhotParse(filename,verbose=True):
                         current_data_dict.update({fmt:current_val})
                 
                 keydict.update(current_data_dict) # override any defaults with current
-                print keydict
                 if not 'filt' in keydict and not 'source' in keydict:
                     raise Exeption('Dont have both filt and source!')
                 
@@ -202,5 +221,4 @@ def PhotParse(filename,verbose=True):
                 #     raise Exception
                 object_block.updateObj(keydict)
                 
-        print keydict['filt']
     return object_block
