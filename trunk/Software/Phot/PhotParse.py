@@ -1,0 +1,206 @@
+import copy
+
+class ObjBlock:
+    '''
+    Block of ObsBlocks
+    '''
+    def __init__(self):
+        self.obsdict = {}
+        self.utburst = None
+    def updateObj(self,indict):
+        if not self.utburst:
+            if 'utburst' in indict:
+                self.utburst = indict['utburst']
+        else:
+            if 'utburst' in indict:
+                if self.utburst != indict['utburst']:
+                    raise ValueError('utburst times do not match!')
+        
+        name = indict['source'] + '_' + indict['filt']
+        if not name in self.obsdict:
+            newobs = ObsBlock(indict)
+            self.obsdict.update({name:newobs})
+        else:
+            self.obsdict[name].updateObs(indict)
+
+class ObsBlock:
+    '''
+    Block of Observations of a given Observatory/Filter
+    '''
+    def __init__(self,indict):
+        self.source = indict['source']
+        self.filt = indict['filt'] # convert into filt object?
+        self.maglist=[]
+        self.magerrlist=[]
+        self.isupperlist=[]
+        self.tmidlist=[]
+        self.explist=[]
+        self.updateObs(indict)
+        
+    def updateObs(self,indict):
+        # update flux/mag values
+        self.maglist.append(float(indict['mag']))
+        self.magerrlist.append(float(indict['emag']))        
+        if 'lim' in indict:
+            isupperchar = str(indict['lim']).lower()[0] # will return 'n' if None
+            if isupperchar == 'n': self.isupperlist.append(False)
+            elif isupperchar == 'y' or isupperchar == 'x': self.isupperlist.append(True) 
+            else: raise ValueError('Cannot parse whether upper limit or not!')
+        else:
+            self.isupperlist.append(False)
+            
+        # TODO: DO CONVERSIONS
+        # find tmid and exp values and perform conversions
+        # take first character of inunit/expunit to determine conversion
+        # Currently convert everything to seconds
+        if indict['inunit'][0] == 'd': inmultfactor = 24*3600.
+        elif indict['inunit'][0] == 'h': inmultfactor = 3600.
+        elif indict['inunit'][0] == 'm': inmultfactor = 60.
+        elif indict['inunit'][0] == 's': inmultfactor = 1.0
+        else: raise ValueError('Cannot parse determine mult factor inunit!')
+        
+        if indict['expunit'][0] == 'd': expmultfactor = 24*3600.
+        elif indict['expunit'][0] == 'h': expmultfactor = 3600.
+        elif indict['expunit'][0] == 'm': expmultfactor = 60.
+        elif indict['expunit'][0] == 's': expmultfactor = 1.0
+        else: raise ValueError('Cannot parse determine mult factor for exp!')
+        
+        
+        if 'tmid' in indict and 'exp' in indict: 
+        #if tmid is in there, just use that for tmid
+            tmid = float(indict['tmid'])*inmultfactor
+            exp = float(indict['exp'])*expmultfactor
+        elif 'tstart' in indict and 'tend' in indict: 
+            # take midtime based on start/end
+            tstart = float(indict['tstart'])
+            tend = float(indict['tend'])
+            tmid = ((tstart+tend)/2.0)*inmultfactor
+            if 'exp' not in indict:
+                # calculate exposure time if not explicit in indict
+                # no conversion necessary since already converted inunit
+                exp = (tend-tstart)
+            else:
+                exp = float(indict['exp'])*expmultfactor
+        elif 'tstart' in indict and 'exp' in indict:
+            # take midtime based on start+exptime/2
+            tstart = float(indict['tstart'])*inmultfactor
+            exp = float(indict['exp'])*expmultfactor
+            tmid = tstart+exp/2.0
+        else:
+            errmsg = "Cannot determine tmid and/or exp for %s filter %s" % (self.source,self.filt)
+            raise ValueError()    
+        
+        self.tmidlist.append(tmid)   
+        self.explist.append(exp)                 
+        
+            
+            
+            
+
+def PhotParse(filename,verbose=True):
+    object_block = ObjBlock()
+    f=file(filename)
+    wholefile=f.read() # read in the whole file as a string
+    f.close()
+    
+    # split the string into blocks where there are two line breaks
+    strblocks = wholefile.split('\n\n')
+    
+    headblock=strblocks[0]
+    bodyblocks=strblocks[1:]
+    
+    # set the default for keydict, which will be updated for each block
+    default_keydict={'inunit':'sec',
+            'expunit':'sec',
+            'filt':'unknown',
+            'source':'unkown',
+            'utburst':'unknown'}
+    
+    parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim']
+    name_replace_dict={'filter':'filt',
+                        'exptime':'exp',
+                        'exposure':'exp',
+                        'magnitude':'mag',
+                        'limit':'lim',
+                        'ulim':'lim',
+                        'upper':'lim',
+                        'isupper':'lim',
+                        'tstop':'tend'
+                        }
+    
+    # the header should only contain keydict stuff such as: 
+    # @inunit=sec
+    # @expunit=sec
+    # @utburst=04:04:30.21
+    # these default values will be used unless otherwise specified in
+    # further text blocks.
+    for head in headblock.split('\n'):
+        if head[0] == '@': #special delimiter denoting default param
+            key, val = head[1:].split('=')
+            if key not in default_keydict:
+                print 'I do not know how to handle key %s, skipping' % (key)
+            else:
+                default_keydict.update({key:val})
+    
+    # now loop through the bodyblocks
+    for body in bodyblocks:
+        bodylines = body.split('\n')
+        keydict = copy.copy(default_keydict) # set as default but update if @s are defined
+        for bodyline in bodylines: # loop through each line in the bodyblock
+            if not bodyline: #if blank line, skip
+                continue
+            if bodyline[0] == '#': #if comment line, skip
+                continue 
+            #### Grab the HEADERS of the bodyblock to get the default values
+            if bodyline[0] == '@': #special delimiter denoting default param
+                key, val = bodyline[1:].split('=')
+                # replace names as necessary
+                if key in name_replace_dict:
+                    key = name_replace_dict[key]
+                if key not in keydict:
+                    print 'I do not know how to handle key %s, skipping' % (key)
+                else:
+                    keydict.update({key:val})
+                    
+            #### Grab the FORMAT of the remaining lines
+            elif bodyline[0] == '%': #special delimiter of the format line
+                fmtlist = bodyline[1:].split()
+                #convert to lowercase
+                fmtlist = [fmt.lower() for fmt in fmtlist]
+                # replace the names
+                for name, replacename in name_replace_dict.iteritems():
+                    fmtlist = [fmt.replace(name,replacename) for fmt in fmtlist]
+                if verbose:
+                    # rename the format list if necessary
+                    for fmtname in fmtlist:
+                        if fmtname not in parseable_names:
+                            print "Cannot parse %s, skipping this column" % fmtname
+                        
+            
+            #### Otherwise it is a line of numbers; split and parse and update relevant ObsBlock
+            else:
+                datalist = bodyline.strip().split()
+                current_data_dict={}
+                for fmt in fmtlist:
+                    if fmt not in parseable_names:
+                        pass
+                    else:
+                        try:
+                            current_val = datalist[fmtlist.index(fmt)]
+                        # if the format list is longer than the value list,
+                        # we assume its blank lines at the end and assign None
+                        except(IndexError): 
+                            current_val = None   
+                        current_data_dict.update({fmt:current_val})
+                
+                keydict.update(current_data_dict) # override any defaults with current
+                print keydict
+                if not 'filt' in keydict and not 'source' in keydict:
+                    raise Exeption('Dont have both filt and source!')
+                
+                # if keydict['source']=='PAIRITEL':
+                #     raise Exception
+                object_block.updateObj(keydict)
+                
+        print keydict['filt']
+    return object_block
