@@ -277,12 +277,27 @@ def SEDFitTest(initial_param='smc'):
 
 def SEDFitTest2(initial_param='smc'):
     '''another SED fit test, this time starting with magnitudes'''
-    filtlist=[qObs.J,qObs.H,qObs.Ks,qObs.Ic]#,qObs.Rc]
     z=1.728
     galebv=0.11
+    
+    filtlist=[qObs.J,qObs.H,qObs.Ks,qObs.Ic]#,qObs.PromptOpen]
     maglist=[13.61,12.29,11.24,15.64]#,16.68]
     magerrlist=[0.052,0.048,0.055,0.060]#,0.038]
+    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
     
+    filtlist=[qObs.J,qObs.H,qObs.Ks,qObs.Rc,qObs.Ic]
+    maglist=[14.71,13.14,11.89,17.56,16.23]
+    magerrlist=[0.087,0.066,0.060,0.10,0.06]
+    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+    
+    
+def maglist2fluxarr(maglist,magerrlist,filtlist):
+    for filt in filtlist:
+        filtcheck(filt)
+    assert len(maglist) == len(magerrlist)
+    assert len(maglist) == len(filtlist)
     # build up flux array and flux err array
     fluxarr=[]
     fluxerrarr=[]
@@ -296,9 +311,8 @@ def SEDFitTest2(initial_param='smc'):
         fluxarr.append(flux)
         fluxerrarr.append(fluxerr)
     fluxarr=np.array(fluxarr)
-    fluxerrarr=np.array(fluxerrarr)    
-    
-    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+    fluxerrarr=np.array(fluxerrarr)
+    return fluxarr, fluxerrarr
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     # B          4.52318     1.1
