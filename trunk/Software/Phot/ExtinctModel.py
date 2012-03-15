@@ -8,6 +8,7 @@ from MiscBin import qObs
 from Phot import qFit
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
+from Phot import PhotParse
 
 class Extinction:
     '''Represents an extinction law'''
@@ -280,19 +281,62 @@ def SEDFitTest2(initial_param='smc'):
     z=1.728
     galebv=0.11
     
-    filtlist=[qObs.J,qObs.H,qObs.Ks,qObs.Ic]#,qObs.PromptOpen]
-    maglist=[13.61,12.29,11.24,15.64]#,16.68]
-    magerrlist=[0.052,0.048,0.055,0.060]#,0.038]
-    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
-    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
-    
-    filtlist=[qObs.J,qObs.H,qObs.Ks,qObs.Rc,qObs.Ic]
-    maglist=[14.71,13.14,11.89,17.56,16.23]
-    magerrlist=[0.087,0.066,0.060,0.10,0.06]
+    # using SMARTS first epoch magnitudes
+    filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
+    maglist=[20.07,18.91,18.02,16.96,15.14,14.02,12.94]
+    magerrlist=[0.06,0.05,0.03,0.03,0.05,0.06,0.10]
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
     
     
+def SEDvsTime(initial_param='smc'):
+    z=1.728
+    galebv=0.11
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
+    objblock=PhotParse.PhotParse(directory)
+    utburststr = objblock.utburst
+    
+    sed_dict={}
+    # determine the rough times at which to make SEDs and 
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    # for time in sedtimelist:
+    #     timestr = str(round(time))[:-2]
+    #     sed_dict.update({timestr:{}})
+    
+    # loop through each time, building up an SED for each
+    for sedtime in sedtimelist:
+        maglist = []
+        magerrlist = []
+        filtlist = []
+        # loop through the obsblocks to collect information 
+        for obsblock in objblock.obsdict.itervalues():
+            if obsblock.filt != None: # IF WE HAVE A FILTER
+                time_thresh = 10 # Number of seconds we can be off in time from the reference 
+                tmidarr=np.array(obsblock.tmidlist)
+                # determine the number of observations, if any, within the threshold
+                matched_indices = np.nonzero(abs(tmidarr-sedtime)<time_thresh)[0]
+                # find the length. if its 1, we found one, if its >1, something is wrong
+                if len(matched_indices) == 0:
+                    continue
+                elif len(matched_indices) != 1:
+                    raise Exception("Too many matched indices! Threshold too high?")
+                elif len(matched_indices) == 1: # we found one. Build up the lists.
+                    index = matched_indices[0]
+                    maglist.append(obsblock.maglist[index])
+                    magerrlist.append(obsblock.magerrlist[index])
+                    filtlist.append(obsblock.filt)
+        # convert collected magnitudes to fluxes:
+        fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+        print '**'
+        print [filt.name for filt in filtlist]
+        print maglist
+        print magerrlist
+        print fluxarr
+        print fluxerrarr
+        print '**'
+        # perform SED fit
+        SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+        
 def maglist2fluxarr(maglist,magerrlist,filtlist):
     for filt in filtlist:
         filtcheck(filt)
@@ -310,6 +354,7 @@ def maglist2fluxarr(maglist,magerrlist,filtlist):
         fluxerr=(fluxtup[1]+fluxtup[2])/2.0 # just take the avg error
         fluxarr.append(flux)
         fluxerrarr.append(fluxerr)
+        count+=1  # I forgot this initially, wow!
     fluxarr=np.array(fluxarr)
     fluxerrarr=np.array(fluxerrarr)
     return fluxarr, fluxerrarr
@@ -458,8 +503,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
         
     # get the bounds for the other axes, which are to be AB mags and obs wavelength
     # this will ensure the shared axes properly line up
-    ymax=fluxarr.max()+1.0*fluxarr.max()
-    ylimflux=(4,ymax)
+    ymax=galcorrectedfluxarr.max()+1.0*galcorrectedfluxarr.max()
+    ymin = galcorrectedfluxarr.min()-0.5*galcorrectedfluxarr.min()
+    print ymin
+    ylimflux=(ymin,ymax)
     xlimrest=(10000,1000)
     ylimmag0=q.flux2abmag(ylimflux[0])
     ylimmag1=q.flux2abmag(ylimflux[1])
