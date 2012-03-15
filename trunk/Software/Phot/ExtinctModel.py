@@ -269,6 +269,10 @@ def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
     return flux_normal
 
 def SEDFitTest(initial_param='smc'):
+    '''Proof of concept of SED fitting, using averaged fluxes from dans 
+    lcurve fitting.  
+    NOTE THE ERRORS ARE MADE UP HERE. Do not trust wholly.
+    '''
     filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
     z=1.728
     galebv=0.11 
@@ -285,16 +289,23 @@ def SEDFitTest2(initial_param='smc'):
     filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
     maglist=[20.07,18.91,18.02,16.96,15.14,14.02,12.94]
     magerrlist=[0.06,0.05,0.03,0.03,0.05,0.06,0.10]
+    # Convert the fluxes to magnitudes
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
     
     
 def SEDvsTime(initial_param='smc'):
+    '''A function which will take a phot objBlock object from the revamping of
+    PhotParse, loop through each time in a given time list and search through 
+    each set of observations to find those times that overlap within a given 
+    threshhold of that time, and build up an SED for each.'''
     z=1.728
     galebv=0.11
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst
+    
+    time_thresh = 10 # Number of seconds we can be off in time from the reference 
     
     sed_dict={}
     # determine the rough times at which to make SEDs and 
@@ -311,7 +322,6 @@ def SEDvsTime(initial_param='smc'):
         # loop through the obsblocks to collect information 
         for obsblock in objblock.obsdict.itervalues():
             if obsblock.filt != None: # IF WE HAVE A FILTER
-                time_thresh = 10 # Number of seconds we can be off in time from the reference 
                 tmidarr=np.array(obsblock.tmidlist)
                 # determine the number of observations, if any, within the threshold
                 matched_indices = np.nonzero(abs(tmidarr-sedtime)<time_thresh)[0]
@@ -338,6 +348,8 @@ def SEDvsTime(initial_param='smc'):
         SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
         
 def maglist2fluxarr(maglist,magerrlist,filtlist):
+    '''Given a list of magnitudes, their uncertainties, and filt objects,
+    return arrays of fluxes and flux errors.'''
     for filt in filtlist:
         filtcheck(filt)
     assert len(maglist) == len(magerrlist)
@@ -360,15 +372,9 @@ def maglist2fluxarr(maglist,magerrlist,filtlist):
     return fluxarr, fluxerrarr
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
-    # B          4.52318     1.1
-    # r          17.7811     0.85
-    # R          19.9167     1.00
-    # i          38.1636     2.00
-    # I          48.2493     2.50
-    # z          78.5432     3.90
-    # J          145.145     6
-    # H          288.604     11
-    # K          499.728     20
+    '''Fit an SED.
+    '''
+
 
     # error checking
     for filt in filtlist:
