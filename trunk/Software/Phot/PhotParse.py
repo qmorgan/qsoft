@@ -107,8 +107,8 @@ class ObsBlock:
             exp = float(indict['exp'])*expmultfactor
             tmid = tstart+exp/2.0
         else:
-            errmsg = "Cannot determine tmid and/or exp for %s filter %s" % (self.source,self.filt)
-            raise ValueError()    
+            errmsg = "Cannot determine tmid and/or exp for %s filter %s" % (self.source,self.filtstr)
+            raise ValueError(errmsg)    
         
         self.tmidlist.append(tmid)   
         self.explist.append(exp)                 
@@ -142,6 +142,7 @@ def PhotParse(filename,verbose=False):
                         'ulim':'lim',
                         'upper':'lim',
                         'isupper':'lim',
+                        't_mid':'tmid',
                         'tstop':'tend'
                         }
     
