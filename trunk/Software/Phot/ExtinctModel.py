@@ -426,48 +426,59 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     #correct for redshift
     waverestarr=wavearr/(1+z)
     
-    #fit model
-    Av=qFit.Param(-1.1,name='Av')
-    beta=qFit.Param(-0.64,name='beta')
-    const=qFit.Param(1000,name='const')
+    # determine initial values
+    Av_init = -1.1
+    beta_init = -0.64
+    const_init = 1000
        
     if initial_param == 'smc':
-        Rv=qFit.Param(2.74,name='Rv')
-        c1 = qFit.Param(-4.959,name='c1')
-        c2 =  qFit.Param(2.264,name='c2')
-        c3 = qFit.Param(0.389,name='c3')
-        c4 = qFit.Param(0.461,name='c4')
-        gamma= qFit.Param(1.05,name='gamma')
-        x0=qFit.Param(4.626,name='x0')
+        Rv_init = 2.74
+        c1_init = -4.959
+        c2_init = 2.264        
+        c3_init = 0.389
+        c4_init = 0.461
+        gamma_init = 1.05
+        x0_init = 4.626
 
     elif initial_param == 'lmc':
-        Rv = qFit.Param(3.2,name='Rv')    
-        c1 = qFit.Param(-1.28,name='c1')
-        c2 = qFit.Param(1.11,name='c2')
-        c3 = qFit.Param(2.73,name='c3')
-        c4 = qFit.Param(0.64,name='c4')
-        gamma = qFit.Param(0.91,name='gamma')
-        x0 = qFit.Param(4.596,name='x0')
+        Rv_init = 3.2
+        c1_init = -1.28
+        c2_init = 1.11
+        c3_init = 2.73
+        c4_init = 0.64
+        gamma_init = 0.91
+        x0_init = 4.596
     
     elif initial_param == 'lmc2':
-        Rv = qFit.Param(3.1,name='Rv')  
-        c1 = qFit.Param(-2.16,name='c1')
-        c2 = qFit.Param(1.31,name='c2')
-        c3 = qFit.Param(1.92,name='c3')
-        c4 = qFit.Param(0.42,name='c4')
-        gamma = qFit.Param(1.05,name='gamma')
-        x0 = qFit.Param(4.626,name='x0')
+        Rv_init = 3.1
+        c1_init = -2.16
+        c2_init = 1.31
+        c3_init = 1.92
+        c4_init = 0.42
+        gamma_init = 1.05
+        x0_init = 4.626
     
     elif initial_param == 'mw':
-        Rv = qFit.Param(3.1,name='Rv')
-        c3 = qFit.Param(3.23,name='c3')
-        c4 = qFit.Param(0.41,name='c4')
-        c2 = -0.824 + 4.717/Rv.value
-        c1 = 2.030 - 3.007*c2
-        c2 = qFit.Param(c2,name='c2')
-        c1 = qFit.Param(c1,name='c1')
-        gamma = qFit.Param(0.99,name='gamma')
-        x0 = qFit.Param(4.596,name='x0')
+        Rv_init = 3.1
+        c3_init = 3.23
+        c4_init = 0.41
+        c2_init = -0.824 + 4.717/Rv_init
+        c1_init = 2.030 - 3.007*c2_init
+        gamma_init = 0.99
+        x0_init = 4.596
+
+    
+    #set parameters
+    Av=qFit.Param(Av_init,name='Av')
+    beta=qFit.Param(beta_init,name='beta')
+    const=qFit.Param(const_init,name='const')
+    Rv=qFit.Param(Rv_init,name='Rv')
+    c1 = qFit.Param(c1_init,name='c1')
+    c2 =  qFit.Param(c2_init,name='c2')
+    c3 = qFit.Param(c3_init,name='c3')
+    c4 = qFit.Param(c4_init,name='c4')
+    gamma= qFit.Param(gamma_init,name='gamma')
+    x0=qFit.Param(x0_init,name='x0')
         
     def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
                 c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
