@@ -382,9 +382,23 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     Optional Inputs:
     * initial_param: set of FM parameters to start with 
         * allowed values: 'smc', 'lmc', 'lmc2', 'mw' (acceptable_initial_param_list)
+    
+    * fit_list: 
+        const - normalization
+        beta - power law spectral slope
+        Av - Extinction in V
+        Rv - scalar specifying the ratio of total to selective extinction
+                 R(V) = A(V) / E(B - V).  
+        x0 - Centroid of 2200 A bump in microns 
+        gamma - Width of 2200 A bump in microns 
+        c3 - Strength of the 2200 A bump
+        c4 - FUV curvature 
+        c2 - Slope of the linear UV extinction component 
+        c1 - Intercept of the linear UV extinction component
     '''
 
-
+    
+    
     # error checking
     for filt in filtlist:
         filtcheck(filt)
@@ -480,10 +494,26 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     gamma= qFit.Param(gamma_init,name='gamma')
     x0=qFit.Param(x0_init,name='x0')
         
+    # build up the param list of things we want to fit
+    fit_list = ['const','Av','beta']
+    fullparamlist = [Av,beta,const,Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
+    fitparamlist = [] 
+    fixparamlist = []
+    fix_list = []
+    for param in fullparamlist:
+        if param.name in fit_list:
+            fitparamlist.append(param) # if its one of the params we want to fit, append it
+        else:
+            fix_list.append(param.name)
+            fixparamlist.append(param)
+    # error check        
+    assert len(fit_list) == len(fitparamlist)
+        
+    
     def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
                 c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
-    paramlist = [Av,beta,const]
-    fitdict = qFit.fit(f,paramlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
+    
+    fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
 
     
     #get model array
@@ -497,12 +527,23 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     fig2=plt.figure()
     ax=fig2.add_axes([0.1,0.1,0.8,0.8])
     
-    textoffset=0.2
+    string = 'chi2 / dof = %.2f / %i' % (fitdict['chi2'],fitdict['dof'])
+    fig2.text(0.2,0.2,string)
+    textoffset=0.24    
     for string in fitdict['strings']:
         if not string.find('const') != -1:
             fig2.text(0.2,textoffset,string)
             textoffset+=0.04
     
+    
+    
+    string = 'Fixed params (%s)' % (initial_param)
+    fig2.text(0.7,0.8,string)
+    textoffset=0.76        
+    for fixedparam in fixparamlist:
+        string = fixedparam.name + ': ' + str(fixedparam.value)
+        fig2.text(0.7,textoffset,string)
+        textoffset-=0.04
     
     #underplot the model
     ax.plot(w,c) 
