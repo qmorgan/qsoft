@@ -372,7 +372,16 @@ def maglist2fluxarr(maglist,magerrlist,filtlist):
     return fluxarr, fluxerrarr
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
-    '''Fit an SED.
+    '''Fit an SED to a list of fluxes with a FM paramaterization.
+    
+    Required Inputs:
+    * filtlist: list of filt objects (see qObs.filt) 
+    * fluxarr: list of fluxes
+    * fluxerrarr: list of uncertainties on the fluxes
+    
+    Optional Inputs:
+    * initial_param: set of FM parameters to start with 
+        * allowed values: 'smc', 'lmc', 'lmc2', 'mw' (acceptable_initial_param_list)
     '''
 
 
@@ -391,11 +400,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     
     rc('font', family='Times New Roman') 
         
-    
-    # wavearr2=np.array([4420.,6220.,6470.,7630.,7865.,9050.,12500.,16500.,21500.])
-    # wavearr=np.array([4458.,6290.,6588.,7706.,8060.,9222.,12350.,16620.,21590.])
-    # wavenamearr=(['B','r','R','i','I','z','J','H','Ks'])
-    
+
     # extract values from the filter list
     wavearr=[]
     wavenamearr=[]
@@ -486,7 +491,6 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
         if not string.find('const') != -1:
             fig2.text(0.2,textoffset,string)
             textoffset+=0.04
-
     
     
     #underplot the model
