@@ -237,7 +237,8 @@ def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     wave = wavelength vector in angstroms 
     Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
     
-    FOR NOW JUST USE SMC
+    FOR NOW JUST USE SMC - Update this if you ever want to use this function
+    for something other than TestPowerlawExt
     '''
     c = 2.998E10 #cm/s
     nu = c/(wave*1E-8) #hertz, for wave in angstroms
@@ -275,15 +276,15 @@ def SEDFitTest(initial_param='smc'):
     '''
     filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
     z=1.728
-    galebv=0.11 
+    galebv=0.108 
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
-    fluxerrarr=np.array([1.1,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
+    fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
     SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
 
 def SEDFitTest2(initial_param='smc'):
     '''another SED fit test, this time starting with magnitudes'''
     z=1.728
-    galebv=0.11
+    galebv=0.108
     
     # using SMARTS first epoch magnitudes
     filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
@@ -300,7 +301,7 @@ def SEDvsTime(initial_param='smc'):
     each set of observations to find those times that overlap within a given 
     threshhold of that time, and build up an SED for each.'''
     z=1.728
-    galebv=0.11
+    galebv=0.108
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst
@@ -316,6 +317,7 @@ def SEDvsTime(initial_param='smc'):
     
     # loop through each time, building up an SED for each
     for sedtime in sedtimelist:
+        timestr = 't = %.1f s' % (sedtime)
         maglist = []
         magerrlist = []
         filtlist = []
@@ -345,7 +347,8 @@ def SEDvsTime(initial_param='smc'):
         print fluxerrarr
         print '**'
         # perform SED fit
-        SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+        SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv,
+                fit_list=['const','Av','beta'], timestr=timestr)
         
 def maglist2fluxarr(maglist,magerrlist,filtlist):
     '''Given a list of magnitudes, their uncertainties, and filt objects,
@@ -371,7 +374,8 @@ def maglist2fluxarr(maglist,magerrlist,filtlist):
     fluxerrarr=np.array(fluxerrarr)
     return fluxarr, fluxerrarr
     
-def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
+def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
+            fit_list = ['const','Av','beta'],timestr=''):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -406,6 +410,11 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     assert len(fluxarr) == len(filtlist)
     
     # Check if initial parameter list is there
+    acceptable_fit_param_list=['const','beta','Av','Rv','x0','gamma','c1','c2','c3','c4']
+    for fitparam in fit_list:
+        if not fitparam in acceptable_fit_param_list:
+            print 'Requested fit parameter of %s is not valid. Please choose from:' % fitparam
+            return
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
     if not initial_param in acceptable_initial_param_list:
         print 'Initial parameter set of %s is not valid. Please choose from:' % (initial_param)
@@ -441,8 +450,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     waverestarr=wavearr/(1+z)
     
     # determine initial values
-    Av_init = -1.1
-    beta_init = -0.64
+    Av_init = -0.62
+    beta_init = -1.45
     const_init = 1000
        
     if initial_param == 'smc':
@@ -495,7 +504,6 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     x0=qFit.Param(x0_init,name='x0')
         
     # build up the param list of things we want to fit
-    fit_list = ['const','Av','beta']
     fullparamlist = [Av,beta,const,Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
     fitparamlist = [] 
     fixparamlist = []
@@ -536,6 +544,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
             textoffset+=0.04
     
     
+    if timestr:
+        fig2.text(0.45,0.8,timestr)
     
     string = 'Fixed params (%s)' % (initial_param)
     fig2.text(0.7,0.8,string)
@@ -566,8 +576,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0):
     # get the bounds for the other axes, which are to be AB mags and obs wavelength
     # this will ensure the shared axes properly line up
     ymax=galcorrectedfluxarr.max()+1.0*galcorrectedfluxarr.max()
-    ymin = galcorrectedfluxarr.min()-0.5*galcorrectedfluxarr.min()
-    print ymin
+    #ymin = galcorrectedfluxarr.min()-0.5*galcorrectedfluxarr.min()
+    ymin = ymax*(1-0.997)
     ylimflux=(ymin,ymax)
     xlimrest=(10000,1000)
     ylimmag0=q.flux2abmag(ylimflux[0])
