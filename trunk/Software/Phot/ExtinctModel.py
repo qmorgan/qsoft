@@ -251,14 +251,74 @@ def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     extmodel.UnreddenFlux(flux_normal)
     return extmodel
 
+
+def timeDepAvBeta(wave_vec,time_vec,norm_vec,Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,beta_1=0.0,
+                    beta_2=0.0,Rv=2.74,c1=-4.959,
+                    c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
+    '''Allowing for Av and Beta to change with time
+    wave: wavelength vector in angstroms [[1,2,3,4,5],[1,2,4,5],[1,3,4,5]]
+    time: time vector in seconds [50,250,500]
+    norm_vec: vector of normalizations (replacing const) - one for each time
+    Av_0: limit at large time
+    Av_1: normalization const
+    Av_2: decay index
+    beta_0: limit at large time
+    beta_1: normalization const
+    beta_2: decay index
+    
+    Av(t) = Av_0 + Av_1*t^{Av_2}
+    beta(t) = beta_0 + beta_1*t^{beta_2}
+    
+    f(t) = f_corr(t)*(nu/nu_0)^-beta(t)
+    where f_corr(t) is the time-dependent extinction corrected normalized flux
+    '''
+    assert len(wave) == len(time)
+    assert len(norm_vec) == len(time)
+    
+    # build up x-vector of tuples
+    
+    
+    # assume extmodel doesn't change with time
+    extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
+    # for each time
+    count = 0 # need?
+    flux_out=[]
+    for time in time_vec:
+        ind = time_vec.index(time) # index
+        const = norm_vec[ind]
+        wave = np.array(wave_vec[ind]) # vector of wavelengths; should be multi-length
+         
+        beta = beta_0 + beta_1*(time**(beta_2))
+        Av = Av_0 + Av_1*(time**(Av_2))
+        
+        fluxarr = fluxarr=np.ones(len(wave)) #just an array of ones
+        
+        extmodel.EvalCurve(wave,Av/Rv)
+        extmodel.UnreddenFlux(fluxarr)
+        
+        extmodel.UnreddenFlux(fluxarr)
+        flux_normal = const*extmodel.funred*(10000/wave)**beta
+        flux_out.append(flux_normal) # append the resultant array to the list
+        
+    
 def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
                         c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
-
-    #given wave, return the flux
+    
+    '''
+    spectral power law + extinction - return flux
+    
+    Given a vector of wavelengths, spectral power law slope (beta), 
+    extinction in V (Av), FM params (Rv,c1,c2,c3,c4,gamma,x0), and normalization
+    constant, return the flux vector. 
+     
+    wave = wavelength vector in angstroms 
+    Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
+    
+    '''
     fluxarr=np.ones(len(wave)) #just an array of ones
-    c = 2.998E10 #cm/s
-    nu = c/(wave*1E-8) #hertz, for wave in angstroms
-    # nu_0 = const #valid???    
+    # c = 2.998E10 #cm/s
+    # nu = c/(wave*1E-8) #hertz, for wave in angstroms
+    # # nu_0 = const #valid???    
     
     extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
     extmodel.EvalCurve(wave,Av/Rv)
@@ -375,7 +435,7 @@ def maglist2fluxarr(maglist,magerrlist,filtlist):
     return fluxarr, fluxerrarr
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
-            fit_list = ['const','Av','beta'],timestr=''):
+            fit_list = ['const','Av','beta'],timestr='', plot=True):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -399,9 +459,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
         c4 - FUV curvature 
         c2 - Slope of the linear UV extinction component 
         c1 - Intercept of the linear UV extinction component
-    '''
-
-    
+    ''' 
     
     # error checking
     for filt in filtlist:
@@ -422,8 +480,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
         return
     
     rc('font', family='Times New Roman') 
-        
-
+    
     # extract values from the filter list
     wavearr=[]
     wavenamearr=[]
@@ -522,111 +579,102 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
                 c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
     
     fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
-
-    
-    #get model array
-    w=1000. + np.arange(500)*100
-    f = w*0. + 1
-    c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
-        c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
-    # fig = c.plotModel(show=False,color='green')
-
-        
-    fig2=plt.figure()
-    ax=fig2.add_axes([0.1,0.1,0.8,0.8])
-    
-    string = 'chi2 / dof = %.2f / %i' % (fitdict['chi2'],fitdict['dof'])
-    fig2.text(0.2,0.2,string)
-    textoffset=0.24    
-    for string in fitdict['strings']:
-        if not string.find('const') != -1:
-            fig2.text(0.2,textoffset,string)
-            textoffset+=0.04
     
     
-    if timestr:
-        fig2.text(0.45,0.8,timestr)
-    
-    string = 'Fixed params (%s)' % (initial_param)
-    fig2.text(0.7,0.8,string)
-    textoffset=0.76        
-    for fixedparam in fixparamlist:
-        string = fixedparam.name + ': ' + str(fixedparam.value)
-        fig2.text(0.7,textoffset,string)
-        textoffset-=0.04
-    
-    #underplot the model
-    ax.plot(w,c) 
-
-    
-    # i cant seem to get a scatter plot to appear above a line plot. HMM. 
-    # Forget it. No need to have colors on the points.
-    # ax.scatter(waverestarr,galcorrectedfluxarr,c=wavearr,cmap='jet',s=30,edgecolors='none')
-    
-    # plot data
-    ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.')
-    # annotate data with the filter names
-    for name in wavenamearr:
-        ind = wavenamearr.index(name)
-        xy=(waverestarr[ind],galcorrectedfluxarr[ind])
-        xytext=(waverestarr[ind]*0.95,galcorrectedfluxarr[ind]*1.05)
-        ax.annotate(name,xy=xy,xytext=xytext,fontsize='small')
+    if plot:
+        #get model array
+        w=1000. + np.arange(500)*100
+        f = w*0. + 1
+        c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
+            c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
+        # fig = c.plotModel(show=False,color='green')
 
         
-    # get the bounds for the other axes, which are to be AB mags and obs wavelength
-    # this will ensure the shared axes properly line up
-    ymax=galcorrectedfluxarr.max()+1.0*galcorrectedfluxarr.max()
-    #ymin = galcorrectedfluxarr.min()-0.5*galcorrectedfluxarr.min()
-    ymin = ymax*(1-0.997)
-    ylimflux=(ymin,ymax)
-    xlimrest=(10000,1000)
-    ylimmag0=q.flux2abmag(ylimflux[0])
-    ylimmag1=q.flux2abmag(ylimflux[1])
-    ylimmag=(ylimmag0,ylimmag1)
-    xlimobs0=xlimrest[0]*(1+z)
-    xlimobs1=xlimrest[1]*(1+z)
-    xlimobs=(xlimobs0,xlimobs1)   
+        fig2=plt.figure()
+        ax=fig2.add_axes([0.1,0.1,0.8,0.8])
     
-    # Initialize the other shared axes and make some of them log axes
-    ax.loglog()        
-    ax2=ax.twinx()
-    ax3=ax.twiny()
-    ax3.semilogx()
+        string = 'chi2 / dof = %.2f / %i' % (fitdict['chi2'],fitdict['dof'])
+        fig2.text(0.2,0.2,string)
+        textoffset=0.24    
+        for string in fitdict['strings']:
+            if not string.find('const') != -1:
+                fig2.text(0.2,textoffset,string)
+                textoffset+=0.04
     
-    # Set the limits of the axes based on our definitions above.
-    ax.set_xlim(xlimrest)
-    ax.set_ylim(ylimflux)    
-    ax3.set_xlim(xlimobs)
-    ax2.set_ylim(ylimmag)
     
-    # Label the 4 axes
-    ax.set_ylabel(r'$F_\nu$ (uJy)')
-    ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
-    ax2.set_ylabel('AB Mag')
-    ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)')
+        if timestr:
+            fig2.text(0.45,0.8,timestr)
+    
+        string = 'Fixed params (%s)' % (initial_param)
+        fig2.text(0.7,0.8,string)
+        textoffset=0.76        
+        for fixedparam in fixparamlist:
+            string = fixedparam.name + ': ' + str(fixedparam.value)
+            fig2.text(0.7,textoffset,string)
+            textoffset-=0.04
+    
+        #underplot the model
+        ax.plot(w,c) 
 
-    # Explicitly define which ticks to label on the x axes
-    ax.set_xticks([10000,6000,4000,2000,1000])
-    ax3.set_xticks([20000,10000,6000,4000,3000])
+    
+        # i cant seem to get a scatter plot to appear above a line plot. HMM. 
+        # Forget it. No need to have colors on the points.
+        # ax.scatter(waverestarr,galcorrectedfluxarr,c=wavearr,cmap='jet',s=30,edgecolors='none')
+    
+        # plot data
+        ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.')
+        # annotate data with the filter names
+        for name in wavenamearr:
+            ind = wavenamearr.index(name)
+            xy=(waverestarr[ind],galcorrectedfluxarr[ind])
+            xytext=(waverestarr[ind]*0.95,galcorrectedfluxarr[ind]*1.05)
+            ax.annotate(name,xy=xy,xytext=xytext,fontsize='small')
 
-    # use the function formatter for the ticks to show them as full integers
-    # rather then exponential format
-    formatter = FuncFormatter(log_10_product)
-    ax.xaxis.set_major_formatter(formatter)
-    ax.yaxis.set_major_formatter(formatter)
-    ax3.xaxis.set_major_formatter(formatter)
+        
+        # get the bounds for the other axes, which are to be AB mags and obs wavelength
+        # this will ensure the shared axes properly line up
+        ymax=galcorrectedfluxarr.max()+1.0*galcorrectedfluxarr.max()
+        #ymin = galcorrectedfluxarr.min()-0.5*galcorrectedfluxarr.min()
+        ymin = ymax*(1-0.997)
+        ylimflux=(ymin,ymax)
+        xlimrest=(10000,1000)
+        ylimmag0=q.flux2abmag(ylimflux[0])
+        ylimmag1=q.flux2abmag(ylimflux[1])
+        ylimmag=(ylimmag0,ylimmag1)
+        xlimobs0=xlimrest[0]*(1+z)
+        xlimobs1=xlimrest[1]*(1+z)
+        xlimobs=(xlimobs0,xlimobs1)   
+    
+        # Initialize the other shared axes and make some of them log axes
+        ax.loglog()        
+        ax2=ax.twinx()
+        ax3=ax.twiny()
+        ax3.semilogx()
+    
+        # Set the limits of the axes based on our definitions above.
+        ax.set_xlim(xlimrest)
+        ax.set_ylim(ylimflux)    
+        ax3.set_xlim(xlimobs)
+        ax2.set_ylim(ylimmag)
+    
+        # Label the 4 axes
+        ax.set_ylabel(r'$F_\nu$ (uJy)')
+        ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
+        ax2.set_ylabel('AB Mag')
+        ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)')
 
-    fig2.show()
-    # Dan's Solved FM paramters:
-    #            beta = 0.662 +/- 0.019
-    #             A_V = 1.364 +/- 0.193
-    #             R_V = 3.557 +/- 0.712
-    #             C1 =-4.644 +/- 1.295
-    #             C2 = 2.219 +/- 0.431
-    #             C3 = 0.245 +/- 0.507
-    #             C4 = 0.000 +/--0.000  (hit a limit, not well-constrained)
-    #           chi^2/dof = 8.54 / 3
+        # Explicitly define which ticks to label on the x axes
+        ax.set_xticks([10000,6000,4000,2000,1000])
+        ax3.set_xticks([20000,10000,6000,4000,3000])
 
+        # use the function formatter for the ticks to show them as full integers
+        # rather then exponential format
+        formatter = FuncFormatter(log_10_product)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(formatter)
+        ax3.xaxis.set_major_formatter(formatter)
+
+        fig2.show()
 
 def log_10_product(x, pos):
     """The two args are the value and tick position.
