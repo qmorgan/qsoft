@@ -115,3 +115,46 @@ def fit(function, parameters, y, yerr, x = None, return_covar=False):
         return covarmatrix
     else:
         return retdict # return the dictonary of outputs
+
+def test_fit():
+    import numpy as np
+    import matplotlib.pyplot as plt
+    #Give initial paramaters:
+    mu = Param(20,name='mu')
+    sigma = Param(4,name='sigma')
+    height = Param(5,name='height')
+    
+    #Define your function:
+    def f(x): 
+        # here we are using proof of concept of a multi-input function e.g. y=f(x,t)
+        # 'x' is a list of tuples, zipped with the zip function (see below)
+        # we unzip them and then evaluate. 
+        # e.g., x=[(0, 0.0),(1, 0.0),(2, 0.0),(3, 0.0),(4, 0.0),(5, 0.0)]
+        xval,zero = zip(*x) # unzip the x feature vector
+        return height() * np.exp(-((xval-mu())/sigma())**2) + zero
+    
+    #Make simulated data:
+    xvals=np.arange(100)
+    zeros = np.zeros(100)
+    zipxvals = zip(xvals,zeros)
+    
+    gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
+    # true values: mu=30, height=3, sigma=sqrt(20)=4.472
+    ydata = gaussian(xvals)
+    ydata = scipy.randn(100)*.1+ydata #adding noise
+    yerr = np.zeros(100)+.1 #array of uncertainties
+
+    #Fit the function (provided 'data' is an array with the data to fit):
+    fit(f, [mu, sigma, height], ydata, yerr, zipxvals)
+
+    #Plot the fitted model over the data if desired
+    simxvals = np.arange(10000)/100. # 10000 points from 0-100
+    simzeros = np.zeros(len(simxvals))
+    zipsimxvals = zip(simxvals,simzeros)
+    
+    fig2=plt.figure()
+    ax=fig2.add_axes([0.1,0.1,0.8,0.8])
+    ax.plot(simxvals,f(zipsimxvals))
+    
+    ax.scatter(xvals,ydata)
+    fig2.show()
