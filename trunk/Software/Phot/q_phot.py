@@ -1562,7 +1562,7 @@ def photreturn(GRBname, filename, clobber=False, reg=None, aper=None, \
 def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
     stardict=None, clobber=False, auto_upper=True, caliblimit=True, verbose=False, 
     autocull=False, find_fwhm=False, global_fallback_n_dither=0, 
-    reuse_vizcat_after_one_iteration=True):
+    reuse_vizcat_after_one_iteration=True,force_continue_if_error=True):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''
@@ -1600,11 +1600,18 @@ def photLoop(GRBname, regfile, ap=None, calregion = None, trigger_id = None, \
         if count > 0 and reuse_vizcat_after_one_iteration: reuse = True
         print "=========================================================="
         print "Now performing photometry for %s \n" % (mosaic)
-        photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
+        try:
+            photout = photreturn(GRBname, mosaic, clobber=clobber, reg=regfile, \
             aper=ap, calregion = calregion, trigger_id=trigger_id, stardict=stardict,
             auto_upper=auto_upper, caliblimit=caliblimit, verbose=verbose, autocull=autocull, 
             find_fwhm=find_fwhm, fallback_n_dither=global_fallback_n_dither,
             reuse_old_vizcat=reuse)
+        except:
+            if force_continue_if_error:
+                print '****Error was encountered, but continuing to next image****'
+                pass
+            else:
+                raise Exception
         count += 1
     return photout
     
