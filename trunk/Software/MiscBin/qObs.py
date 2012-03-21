@@ -104,17 +104,73 @@ class filt:
     filt.freq = frequeny in hertz
     filt.energy = energy in erg
     """
-    def __init__(self,val,valtype='wave',fluxconv=0.0,zp=99,comment='None'):
+    def __init__(self,val,valtype='wave',fwhm=0.0,zpflux=0.0,kval=0.0,fluxconv=0.0,zp=99,name='none',comment='None'):
+        '''Given a val and a valtype, convert the relevant value into wavelength,
+        energy, and frequency units.  
+        
+        wave: wavelength in centimeters
+        freq: frequency in hz
+        energy: energy in erg
+        
+        fwhm: same units as valtype
+        zpflux: flux corresponding to a magnitude of 0 (in microjanskies)
+        kval: such that F(uJy) = 10^(kval - mag/2.5)
+        fluxconv: flux density conversion factor for uvot in ergs cm^-2 s^-1 angstrom^-1
+        zp: zero point magnitude (currently only for uvot)
+        
+        name: name of the filter for plot annotations
+        comment: more info about the filter
+        
+        Given a zpflux, determine the kval for flux conversions, where
+        F = 10^(kval - mag/2.5)
+        log(F) = kval - mag/2.5
+        2.5log(F) = 2.5kval - mag
+        and if zeropoint, mag=0, so if zpflux is in microjanskies, 
+        log(F) = log(zpflux) = kval 
+        
+        If zpflux and kval are both given, raise an exception. Only one should 
+        be given, and the other can be converted.
+        
+        For convinience, energy conversions are done:
+        wave_A: wavelength in angstroms
+        wave_nm: wavelength in nanometers
+        wave_um: wavelength in microns 
+        wave_m: wavelength in meters
+        
+        energy_eV: energy in electron volts
+        energy_J: energy in Joules
+        
+        
+        '''
+        self.zpflux = zpflux
+        self.kval = kval
+        
+        if zpflux and kval:
+            print 'Cannot initialize; only either zpflux or kval can be specified.'
+            return
+        if zpflux and not kval:
+            self.kval = numpy.log10(zpflux) #assuming zpflux in uJy         
+        if kval and not zpflux:            
+            self.zpflux = 10**kval # gives zpflux in uJy
+        
+        self.zpflux_uJy = self.zpflux #no conversion
+        self.zpflux_Jy = self.zpflux*1E-6
+        self.zpflux_cgs = self.zpflux_Jy*1E-23 #erg/cm^2/s/Hz
+        self.zpflux_mks = self.zpflux_Jy*1E-26 #W/m^2/Hz
+            
         self.val = val
         self.valtype = valtype
         self.fluxconv = fluxconv
         self.zp = zp
+        self.fwhm = fwhm
         self.comment = comment
+        self.name = name
         acceptabletypes = ['wave','freq','energy']
         try:
             acceptabletypes.index(valtype)
         except:
             print "Cannot initialize, needs to be of type: ", acceptabletypes 
+            return
         if self.valtype == 'wave':
             self.wave = self.val
             self.freq = c/self.wave
@@ -127,49 +183,93 @@ class filt:
             self.energy = self.energy
             self.freq = self.energy/h
             self.wave = h*c/self.energy
+        
+        # do unit conversions for convinience
+        self.wave_cm = self.wave #no conversion
+        self.wave_A = self.wave * 1E8
+        self.wave_nm = self.wave * 1E7
+        self.wave_um = self.wave * 1E4
+        self.wave_m = self.wave * 1E-2
+        
+        self.freq_Hz = self.freq #no conversion
+        
+        self.energy_erg = self.energy #no conversion
+        self.energy_eV = self.energy * 6.24150974*1E11
+        self.energy_J = self.energy * 1E-7
 
-# UVOT - source: Poole et al. 2008
-uvotfilts={
-    'vv':filt(5402e-8,valtype='wave',fluxconv=2.614e-16,zp=17.89, comment='UVOT V Filter'),
-    'bb':filt(4329e-8,valtype='wave',fluxconv=1.472e-16,zp=19.11, comment='UVOT B Filter'),
-    'uu':filt(3501e-8,valtype='wave',fluxconv=1.63e-16, zp=18.34, comment='UVOT U Filter'),
-    'w1':filt(2634e-8,valtype='wave',fluxconv=4.00e-16, zp=17.49, comment='UVOT UVW1 Filter'),
-    'm2':filt(2231e-8,valtype='wave',fluxconv=8.50e-16, zp=16.82, comment='UVOT UVM2 Filter'),
-    'w2':filt(2030e-8,valtype='wave',fluxconv=6.2e-16,  zp=17.35, comment='UVOT UVW2 Filter'),
-    'wh':filt(3471e-8,valtype='wave',fluxconv=3.7e-17,  zp=20.29, comment='UVOT UVW2 Filter')} 
+# UVOT - source: Poole et al. 2008 and heasarc.nasa.gov/docs/swift/analysis/ for fwhm
+# white values from roming et al 2005 (verified in arxiv/0809.4193)
+VV=filt(5468e-8,valtype='wave',fwhm=769e-8,fluxconv=2.614e-16,zp=17.89,name='UVOT V', comment='UVOT V Filter')
+BB=filt(4392e-8,valtype='wave',fwhm=975e-8,fluxconv=1.472e-16,zp=19.11,name='UVOT B', comment='UVOT B Filter')
+UU=filt(3465e-8,valtype='wave',fwhm=785e-8,fluxconv=1.63e-16, zp=18.34,name='UVOT U', comment='UVOT U Filter')
+W1=filt(2600e-8,valtype='wave',fwhm=700e-8,fluxconv=4.00e-16, zp=17.49,name='UVW1', comment='UVOT UVW1 Filter')
+M2=filt(2246e-8,valtype='wave',fwhm=510e-8,fluxconv=8.50e-16, zp=16.82,name='UVM2', comment='UVOT UVM2 Filter')
+W2=filt(1928e-8,valtype='wave',fwhm=760e-8,fluxconv=6.2e-16,  zp=17.35,name='UVW2', comment='UVOT UVW2 Filter')
+WH=filt(3850e-8,valtype='wave',fwhm=2600e-8,fluxconv=3.7e-17,  zp=20.29,name='White', comment='UVOT White Filter')
+uvotfilts={'vv':VV,'bb':BB,'uu':UU,'w1':W1,'m2':M2,'w2':W2,'wh':WH} 
 
 # Cousin RI 
-cousinfilts={
-    'Rc':filt(6470e-8,valtype='wave',comment='Cousins R'),
-    'Ic':filt(7865e-8,valtype='wave',comment='Cousins I')}
+# Fukujita et al. 1995
+Rc=filt(6588e-8,valtype='wave',fwhm=1568e-8,zpflux=3104e6,name='R',comment='Cousins R')
+Ic=filt(8060e-8,valtype='wave',fwhm=1542e-8,zpflux=2432e6,name='I',comment='Cousins I')
+cousinfilts={'Rc':Rc,'Ic':Ic}
 
 # 2mass
-twomassfilts={
-    'J':filt(1.25e-4,valtype='wave',comment='PAIRITEL J Filter'),
-    'H':filt(1.65e-4,valtype='wave',comment='PAIRITEL H Filter'),
-    'Ks':filt(2.15e-4,valtype='wave',comment='PAIRITEL Ks Filter')}
+# cohen et al. 2003
+# zp (jy) J:1594, H:1024, Ks:666.7
+J=filt(1.235e-4,valtype='wave',fwhm=1620e-8,zpflux=1594e6,name='J',comment='PAIRITEL J Filter')
+H=filt(1.662e-4,valtype='wave',fwhm=2510e-8,zpflux=1024e6,name='H',comment='PAIRITEL H Filter')
+Ks=filt(2.159e-4,valtype='wave',fwhm=2620e-8,zpflux=666.7e6,name='Ks',comment='PAIRITEL Ks Filter')
+twomassfilts={'J':J,'H':H,'Ks':Ks}
+
 
 # Sloan
-sloanfilts = {
-    'u':filt(3540e-8,valtype='wave',comment="Sloan u'"),
-    'g':filt(4750e-8,valtype='wave',comment="Sloan g'"),
-    'r':filt(6220e-8,valtype='wave',comment="Sloan r'"),
-    'i':filt(7630e-8,valtype='wave',comment="Sloan i'"),
-    'z':filt(9050e-8,valtype='wave',comment="Sloan z'")}
+# Fukujita et al. 1995
+# http://www.sdss3.org/dr8/algorithms/fluxcal.php#SDSStoAB
+# The SDSS photometry is intended to be on the AB system (Oke & Gunn 1983), 
+# by which a magnitude 0 object should have the same counts as a source of 
+# Fν = 3631 Jy. However, this is known not to be exactly true, such that the 
+# photometric zeropoints are slightly off the AB standard. We continue to work 
+# to pin down these shifts. Our present estimate, based on comparison to the 
+# STIS standards of Bohlin, Dickinson, & Calzetti (2001) and confirmed by SDSS 
+# photometry and spectroscopy of fainter hot white dwarfs, is that the u band 
+# zeropoint is in error by 0.04 mag, uAB = uSDSS - 0.04 mag, and that g, r, and 
+# i are close to AB. These statements are certainly not precise to better than 
+# 0.01 mag; in addition, they depend critically on the system response of the
+# SDSS 2.5-meter, which was measured by Doi et al. (2010). The z band zeropoint 
+# is not as certain at this time, but there is mild evidence that it may be s
+# hifted by about 0.02 mag in the sense zAB = zSDSS + 0.02 mag. The large shift
+#  in the u band was expected because the adopted magnitude of the SDSS standard 
+#  BD+17 in Fukugita et al. (1996) was computed at zero airmass, thereby making 
+# the assumed u response bluer than that of the USNO system response.
+# kval = log(3631e6ujy) = 9.56
+# u: 9.56 - 0.04/2.5 = 9.544 => zpflux = 3500
+# z: 9.56 + 0.02/2.5 = 9.568 => zpflux = 3698
+u=filt(3585e-8,valtype='wave',fwhm=556e-8,zpflux=3500e6,name='u',comment="Sloan u'")
+g=filt(4858e-8,valtype='wave',fwhm=1297e-8,zpflux=3631e6,name='g',comment="Sloan g'")
+r=filt(6290e-8,valtype='wave',fwhm=1358e-8,zpflux=3631e6,name='r',comment="Sloan r'")
+i=filt(7706e-8,valtype='wave',fwhm=1547e-8,zpflux=3631e6,name='i',comment="Sloan i'")
+z=filt(9222e-8,valtype='wave',fwhm=1530e-8,zpflux=3698e6,name='z',comment="Sloan z'")
+sloanfilts = {'u':u,'g':g,'r':r,'i':i,'z':z}
 
 # Johnson
-johnsonfilts = {
-    'U':filt(3640e-8,valtype='wave',comment="Johnson U"),
-    'B':filt(4420e-8,valtype='wave',comment="Johnson B"),
-    'V':filt(5400e-8,valtype='wave',comment="Johnson V")}
+# Fukujita et al. 1995
+U=filt(3652e-8,valtype='wave',fwhm=526e-8,zpflux=1923e6,name='U',comment="Johnson U")
+B=filt(4458e-8,valtype='wave',fwhm=1008e-8,zpflux=4130e6,name='B',comment="Johnson B")
+V=filt(5505e-8,valtype='wave',fwhm=827e-8,zpflux=3689e6,name='V',comment="Johnson V")
+johnsonfilts = {'U':U,'B':B,'V':V}
+
+
+Kp=filt(2.1240e-4,valtype='wave',fwhm=3510e-8,name='Ks',comment='Kprime Filter')
 
 # UKIDSS (WFCAM)
-ukidssfilts = {
-    'Z':filt(8820e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Z'),
-    'Y':filt(10310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Y'),
-    'J':filt(12480e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey J'),
-    'H':filt(16310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey H'),
-    'K':filt(22010e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey K')}
+# NOT VERIFIED VALUES; be warned
+ukZ=filt(8820e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Z')
+ukY=filt(10310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey Y')
+ukJ=filt(12480e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey J')
+ukH=filt(16310e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey H')
+ukK=filt(22010e-8,valtype='wave',comment='UKIRT IR Deep Sky Survey K')
+ukidssfilts = {'Z':ukZ,'Y':ukY,'J':ukJ,'H':ukH,'K':ukK}
 
 # Initialize telescope instances
 # Observatory" instances, which contain "Scopes" that use "Filts"

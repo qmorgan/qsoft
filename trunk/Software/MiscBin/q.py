@@ -43,24 +43,62 @@ def round_sig(x, sig=2):
         roundedsig = x
     return roundedsig
     
-def flux2mag():
-    """docstring for flux2mag"""
-    pass
-
-def mag2abmag(mag, zpflux):
-    AB_mag = -2.5*numpy.log10(q.mag2flux(mag,0,zpflux)) - 48.60
+def flux2abmag(flux):
+    """Convert a flux in microjanskys to an AB magnitude"""
+    AB_mag = -2.5*numpy.log10(flux*1e-6*1e-23) - 48.60
     return AB_mag
 
-def mag2flux(mag_1=99,mag_2=99,flux_2=0):
-    """Given a magnitude and a flux """
+def filtcheck(filt):
+    '''Check if the object given is of the filt class, for error checking
+    purposes.'''
+    if str(filt.__class__).split('.')[-1] != 'filt':
+        errstr = 'Filt %s is not an instance of the filt object. It is of class %s' % (str(filt), str(filt.__class__))
+        raise ValueError(errstr)
+
+def mag2abmag(mag, filt):
+    filtcheck(filt)
+    AB_mag = -2.5*numpy.log10(mag2flux(mag,filt=filt)*1E-29) - 48.60
+    return AB_mag
+
+def mag2flux(mag_1=99,mag_2=99,flux_2=0,filt=None,mag_1err=None):
+    """Given an input magnitude and a second magnitude + corresponding flux 
+    OR 
+    Given an input magnitude and an instance of the filt object,
+    convert the input magnitude to a flux (in microjanskies if filt object is 
+    specified)
+    
+    The filt object (in qObs.py) contains the required zeropoint flux in uJy
+    
+    if mag_1err is specified, return a tuple of (flux,fluxerr_p,fluxerr_n)
+    where fluxerr_p is the positive uncertainty and fluxerr_n is the negative
+    
+    We are assuming here that the uncertainty in mag_2 and flux_2 (usually the
+    zeropoint values) are negligible compared to the uncertainty in mag_1.
+    """
     if mag_1 == 99:
-        mag_1 = raw_input('Please enter mag_1: ')
-    if mag_2 == 99:
-        mag_1 = raw_input('Please enter mag_2: ')
-    if flux_2 == 0:
-        flux_2 = raw_input('Please enter flux_2: ')
+        mag_1 = float(raw_input('Please enter mag_1: '))
+    if filt:
+        if mag_2 != 99 or flux_2 !=0:
+            raise ValueError('Cannot specify both filt and secondary mag/flux')
+        else:
+            filtcheck(filt)
+            mag_2 = 0
+            flux_2 = filt.zpflux
+    else:                
+        if mag_2 == 99:
+            mag_1 = raw_input('Please enter mag_2: ')
+        if flux_2 == 0:
+            flux_2 = raw_input('Please enter flux_2: ')
+    
     flux_1 = flux_2 * 10**(-0.4*(mag_1 - mag_2))
-    return flux_1
+    if not mag_1err:
+        return flux_1
+    else:
+        flux_1p = flux_2 * 10**(-0.4*((mag_1-mag_1err) - mag_2))
+        flux_1n = flux_2 * 10**(-0.4*((mag_1+mag_1err) - mag_2))
+        fluxerr_p = flux_1p - flux_1
+        fluxerr_n = flux_1 - flux_1n
+        return (flux_1,fluxerr_p,fluxerr_n)
 
 # Zeropoint: 1 count/second 
 # Frequency: 5647 Angstroms hc/lambda
