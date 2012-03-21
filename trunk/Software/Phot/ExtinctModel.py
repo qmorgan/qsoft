@@ -252,11 +252,11 @@ def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     return extmodel
 
 
-def timeDepAvBeta(wave_vec,time_vec,norm_vec,Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,beta_1=0.0,
+def timeDepAvBeta(wave_time_vec,norm_vec,Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,beta_1=0.0,
                     beta_2=0.0,Rv=2.74,c1=-4.959,
                     c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
     '''Allowing for Av and Beta to change with time
-    wave: wavelength vector in angstroms [[1,2,3,4,5],[1,2,4,5],[1,3,4,5]]
+    time_wave_dict: wavelength vector in angstroms [[1,2,3,4,5],[1,2,4,5],[1,3,4,5]]
     time: time vector in seconds [50,250,500]
     norm_vec: vector of normalizations (replacing const) - one for each time
     Av_0: limit at large time
@@ -354,28 +354,45 @@ def SEDFitTest2(initial_param='smc'):
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
     
+
+def _align_SED_times(objblock,sedtimelist,time_thresh=10):
+    '''
+    Given an object block and a list of desired times, return a dictionary 
+    of the following format: 
+    {'t = 1216.8 s': {'filtlist': [<MiscBin.qObs.filt instance at 0x6931800>,
+                                   <MiscBin.qObs.filt instance at 0x69318a0>,
+                                   <MiscBin.qObs.filt instance at 0x6931850>,
+                                   <MiscBin.qObs.filt instance at 0x6931878>,
+                                   <MiscBin.qObs.filt instance at 0x6931a30>,
+                                   <MiscBin.qObs.filt instance at 0x6931828>],
+                      'magerrlist': [0.025,
+                                     0.0413638318369,
+                                     0.0389245320622,
+                                     0.0364034889082,
+                                     0.117,
+                                     0.028],
+                      'maglist': [17.337,
+                                  12.2781,
+                                  14.4305,
+                                  13.25495,
+                                  19.092,
+                                  16.118],
+                      'sedtime': 1216.82470999968},
+     't = 178.2 s': {'filtlist': [<MiscBin.qObs.filt instance at 0x6931800>,
+                                  <MiscBin.qObs.filt instance at 0x69318a0>,
+                                  <MiscBin.qObs.filt instance at 0x6931850>,
+                                  <MiscBin.qObs.filt instance at 0x6931878>,
+                                  <MiscBin.qObs.filt instance at 0x6931828>],
+                     'magerrlist': [0.112,
+                                    0.0597335757223,
+                                    0.0869512692113,
+                                    0.0659107210151,
+                                    0.063],
+                     'maglist': [17.555, 11.8928, 14.7104, 13.1396, 16.233],
+                     'sedtime': 178.153240999968}}
+    '''
     
-def SEDvsTime(initial_param='smc'):
-    '''A function which will take a phot objBlock object from the revamping of
-    PhotParse, loop through each time in a given time list and search through 
-    each set of observations to find those times that overlap within a given 
-    threshhold of that time, and build up an SED for each.'''
-    z=1.728
-    galebv=0.108
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
-    objblock=PhotParse.PhotParse(directory)
-    utburststr = objblock.utburst
-    
-    time_thresh = 10 # Number of seconds we can be off in time from the reference 
-    
-    sed_dict={}
-    # determine the rough times at which to make SEDs and 
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    # for time in sedtimelist:
-    #     timestr = str(round(time))[:-2]
-    #     sed_dict.update({timestr:{}})
-    
-    # loop through each time, building up an SED for each
+    aligndict={}
     for sedtime in sedtimelist:
         timestr = 't = %.1f s' % (sedtime)
         maglist = []
@@ -397,6 +414,36 @@ def SEDvsTime(initial_param='smc'):
                     maglist.append(obsblock.maglist[index])
                     magerrlist.append(obsblock.magerrlist[index])
                     filtlist.append(obsblock.filt)
+        aligndict.update({timestr:{'sedtime':sedtime,'maglist':maglist,'magerrlist':magerrlist,'filtlist':filtlist}})
+    return aligndict
+    
+def SEDvsTime(initial_param='smc'):
+    '''A function which will take a phot objBlock object from the revamping of
+    PhotParse, loop through each time in a given time list and search through 
+    each set of observations to find those times that overlap within a given 
+    threshhold of that time, and build up an SED for each.'''
+    z=1.728
+    galebv=0.108
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
+    objblock=PhotParse.PhotParse(directory)
+    utburststr = objblock.utburst
+    
+    time_thresh = 10 # Number of seconds we can be off in time from the reference 
+    
+    sed_dict={}
+    # determine the rough times at which to make SEDs and 
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    # for time in sedtimelist:
+    #     timestr = str(round(time))[:-2]
+    #     sed_dict.update({timestr:{}})
+    
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+    
+    # loop through each time, building up an SED for each
+    for timestr, val in aligndict.iteritems():
+        maglist=val['maglist'] 
+        magerrlist=val['magerrlist']
+        filtlist=val['filtlist']
         # convert collected magnitudes to fluxes:
         fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
         print '**'
