@@ -2024,7 +2024,7 @@ def photplot(photdict,ylim=None,xlim=None, plotname=False, overplot=False, no_ap
         matplotlib.pyplot.title(uniquename)
     else:
         matplotlib.pyplot.title(uniquename+' Lightcurve: ap = ' + str(ap))
-    savepath = storepath + uniquename + '_' + 'ap' + str(ap) + '_lightcurve.png'
+    savepath = storepath + uniquename + '_' + 'ap' + str(ap) + '_lightcurve.eps'
     
     if xlim:
         ax.set_xlim(xlim)
