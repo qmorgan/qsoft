@@ -275,7 +275,7 @@ def timeDepAvBeta(wave_time_vec,norm_vec,Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,b
     assert len(wave) == len(time)
     assert len(norm_vec) == len(time)
     
-    # build up x-vector of tuples
+    # build up x-vector of tuples and y_vector and y_err vector
     
     
     # assume extmodel doesn't change with time
@@ -417,25 +417,20 @@ def _align_SED_times(objblock,sedtimelist,time_thresh=10):
         aligndict.update({timestr:{'sedtime':sedtime,'maglist':maglist,'magerrlist':magerrlist,'filtlist':filtlist}})
     return aligndict
     
-def SEDvsTime(initial_param='smc'):
+def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
     threshhold of that time, and build up an SED for each.'''
-    z=1.728
-    galebv=0.108
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
+    
+    
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst
     
     time_thresh = 10 # Number of seconds we can be off in time from the reference 
-    
-    sed_dict={}
-    # determine the rough times at which to make SEDs and 
+
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    # for time in sedtimelist:
-    #     timestr = str(round(time))[:-2]
-    #     sed_dict.update({timestr:{}})
     
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
     
