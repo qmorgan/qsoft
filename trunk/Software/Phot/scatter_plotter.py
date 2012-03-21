@@ -33,6 +33,26 @@ GRB_071025_P1 = (([-1.576, 1.782, 574.66, -1, 4544.1], [-1.576, 1.782, 574.66, -
 
 GRB_071025_P2 = (([1.242, -10.218, 1436.927, -1, 1039.06], [1.242, -10.218, 1436.927, -1, 1394.88], [1.242, -10.218, 1436.927, -1, 2311.57]), ([0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1]))
 
+def get_flux(burst_data,t,ftopt,band):
+    'do this in the burst#_fitting folder. Band should be in CAPITAL LETTERS'
+    import pidly
+    idl_path = '/Applications/itt/idl71/bin/idl'
+    idl = pidly.IDL(idl_path)
+    #Performing Fit
+    
+    IDL_command = "lcurve, '" + str(burst_data) + "', reffilt='J', ftopt='" + str(ftopt) +"', timeunit='sec', yr=[21,12], tspec=" + str(t)+"., captionfmt='(F6.2)', /residual"
+    idl(IDL_command)
+
+    #Read the filename
+    filename = burst_data.rstrip('.dat') + 'datased.dat'
+    f=open(filename,'r')
+    lines = f.readlines()
+    for line in lines:
+        if band in line:
+            flux = (line.split()[1], line.split()[2])
+
+    return flux
+
 def update_z_all_GRBs(GRB_list, z_list, very_good_pickle_path='/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/'):
     '''Updates the z values of all GRBs with known z'''
     from Phot import q_phot
@@ -391,10 +411,14 @@ def plot_lum():
   #  savefig('lum_dist.eps')
     return j_3min
 
+def betaplot():
+    beta = [-1.35, -0.8, -0.96, -0.22, -1.73, -0.84, -3.48, -0.42, -3.81, -0.3, -1.7, -0.47]
+    hist(beta, 10)
+
 def plot_lum_rest():
     '''f_{rest,V} = f_{rest_corr}*[nu_V/ ((1+z)nu_J)]^beta for  flux \propto nu^beta and beta negative values'''
     clf()
-    f_rest_corr = [2252.14, 1626.48, 403.717, 20082, 913.329, 549.616, 286.863, 990.110, 14.7689, 174.540, 1419.79, 149309.80115] 
+    f_rest_corr = [2252.14, 1626.48, 403.717, 11783.2, 913.329, 549.616, 286.863, 990.110, 14.7689, 174.540, 1419.79, 149309.80115] 
     beta = [-1.35, -0.8, -0.96, -0.22, -1.73, -0.84, -3.48, -0.42, -3.81, -0.3, -1.7, -0.47]
     z_list_limits = [1.1588, 2.4274, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8, 0.9382]
     arrf = arr(f_rest_corr)
