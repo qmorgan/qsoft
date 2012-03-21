@@ -129,6 +129,7 @@ def test_fit():
         # here we are using proof of concept of a multi-input function e.g. y=f(x,t)
         # 'x' is a list of tuples, zipped with the zip function (see below)
         # we unzip them and then evaluate. 
+        # x needs to be a single parameter because of the way the errfunc in fit() is defined 
         # e.g., x=[(0, 0.0),(1, 0.0),(2, 0.0),(3, 0.0),(4, 0.0),(5, 0.0)]
         xval,zero = zip(*x) # unzip the x feature vector
         return height() * np.exp(-((xval-mu())/sigma())**2) + zero
