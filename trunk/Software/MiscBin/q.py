@@ -43,9 +43,17 @@ def round_sig(x, sig=2):
         roundedsig = x
     return roundedsig
     
-def flux2abmag(flux):
+def flux2abmag(flux,inunit='ujy'):
     """Convert a flux in microjanskys to an AB magnitude"""
-    AB_mag = -2.5*numpy.log10(flux*1e-6*1e-23) - 48.60
+    if inunit.lower()=='ujy':
+        multfactor=1.0e-6*1e-23 # convert to cgs
+    elif inunit.lower()=='jy':
+        multfactor=1.0e-23 # convert to cgs
+    elif inunit.lower()=='cgs':
+        multfactor=1.0
+    else:
+        raise ValueError("I do not understand that inunit.")
+    AB_mag = -2.5*numpy.log10(flux*multfactor) - 48.60
     return AB_mag
 
 def filtcheck(filt):
