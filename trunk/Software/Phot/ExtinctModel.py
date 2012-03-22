@@ -450,8 +450,7 @@ def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
     
     
     
-def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
-                        c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
+def powerlawExtRetFlux(wave,paramlist):
     
     '''
     spectral power law + extinction - return flux
@@ -464,6 +463,23 @@ def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
     Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
     
     '''
+    # Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
+    #                         c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626
+    
+    for param in paramlist:
+        if param.name == 'Av': Av=param.value
+        elif param.name == 'beta': beta=param.value
+        elif param.name == 'const': const=param.value
+        elif param.name == 'Rv': Rv=param.value
+        elif param.name == 'c1': c1=param.value
+        elif param.name == 'c2': c2=param.value
+        elif param.name == 'c3': c3=param.value
+        elif param.name == 'c4': c4=param.value
+        elif param.name == 'gamma': gamma=param.value
+        elif param.name == 'x0': x0=param.value
+        else: raise Exception ('Invalid parameter')
+                
+    
     fluxarr=np.ones(len(wave)) #just an array of ones
     # c = 2.998E10 #cm/s
     # nu = c/(wave*1E-8) #hertz, for wave in angstroms
@@ -745,39 +761,65 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
     # get initial parameters
     Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
     
+    fitdict={   
+            'Av':{'init':-0.62,'fixed':False},
+            'beta':{'init':-1.45,'fixed':False},
+            'const':{'init':1000,'fixed':False},
+            'Rv':{'init':Rv_init,'fixed':True},
+            'c1':{'init':c1_init,'fixed':True},
+            'c2':{'init':c2_init,'fixed':True},
+            'c3':{'init':c3_init,'fixed':True},
+            'c4':{'init':c4_init,'fixed':True},
+            'x0':{'init':x0_init,'fixed':True},
+            'gamma':{'init':gamma_init,'fixed':True}
+            }
     
-    #set parameters
-    for key, val in fitdict.iteritems():
-        if key == 'Av':
-            Av=qFit.Param(val[init],name=key)
-    Av=qFit.Param(Av_init,name='Av')
-    beta=qFit.Param(beta_init,name='beta')
-    const=qFit.Param(const_init,name='const')
-    Rv=qFit.Param(Rv_init,name='Rv')
-    c1 = qFit.Param(c1_init,name='c1')
-    c2 =  qFit.Param(c2_init,name='c2')
-    c3 = qFit.Param(c3_init,name='c3')
-    c4 = qFit.Param(c4_init,name='c4')
-    gamma= qFit.Param(gamma_init,name='gamma')
-    x0=qFit.Param(x0_init,name='x0')
-        
-    # build up the param list of things we want to fit
-    fullparamlist = [Av,beta,const,Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
+    
+    fullparamlist = []
     fitparamlist = [] 
     fixparamlist = []
-    fix_list = []
-    for param in fullparamlist:
-        if param.name in fit_list:
-            fitparamlist.append(param) # if its one of the params we want to fit, append it
-        else:
-            fix_list.append(param.name)
+    
+
+    #set parameters
+    for key, val in fitdict.iteritems():
+        param = qFit.Param(val['init'],name=key)
+        fullparamlist.append(param)
+        if val['fixed'] == False:
+            fitparamlist.append(param)
+        elif val['fixed'] == True:
             fixparamlist.append(param)
-    # error check        
-    assert len(fit_list) == len(fitparamlist)
+        else:
+            raise ValueError('Invalid value for Fixed. Must be True/False.')
+        
+    # Av=qFit.Param(Av_init,name='Av')
+    # beta=qFit.Param(beta_init,name='beta')
+    # const=qFit.Param(const_init,name='const')
+    # Rv=qFit.Param(Rv_init,name='Rv')
+    # c1 = qFit.Param(c1_init,name='c1')
+    # c2 =  qFit.Param(c2_init,name='c2')
+    # c3 = qFit.Param(c3_init,name='c3')
+    # c4 = qFit.Param(c4_init,name='c4')
+    # gamma= qFit.Param(gamma_init,name='gamma')
+    # x0=qFit.Param(x0_init,name='x0')
+    #     
+    # # build up the param list of things we want to fit
+    # fullparamlist = [Av,beta,const,Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
+    # fix_list = []
+    # for param in fullparamlist:
+    #     if param.name in fit_list:
+    #         fitparamlist.append(param) # if its one of the params we want to fit, append it
+    #     else:
+    #         fix_list.append(param.name)
+    #         fixparamlist.append(param)
+    # # error check        
+    # assert len(fit_list) == len(fitparamlist)
         
     
-    def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
-                c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
+    # def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
+    #             c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
+    # 
+    
+    def f(x): return powerlawExtRetFlux(x,fullparamlist)
     
     fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
     
@@ -786,10 +828,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
         #get model array
         w=1000. + np.arange(500)*100
         f = w*0. + 1
-        c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
-            c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
+        # c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
+        #     c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
         # fig = c.plotModel(show=False,color='green')
-
+        c = powerlawExtRetFlux(w,fullparamlist)
         
         fig2=plt.figure()
         ax=fig2.add_axes([0.1,0.1,0.8,0.8])
