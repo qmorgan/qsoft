@@ -311,26 +311,37 @@ def timeDepAvBeta(wave_time_list,norm_vec = [58495.95,23666.58,17208.94,20241.6,
         
     return flux_out
 
-def SEDtimeSimulFit():
+def SEDtimeSimulFit120119A():
+    '''
+    time_thresh: Number of seconds we can be off in time from the reference 
+    '''
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
+    initial_param='smc'
+    z=1.728
+    galebv=0.108
+    time_thresh=10
+    
+    objblock=PhotParse.PhotParse(directory)
+    utburststr = objblock.utburst # not used?
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+    
+    fit_list = ['const1','const2','const3','const4','const5','const6',
+                'Av_0','Av_1','Av_2']
+    
+    SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param=initial_param,
+        z=z,galebv=galebv)
+
+def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
+        galebv=0.0):
     '''Given blocks of data in different colors at various times, fit the SED 
     at each time, tying them all together via a restricted time evolution of 
     parameters.
     
     
     '''
-    initial_param='smc'
-    z=1.728
-    galebv=0.108
     
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
-    objblock=PhotParse.PhotParse(directory)
-    utburststr = objblock.utburst
-    time_thresh = 10 # Number of seconds we can be off in time from the reference 
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
-    
-    fit_list = ['const1','const2','const3','const4','const5','const6',
-                'Av_0','Av_1','Av_2']
     
     # build up x-vector of tuples and y_vector and y_err vector
     # this may need to be moved to the other function....
@@ -564,7 +575,7 @@ def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
     
     
     objblock=PhotParse.PhotParse(directory)
-    utburststr = objblock.utburst
+    utburststr = objblock.utburst # not used?
     
     time_thresh = 10 # Number of seconds we can be off in time from the reference 
 
@@ -734,7 +745,11 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
     # get initial parameters
     Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
     
+    
     #set parameters
+    for key, val in fitdict.iteritems():
+        if key == 'Av':
+            Av=qFit.Param(val[init],name=key)
     Av=qFit.Param(Av_init,name='Av')
     beta=qFit.Param(beta_init,name='beta')
     const=qFit.Param(const_init,name='const')
