@@ -34,7 +34,14 @@ GRB_071025_P1 = (([-1.576, 1.782, 574.66, -1, 4544.1], [-1.576, 1.782, 574.66, -
 GRB_071025_P2 = (([1.242, -10.218, 1436.927, -1, 1039.06], [1.242, -10.218, 1436.927, -1, 1394.88], [1.242, -10.218, 1436.927, -1, 2311.57]), ([0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1], [0.057, 2.714, 1, 1 ,1]))
 
 def get_flux(burst_data,t,ftopt,band):
-    'do this in the burst#_fitting folder. Band should be in CAPITAL LETTERS'
+    '''
+    do this in the burst#_fitting folder.
+    burst_data = file path to the burst_data.dat file containing photometry
+    t = time in seconds you wish to obtain the flux
+    ftopt = file path to the ftopt fitting parameter file 
+    band = string of desired band (J, H, or K)
+    '''
+    band = band.upper() #making sure band in upper case
     import pidly
     idl_path = '/Applications/itt/idl71/bin/idl'
     idl = pidly.IDL(idl_path)
@@ -439,7 +446,7 @@ def plot_lum_rest():
     dist = []
     for redshift in z_list_limits:
         dist += [cosmocalc.cosmocalc(z=redshift)['DL_cm']]
-
+    
     arrd = arr(dist)
     print 'dist:'
     print arrd
@@ -448,8 +455,9 @@ def plot_lum_rest():
     print 'L_rest_V:'
     print L_rest_V
     #convert to ABSOLUTE AB magnitude:
-    F = L_rest_V/(4 * numpy.pi * (3.085677581e19)**2)    #flux density at 10 parsecs     
-    Absol_Mag = -2.5*numpy.log10(F) - 48.60    #Absolute mag in AB mag
+    parsec = 3.085677581e18 # cm
+    F_10pc = L_rest_V/(4 * numpy.pi * (10*parsec)**2)    #flux density at 10 parsecs     
+    Absol_Mag = -2.5*numpy.log10(F_10pc) - 48.60    #Absolute mag in AB mag
     
     hist(Absol_Mag,6)
     xlabel('$M_v$', fontsize=27)
