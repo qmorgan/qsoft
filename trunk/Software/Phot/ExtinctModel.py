@@ -252,12 +252,12 @@ def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     return extmodel
 
 
-def timeDepAvBeta(wave_time_vec,norm_vec,Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,beta_1=0.0,
+def timeDepAvBeta(wave_time_list,norm_vec = [58495.95,23666.58,17208.94,20241.6,22075.25,20125.92],Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,beta_1=0.0,
                     beta_2=0.0,Rv=2.74,c1=-4.959,
                     c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
     '''Allowing for Av and Beta to change with time
-    time_wave_dict: wavelength vector in angstroms [[1,2,3,4,5],[1,2,4,5],[1,3,4,5]]
-    time: time vector in seconds [50,250,500]
+    
+    wave_time_list: [(1200,60.2),(1800,60.2),(1200,112.8),(1800,112.8)]
     norm_vec: vector of normalizations (replacing const) - one for each time
     Av_0: limit at large time
     Av_1: normalization const
@@ -272,34 +272,172 @@ def timeDepAvBeta(wave_time_vec,norm_vec,Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,b
     f(t) = f_corr(t)*(nu/nu_0)^-beta(t)
     where f_corr(t) is the time-dependent extinction corrected normalized flux
     '''
-    assert len(wave) == len(time)
-    assert len(norm_vec) == len(time)
     
-    # build up x-vector of tuples and y_vector and y_err vector
-    
+    longwavelist, longtimelist = zip(*wave_time_list)
+    timelist=[] # vector of all the times (one per entry) in order they appear in longwave_timelist
+    for entry in longtimelist:
+        if not entry in timelist:
+            timelist.append(entry)
+
+    longwavearr=np.array(longwavelist)
+    longtimearr=np.array(longtimelist)
     
     # assume extmodel doesn't change with time
     extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
     # for each time
-    count = 0 # need?
     flux_out=[]
-    for time in time_vec:
-        ind = time_vec.index(time) # index
-        const = norm_vec[ind]
-        wave = np.array(wave_vec[ind]) # vector of wavelengths; should be multi-length
-         
+
+    for time in timelist:
+        count = timelist.index(time)
+        # get the wavelength indices of that time:
+        inds=q.where(longtimearr,time)
+        wavearr=longwavearr[inds] # vector of wavelengths; should be multi-length
+        const = norm_vec[count].value
+        
+        ### FUNCTIONAL FORMS OF BETA AND Av
         beta = beta_0 + beta_1*(time**(beta_2))
         Av = Av_0 + Av_1*(time**(Av_2))
+        ###
         
-        fluxarr = fluxarr=np.ones(len(wave)) #just an array of ones
+        fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
         
-        extmodel.EvalCurve(wave,Av/Rv)
+        extmodel.EvalCurve(wavearr,Av/Rv)
         extmodel.UnreddenFlux(fluxarr)
         
         extmodel.UnreddenFlux(fluxarr)
-        flux_normal = const*extmodel.funred*(10000/wave)**beta
-        flux_out.append(flux_normal) # append the resultant array to the list
+        flux_normal_arr = const*extmodel.funred*(10000/wavearr)**beta
+        for flux_normal in flux_normal_arr:
+            flux_out.append(flux_normal) # append the resultant array to the list
         
+    return flux_out
+
+def SEDtimeSimulFit():
+    '''Given blocks of data in different colors at various times, fit the SED 
+    at each time, tying them all together via a restricted time evolution of 
+    parameters.
+    
+    
+    '''
+    initial_param='smc'
+    z=1.728
+    galebv=0.108
+    
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
+    objblock=PhotParse.PhotParse(directory)
+    utburststr = objblock.utburst
+    time_thresh = 10 # Number of seconds we can be off in time from the reference 
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+    
+    fit_list = ['const1','const2','const3','const4','const5','const6',
+                'Av_0','Av_1','Av_2']
+    
+    # build up x-vector of tuples and y_vector and y_err vector
+    # this may need to be moved to the other function....
+    longfiltlist=[]
+    longwavelist=[] # wavelength in angstroms
+    longtimelist=[]
+    longwavenamelist=[]
+    longmaglist=[]
+    longmagerrlist=[]
+    
+    # break apart the aligndict into various arrays
+    for sedtimestr, val in aligndict.iteritems():
+        for filt in val['filtlist']: 
+            longfiltlist.append(filt)
+            longwavelist.append(filt.wave_A)
+            longtimelist.append(val['sedtime'])
+            longwavenamelist.append(filt.name)
+        for mag in val['maglist']: longmaglist.append(mag)
+        for magerr in val['magerrlist']: longmagerrlist.append(magerr)
+
+    longfluxarr, longfluxerrarr = maglist2fluxarr(longmaglist,longmagerrlist,longfiltlist)
+    
+    # correct for galactic extinction
+    if galebv == 0.0:
+        print "\nWARNING: Not correcting for galactic extinction\n"
+    
+    longwavearr=np.array(longwavelist)
+    longtimearr=np.array(longtimelist)
+    
+    # Use the FM implementation of the average milkyway extinction to unredden
+    # the flux due to the galactic sightlines.
+    galAv=galebv*3.1 #Rv=3.1 for mw
+    mw=avgmw()
+    mw.EvalCurve(longwavearr,galebv)
+    mw.UnreddenFlux(longfluxarr) #need to correct the uncertainties as well
+    galcorrectedfluxarr=mw.funred
+    mw.UnreddenFlux(longfluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
+    galcorrectedfluxerrarr=mw.funred
+    
+    #correct for redshift
+    longwaverestarr=longwavearr/(1+z)
+    longtimerestarr=longtimearr/(1+z)
+    
+    #zip them together with the corresponding times
+    longwave_timearr=zip(longwaverestarr,longtimerestarr)
+    
+    # get initial values
+    Av_0_init = -0.62
+    Av_1_init = -0.4 #?
+    Av_2_init = -0.5 #?
+    beta_0_init = -1.45
+    beta_1_init = 0.0 #?
+    beta_2_init = 0.0 #?
+    const_init = 20000
+       
+    # get initial parameters
+    Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
+    
+    #set parameters
+    Av_0=qFit.Param(Av_0_init,name='Av_0')
+    beta_0=qFit.Param(beta_0_init,name='beta_0')
+    Av_1=qFit.Param(Av_1_init,name='Av_1')
+    beta_1=qFit.Param(beta_1_init,name='beta_1')
+    Av_2=qFit.Param(Av_2_init,name='Av_2')
+    beta_2=qFit.Param(beta_2_init,name='beta_2')
+    
+    # for now, we have 6 input times, so 6 consts 
+    const1=qFit.Param(const_init,name='const1')
+    const2=qFit.Param(const_init,name='const2')
+    const3=qFit.Param(const_init,name='const3')
+    const4=qFit.Param(const_init,name='const4')
+    const5=qFit.Param(const_init,name='const5')
+    const6=qFit.Param(const_init,name='const6')
+    const_list = [const1,const2,const3,const4,const5,const6]
+    
+    Rv=qFit.Param(Rv_init,name='Rv')
+    c1 = qFit.Param(c1_init,name='c1')
+    c2 =  qFit.Param(c2_init,name='c2')
+    c3 = qFit.Param(c3_init,name='c3')
+    c4 = qFit.Param(c4_init,name='c4')
+    gamma= qFit.Param(gamma_init,name='gamma')
+    x0=qFit.Param(x0_init,name='x0')
+        
+    # build up the param list of things we want to fit
+    fullparamlist = [Av_0,Av_1,Av_2,beta_0,beta_1,beta_2,
+                    const1,const2,const3,const4,const5,const6,
+                    Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
+    fitparamlist = [] 
+    fixparamlist = []
+    fix_list = []
+    for param in fullparamlist:
+        if param.name in fit_list:
+            fitparamlist.append(param) # if its one of the params we want to fit, append it
+        else:
+            fix_list.append(param.name)
+            fixparamlist.append(param)
+    # error check        
+    assert len(fit_list) == len(fitparamlist)
+        
+    
+    def f(x): return timeDepAvBeta(x,norm_vec=const_list,Av_0=Av_0(),Av_1=Av_1(),
+                Av_2=Av_2(),beta_0=beta_0(),beta_1=beta_1(),beta_2=beta_2(),Rv=Rv(),
+                c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
+    
+    fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
+    
+    
     
 def powerlawExtRetFlux(wave,Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
                         c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
@@ -475,84 +613,14 @@ def maglist2fluxarr(maglist,magerrlist,filtlist):
     fluxarr=np.array(fluxarr)
     fluxerrarr=np.array(fluxerrarr)
     return fluxarr, fluxerrarr
-    
-def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
-            fit_list = ['const','Av','beta'],timestr='', plot=True):
-    '''Fit an SED to a list of fluxes with a FM paramaterization.
-    
-    Required Inputs:
-    * filtlist: list of filt objects (see qObs.filt) 
-    * fluxarr: list of fluxes
-    * fluxerrarr: list of uncertainties on the fluxes
-    
-    Optional Inputs:
-    * initial_param: set of FM parameters to start with 
-        * allowed values: 'smc', 'lmc', 'lmc2', 'mw' (acceptable_initial_param_list)
-    
-    * fit_list: 
-        const - normalization
-        beta - power law spectral slope
-        Av - Extinction in V
-        Rv - scalar specifying the ratio of total to selective extinction
-                 R(V) = A(V) / E(B - V).  
-        x0 - Centroid of 2200 A bump in microns 
-        gamma - Width of 2200 A bump in microns 
-        c3 - Strength of the 2200 A bump
-        c4 - FUV curvature 
-        c2 - Slope of the linear UV extinction component 
-        c1 - Intercept of the linear UV extinction component
-    ''' 
-    
-    # error checking
-    for filt in filtlist:
-        filtcheck(filt)
-    assert len(fluxarr) == len(fluxerrarr)
-    assert len(fluxarr) == len(filtlist)
-    
-    # Check if initial parameter list is there
-    acceptable_fit_param_list=['const','beta','Av','Rv','x0','gamma','c1','c2','c3','c4']
-    for fitparam in fit_list:
-        if not fitparam in acceptable_fit_param_list:
-            print 'Requested fit parameter of %s is not valid. Please choose from:' % fitparam
-            return
+
+def _get_initial_dust_params(initial_param):
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
     if not initial_param in acceptable_initial_param_list:
         print 'Initial parameter set of %s is not valid. Please choose from:' % (initial_param)
         print acceptable_initial_param_list
-        return
+        raise Exception
     
-    rc('font', family='Times New Roman') 
-    
-    # extract values from the filter list
-    wavearr=[]
-    wavenamearr=[]
-    for filt in filtlist:
-        wavearr.append(filt.wave_A)
-        wavenamearr.append(filt.name)
-    wavearr=np.array(wavearr)
-    
-    # correct for galactic extinction
-    if galebv == 0.0:
-        print "\nWARNING: Not correcting for galactic extinction\n"
-    
-    # Use the FM implementation of the average milkyway extinction to unredden
-    # the flux due to the galactic sightlines.
-    galAv=galebv*3.1 #Rv=3.1 for mw
-    mw=avgmw()
-    mw.EvalCurve(wavearr,galebv)
-    mw.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
-    galcorrectedfluxarr=mw.funred
-    mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
-    galcorrectedfluxerrarr=mw.funred
-    
-    #correct for redshift
-    waverestarr=wavearr/(1+z)
-    
-    # determine initial values
-    Av_init = -0.62
-    beta_init = -1.45
-    const_init = 1000
-       
     if initial_param == 'smc':
         Rv_init = 2.74
         c1_init = -4.959
@@ -588,7 +656,83 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
         c1_init = 2.030 - 3.007*c2_init
         gamma_init = 0.99
         x0_init = 4.596
-
+    return Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init
+    
+    
+def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
+            fit_list = ['const','Av','beta'],timestr='', plot=True):
+    '''Fit an SED to a list of fluxes with a FM paramaterization.
+    
+    Required Inputs:
+    * filtlist: list of filt objects (see qObs.filt) 
+    * fluxarr: list of fluxes
+    * fluxerrarr: list of uncertainties on the fluxes
+    
+    Optional Inputs:
+    * initial_param: set of FM parameters to start with 
+        * allowed values: 'smc', 'lmc', 'lmc2', 'mw' (acceptable_initial_param_list)
+    
+    * fit_list: 
+        const - normalization
+        beta - power law spectral slope
+        Av - Extinction in V
+        Rv - scalar specifying the ratio of total to selective extinction
+                 R(V) = A(V) / E(B - V).  
+        x0 - Centroid of 2200 A bump in microns 
+        gamma - Width of 2200 A bump in microns 
+        c3 - Strength of the 2200 A bump
+        c4 - FUV curvature 
+        c2 - Slope of the linear UV extinction component 
+        c1 - Intercept of the linear UV extinction component
+    ''' 
+    # set font
+    rc('font', family='Times New Roman') 
+    
+    # error checking
+    for filt in filtlist:
+        filtcheck(filt)
+    assert len(fluxarr) == len(fluxerrarr)
+    assert len(fluxarr) == len(filtlist)
+    
+    # Check if initial parameter list is there
+    acceptable_fit_param_list=['const','beta','Av','Rv','x0','gamma','c1','c2','c3','c4']
+    for fitparam in fit_list:
+        if not fitparam in acceptable_fit_param_list:
+            print 'Requested fit parameter of %s is not valid. Please choose from:' % fitparam
+            return
+                
+    # extract values from the filter list
+    wavearr=[]
+    wavenamearr=[]
+    for filt in filtlist:
+        wavearr.append(filt.wave_A)
+        wavenamearr.append(filt.name)
+    wavearr=np.array(wavearr)
+    
+    # correct for galactic extinction
+    if galebv == 0.0:
+        print "\nWARNING: Not correcting for galactic extinction\n"
+    
+    # Use the FM implementation of the average milkyway extinction to unredden
+    # the flux due to the galactic sightlines.
+    galAv=galebv*3.1 #Rv=3.1 for mw
+    mw=avgmw()
+    mw.EvalCurve(wavearr,galebv)
+    mw.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
+    galcorrectedfluxarr=mw.funred
+    mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
+    galcorrectedfluxerrarr=mw.funred
+    
+    #correct for redshift
+    waverestarr=wavearr/(1+z)
+    
+    # get initial values
+    Av_init = -0.62
+    beta_init = -1.45
+    const_init = 1000
+       
+    # get initial parameters
+    Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
     
     #set parameters
     Av=qFit.Param(Av_init,name='Av')
