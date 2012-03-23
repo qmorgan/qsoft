@@ -345,13 +345,30 @@ def SEDtimeSimulFit120119A(initial_param='smc'):
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
     print len(aligndict)
 
-    fit_list = ['const1','const2','const3','const4','const5','const6',
-                'Av_0','Av_1','Av_2']
     
-    SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param=initial_param,
-        z=z,galebv=galebv)
+    # set up the fit dict            
+    fitdict = _getfitdict(initial_param)
+    fitdict.pop('const') # get rid of the old const
+    fitdict.pop('Av')
+    fitdict.pop('beta')
+    # add the correct number of normalization constants based on the number of aligned SEDs
+    for constnumber in np.arange(len(aligndict)):
+        name = 'const' + str(constnumber)
+        fitdict.update({name:{'init':10000,'fixed':False}})    
 
-def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
+    fitdict2={   
+            'Av_0':{'init':-0.62,'fixed':False},
+            'Av_1':{'init':-0.4,'fixed':False},
+            'Av_2':{'init':-0.5,'fixed':False},
+            'beta_0':{'init':-1.45,'fixed':True},
+            'beta_1':{'init':0,'fixed':True},            
+            'beta_2':{'init':0,'fixed':True}
+            }    
+    fitdict.update(fitdict2)
+    
+    SEDtimeSimulFit(aligndict,sedtimelist,fitdict,z=z,galebv=galebv)
+
+def SEDtimeSimulFit(aligndict,sedtimelist,fitdict,initial_param='smc',z=0.0,
         galebv=0.0):
     '''Given blocks of data in different colors at various times, fit the SED 
     at each time, tying them all together via a restricted time evolution of 
@@ -359,6 +376,22 @@ def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
     
     
     '''
+    
+    # BUILD UP PARAMETERS
+    fullparamlist = []
+    fitparamlist = [] 
+    fixparamlist = []
+
+    #set parameters
+    for key, val in fitdict.iteritems():
+        param = qFit.Param(val['init'],name=key)
+        fullparamlist.append(param)
+        if val['fixed'] == False:
+            fitparamlist.append(param)
+        elif val['fixed'] == True:
+            fixparamlist.append(param)
+        else:
+            raise ValueError('Invalid value for Fixed. Must be True/False.')
     
     
     # build up x-vector of tuples and y_vector and y_err vector
@@ -382,12 +415,12 @@ def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
 
     longfluxarr, longfluxerrarr = maglist2fluxarr(longmaglist,longmagerrlist,longfiltlist)
     
+    longwavearr=np.array(longwavelist)
+    longtimearr=np.array(longtimelist)
+    
     # correct for galactic extinction
     if galebv == 0.0:
         print "\nWARNING: Not correcting for galactic extinction\n"
-    
-    longwavearr=np.array(longwavelist)
-    longtimearr=np.array(longtimelist)
     
     # Use the FM implementation of the average milkyway extinction to unredden
     # the flux due to the galactic sightlines.
@@ -406,59 +439,6 @@ def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
     #zip them together with the corresponding times
     longwave_timearr=zip(longwaverestarr,longtimerestarr)
     
-    # get initial values
-    Av_0_init = -0.62
-    Av_1_init = -0.4 #?
-    Av_2_init = -0.5 #?
-    beta_0_init = -1.45
-    beta_1_init = 0.0 #?
-    beta_2_init = 0.0 #?
-    const_init = 20000
-       
-    # get initial parameters
-    Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
-    
-    #set parameters
-    Av_0=qFit.Param(Av_0_init,name='Av_0')
-    beta_0=qFit.Param(beta_0_init,name='beta_0')
-    Av_1=qFit.Param(Av_1_init,name='Av_1')
-    beta_1=qFit.Param(beta_1_init,name='beta_1')
-    Av_2=qFit.Param(Av_2_init,name='Av_2')
-    beta_2=qFit.Param(beta_2_init,name='beta_2')
-    
-    # for now, we have 6 input times, so 6 consts 
-    const1=qFit.Param(const_init,name='const1')
-    const2=qFit.Param(const_init,name='const2')
-    const3=qFit.Param(const_init,name='const3')
-    const4=qFit.Param(const_init,name='const4')
-    const5=qFit.Param(const_init,name='const5')
-    const6=qFit.Param(const_init,name='const6')
-    const_list = [const1,const2,const3,const4,const5,const6]
-    
-    Rv=qFit.Param(Rv_init,name='Rv')
-    c1 = qFit.Param(c1_init,name='c1')
-    c2 =  qFit.Param(c2_init,name='c2')
-    c3 = qFit.Param(c3_init,name='c3')
-    c4 = qFit.Param(c4_init,name='c4')
-    gamma= qFit.Param(gamma_init,name='gamma')
-    x0=qFit.Param(x0_init,name='x0')
-        
-    # build up the param list of things we want to fit
-    fullparamlist = [Av_0,Av_1,Av_2,beta_0,beta_1,beta_2,
-                    const1,const2,const3,const4,const5,const6,
-                    Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
-    fitparamlist = [] 
-    fixparamlist = []
-    fix_list = []
-    for param in fullparamlist:
-        if param.name in fit_list:
-            fitparamlist.append(param) # if its one of the params we want to fit, append it
-        else:
-            fix_list.append(param.name)
-            fixparamlist.append(param)
-    # error check        
-    assert len(fit_list) == len(fitparamlist)
-        
     
     def f(x): return timeDepAvBeta(x,fullparamlist)
     
@@ -782,14 +762,14 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     # set font
     rc('font', family='Times New Roman') 
     
-    # error checking
+    # ERROR CHECKING
     for filt in filtlist:
         filtcheck(filt)
     assert len(fluxarr) == len(fluxerrarr)
     assert len(fluxarr) == len(filtlist)
     
     
-    # Check if initial parameter list is there
+    # VERIFY INITIAL PARAMETER LIST
     acceptable_fit_param_list=['const','beta','Av','Rv','x0','gamma','c1','c2','c3','c4']
     for fitparam in fitdict.iterkeys():
         if not fitparam in acceptable_fit_param_list:
@@ -799,7 +779,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     # make sure the keys in fitdict are equal to the acceptable_fit_param_list
     assert len(fitdict) == len (acceptable_fit_param_list) 
 
-
+    
+    # BUILD UP PARAMETERS
     fullparamlist = []
     fitparamlist = [] 
     fixparamlist = []
@@ -814,7 +795,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             fixparamlist.append(param)
         else:
             raise ValueError('Invalid value for Fixed. Must be True/False.')
-    
+            
            
     # extract values from the filter list
     wavearr=[]
@@ -841,8 +822,6 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     #correct for redshift
     waverestarr=wavearr/(1+z)
     
-    
-        
     
     def f(x): return powerlawExtRetFlux(x,fullparamlist)
     
