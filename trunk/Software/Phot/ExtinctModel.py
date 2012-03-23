@@ -252,9 +252,7 @@ def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     return extmodel
 
 
-def timeDepAvBeta(wave_time_list,norm_vec = [58495.95,23666.58,17208.94,20241.6,22075.25,20125.92],Av_0=0.0,Av_1=0.0,Av_2=0.0,beta_0=0.0,beta_1=0.0,
-                    beta_2=0.0,Rv=2.74,c1=-4.959,
-                    c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626):
+def timeDepAvBeta(wave_time_list,paramlist):
     '''Allowing for Av and Beta to change with time
     
     wave_time_list: [(1200,60.2),(1800,60.2),(1200,112.8),(1800,112.8)]
@@ -272,6 +270,25 @@ def timeDepAvBeta(wave_time_list,norm_vec = [58495.95,23666.58,17208.94,20241.6,
     f(t) = f_corr(t)*(nu/nu_0)^-beta(t)
     where f_corr(t) is the time-dependent extinction corrected normalized flux
     '''
+    norm_vec=[]
+    for param in paramlist:
+        if param.name == 'Av_0': Av_0=param.value
+        elif param.name == 'Av_1': Av_1=param.value
+        elif param.name == 'Av_2': Av_2=param.value
+        elif param.name == 'beta_0': beta_0=param.value
+        elif param.name == 'beta_1': beta_1=param.value
+        elif param.name == 'beta_2': beta_2=param.value
+        elif param.name[0:5] == 'const': norm_vec.append(param) # worry about ordering here?
+        elif param.name == 'Rv': Rv=param.value
+        elif param.name == 'c1': c1=param.value
+        elif param.name == 'c2': c2=param.value
+        elif param.name == 'c3': c3=param.value
+        elif param.name == 'c4': c4=param.value
+        elif param.name == 'gamma': gamma=param.value
+        elif param.name == 'x0': x0=param.value
+        else: raise Exception ('Invalid parameter')
+
+    
     
     longwavelist, longtimelist = zip(*wave_time_list)
     timelist=[] # vector of all the times (one per entry) in order they appear in longwave_timelist
@@ -311,7 +328,7 @@ def timeDepAvBeta(wave_time_list,norm_vec = [58495.95,23666.58,17208.94,20241.6,
         
     return flux_out
 
-def SEDtimeSimulFit120119A():
+def SEDtimeSimulFit120119A(initial_param='smc'):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
     '''
@@ -326,7 +343,8 @@ def SEDtimeSimulFit120119A():
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
     
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
-    
+    print len(aligndict)
+
     fit_list = ['const1','const2','const3','const4','const5','const6',
                 'Av_0','Av_1','Av_2']
     
@@ -442,9 +460,7 @@ def SEDtimeSimulFit(aligndict,sedtimelist,fit_list,initial_param='smc',z=0.0,
     assert len(fit_list) == len(fitparamlist)
         
     
-    def f(x): return timeDepAvBeta(x,norm_vec=const_list,Av_0=Av_0(),Av_1=Av_1(),
-                Av_2=Av_2(),beta_0=beta_0(),beta_1=beta_1(),beta_2=beta_2(),Rv=Rv(),
-                c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
+    def f(x): return timeDepAvBeta(x,fullparamlist)
     
     fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
     
@@ -782,7 +798,24 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             return
     # make sure the keys in fitdict are equal to the acceptable_fit_param_list
     assert len(fitdict) == len (acceptable_fit_param_list) 
-                
+
+
+    fullparamlist = []
+    fitparamlist = [] 
+    fixparamlist = []
+    
+    #set parameters
+    for key, val in fitdict.iteritems():
+        param = qFit.Param(val['init'],name=key)
+        fullparamlist.append(param)
+        if val['fixed'] == False:
+            fitparamlist.append(param)
+        elif val['fixed'] == True:
+            fixparamlist.append(param)
+        else:
+            raise ValueError('Invalid value for Fixed. Must be True/False.')
+    
+           
     # extract values from the filter list
     wavearr=[]
     wavenamearr=[]
@@ -809,21 +842,6 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     waverestarr=wavearr/(1+z)
     
     
-    fullparamlist = []
-    fitparamlist = [] 
-    fixparamlist = []
-    
-
-    #set parameters
-    for key, val in fitdict.iteritems():
-        param = qFit.Param(val['init'],name=key)
-        fullparamlist.append(param)
-        if val['fixed'] == False:
-            fitparamlist.append(param)
-        elif val['fixed'] == True:
-            fixparamlist.append(param)
-        else:
-            raise ValueError('Invalid value for Fixed. Must be True/False.')
         
     
     def f(x): return powerlawExtRetFlux(x,fullparamlist)
