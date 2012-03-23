@@ -825,33 +825,6 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         else:
             raise ValueError('Invalid value for Fixed. Must be True/False.')
         
-    # Av=qFit.Param(Av_init,name='Av')
-    # beta=qFit.Param(beta_init,name='beta')
-    # const=qFit.Param(const_init,name='const')
-    # Rv=qFit.Param(Rv_init,name='Rv')
-    # c1 = qFit.Param(c1_init,name='c1')
-    # c2 =  qFit.Param(c2_init,name='c2')
-    # c3 = qFit.Param(c3_init,name='c3')
-    # c4 = qFit.Param(c4_init,name='c4')
-    # gamma= qFit.Param(gamma_init,name='gamma')
-    # x0=qFit.Param(x0_init,name='x0')
-    #     
-    # # build up the param list of things we want to fit
-    # fullparamlist = [Av,beta,const,Rv,c1,c2,c3,c4,gamma,x0] # list of ALL possible parameters, fit or otherwise
-    # fix_list = []
-    # for param in fullparamlist:
-    #     if param.name in fit_list:
-    #         fitparamlist.append(param) # if its one of the params we want to fit, append it
-    #     else:
-    #         fix_list.append(param.name)
-    #         fixparamlist.append(param)
-    # # error check        
-    # assert len(fit_list) == len(fitparamlist)
-        
-    
-    # def f(x): return powerlawExtRetFlux(x,Av=Av(),beta=beta(),Rv=Rv(),const=const(),
-    #             c1=c1(),c2=c2(),c3=c3(),c4=c4(),gamma=gamma(),x0=x0())
-    # 
     
     def f(x): return powerlawExtRetFlux(x,fullparamlist)
     
@@ -862,9 +835,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         #get model array
         w=1000. + np.arange(500)*100
         f = w*0. + 1
-        # c=powerlawExtRetFlux(w,Av=Av.value,beta=beta.value,Rv=Rv.value,const=const.value,
-        #     c1=c1.value,c2=c2.value,c3=c3.value,c4=c4.value,gamma=gamma.value,x0=x0.value)
-        # fig = c.plotModel(show=False,color='green')
+
         c = powerlawExtRetFlux(w,fullparamlist)
         
         fig2=plt.figure()
