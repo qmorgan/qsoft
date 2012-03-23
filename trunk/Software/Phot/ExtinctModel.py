@@ -504,7 +504,11 @@ def SEDFitTest(initial_param='smc'):
     galebv=0.108 
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
-    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+    
+    fitdict=_getfitdict(initial_param)
+    paramstr='(%s)' % initial_param
+    
+    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
 
 def SEDFitTest2(initial_param='smc'):
     '''another SED fit test, this time starting with magnitudes'''
@@ -517,7 +521,12 @@ def SEDFitTest2(initial_param='smc'):
     magerrlist=[0.06,0.05,0.03,0.03,0.05,0.06,0.10]
     # Convert the fluxes to magnitudes
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
-    SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv)
+    
+    fitdict=_getfitdict(initial_param)
+    paramstr='(%s)' % initial_param
+    
+    
+    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
     
 
 def _align_SED_times(objblock,sedtimelist,time_thresh=10):
@@ -581,6 +590,32 @@ def _align_SED_times(objblock,sedtimelist,time_thresh=10):
                     filtlist.append(obsblock.filt)
         aligndict.update({timestr:{'sedtime':sedtime,'maglist':maglist,'magerrlist':magerrlist,'filtlist':filtlist}})
     return aligndict
+
+def _getfitdict(initial_param):
+    '''A single editable place to get the fitdict'''
+    ####
+    # get initial values
+    Av_init = -0.62
+    beta_init = -1.45
+    const_init = 1000
+       
+    # get initial parameters
+    Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
+    
+    fitdict={   
+            'Av':{'init':-0.62,'fixed':False},
+            'beta':{'init':-1.45,'fixed':False},
+            'const':{'init':1000,'fixed':False},
+            'Rv':{'init':Rv_init,'fixed':True},
+            'c1':{'init':c1_init,'fixed':True},
+            'c2':{'init':c2_init,'fixed':True},
+            'c3':{'init':c3_init,'fixed':True},
+            'c4':{'init':c4_init,'fixed':True},
+            'x0':{'init':x0_init,'fixed':True},
+            'gamma':{'init':gamma_init,'fixed':True}
+            }
+    ####
+    return fitdict
     
 def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'):
@@ -589,6 +624,7 @@ def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
     each set of observations to find those times that overlap within a given 
     threshhold of that time, and build up an SED for each.'''
     
+    fitdict = _getfitdict(initial_param)
     
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst # not used?
@@ -598,6 +634,9 @@ def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
     
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+    
+    paramstr='(%s)' % initial_param
+    
     
     # loop through each time, building up an SED for each
     for timestr, val in aligndict.iteritems():
@@ -614,8 +653,7 @@ def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
         print fluxerrarr
         print '**'
         # perform SED fit
-        SEDFit(filtlist,fluxarr,fluxerrarr,initial_param=initial_param,z=z,galebv=galebv,
-                fit_list=['const','Av','beta'], timestr=timestr)
+        SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,timestr=timestr,paramstr=paramstr)
         
 def maglist2fluxarr(maglist,magerrlist,filtlist):
     '''Given a list of magnitudes, their uncertainties, and filt objects,
@@ -686,8 +724,8 @@ def _get_initial_dust_params(initial_param):
     return Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init
     
     
-def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
-            fit_list = ['const','Av','beta'],timestr='', plot=True):
+def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
+            timestr='', paramstr='', plot=True):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -699,7 +737,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
     * initial_param: set of FM parameters to start with 
         * allowed values: 'smc', 'lmc', 'lmc2', 'mw' (acceptable_initial_param_list)
     
-    * fit_list: 
+    * fitdict: 
         const - normalization
         beta - power law spectral slope
         Av - Extinction in V
@@ -711,6 +749,19 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
         c4 - FUV curvature 
         c2 - Slope of the linear UV extinction component 
         c1 - Intercept of the linear UV extinction component
+        fitdict={   
+                'Av':{'init':-0.62,'fixed':False},
+                'beta':{'init':-1.45,'fixed':False},
+                'const':{'init':1000,'fixed':False},
+                'Rv':{'init':Rv_init,'fixed':True},
+                'c1':{'init':c1_init,'fixed':True},
+                'c2':{'init':c2_init,'fixed':True},
+                'c3':{'init':c3_init,'fixed':True},
+                'c4':{'init':c4_init,'fixed':True},
+                'x0':{'init':x0_init,'fixed':True},
+                'gamma':{'init':gamma_init,'fixed':True}
+                }
+        
     ''' 
     # set font
     rc('font', family='Times New Roman') 
@@ -721,12 +772,16 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
     assert len(fluxarr) == len(fluxerrarr)
     assert len(fluxarr) == len(filtlist)
     
+    
     # Check if initial parameter list is there
     acceptable_fit_param_list=['const','beta','Av','Rv','x0','gamma','c1','c2','c3','c4']
-    for fitparam in fit_list:
+    for fitparam in fitdict.iterkeys():
         if not fitparam in acceptable_fit_param_list:
             print 'Requested fit parameter of %s is not valid. Please choose from:' % fitparam
+            print acceptable_fit_param_list
             return
+    # make sure the keys in fitdict are equal to the acceptable_fit_param_list
+    assert len(fitdict) == len (acceptable_fit_param_list) 
                 
     # extract values from the filter list
     wavearr=[]
@@ -752,27 +807,6 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
     
     #correct for redshift
     waverestarr=wavearr/(1+z)
-    
-    # get initial values
-    Av_init = -0.62
-    beta_init = -1.45
-    const_init = 1000
-       
-    # get initial parameters
-    Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
-    
-    fitdict={   
-            'Av':{'init':-0.62,'fixed':False},
-            'beta':{'init':-1.45,'fixed':False},
-            'const':{'init':1000,'fixed':False},
-            'Rv':{'init':Rv_init,'fixed':True},
-            'c1':{'init':c1_init,'fixed':True},
-            'c2':{'init':c2_init,'fixed':True},
-            'c3':{'init':c3_init,'fixed':True},
-            'c4':{'init':c4_init,'fixed':True},
-            'x0':{'init':x0_init,'fixed':True},
-            'gamma':{'init':gamma_init,'fixed':True}
-            }
     
     
     fullparamlist = []
@@ -848,7 +882,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,initial_param='smc',z=0.0,galebv=0.0,
         if timestr:
             fig2.text(0.45,0.8,timestr)
     
-        string = 'Fixed params (%s)' % (initial_param)
+        string = 'Fixed params %s' % (paramstr)
         fig2.text(0.7,0.8,string)
         textoffset=0.76        
         for fixedparam in fixparamlist:
