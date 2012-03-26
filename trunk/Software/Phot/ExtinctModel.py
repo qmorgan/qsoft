@@ -328,7 +328,7 @@ def timeDepAvBeta(wave_time_list,paramlist):
         
     return flux_out
 
-def SEDtimeSimulFit120119A(initial_param='smc'):
+def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av'):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
     '''
@@ -355,19 +355,44 @@ def SEDtimeSimulFit120119A(initial_param='smc'):
     for constnumber in np.arange(len(aligndict)):
         name = 'const' + str(constnumber)
         fitdict.update({name:{'init':10000,'fixed':False}})    
-
-    fitdict2={   
-            'Av_0':{'init':-0.62,'fixed':False},
-            'Av_1':{'init':-0.4,'fixed':False},
-            'Av_2':{'init':-0.5,'fixed':False},
-            'beta_0':{'init':-1.45,'fixed':True},
-            'beta_1':{'init':0,'fixed':True},            
-            'beta_2':{'init':0,'fixed':True}
-            }    
+    
+    if fixparam == 'beta':
+        fitdict2={   
+                'Av_0':{'init':-0.62,'fixed':False},
+                'Av_1':{'init':-0.4,'fixed':False},
+                'Av_2':{'init':-0.5,'fixed':False},
+                'beta_0':{'init':-1.45,'fixed':True},
+                'beta_1':{'init':0,'fixed':True},            
+                'beta_2':{'init':0,'fixed':True}
+                }    
+    elif fixparam == 'Av':
+        fitdict2={
+        'Av_0':{'init':-0.62,'fixed':True},
+        'Av_1':{'init':0,'fixed':True},
+        'Av_2':{'init':0,'fixed':True},
+        'beta_0':{'init':-1.45,'fixed':False},
+        'beta_1':{'init':-0.5,'fixed':False},            
+        'beta_2':{'init':-0.5,'fixed':False}
+        }
+    elif fixparam == 'both':
+        fitdict2={
+        'Av_0':{'init':-0.62,'fixed':False},
+        'Av_1':{'init':0,'fixed':True},
+        'Av_2':{'init':0,'fixed':True},
+        'beta_0':{'init':-1.45,'fixed':False},
+        'beta_1':{'init':0,'fixed':True},            
+        'beta_2':{'init':0,'fixed':True}
+        }
+    else: raise ValueError('invalid fixparam')
     fitdict.update(fitdict2)
     
     SEDtimeSimulFit(aligndict,sedtimelist,fitdict,z=z,galebv=galebv)
-
+    
+    #t=np.arange(1000)+1
+    # c=-0.50 -1.25*t**-0.37
+    # plot(t,c)
+    
+    
 def SEDtimeSimulFit(aligndict,sedtimelist,fitdict,initial_param='smc',z=0.0,
         galebv=0.0):
     '''Given blocks of data in different colors at various times, fit the SED 
