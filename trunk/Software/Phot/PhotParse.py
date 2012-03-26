@@ -54,8 +54,8 @@ class ObsBlock:
     '''
     def __init__(self,indict):
         self.source = indict['source']
-        self.filtstr = indict['filt'] # convert into filt object?
-        self.AssignFilter()
+        self.filtstr = indict['filt'] 
+        self._AssignFilter()
         self.maglist=[]
         self.magerrlist=[]
         self.isupperlist=[]
@@ -63,7 +63,10 @@ class ObsBlock:
         self.explist=[]
         self.updateObs(indict)
     
-    def AssignFilter(self):
+    def _AssignFilter(self):
+        '''
+        Given a filtstring, interpret and assign an instance of the filt 
+        object'''
         from MiscBin import qObs
         if self.filtstr == 'J': self.filt=qObs.J
         if self.filtstr == 'H': self.filt=qObs.H
