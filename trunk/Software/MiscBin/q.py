@@ -111,6 +111,31 @@ def mag2flux(mag_1=99,mag_2=99,flux_2=0,filt=None,mag_1err=None):
 # Zeropoint: 1 count/second 
 # Frequency: 5647 Angstroms hc/lambda
 
+def maglist2fluxarr(maglist,magerrlist,filtlist):
+    '''Given a list of magnitudes, their uncertainties, and filt objects,
+    return arrays of fluxes and flux errors.'''
+    for filt in filtlist:
+        filtcheck(filt)
+    assert len(maglist) == len(magerrlist)
+    assert len(maglist) == len(filtlist)
+    # build up flux array and flux err array
+    fluxarr=[]
+    fluxerrarr=[]
+    count=0
+    for mag in maglist:
+        magerr=magerrlist[count]
+        filt=filtlist[count]
+        fluxtup=mag2flux(mag_1=mag,mag_1err=magerr,filt=filt)
+        flux=fluxtup[0]
+        fluxerr=(fluxtup[1]+fluxtup[2])/2.0 # just take the avg error
+        fluxarr.append(flux)
+        fluxerrarr.append(fluxerr)
+        count+=1  # I forgot this initially, wow!
+    fluxarr=numpy.array(fluxarr)
+    fluxerrarr=numpy.array(fluxerrarr)
+    return fluxarr, fluxerrarr
+
+
 def mag2alpha(mag_1=None,mag_2=None,t_1=None,t_2=None):
     """Given two magnitudes and two times, determine what the decay index
     (alpha) would have had to been assuming flux propto t^-alpha """
@@ -450,16 +475,16 @@ def where(a,val,cond='==',wherenot=False):
     >>> where(a,999)
     []
     
-    This is similar to the numpy array np.nonzero() function
+    This is similar to the numpy array numpy.nonzero() function
     In [103]: a
     Out[103]: [1, 2, 3]
 
     In [104]: q.where(a,2,cond='<=')
     Out[104]: [0, 1]
 
-    In [105]: npa=np.array(a)
+    In [105]: npa=numpy.array(a)
 
-    In [106]: np.nonzero(npa<=2)
+    In [106]: numpy.nonzero(npa<=2)
     Out[106]: (array([0, 1]),)
     
     """

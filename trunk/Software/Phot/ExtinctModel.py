@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from MiscBin.q import filtcheck
 from MiscBin.q import mag2flux
+from MiscBin.q import maglist2fluxarr
 from MiscBin import q
 from MiscBin import qObs
 from Phot import qFit
@@ -676,29 +677,6 @@ def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
         # perform SED fit
         SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,timestr=timestr,paramstr=paramstr)
         
-def maglist2fluxarr(maglist,magerrlist,filtlist):
-    '''Given a list of magnitudes, their uncertainties, and filt objects,
-    return arrays of fluxes and flux errors.'''
-    for filt in filtlist:
-        filtcheck(filt)
-    assert len(maglist) == len(magerrlist)
-    assert len(maglist) == len(filtlist)
-    # build up flux array and flux err array
-    fluxarr=[]
-    fluxerrarr=[]
-    count=0
-    for mag in maglist:
-        magerr=magerrlist[count]
-        filt=filtlist[count]
-        fluxtup=mag2flux(mag_1=mag,mag_1err=magerr,filt=filt)
-        flux=fluxtup[0]
-        fluxerr=(fluxtup[1]+fluxtup[2])/2.0 # just take the avg error
-        fluxarr.append(flux)
-        fluxerrarr.append(fluxerr)
-        count+=1  # I forgot this initially, wow!
-    fluxarr=np.array(fluxarr)
-    fluxerrarr=np.array(fluxerrarr)
-    return fluxarr, fluxerrarr
 
 def _get_initial_dust_params(initial_param):
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
