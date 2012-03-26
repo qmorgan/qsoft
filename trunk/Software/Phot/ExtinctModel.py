@@ -335,12 +335,13 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av'):
     '''
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
     initial_param='smc'
-    z=1.728
-    galebv=0.108
+
     time_thresh=10
     
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst # not used?
+    galebv=objblock.galebv
+    z=objblock.redshift
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
     
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
@@ -639,7 +640,7 @@ def _getfitdict(initial_param):
     ####
     return fitdict
     
-def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
+def SEDvsTime(initial_param='smc',
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
@@ -650,6 +651,8 @@ def SEDvsTime(initial_param='smc',z=1.728,galebv=0.108,
     
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst # not used?
+    galebv=objblock.galebv
+    z=objblock.redshift
     
     time_thresh = 10 # Number of seconds we can be off in time from the reference 
 
