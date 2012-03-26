@@ -7,6 +7,8 @@ class ObjBlock:
     def __init__(self):
         self.obsdict = {}
         self.utburst = None
+        self.galebv = None
+        self.redshift = None
     def updateObj(self,indict):
         if not self.utburst:
             if 'utburst' in indict:
@@ -15,6 +17,29 @@ class ObjBlock:
             if 'utburst' in indict:
                 if self.utburst != indict['utburst']:
                     raise ValueError('utburst times do not match!')
+        
+        if not self.galebv:
+            if 'galebv' in indict:
+                try:
+                    self.galebv = float(indict['galebv'])
+                except:
+                    self.galebv = None
+        else:
+            if 'galebv' in indict:
+                if self.galebv != float(indict['galebv']):
+                    raise ValueError('galebv values do not match!')
+                    
+        
+        if not self.redshift:
+            if 'redshift' in indict:
+                try:
+                    self.redshift = float(indict['redshift'])
+                except:
+                    self.redshift = None
+        else:
+            if 'redshift' in indict:
+                if self.redshift != float(indict['redshift']):
+                    raise ValueError('redshift values do not match!')
         
         name = indict['source'] + '_' + indict['filt']
         if not name in self.obsdict:
@@ -131,7 +156,9 @@ def PhotParse(filename,verbose=False):
             'expunit':'sec',
             'filt':'unknown',
             'source':'unkown',
-            'utburst':'unknown'}
+            'utburst':'unknown',
+            'galebv':'unknown',
+            'redshift':'unknown'}
     
     parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim']
     name_replace_dict={'filter':'filt',
