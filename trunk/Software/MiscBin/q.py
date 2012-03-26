@@ -111,20 +111,32 @@ def mag2flux(mag_1=99,mag_2=99,flux_2=0,filt=None,mag_1err=None):
 # Zeropoint: 1 count/second 
 # Frequency: 5647 Angstroms hc/lambda
 
-def maglist2fluxarr(maglist,magerrlist,filtlist):
+def maglist2fluxarr(maglist,magerrlist,filtlist,singlefilt=False):
     '''Given a list of magnitudes, their uncertainties, and filt objects,
-    return arrays of fluxes and flux errors.'''
-    for filt in filtlist:
+    return arrays of fluxes and flux errors.
+    
+    if singlefilt=True, then assume filtlist is just a single instance of the 
+    filt object instead of a list.
+    '''
+    if singlefilt:
+        filt = filtlist
         filtcheck(filt)
+        filtlist = [] # clear it
+            
+    else:
+        for filt in filtlist:
+            filtcheck(filt)
+        assert len(maglist) == len(filtlist)
+        
     assert len(maglist) == len(magerrlist)
-    assert len(maglist) == len(filtlist)
     # build up flux array and flux err array
     fluxarr=[]
     fluxerrarr=[]
     count=0
     for mag in maglist:
         magerr=magerrlist[count]
-        filt=filtlist[count]
+        if filtlist: # if we assign a filt to each given mag
+            filt=filtlist[count]
         fluxtup=mag2flux(mag_1=mag,mag_1err=magerr,filt=filt)
         flux=fluxtup[0]
         fluxerr=(fluxtup[1]+fluxtup[2])/2.0 # just take the avg error
