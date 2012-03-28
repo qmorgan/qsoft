@@ -1,4 +1,9 @@
 import copy
+import matplotlib.pyplot as plt
+import numpy as np
+from MiscBin.q import maglist2fluxarr
+from Phot.ExtinctModel import CorrectFluxForGalExt
+
 
 class ObjBlock:
     '''
@@ -9,6 +14,7 @@ class ObjBlock:
         self.utburst = None
         self.galebv = None
         self.redshift = None
+        
     def updateObj(self,indict):
         if not self.utburst:
             if 'utburst' in indict:
@@ -47,7 +53,44 @@ class ObjBlock:
             self.obsdict.update({name:newobs})
         else:
             self.obsdict[name].updateObs(indict)
+    
+    def CalculateFlux(self):
+        '''Loop through all the ObsBlock instances in the ObjBlock and 
+        calculate the flux for each, assigning them as attributes of the 
+        ObsBlock.
+        '''
+        
+        for key, ob in self.obsdict.iteritems():
+            if ob.filt != None:
+                ob.fluxarr,ob.fluxerrarr = \
+                    maglist2fluxarr(ob.maglist,ob.magerrlist,ob.filt,singlefilt=True)
+                if self.galebv != None:
+                    # if we know galebv, do gal corrected flux conversion
+                    # do we want to do change this function to handle wave objects? Nah..
+                    #array of the same wavelength in angstroms
+                    wavearr = np.zeros(len(ob.maglist)) + ob.filt.wave_A 
+                    ob.gcfluxarr,ob.gcfluxerrarr = \
+                        CorrectFluxForGalExt(self.galebv,wavearr,ob.fluxarr,ob.fluxerrarr)
+            else:
+                print "No filter for %s, Skipping flux conversion" % (key)
+    
+    def PlotLC(self):
+        fig=plt.figure()
+        ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.loglog()
 
+        for key, ob in self.obsdict.iteritems():
+            if ob.filt != None:
+                upperinds = np.array(ob.isupperlist)
+                detectinds = np.array([not a for a in ob.isupperlist])
+
+                if detectinds.any(): # only plot here if we have at least one detection
+                    ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.gcfluxarr[detectinds],yerr=ob.gcfluxerrarr[detectinds], color=ob.color, fmt=ob.marker)
+                if upperinds.any(): # only plot here if we have at least one detection
+                    ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
+                
+        fig.show()
+        
 class ObsBlock:
     '''
     Block of Observations of a given Observatory/Filter
@@ -56,6 +99,7 @@ class ObsBlock:
         self.source = indict['source']
         self.filtstr = indict['filt'] 
         self._AssignFilter()
+        self._AssignMarker()
         self.maglist=[]
         self.magerrlist=[]
         self.isupperlist=[]
@@ -63,24 +107,67 @@ class ObsBlock:
         self.explist=[]
         self.updateObs(indict)
     
+    def _AssignMarker(self):
+        '''
+        Given a source, interpret and assign a marker for plotting purposes
+        '''
+        if self.source.lower()=='pairitel':
+            self.marker='o' # circle
+        elif self.source.lower()=='prompt':
+            self.marker='d' # diamond
+        elif self.source.lower()=='smarts':
+            self.marker='s' # square
+        elif self.source.lower()=='liverpool':
+            self.marker='*' # star
+        else:
+            self.marker='p' 
+            print "unknown source of %s, using default marker" % self.source
+    
     def _AssignFilter(self):
         '''
         Given a filtstring, interpret and assign an instance of the filt 
         object'''
         from MiscBin import qObs
-        if self.filtstr == 'J': self.filt=qObs.J
-        if self.filtstr == 'H': self.filt=qObs.H
-        if self.filtstr == 'K' or self.filtstr == 'Ks': self.filt=qObs.Ks
-        if self.filtstr == 'R' or self.filtstr == 'Rc': self.filt=qObs.Rc
-        if self.filtstr == 'I' or self.filtstr == 'Ic': self.filt=qObs.Ic
-        if self.filtstr == "u" or self.filtstr == "u'": self.filt=qObs.u
-        if self.filtstr == "g" or self.filtstr == "g'": self.filt=qObs.g
-        if self.filtstr == "r" or self.filtstr == "r'": self.filt=qObs.r
-        if self.filtstr == "i" or self.filtstr == "i'": self.filt=qObs.i
-        if self.filtstr == "z" or self.filtstr == "z'": self.filt=qObs.z
-        if self.filtstr == 'U': self.filt=qObs.U
-        if self.filtstr == 'B': self.filt=qObs.B
-        if self.filtstr == 'V': self.filt=qObs.V
+        if self.filtstr == 'K' or self.filtstr == 'Ks': 
+            self.filt=qObs.Ks
+            self.color='#FF9E9E'
+        if self.filtstr == 'H': 
+            self.filt=qObs.H
+            self.color='#FF6969'
+        if self.filtstr == 'J': 
+            self.filt=qObs.J
+            self.color='#FF2929'
+        if self.filtstr == "z" or self.filtstr == "z'": 
+            self.filt=qObs.z
+            self.color='#FF0000'
+        if self.filtstr == "i" or self.filtstr == "i'": 
+            self.filt=qObs.i
+            self.color='#FF8400'
+        if self.filtstr == 'I' or self.filtstr == 'Ic': 
+            self.color='#FF9D00'
+            self.filt=qObs.Ic
+        if self.filtstr == "r" or self.filtstr == "r'": 
+            self.filt=qObs.r
+            self.color='#F5C800'
+        if self.filtstr == 'R' or self.filtstr == 'Rc': 
+            self.color='#F5C800'
+            self.filt=qObs.Rc
+        if self.filtstr == 'V': 
+            self.color='#9CE805'
+            self.filt=qObs.V
+        if self.filtstr == "g" or self.filtstr == "g'": 
+            self.color='#00D912'
+            self.filt=qObs.g
+        if self.filtstr == 'B': 
+            self.color='#0033FF'
+            self.filt=qObs.B
+        if self.filtstr == "u" or self.filtstr == "u'": 
+            self.color='#9000FF'
+            self.filt=qObs.u
+        if self.filtstr == 'U': 
+            self.filt=qObs.U
+            self.color='#9000FF'
+        
         if not hasattr(self,'filt'): 
             print '  Could not find appropriate filt object for filtstr %s on source %s; assigning as None' % (self.filtstr,self.source)
             self.filt = None
@@ -251,5 +338,7 @@ def PhotParse(filename,verbose=False):
                 # if keydict['source']=='PAIRITEL':
                 #     raise Exception
                 object_block.updateObj(keydict)
-                
+    
+    object_block.CalculateFlux()            
+    
     return object_block
