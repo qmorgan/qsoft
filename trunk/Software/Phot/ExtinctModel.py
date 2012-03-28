@@ -773,9 +773,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
                 }
         
     ''' 
-    # set font
-    rc('font', family='Times New Roman') 
-    
+
     # ERROR CHECKING
     for filt in filtlist:
         filtcheck(filt)
@@ -835,6 +833,9 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     
     
     if plot:
+        # set font
+        rc('font', family='Times New Roman') 
+        
         #get model array
         w=1000. + np.arange(500)*100
         f = w*0. + 1
