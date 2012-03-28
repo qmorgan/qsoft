@@ -557,8 +557,8 @@ def SEDFitTest2(initial_param='smc'):
     paramstr='(%s)' % initial_param
     
     
-    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
-    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
+    return fitdict
 
 def _align_SED_times(objblock,sedtimelist,time_thresh=10):
     '''
@@ -821,7 +821,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     if galebv == 0.0:
         print "\nWARNING: Not correcting for galactic extinction\n"
     galcorrectedfluxarr, galcorrectedfluxerrarr = \
-        CorrectFluxForGalExt(galebv,longwavearr,longfluxarr,longfluxerrarr)
+        CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr)
     
     #correct for redshift
     waverestarr=wavearr/(1+z)
@@ -927,6 +927,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax3.xaxis.set_major_formatter(formatter)
 
         fig2.show()
+    return fitdict
 
 def log_10_product(x, pos):
     """The two args are the value and tick position.
