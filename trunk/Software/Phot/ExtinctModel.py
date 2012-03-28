@@ -822,16 +822,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     # correct for galactic extinction
     if galebv == 0.0:
         print "\nWARNING: Not correcting for galactic extinction\n"
-    
-    # Use the FM implementation of the average milkyway extinction to unredden
-    # the flux due to the galactic sightlines.
-    galAv=galebv*3.1 #Rv=3.1 for mw
-    mw=avgmw()
-    mw.EvalCurve(wavearr,galebv)
-    mw.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
-    galcorrectedfluxarr=mw.funred
-    mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
-    galcorrectedfluxerrarr=mw.funred
+    galcorrectedfluxarr, galcorrectedfluxerrarr = \
+        CorrectFluxForGalExt(galebv,longwavearr,longfluxarr,longfluxerrarr)
     
     #correct for redshift
     waverestarr=wavearr/(1+z)
