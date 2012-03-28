@@ -99,7 +99,7 @@ def mag2flux(mag_1=99,mag_2=99,flux_2=0,filt=None,mag_1err=None):
             flux_2 = raw_input('Please enter flux_2: ')
     
     flux_1 = flux_2 * 10**(-0.4*(mag_1 - mag_2))
-    if not mag_1err:
+    if mag_1err == None:
         return flux_1
     else:
         flux_1p = flux_2 * 10**(-0.4*((mag_1-mag_1err) - mag_2))
