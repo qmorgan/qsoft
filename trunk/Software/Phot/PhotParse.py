@@ -4,7 +4,7 @@ import numpy as np
 from MiscBin.q import maglist2fluxarr
 from MiscBin.q import flux2abmag
 from MiscBin.q import mag2alpha
-from Phot.ExtinctModel import CorrectFluxForGalExt
+from matplotlib import rc
 
 
 class ObjBlock:
@@ -61,6 +61,7 @@ class ObjBlock:
         calculate the flux for each, assigning them as attributes of the 
         ObsBlock.
         '''
+        from Phot.ExtinctModel import CorrectFluxForGalExt
         
         for key, ob in self.obsdict.iteritems():
             if ob.filt != None:
