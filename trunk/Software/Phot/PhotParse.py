@@ -2,6 +2,8 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 from MiscBin.q import maglist2fluxarr
+from MiscBin.q import flux2abmag
+from MiscBin.q import mag2alpha
 from Phot.ExtinctModel import CorrectFluxForGalExt
 
 
@@ -75,6 +77,9 @@ class ObjBlock:
                 print "No filter for %s, Skipping flux conversion" % (key)
     
     def PlotLC(self):
+        # set font
+        rc('font', family='Times New Roman')
+        
         fig=plt.figure()
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.loglog()
@@ -88,7 +93,55 @@ class ObjBlock:
                     ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.gcfluxarr[detectinds],yerr=ob.gcfluxerrarr[detectinds], color=ob.color, fmt=ob.marker)
                 if upperinds.any(): # only plot here if we have at least one detection
                     ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
+        
+        # duplicate axis for AB mag
+        ax2=ax.twinx()
+        ylimflux=ax.get_ylim()
+        ylimmag0=flux2abmag(ylimflux[0])
+        ylimmag1=flux2abmag(ylimflux[1])
+        ylimmag=(ylimmag0,ylimmag1)
+        ax2.set_ylim(ylimmag)
+        
+        # Label the axes
+        ax.set_ylabel(r'$F_\nu$ (uJy)')
+        ax.set_xlabel(r'$t_{mid}$ (s)')
+        ax2.set_ylabel('AB Mag')
                 
+        fig.show()
+        
+    def SimpleAlphaVSTime(self):
+        '''
+        Step through every pair of points in a lightcurve to calculate a very
+        rough measurement of alpha based on the slope of those two points.
+        '''
+        # set font
+        rc('font', family='Times New Roman')
+        
+        fig=plt.figure()
+        ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.semilogx()
+
+        for key, ob in self.obsdict.iteritems():
+            upperinds = np.array(ob.isupperlist)
+            detectinds = np.array([not a for a in ob.isupperlist])
+        
+            tmidarr = np.array(ob.tmidlist)[detectinds]
+            magarr = np.array(ob.maglist)[detectinds]
+            if detectinds.any(): # only plot here if we have at least one detection
+                ind = 0
+                # loop through each pair of mags 
+                while ind < len(magarr) - 1:
+                    mag1 = magarr[ind]
+                    mag2 = magarr[ind+1]
+                    t1 = tmidarr[ind]
+                    t2 = tmidarr[ind+1]
+                    tmid = (t1 + t2)/2.0
+                    alpha = mag2alpha(mag_1=mag1,mag_2=mag2,t_1=t1,t_2=t2)
+                    ax.plot(tmid,alpha, color=ob.color, marker=ob.marker)
+                    ind += 1
+        
+        ax.set_ylabel(r'$\alpha$')
+        ax.set_xlabel(r'$t_{mid}$ (s)')                
         fig.show()
         
 class ObsBlock:
@@ -171,6 +224,7 @@ class ObsBlock:
         if not hasattr(self,'filt'): 
             print '  Could not find appropriate filt object for filtstr %s on source %s; assigning as None' % (self.filtstr,self.source)
             self.filt = None
+            self.color='#DDDDDD'
         
     def updateObs(self,indict):
         # update flux/mag values
