@@ -329,23 +329,21 @@ def timeDepAvBeta(wave_time_list,paramlist):
         
     return flux_out
 
-def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av'):
+def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
     '''
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'
+    
     initial_param='smc'
 
-    time_thresh=10
-    
-    objblock=PhotParse.PhotParse(directory)
-    utburststr = objblock.utburst # not used?
-    galebv=objblock.galebv
-    z=objblock.redshift
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    
+    time_thresh=10    
+    objblock=PhotParse.PhotParse(directory)    
+    if not sedtimelist: # use this as a default if it is not explicitly defined
+        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
+    # need to do this to see how many alignments we have    
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
-    print len(aligndict)
 
     
     # set up the fit dict            
@@ -369,41 +367,46 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av'):
                 }    
     elif fixparam == 'Av':
         fitdict2={
-        'Av_0':{'init':-0.62,'fixed':True},
-        'Av_1':{'init':0,'fixed':True},
-        'Av_2':{'init':0,'fixed':True},
-        'beta_0':{'init':-1.45,'fixed':False},
-        'beta_1':{'init':-0.5,'fixed':False},            
-        'beta_2':{'init':-0.5,'fixed':False}
+                'Av_0':{'init':-0.62,'fixed':True},
+                'Av_1':{'init':0,'fixed':True},
+                'Av_2':{'init':0,'fixed':True},
+                'beta_0':{'init':-1.45,'fixed':False},
+                'beta_1':{'init':-0.5,'fixed':False},            
+                'beta_2':{'init':-0.5,'fixed':False}
         }
     elif fixparam == 'both':
         fitdict2={
-        'Av_0':{'init':-0.62,'fixed':False},
-        'Av_1':{'init':0,'fixed':True},
-        'Av_2':{'init':0,'fixed':True},
-        'beta_0':{'init':-1.45,'fixed':False},
-        'beta_1':{'init':0,'fixed':True},            
-        'beta_2':{'init':0,'fixed':True}
+                'Av_0':{'init':-0.62,'fixed':False},
+                'Av_1':{'init':0,'fixed':True},
+                'Av_2':{'init':0,'fixed':True},
+                'beta_0':{'init':-1.45,'fixed':False},
+                'beta_1':{'init':0,'fixed':True},            
+                'beta_2':{'init':0,'fixed':True}
         }
     else: raise ValueError('invalid fixparam')
     fitdict.update(fitdict2)
     
-    SEDtimeSimulFit(aligndict,sedtimelist,fitdict,z=z,galebv=galebv)
+    SEDtimeSimulFit(objblock,sedtimelist,fitdict)
     
     #t=np.arange(1000)+1
     # c=-0.50 -1.25*t**-0.37
     # plot(t,c)
     
     
-def SEDtimeSimulFit(aligndict,sedtimelist,fitdict,initial_param='smc',z=0.0,
-        galebv=0.0):
+def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc'):
     '''Given blocks of data in different colors at various times, fit the SED 
     at each time, tying them all together via a restricted time evolution of 
     parameters.
     
     
     '''
-    
+    time_thresh=10
+    utburststr = objblock.utburst # not used?
+    galebv=objblock.galebv
+    z=objblock.redshift
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+
+
     # BUILD UP PARAMETERS
     fullparamlist = []
     fitparamlist = [] 
@@ -462,7 +465,7 @@ def SEDtimeSimulFit(aligndict,sedtimelist,fitdict,initial_param='smc',z=0.0,
     def f(x): return timeDepAvBeta(x,fullparamlist)
     
     fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
-    
+    return fitdict
     
 def CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr=None):
     '''
@@ -652,6 +655,21 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
             raise ValueError(errmsg)
     
     return fitdict
+
+def SEDsimulfit120119Atest():
+    # crappy hack way to go about building up the time list if one of the
+    # scopes isnt available for each of the SEDs.  Take two timelists, and append
+    # the values of one onto the other.  Usually wont have to do this. 
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
+    objblock=PhotParse.PhotParse(directory)
+    
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist
+    for time in addl_sed_times:
+        sedtimelist.append(time)
+    
+    
+    SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,fixparam='beta')
 
 def SEDvsTime120119A():
     # first do fixed Av:
