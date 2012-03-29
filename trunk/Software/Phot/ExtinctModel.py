@@ -622,21 +622,19 @@ def _align_SED_times(objblock,sedtimelist,time_thresh=10):
         aligndict.update({timestr:{'sedtime':sedtime,'maglist':maglist,'magerrlist':magerrlist,'filtlist':filtlist}})
     return aligndict
 
-def _getfitdict(initial_param):
+def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta']):
     '''A single editable place to get the fitdict'''
     ####
     # get initial values
-    Av_init = -0.62
-    beta_init = -1.45
     const_init = 1000
        
     # get initial parameters
     Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init = _get_initial_dust_params(initial_param)
     
     fitdict={   
-            'Av':{'init':-0.62,'fixed':False},
-            'beta':{'init':-1.45,'fixed':False},
-            'const':{'init':1000,'fixed':False},
+            'Av':{'init':Av_init,'fixed':True},
+            'beta':{'init':beta_init,'fixed':True},
+            'const':{'init':const_init,'fixed':False},
             'Rv':{'init':Rv_init,'fixed':True},
             'c1':{'init':c1_init,'fixed':True},
             'c2':{'init':c2_init,'fixed':True},
@@ -646,16 +644,72 @@ def _getfitdict(initial_param):
             'gamma':{'init':gamma_init,'fixed':True}
             }
     ####
-    return fitdict
+    for key in fitlist:
+        if key in fitdict:
+            fitdict[key]['fixed']=False
+        else:
+            errmsg = '%s is not a valid fit parameter'
+            raise ValueError(errmsg)
     
-def SEDvsTime(initial_param='smc',
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedData.dat'):
+    return fitdict
+
+def SEDvsTime120119A():
+    # first do fixed Av:
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=None)
+    
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
+    
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
+    
+    # crappy hack way to go about building up the time list if one of the
+    # scopes isnt available for each of the SEDs.  Take two timelists, and append
+    # the values of one onto the other.  Usually wont have to do this. 
+    # sedtimelist=objblock.obsdict[align_key].tmidlist
+    # if second_align_key:
+    #     addl_sed_times=objblock.obsdict[align_key].tmidlist
+    #     for time in addl_sed_times:
+    #         sedtimelist.append(time)
+    
+    fig.show()
+    
+    # now fixed beta
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=None)
+
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
+
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
+    fig.show()
+
+def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimelist=None,
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat',
+    retfig = False, fig=None, color='grey'):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
-    threshhold of that time, and build up an SED for each.'''
+    threshhold of that time, and build up an SED for each.
     
-    fitdict = _getfitdict(initial_param)
+    if retfig: return the plot
+    '''
+    
+    fitdict = _getfitdict(initial_param,fitlist=fitlist)
     
     objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst # not used?
@@ -664,12 +718,17 @@ def SEDvsTime(initial_param='smc',
     
     time_thresh = 10 # Number of seconds we can be off in time from the reference 
 
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    
+
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
     
     paramstr='(%s)' % initial_param
     
+    timelist = []
+    betalist = []
+    betaerrlist = []
+    Averrlist = []
+    Avlist = []
+    faillist=[]
     
     # loop through each time, building up an SED for each
     for timestr, val in aligndict.iteritems():
@@ -686,8 +745,46 @@ def SEDvsTime(initial_param='smc',
         print fluxerrarr
         print '**'
         # perform SED fit
-        SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,timestr=timestr,paramstr=paramstr)
+        try:
+            outdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,timestr=timestr,paramstr=paramstr,plot=plotsed)
+        except:
+            faillist.append(timestr)
+            continue
+        # build up the lists of fit parameters
+        timelist.append(val['sedtime'])
+        for param in outdict['parameters']:
+            if param.name == 'Av':
+                Avlist.append(param.value)
+                Averrlist.append(param.uncertainty)
+            if param.name == 'beta':
+                betalist.append(param.value)
+                betaerrlist.append(param.uncertainty)
+   
+    if faillist:
+        print "SED Fit failed for times:"
+        print faillist
         
+    # plot the fit parameters
+    if Avlist:
+        if not fig:
+            fig=plt.figure()
+        ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.semilogx()
+        ax.errorbar(timelist,Avlist,yerr=Averrlist,fmt='o',color=color)
+        if retfig:
+            return(fig)
+        fig.show()
+        fig = None
+    if betalist:
+        if not fig:
+            fig=plt.figure()
+        ax1=fig.add_axes([0.1,0.1,0.8,0.8])
+        ax1.semilogx()
+        ax1.errorbar(timelist,betalist,yerr=betaerrlist,fmt='o',color=color)
+        if retfig:
+            return(fig)
+        fig.show()
+        fig = None
 
 def _get_initial_dust_params(initial_param):
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
@@ -829,7 +926,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     
     def f(x): return powerlawExtRetFlux(x,fullparamlist)
     
-    fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
+    outdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
     
     
     if plot:
@@ -845,10 +942,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         fig2=plt.figure()
         ax=fig2.add_axes([0.1,0.1,0.8,0.8])
     
-        string = 'chi2 / dof = %.2f / %i' % (fitdict['chi2'],fitdict['dof'])
+        string = 'chi2 / dof = %.2f / %i' % (outdict['chi2'],outdict['dof'])
         fig2.text(0.2,0.2,string)
         textoffset=0.24    
-        for string in fitdict['strings']:
+        for string in outdict['strings']:
             if not string.find('const') != -1:
                 fig2.text(0.2,textoffset,string)
                 textoffset+=0.04
@@ -927,7 +1024,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax3.xaxis.set_major_formatter(formatter)
 
         fig2.show()
-    return fitdict
+    return outdict
 
 def log_10_product(x, pos):
     """The two args are the value and tick position.
