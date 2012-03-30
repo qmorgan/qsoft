@@ -313,8 +313,20 @@ def timeDepAvBeta(wave_time_list,paramlist):
         const = norm_vec[count].value
         
         ### FUNCTIONAL FORMS OF BETA AND Av
-        beta = beta_0 + beta_1*(time**(beta_2))
-        Av = Av_0 + Av_1*(time**(Av_2))
+        # beta = beta_0 + beta_1*(time**(beta_2))
+        # Av = Av_0 + Av_1*(time**(Av_2))
+        
+        # beta_2 = tbreak
+        if time <= beta_2:
+            beta = beta_0/(beta_2**beta_1)*time**beta_1
+        if time > beta_2:
+            beta = beta_0
+        
+        # Av_2 = tbreak
+        if time <= Av_2:
+            Av = Av_0/(Av_2**Av_1)*time**Av_1
+        if time > Av_2:
+            Av = Av_0 
         ###
         
         fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
@@ -330,7 +342,7 @@ def timeDepAvBeta(wave_time_list,paramlist):
     return flux_out
 
 def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataAll.dat'
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -359,8 +371,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     if fixparam == 'beta':
         fitdict2={   
                 'Av_0':{'init':-0.62,'fixed':False},
-                'Av_1':{'init':-0.4,'fixed':False},
-                'Av_2':{'init':-0.5,'fixed':False},
+                'Av_1':{'init':-0.3,'fixed':False},
+                'Av_2':{'init':300,'fixed':False},
                 'beta_0':{'init':-1.45,'fixed':True},
                 'beta_1':{'init':0,'fixed':True},            
                 'beta_2':{'init':0,'fixed':True}
@@ -370,9 +382,9 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
                 'Av_0':{'init':-0.62,'fixed':True},
                 'Av_1':{'init':0,'fixed':True},
                 'Av_2':{'init':0,'fixed':True},
-                'beta_0':{'init':-1.45,'fixed':False},
-                'beta_1':{'init':-0.5,'fixed':False},            
-                'beta_2':{'init':-0.5,'fixed':False}
+                'beta_0':{'init':-1.30,'fixed':False},
+                'beta_1':{'init':-0.2,'fixed':False},            
+                'beta_2':{'init':300,'fixed':False}
         }
     elif fixparam == 'both':
         fitdict2={
@@ -383,14 +395,21 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
                 'beta_1':{'init':0,'fixed':True},            
                 'beta_2':{'init':0,'fixed':True}
         }
+    elif fixparam == 'none': #just fit the constants - for testing purposes 
+        fitdict2={
+                'Av_0':{'init':-0.62,'fixed':True},
+                'Av_1':{'init':0,'fixed':True},
+                'Av_2':{'init':0,'fixed':True},
+                'beta_0':{'init':-1.45,'fixed':True},
+                'beta_1':{'init':0,'fixed':True},            
+                'beta_2':{'init':0,'fixed':True}
+        }
     else: raise ValueError('invalid fixparam')
     fitdict.update(fitdict2)
     
-    SEDtimeSimulFit(objblock,sedtimelist,fitdict)
+    outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict)
     
-    #t=np.arange(1000)+1
-    # c=-0.50 -1.25*t**-0.37
-    # plot(t,c)
+    return outdict
     
     
 def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc'):
@@ -464,8 +483,8 @@ def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc'):
     
     def f(x): return timeDepAvBeta(x,fullparamlist)
     
-    fitdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
-    return fitdict
+    outdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
+    return outdict
     
 def CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr=None):
     '''
@@ -656,7 +675,7 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
     
     return fitdict
 
-def SEDsimulfit120119Atest():
+def SEDsimulfit120119Atest(fixparam='beta'):
     # crappy hack way to go about building up the time list if one of the
     # scopes isnt available for each of the SEDs.  Take two timelists, and append
     # the values of one onto the other.  Usually wont have to do this. 
@@ -669,14 +688,45 @@ def SEDsimulfit120119Atest():
         sedtimelist.append(time)
     
     
-    SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,fixparam='beta')
+    outdict = SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,fixparam=fixparam)
+    for param in outdict['parameters']:
+        if param.name == 'Av_1' or param.name == 'beta_1':
+            Av1=param.value
+        elif param.name == 'Av_2' or param.name == 'beta_2':
+            Av2=param.value
+        elif param.name == 'Av_0' or param.name ==  'beta_0':
+            Av0=param.value
+    
+    fig=plt.figure()
+    ax=fig.add_axes([0.1,0.1,0.8,0.8])        
+    ax.semilogx()
+    t=np.arange(100000)+1
+    c=BrokenPowerLaw(t,Av0,Av1,Av2)
+    ax.plot(t,c)
+    fig.show()
+    return fig
 
+def BrokenPowerLaw(timearr,Av_0,Av_1,Av_2):
+    # Av_2 = tbreak
+    Avlist=[]
+    for time in timearr:
+        if time <= Av_2:
+            Av = Av_0/(Av_2**Av_1)*time**Av_1
+        if time > Av_2:
+            Av = Av_0 
+        Avlist.append(Av)
+    Avarr = np.array(Avlist)    
+    return Avlist
+    ###
+    
 def SEDvsTime120119A():
     # first do fixed Av:
+    fig = SEDsimulfit120119Atest(fixparam='Av')
+    
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=None)
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     objblock=PhotParse.PhotParse(directory)
@@ -700,10 +750,12 @@ def SEDvsTime120119A():
     fig.show()
     
     # now fixed beta
+    fig = SEDsimulfit120119Atest(fixparam='beta')
+    
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=None)
+    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
 
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     objblock=PhotParse.PhotParse(directory)
@@ -789,6 +841,8 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.semilogx()
         ax.errorbar(timelist,Avlist,yerr=Averrlist,fmt='o',color=color)
+        ax.set_ylabel(r'$-1*A_v$')
+        ax.set_xlabel(r'$t$ (s)')
         if retfig:
             return(fig)
         fig.show()
@@ -799,6 +853,8 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
         ax1=fig.add_axes([0.1,0.1,0.8,0.8])
         ax1.semilogx()
         ax1.errorbar(timelist,betalist,yerr=betaerrlist,fmt='o',color=color)
+        ax1.set_ylabel(r'$\beta$')
+        ax1.set_xlabel(r'$t$ (s)')
         if retfig:
             return(fig)
         fig.show()
