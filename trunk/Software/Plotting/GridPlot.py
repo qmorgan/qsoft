@@ -11,7 +11,7 @@ from Plotting.q_hist import histOutline
 # plt.colorbar(sc,cax=plt.gcf().add_axes((0.90,0.1,0.02,0.8)))
 
 # Added a nice comment saying awesome things
-
+# added another comment
 def GridPlot(data,fig=None,zdata=None,labels=None,no_tick_labels=False,hist=True, 
             histbins=None, histrangelist=None, histloc='tl',color='black',
             colorbar=None, show=True, noalpha=False, **kwargs):
