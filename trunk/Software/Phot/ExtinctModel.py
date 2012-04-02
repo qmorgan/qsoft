@@ -311,24 +311,30 @@ def timeDepAvBeta(wave_time_list,paramlist):
         inds=q.where(longtimearr,time)
         wavearr=longwavearr[inds] # vector of wavelengths; should be multi-length
         const = norm_vec[count].value
+        # print "%f: %s" % (time, norm_vec[count].name)
         
         ### FUNCTIONAL FORMS OF BETA AND Av
         # beta = beta_0 + beta_1*(time**(beta_2))
         # Av = Av_0 + Av_1*(time**(Av_2))
         
-        # beta_2 = tbreak
-        if time <= beta_2:
-            beta = beta_0/(beta_2**beta_1)*time**beta_1
-        if time > beta_2:
-            beta = beta_0
+        # Decaying exponential + constant
+        beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
+        Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
         
-        # Av_2 = tbreak
-        if time <= Av_2:
-            Av = Av_0/(Av_2**Av_1)*time**Av_1
-        if time > Av_2:
-            Av = Av_0 
-        ###
-        
+        # ### Broken power law
+        # # beta_2 = tbreak
+        # if time <= beta_2:
+        #     beta = beta_0/(beta_2**beta_1)*time**beta_1
+        # if time > beta_2:
+        #     beta = beta_0
+        # 
+        # # Av_2 = tbreak
+        # if time <= Av_2:
+        #     Av = Av_0/(Av_2**Av_1)*time**Av_1
+        # if time > Av_2:
+        #     Av = Av_0 
+        # ###
+        # 
         fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
         
         extmodel.EvalCurve(wavearr,Av/Rv)
@@ -342,7 +348,7 @@ def timeDepAvBeta(wave_time_list,paramlist):
     return flux_out
 
 def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataAll.dat'
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -388,12 +394,12 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
         }
     elif fixparam == 'both':
         fitdict2={
-                'Av_0':{'init':-0.62,'fixed':False},
-                'Av_1':{'init':0,'fixed':True},
-                'Av_2':{'init':0,'fixed':True},
-                'beta_0':{'init':-1.45,'fixed':False},
-                'beta_1':{'init':0,'fixed':True},            
-                'beta_2':{'init':0,'fixed':True}
+                'Av_0':{'init':-0.62,'fixed':True},
+                'Av_1':{'init':-0.3,'fixed':False},
+                'Av_2':{'init':100,'fixed':False},
+                'beta_0':{'init':-1.45,'fixed':True},
+                'beta_1':{'init':-0.3,'fixed':False},            
+                'beta_2':{'init':100,'fixed':False}
         }
     elif fixparam == 'none': #just fit the constants - for testing purposes 
         fitdict2={
@@ -701,10 +707,15 @@ def SEDsimulfit120119Atest(fixparam='beta'):
     ax=fig.add_axes([0.1,0.1,0.8,0.8])        
     ax.semilogx()
     t=np.arange(100000)+1
-    c=BrokenPowerLaw(t,Av0,Av1,Av2)
+    # c=BrokenPowerLaw(t,Av0,Av1,Av2)
+    c = DecayingExponential(t,Av0,Av1,Av2)
     ax.plot(t,c)
     fig.show()
     return fig
+
+def DecayingExponential(timearr,Av_0,Av_1,Av_2):
+    Av = Av_0 + Av_1*np.exp(-1*timearr/Av_2)
+    return Av
 
 def BrokenPowerLaw(timearr,Av_0,Av_1,Av_2):
     # Av_2 = tbreak
@@ -833,16 +844,18 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
     if faillist:
         print "SED Fit failed for times:"
         print faillist
-        
+    
+    timearr = np.array(timelist)
+    resttimearr = timearr/(1+z)    
     # plot the fit parameters
     if Avlist:
         if not fig:
             fig=plt.figure()
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.semilogx()
-        ax.errorbar(timelist,Avlist,yerr=Averrlist,fmt='o',color=color)
+        ax.errorbar(resttimearr,Avlist,yerr=Averrlist,fmt='o',color=color)
         ax.set_ylabel(r'$-1*A_v$')
-        ax.set_xlabel(r'$t$ (s)')
+        ax.set_xlabel(r'$t$ (s, rest frame)')
         if retfig:
             return(fig)
         fig.show()
@@ -852,9 +865,9 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
             fig=plt.figure()
         ax1=fig.add_axes([0.1,0.1,0.8,0.8])
         ax1.semilogx()
-        ax1.errorbar(timelist,betalist,yerr=betaerrlist,fmt='o',color=color)
+        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
         ax1.set_ylabel(r'$\beta$')
-        ax1.set_xlabel(r'$t$ (s)')
+        ax1.set_xlabel(r'$t$ (s, rest frame)')
         if retfig:
             return(fig)
         fig.show()
