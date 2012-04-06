@@ -61,7 +61,7 @@ class ObjBlock:
         calculate the flux for each, assigning them as attributes of the 
         ObsBlock.
         '''
-        from Phot.ExtinctModel import CorrectFluxForGalExt
+        from Modelling.ExtinctModel import CorrectFluxForGalExt
         
         for key, ob in self.obsdict.iteritems():
             if ob.filt != None:
