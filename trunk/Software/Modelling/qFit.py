@@ -123,13 +123,17 @@ def plot_marg_from_fitdict(fitdict,paramnames):
     Given a fit dictionary from fit(), and a tuple of parameter names (from param.name)
     get the covariance matrix and plot the marginalization
     e.g.
-    paramnames = ('beta_1','Av_1')
+    paramnames = ('Av_1','beta_1')
     '''
+    allvalues = np.zeros(len(fitdict['parameters']))
     indices = [-1,-1]
     values = [0,0]
     names = ['a1','a2']
     covmat = fitdict['covarmatrix']
+    count = 0
     for param in fitdict['parameters']:
+        allvalues[count] = param.value
+        count +=1
         if paramnames[0] == param.name:
             indices[0] = param.covindex
             names[0] = param.name
@@ -138,6 +142,9 @@ def plot_marg_from_fitdict(fitdict,paramnames):
             indices[1] = param.covindex
             names[1] = param.name
             values[1] = param.value
+    
+    # print indices
+    # return allvalues
     ret = plot_marginalization(covmat=covmat,indices=indices,names=names,values=values)
     return ret
     
