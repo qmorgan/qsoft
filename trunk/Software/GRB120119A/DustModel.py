@@ -135,7 +135,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     # add the correct number of normalization constants based on the number of aligned SEDs
     for constnumber in np.arange(len(aligndict)):
         name = 'const' + str(constnumber)
-        fitdict.update({name:{'init':10000,'fixed':False}})    
+        fitdict.update({name:{'init':20000,'fixed':False}})    
     
     if fixparam == 'beta':
         fitdict2={   
@@ -158,11 +158,11 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     elif fixparam == 'both':
         fitdict2={
                 'Av_0':{'init':-0.62,'fixed':True},
-                'Av_1':{'init':-0.3,'fixed':False},
-                'Av_2':{'init':100,'fixed':False},
+                'Av_1':{'init':-0.9,'fixed':False},
+                'Av_2':{'init':300,'fixed':False},
                 'beta_0':{'init':-1.45,'fixed':True},
-                'beta_1':{'init':-0.3,'fixed':False},            
-                'beta_2':{'init':100,'fixed':False}
+                'beta_1':{'init':0.9,'fixed':False},            
+                'beta_2':{'init':300,'fixed':False}
         }
     elif fixparam == 'none': #just fit the constants - for testing purposes 
         fitdict2={
