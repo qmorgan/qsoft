@@ -111,7 +111,14 @@ def ChiSqMap():
     # Out[167]: <matplotlib.text.Text at 0x20acd850>
     
 def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat',
+    Av_0init=-0.62,
+    Av_1init=0,
+    Av_2init=300,
+    beta_0init=-1.45,
+    beta_1init=0,
+    beta_2init=300,
+    
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -137,43 +144,36 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
         name = 'const' + str(constnumber)
         fitdict.update({name:{'init':20000,'fixed':False}})    
     
+    # setting up the new parameters 
+    fitdict2={   
+            'Av_0':{'init':Av_0init,'fixed':False},
+            'Av_1':{'init':Av_1init,'fixed':False},
+            'Av_2':{'init':Av_2init,'fixed':False},
+            'beta_0':{'init':beta_0init,'fixed':False},
+            'beta_1':{'init':beta_1init,'fixed':False},            
+            'beta_2':{'init':beta_2init,'fixed':False}
+            }
+    
+    # fixing those as desired
     if fixparam == 'beta':
-        fitdict2={   
-                'Av_0':{'init':-0.62,'fixed':False},
-                'Av_1':{'init':-0.3,'fixed':False},
-                'Av_2':{'init':300,'fixed':False},
-                'beta_0':{'init':-1.45,'fixed':True},
-                'beta_1':{'init':0,'fixed':True},            
-                'beta_2':{'init':100,'fixed':True}
-                }    
+        fixlist=['beta_0','beta_1','beta_2']
     elif fixparam == 'Av':
-        fitdict2={
-                'Av_0':{'init':-0.62,'fixed':True},
-                'Av_1':{'init':0,'fixed':True},
-                'Av_2':{'init':100,'fixed':True},
-                'beta_0':{'init':-1.30,'fixed':False},
-                'beta_1':{'init':-0.2,'fixed':False},            
-                'beta_2':{'init':300,'fixed':False}
-        }
+        fixlist=['Av_0','Av_1','Av_2']
     elif fixparam == 'both':
-        fitdict2={
-                'Av_0':{'init':-0.62,'fixed':True},
-                'Av_1':{'init':-0.9,'fixed':False},
-                'Av_2':{'init':300,'fixed':False},
-                'beta_0':{'init':-1.45,'fixed':True},
-                'beta_1':{'init':0.9,'fixed':False},            
-                'beta_2':{'init':300,'fixed':False}
-        }
-    elif fixparam == 'none': #just fit the constants - for testing purposes 
-        fitdict2={
-                'Av_0':{'init':-0.62,'fixed':True},
-                'Av_1':{'init':0,'fixed':True},
-                'Av_2':{'init':0,'fixed':True},
-                'beta_0':{'init':-1.45,'fixed':True},
-                'beta_1':{'init':0,'fixed':True},            
-                'beta_2':{'init':0,'fixed':True}
-        }
-    else: raise ValueError('invalid fixparam')
+        fixlist=['Av_0','beta_0']
+    elif fixparam == 'all':
+        fixlist=['Av_0','Av_1','Av_2','beta_1','beta_2']
+    else: 
+        raise ValueError('invalid fixparam')
+    
+    for key in fixlist:
+        if key in fitdict2:
+            fitdict2[key]['fixed']=True
+        else:
+            errmsg = '%s is not a valid fit parameter'
+            raise ValueError(errmsg)
+    
+
     fitdict.update(fitdict2)
     
     outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict)
@@ -189,7 +189,7 @@ def SEDsimulfit120119Atest(fixparam='beta'):
     objblock=PhotParse.PhotParse(directory)
     
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist
+    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist #add the smarts
     for time in addl_sed_times:
         sedtimelist.append(time)
     
