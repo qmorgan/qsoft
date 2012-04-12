@@ -606,7 +606,7 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
     fitdict={   
             'Av':{'init':Av_init,'fixed':True},
             'beta':{'init':beta_init,'fixed':True},
-            'const':{'init':const_init,'fixed':False},
+            'const':{'init':const_init,'fixed':False}, #always allow const to be fit
             'Rv':{'init':Rv_init,'fixed':True},
             'c1':{'init':c1_init,'fixed':True},
             'c2':{'init':c2_init,'fixed':True},
