@@ -5,6 +5,7 @@ import numpy as np
 import pylab
 import os, sys
 import matplotlib.pyplot as plt
+import copy
 
 class Param:
     '''Parameter for model fitting.
@@ -26,7 +27,59 @@ class Param:
         # When paramter is called, return itself as the value
         return self.value
 
+def fminfit(function,parameters,y,yerr,x=None,algorithm=None):
+    '''
+    Note: this code is not well fleshed out compared to fit() in terms of the 
+    object-orienty nature or returning estimates of uncertainties. Right now 
+    all it will solve/return is the best fit values.
+    
+    Use fmin or a variant thereof to optimize/find the minimum of a the 
+    chi-squared statistic 
+    ((y-function(x))**2/(yerr**2)).sum()
+    
+    where yerr is the known variance of the observation, y is the observed data 
+    and function(x) is the theoretical data.[1] This definition is only useful 
+    when one has estimates for the error on the measurements, but it leads to 
+    a situation where a chi-squared distribution can be used to test goodness 
+    of fit, provided that the errors can be assumed to have a normal distribution.
+    
+    if algorithm==bfgs then use the bfgs fmin fit,
+        if algorithm==None use the default simplex
+        
+    from fmin guide:
+        This algorithm has a long history of successful use in applications. 
+        But it will usually be slower than an algorithm that uses first or second 
+        derivative information. In practice it can have poor performance in 
+        high-dimensional problems and is not robust to minimizing complicated 
+        functions. Additionally, there currently is no complete theory describing 
+        when the algorithm will successfully converge to the minimum, or how fast 
+        it will if it does.
+    '''
+    def errfunc(params):
+        i = 0
+        for p in parameters:
+            p.set(params[i])
+            i += 1
+        return ((y-function(x))**2/(yerr**2)).sum() # chi sq
+    
+    paraminit = [param() for param in parameters]
+    print "Initial Parameters: ", paraminit
+    if not algorithm:
+        p = scipy.optimize.fmin(errfunc,paraminit,maxfun=None,maxiter=None,full_output=1)
+    elif algorithm == 'bfgs':
+        p = scipy.optimize.fmin_bfgs(errfunc,paraminit)
+    solved_values = p[0]
+    func_value = p[1] # final function value, chi-sq in this case
+    niter = p[2] # number of iterations
+    nfunc = p[3] # number of function calls
+    
+    print "Solved Values: ", solved_values
+    # don't really need to return this as the values are going to be stored in the Param objects
+    return solved_values 
+     
 
+
+    
 def fit(function, parameters, y, yerr, x = None, return_covar=False):
     '''Fit performs a simple least-squares fit on a function.  To use:
     
@@ -73,8 +126,9 @@ def fit(function, parameters, y, yerr, x = None, return_covar=False):
     # If no x axis given, set x array as integral steps starting with 
     # zero for the length of the y array.  For instance, if 
     # y = array([1.32,2.15,3.01,3.92]), then x will be x = array([0,1,2,3])
-    if x is None: x = np.arange(y.shape[0]) 
+    if x is None: x = np.arange(y.shape[0]) # not sure if this works
     paraminit = [param() for param in parameters]
+    print 'Initial Parameters:', paraminit
     #print "Parameter list:", paraminit
     #print "error function:", errfunc
     fitout = scipy.optimize.leastsq(errfunc, paraminit, full_output=1)
@@ -83,6 +137,14 @@ def fit(function, parameters, y, yerr, x = None, return_covar=False):
     # paramfinal=[param() for param in parameters]
     paramfinal = fitout[0]
     covarmatrix = fitout[1]
+    info = fitout[2]
+    mesg = fitout[3]
+    errint = fitout[4]
+    if errint not in np.arange(1,5): #errint of 1-4 means a solution was found
+        raise Exception(mesg)
+    print info['nfev'], ' function calls required to find solution'
+    # print errint
+    # print mesg
     print 'Final Parameters:', paramfinal
     print 'Covariance Matrix', covarmatrix
     print ''
@@ -118,6 +180,8 @@ def fit(function, parameters, y, yerr, x = None, return_covar=False):
     else:
         return retdict # return the dictonary of outputs
 
+
+
 def plot_marg_from_fitdict(fitdict,paramnames):
     '''
     Given a fit dictionary from fit(), and a tuple of parameter names (from param.name)
@@ -144,7 +208,7 @@ def plot_marg_from_fitdict(fitdict,paramnames):
             values[1] = param.value
     
     # print indices
-    # return allvalues
+    # return allvalues 
     ret = plot_marginalization(covmat=covmat,indices=indices,names=names,values=values)
     return ret
     
@@ -212,7 +276,7 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     # $\Delta \chi^2_{\mathbf{a_i}} = 6.17.$ is where 95.4% of measured values
     # should lie for 2 degrees of freedom (corresponding to 4sigma for 1dof)
     # 9.21 is 99% confidence
-    levels = np.array([1.0,2.3,6.17,9.21])
+    levels = np.array([1.0,2.3,6.17,6.63,9.21])
     
     import matplotlib.pyplot as plt
     
@@ -254,11 +318,30 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     
     return (dx,dy,delta_chi_sq,levels)
     
-    
+   
+#Make simulated data:
+xvals=np.arange(100)
+zeros = np.zeros(100)
+zipxvals = zip(xvals,zeros)
+
+gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
+# true values: mu=30, height=3, sigma=sqrt(20)=4.472
+ydata = gaussian(xvals)
+ydata = scipy.randn(100)*.05+ydata #adding noise
+yerr = np.zeros(100)+.05 #array of uncertainties
+ 
 def test_fit():
+    '''
+    Test the leastsq algorithm on a toy model
+    
+    It seems that the standard leastsq fit is more sensitive to this choice
+    of initial parameters (for mu in particular) than the fmin fit below.  
+    When I had mu = 20, it sometimes converged to noise with a terrible chisq,
+    '''
     import matplotlib.pyplot as plt
     #Give initial paramaters:
-    mu = Param(20,name='mu')
+
+    mu = Param(34,name='mu')
     sigma = Param(4,name='sigma')
     height = Param(5,name='height')
     
@@ -272,19 +355,44 @@ def test_fit():
         xval,zero = zip(*x) # unzip the x feature vector
         return height() * np.exp(-((xval-mu())/sigma())**2) + zero
     
-    #Make simulated data:
-    xvals=np.arange(100)
-    zeros = np.zeros(100)
-    zipxvals = zip(xvals,zeros)
-    
-    gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
-    # true values: mu=30, height=3, sigma=sqrt(20)=4.472
-    ydata = gaussian(xvals)
-    ydata = scipy.randn(100)*.1+ydata #adding noise
-    yerr = np.zeros(100)+.1 #array of uncertainties
+
 
     #Fit the function (provided 'data' is an array with the data to fit):
     fit(f, [mu, sigma, height], ydata, yerr, zipxvals)
+
+    #Plot the fitted model over the data if desired
+    simxvals = np.arange(10000)/100. # 10000 points from 0-100
+    simzeros = np.zeros(len(simxvals))
+    zipsimxvals = zip(simxvals,simzeros)
+    
+    fig2=plt.figure()
+    ax=fig2.add_axes([0.1,0.1,0.8,0.8])
+    ax.plot(simxvals,f(zipsimxvals))
+    
+    ax.scatter(xvals,ydata)
+    fig2.show()
+
+def test_fit_fmin():
+    import matplotlib.pyplot as plt
+    #Give initial paramaters:
+    mu = Param(34,name='mu')
+    sigma = Param(4,name='sigma')
+    height = Param(5,name='height')
+    
+    #Define your function:
+    def f(x): 
+        # here we are using proof of concept of a multi-input function e.g. y=f(x,t)
+        # 'x' is a list of tuples, zipped with the zip function (see below)
+        # we unzip them and then evaluate. 
+        # x needs to be a single parameter because of the way the errfunc in fit() is defined 
+        # e.g., x=[(0, 0.0),(1, 0.0),(2, 0.0),(3, 0.0),(4, 0.0),(5, 0.0)]
+        xval,zero = zip(*x) # unzip the x feature vector
+        return height() * np.exp(-((xval-mu())/sigma())**2) + zero
+    
+
+
+    #Fit the function (provided 'data' is an array with the data to fit):
+    fminfit(f, [mu, sigma, height], ydata, yerr, zipxvals)
 
     #Plot the fitted model over the data if desired
     simxvals = np.arange(10000)/100. # 10000 points from 0-100
