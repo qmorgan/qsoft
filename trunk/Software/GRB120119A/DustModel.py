@@ -118,7 +118,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     beta_0init=-1.45,
     beta_1init=0,
     beta_2init=300,
-    
+    randomize_inits=False
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -173,7 +173,33 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
             errmsg = '%s is not a valid fit parameter'
             raise ValueError(errmsg)
     
-
+    # Go through and randomize the initial parameters, if desired, according to
+    # The acceptable physical ranges. Crappy coding practice ahoy!
+    if randomize_inits:
+        import random
+        Av_0range=(0,-2.0)
+        Av_1range=(0,-2.0)
+        Av_2range=(0,1000)
+        beta_0range=(-2.0,2.0)
+        beta_1range=(-2.0,2.0)
+        beta_2range=(0,1000)
+        const_range=(10000,30000)
+        if not fitdict2['Av_0']['fixed']:
+            fitdict2['Av_0']['init'] = random.uniform(Av_0range[0],Av_0range[1])
+        if not fitdict2['Av_1']['fixed']:
+            fitdict2['Av_1']['init'] = random.uniform(Av_1range[0],Av_1range[1])
+        if not fitdict2['Av_2']['fixed']:
+            fitdict2['Av_2']['init'] = random.uniform(Av_2range[0],Av_2range[1])
+        if not fitdict2['beta_0']['fixed']:
+            fitdict2['beta_0']['init'] = random.uniform(beta_0range[0],beta_0range[1])
+        if not fitdict2['beta_1']['fixed']:
+            fitdict2['beta_1']['init'] = random.uniform(beta_1range[0],beta_1range[1])
+        if not fitdict2['beta_2']['fixed']:
+            fitdict2['beta_2']['init'] = random.uniform(beta_2range[0],beta_2range[1])
+        for key,value in fitdict.iteritems(): # loop through all the constants
+            if key[0:5]=='const':
+                value['init'] = random.uniform(const_range[0],const_range[1])
+    
     fitdict.update(fitdict2)
     
     outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict)
@@ -181,7 +207,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     return outdict
 
 
-def SEDsimulfit120119Atest(fixparam='beta'):
+def SEDsimulfit120119Atest(fixparam='beta',randomize_inits=False,plot=True):
     # crappy hack way to go about building up the time list if one of the
     # scopes isnt available for each of the SEDs.  Take two timelists, and append
     # the values of one onto the other.  Usually wont have to do this. 
@@ -194,7 +220,8 @@ def SEDsimulfit120119Atest(fixparam='beta'):
         sedtimelist.append(time)
     
     
-    outdict = SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,fixparam=fixparam)
+    outdict = SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,
+        randomize_inits=randomize_inits,fixparam=fixparam)
     
     # return outdict 
     for param in outdict['parameters']:
@@ -205,16 +232,50 @@ def SEDsimulfit120119Atest(fixparam='beta'):
         elif param.name == 'Av_0' or param.name ==  'beta_0':
             Av0=param.value
     
-    fig=plt.figure()
-    ax=fig.add_axes([0.1,0.1,0.8,0.8])        
-    ax.semilogx()
-    t=np.arange(100000)+1
-    # c=BrokenPowerLaw(t,Av0,Av1,Av2)
-    c = DecayingExponential(t,Av0,Av1,Av2)
-    ax.plot(t,c)
-    fig.show()
-    return fig
+    if plot:
+        fig=plt.figure()
+        ax=fig.add_axes([0.1,0.1,0.8,0.8])        
+        ax.semilogx()
+        t=np.arange(100000)+1
+        # c=BrokenPowerLaw(t,Av0,Av1,Av2)
+        c = DecayingExponential(t,Av0,Av1,Av2)
+        ax.plot(t,c)
+        fig.show()
+        return fig
+    else:
+        return outdict
 
+def LoopThroughRandomInits(N=1000):
+    '''Testing whether the initial conditions change the final fit value
+    as found by leastsq, or whether it is robust against the choices. Loop 
+    through N iterations and return the outdict for each.  The acceptable 
+    ranges are set in SEDtimeSimulFit120119A.
+    '''
+    outlist=[]
+    faillist=[]
+    count=0
+    while count < N:
+        print 'Now doing Count %i of %i' % (count, N)
+        try:
+            outdict= SEDsimulfit120119Atest(fixparam='both',randomize_inits=True,plot=False)
+            outlist.append(outdict)
+        except:
+            faillist.append(count)
+        count += 1
+    print "Fit Failed %i times out of %i" % (len(faillist),N)
+    
+    chisqlist = []
+    for value in outlist:
+        chisqlist.append(value['chi2'])
+    minchisq = min(chisqlist)
+    chisqarr=np.array(chisqlist)
+    roundchisqarr=np.round(chisqarr,decimals=2)
+    roundminchisq=np.round(minchisq,decimals=2)
+    lenfound=len(np.nonzero(roundchisqarr == roundminchisq)[0])
+    
+    print "The minimum chisq value of %.2f was found %i times." % (roundminchisq,lenfound)
+    
+    return outlist
 
 def SEDvsTime120119A():
     # first do fixed Av:
