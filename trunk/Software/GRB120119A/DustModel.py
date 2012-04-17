@@ -3,20 +3,20 @@ from Phot import PhotParse
 from Modelling.ExtinctModel import _align_SED_times
 from Modelling.ExtinctModel import SEDvsTime
 from Modelling.ExtinctModel import _getfitdict
-from Modelling.ExtinctModel import DecayingExponential
+from Modelling.Functions import DecayingExponential
 
 import numpy as np
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 
-def ChiSqMap():
+def ChiSqMap(initial_param='smc'):
     '''
     Loop through a bunch of different parameter values and map out how 
     chisq changes as you change these values.
     '''
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
-    initial_param='smc'
+    
 
     time_thresh=10    
     objblock=PhotParse.PhotParse(directory)    
@@ -118,13 +118,14 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     beta_0init=-1.45,
     beta_1init=0,
     beta_2init=300,
-    randomize_inits=False
+    randomize_inits=False,
+    unred_latetime=False
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
     '''
     
-    initial_param='smc'
+
 
     time_thresh=10    
     objblock=PhotParse.PhotParse(directory)    
@@ -205,6 +206,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict)
     
     return outdict
+
+
 
 
 def SEDsimulfit120119Atest(fixparam='beta',randomize_inits=False,plot=True):

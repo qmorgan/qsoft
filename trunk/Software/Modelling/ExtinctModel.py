@@ -316,25 +316,14 @@ def timeDepAvBeta(wave_time_list,paramlist):
         ### FUNCTIONAL FORMS OF BETA AND Av
         # beta = beta_0 + beta_1*(time**(beta_2))
         # Av = Av_0 + Av_1*(time**(Av_2))
-        
+        from Modelling import Functions
         # Decaying exponential + constant
-        beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
-        Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
+        # beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
+        beta = Functions.DecayingExponential(time,beta_0,beta_1,beta_2)
+        # Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
+        Av = Functions.DecayingExponential(time,Av_0,Av_1,Av_2)
         
-        # ### Broken power law
-        # # beta_2 = tbreak
-        # if time <= beta_2:
-        #     beta = beta_0/(beta_2**beta_1)*time**beta_1
-        # if time > beta_2:
-        #     beta = beta_0
-        # 
-        # # Av_2 = tbreak
-        # if time <= Av_2:
-        #     Av = Av_0/(Av_2**Av_1)*time**Av_1
-        # if time > Av_2:
-        #     Av = Av_0 
-        # ###
-        # 
+
         fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
         
         extmodel.EvalCurve(wavearr,Av/Rv)
@@ -362,12 +351,19 @@ def histeq(im,nbr_bins=256):
 
     
     
-def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc'):
+def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',
+    correct_late_time_dust=False):
     '''Given blocks of data in different colors at various times, fit the SED 
     at each time, tying them all together via a restricted time evolution of 
     parameters.
     
-    
+    If correct_late_time_dust:
+        instead of taking the late time dust parameter Av_0 as set, do an
+        internal unreddening of the dust before doing the fit. This will allow
+        the late time dust to be modelled as a different type than the early
+        time dust.  Late time dust parameters come from CorrectLateTimeDust 
+        function.  If the inputs initial_params are the same, you should get
+        the same result whether or not you do this step.
     '''
     time_thresh=10
     utburststr = objblock.utburst # not used?
@@ -423,9 +419,20 @@ def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc'):
     galcorrectedfluxarr, galcorrectedfluxerrarr = \
         CorrectFluxForGalExt(galebv,longwavearr,longfluxarr,longfluxerrarr)
     
+
     #correct for redshift
     longwaverestarr=longwavearr/(1+z)
     longtimerestarr=longtimearr/(1+z)
+    
+    
+    if correct_late_time_dust:
+        for param in fullparamlist:
+            if param.name == 'Av_0':
+                lateAv=-1*param.value
+                param.value=0.0
+                print lateAv
+        galcorrectedfluxarr, galcorrectedfluxerrarr = \
+            CorrectLateTimeDust(lateAv,longwaverestarr,galcorrectedfluxarr,galcorrectedfluxerrarr)
     
     #zip them together with the corresponding times
     longwave_timearr=zip(longwaverestarr,longtimerestarr)
@@ -453,6 +460,24 @@ def CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr=None):
     else:
         return galcorrectedfluxarr
     
+def CorrectLateTimeDust(lateAv,wavearr,fluxarr,fluxerrarr=None):
+    '''
+    Use the FM implementation to correct the late time flux beforehand
+    This can be used to fix the late time flux as fixed, while allowing a different
+    kind of extinction for the early time dust addition.
+    '''
+    smc=avgsmc()
+    lateebv=lateAv/smc.R_V #Rv = 2.74 for smc
+    smc.EvalCurve(wavearr,lateebv)
+    smc.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
+    correctedfluxarr=smc.funred
+    smc.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
+    correctedfluxerrarr=smc.funred
+    if fluxerrarr != None:
+        return correctedfluxarr, correctedfluxerrarr
+    else:
+        return correctedfluxarr
+        
 def powerlawExtRetFlux(wave,paramlist):
     
     '''
@@ -625,24 +650,6 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
     
     return fitdict
 
-
-def DecayingExponential(timearr,Av_0,Av_1,Av_2):
-    Av = Av_0 + Av_1*np.exp(-1*timearr/Av_2)
-    return Av
-
-def BrokenPowerLaw(timearr,Av_0,Av_1,Av_2):
-    # Av_2 = tbreak
-    Avlist=[]
-    for time in timearr:
-        if time <= Av_2:
-            Av = Av_0/(Av_2**Av_1)*time**Av_1
-        if time > Av_2:
-            Av = Av_0 
-        Avlist.append(Av)
-    Avarr = np.array(Avlist)    
-    return Avlist
-    ###
-    
 
 def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimelist=None,
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat',
