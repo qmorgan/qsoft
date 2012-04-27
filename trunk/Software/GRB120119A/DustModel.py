@@ -109,6 +109,34 @@ def ChiSqMap(initial_param='smc'):
     # 
     # In [167]: pylab.text(0.79,-0.72,'x')
     # Out[167]: <matplotlib.text.Text at 0x20acd850>
+
+
+def BuildDumbInterpolation():
+    objblock=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
+
+    
+    newobjblock=PhotParse.ObjBlock()
+    newobjblock.utburst = objblock.utburst
+    newobjblock.redshift = objblock.redshift
+    newobjblock.galebv = objblock.galebv
+    
+    # taking the times from pairitel and using them as the extrapolation times
+    ptelj=objblock.obsdict['PAIRITEL_J']
+    extraptime=ptelj.tmidlist[0:20]
+    take_as_given_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K',
+        'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
+    for obs in take_as_given_list:
+        obsblock=objblock.obsdict[obs]
+        newobjblock.obsdict.update({obs:obsblock})
+    
+    interpolate_list = ['PROMPT_I','PROMPT_R']
+    for obs in interpolate_list:
+        obsblock = objblock.obsdict[obs]
+        newobsblock=PhotParse.DumbInterpolation(obsblock,extraptime,fake_error=0.1)
+        newobjblock.obsdict.update({obs:newobsblock})
+        assert newobsblock != None
+    newobjblock.CalculateFlux()
+    return newobjblock
     
 def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat',
@@ -119,16 +147,28 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     beta_1init=0,
     beta_2init=300,
     randomize_inits=False,
-    unred_latetime=False
+    unred_latetime=False, 
+    test_interpolation=False
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
-    '''
     
+    set unred_latetime=True and initial param to mw for the assumption of late-time SMC and early time MW
+    '''
 
 
     time_thresh=10    
     objblock=PhotParse.PhotParse(directory)    
+    
+    if test_interpolation == True:
+        directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
+        objblock = BuildDumbInterpolation()
+
+        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+        addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+        for time in addl_sed_times:
+            sedtimelist.append(time)
+    
     if not sedtimelist: # use this as a default if it is not explicitly defined
         sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
     # need to do this to see how many alignments we have    
@@ -164,6 +204,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
         fixlist=['Av_0','beta_0']
     elif fixparam == 'all':
         fixlist=['Av_0','Av_1','Av_2','beta_1','beta_2']
+    elif fixparam == 'none':
+        fixlist=[]
     else: 
         raise ValueError('invalid fixparam')
     
@@ -203,19 +245,21 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     
     fitdict.update(fitdict2)
     
-    outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict)
+    outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict,correct_late_time_dust=unred_latetime)
     
     return outdict
 
 
 
 
-def SEDsimulfit120119Atest(fixparam='beta',randomize_inits=False,plot=True):
+def SEDsimulfit120119Atest(fixparam='beta',randomize_inits=False,plot=True,
+    test_interpolation=False):
     # crappy hack way to go about building up the time list if one of the
     # scopes isnt available for each of the SEDs.  Take two timelists, and append
     # the values of one onto the other.  Usually wont have to do this. 
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     objblock=PhotParse.PhotParse(directory)
+        
     
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
     addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist #add the smarts
@@ -224,7 +268,7 @@ def SEDsimulfit120119Atest(fixparam='beta',randomize_inits=False,plot=True):
     
     
     outdict = SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,
-        randomize_inits=randomize_inits,fixparam=fixparam)
+        randomize_inits=randomize_inits,fixparam=fixparam,test_interpolation=test_interpolation)
     
     # return outdict 
     for param in outdict['parameters']:
