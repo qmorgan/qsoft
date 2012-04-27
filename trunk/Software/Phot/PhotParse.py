@@ -5,6 +5,16 @@ from MiscBin.q import maglist2fluxarr
 from MiscBin.q import flux2abmag
 from MiscBin.q import mag2alpha
 from matplotlib import rc
+import os
+import sys
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+splinedir = os.environ.get("Q_DIR") + '/trunk/Software/Modelling/'
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
 
 
 class ObjBlock:
@@ -282,8 +292,127 @@ class ObsBlock:
         
         self.tmidlist.append(tmid)   
         self.explist.append(exp)                 
+    
+
+def SmartInterpolation(obsblock,desired_time_array):
+    
+    fitpath = storepath + 'regrSpline_fit.txt'
+    fiterrpath = storepath + 'regrSpline_fiterr.txt'
+    
+    writemagpath = storepath + 'regrSpline_magin.txt'
+    writetoutpath = storepath + 'regrSpline_toutin.txt'
+    
+    logtarray = np.log10(desired_time_array)
+    
+    
+    # for interpolation to work, the tmidlist must be in increasing order
+    detectinds = np.array([not a for a in obsblock.isupperlist])
+    toutvals = np.array(logtarray)
+    
+    
+    ### WRITE OUT THE DATA TO FILE FOR R TO READ IN
+    tout=file(writetoutpath,'w')
+    for val in toutvals:
+        outstr = str(val) + '\n'
+        tout.write(outstr)
+    tout.close()
+    
+    timevals = np.array(obsblock.tmidlist)[detectinds] # get rid of the upper limits 
+    magvals = np.array(obsblock.maglist)[detectinds]
+    magerrvals = np.array(obsblock.magerrlist)[detectinds]
+    
+    magout=file(writemagpath,'w')
+    ind = 0
+    for tval in timevals:
+        mval = magvals[ind]
+        meval = magerrvals[ind]
+        outstr = str(tval) + ' ' + str(mval) + ' ' + str(meval) + '\n'
+        magout.write(outstr)
+        ind += 1
+    magout.close()
+    
+    ### CALL THE R FUNCTION TO CREATE THE SPLINE OUTPUT
+    functionstr='R < %scall_regrSpline.R --no-save' % splinedir
+    os.system(functionstr)
+    
+    
+    # read in the new lines 
+    f=file(fitpath,'r')
+    g=file(fiterrpath,'r')
+    
+    # assuming line format of
+    # '"10" 17.719301369 \n'
+    newmaglist=[]
+    for line in f.readlines():
+        linesplit = line.split()
+        try:
+            newmaglist.append(float(linesplit[1]))
+        except:
+            print "skipping line %s" % line
+    f.close()
+    
+    newmagerrlist=[]
+    for line in g.readlines():
+        linesplit = line.split()
+        try:
+            newmagerrlist.append(float(linesplit[1]))
+        except:
+            print "skipping line %s" % line
+    g.close()
+    
+    obsblock.explist = None
+    obsblock.fluxarr=None
+    obsblock.fluxerrarr=None
+    obsblock.gcfluxerrarr=None
+    obsblock.gcfluxarr=None
+    obsblock.isupperlist=list(np.ones(len(newmaglist))==1) # since we forced all upper limits out
+    
+    obsblock.tmidlist=10**logtarray
+    obsblock.maglist=newmaglist
+    obsblock.magerrlist=newmagerrlist
+    return obsblock
+    
+def DumbInterpolation(obsblock,desired_time_array,fake_error=0.0):
+    '''
+    if promptr is an obsblock, it has the following attributes:
+    In [36]: promptr.
+    promptr.color         promptr.fluxarr       promptr.isupperlist   promptr.source
+    promptr.explist       promptr.fluxerrarr    promptr.magerrlist    promptr.tmidlist
+    promptr.filt          promptr.gcfluxarr     promptr.maglist       promptr.updateObs
+    promptr.filtstr       promptr.gcfluxerrarr  promptr.marker
+    
+    '''
+    # for interpolation to work, the tmidlist must be in increasing order
+    detectinds = np.array([not a for a in obsblock.isupperlist])
+    timevals = np.array(obsblock.tmidlist)[detectinds] # get rid of the upper limits 
+    magvals = np.array(obsblock.maglist)[detectinds]
+    
+    xarray=np.log10(timevals) #log of times is our x array
+    assert np.all(np.diff(xarray) > 0)
+    yarray = magvals
+    logtarray = np.log10(desired_time_array)
+    newmaglist = np.interp(logtarray,xarray,yarray,left=0,right=0)
+    
+    print newmaglist
+    logtarray = logtarray[np.nonzero(newmaglist)] # have to have this first before i change newmaglist!
+    newmaglist = newmaglist[np.nonzero(newmaglist)] # getting rid of the out of bounds interpolations
+
+    # Figure out some better way to do this..
+    errorlist=np.ones(len(newmaglist))
+    errorlist*=fake_error
+    
+    obsblock.explist = None
+    obsblock.fluxarr=None
+    obsblock.fluxerrarr=None
+    obsblock.gcfluxerrarr=None
+    obsblock.gcfluxarr=None
+    obsblock.isupperlist=list(np.ones(len(newmaglist))==1) # since we forced all upper limits out
+    
+    obsblock.tmidlist=10**logtarray
+    obsblock.maglist=newmaglist
+    obsblock.magerrlist=errorlist
+    return obsblock
         
-            
 def PhotParse(filename,verbose=False):
     object_block = ObjBlock()
     f=file(filename)
