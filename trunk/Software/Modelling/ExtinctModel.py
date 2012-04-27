@@ -1046,7 +1046,7 @@ def TestPowerLawExt():
     fig.show()
     
 def Test120119A():
-    z=1.72
+    z=1.728
     wv_angst=np.array([  6470. ,   7865.,  12500. ,  16500. ,  21500. ])
     wv_angst_rest = wv_angst/(1+z)
     
