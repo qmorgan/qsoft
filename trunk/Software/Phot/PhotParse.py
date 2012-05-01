@@ -294,7 +294,11 @@ class ObsBlock:
         self.explist.append(exp)                 
     
 
-def SmartInterpolation(obsblock,desired_time_array):
+def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
+    
+    allowed_error_estimates = ['simple','spline']
+    if errestimate not in allowed_error_estimates:
+        raise ValueError('Please Specify an allowed Error Estimate type')
     
     fitpath = storepath + 'regrSpline_fit.txt'
     fiterrpath = storepath + 'regrSpline_fiterr.txt'
@@ -353,23 +357,23 @@ def SmartInterpolation(obsblock,desired_time_array):
             print "skipping line %s" % line
     f.close()
     
-    newmagerrlist=[]
+    spline_model_errlist=[]
     for line in g.readlines():
         linesplit = line.split()
         try:
-            newmagerrlist.append(float(linesplit[1]))
+            spline_model_errlist.append(float(linesplit[1]))
         except:
             print "skipping line %s" % line
     g.close()
     
     # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
-    # TO ADD IN QUADRATURE TO THE MODEL ERROR 
-    print newmagerrlist
-    avgmagerrval = np.average(magerrvals)
-    print avgmagerrval
-    newmagerrarr = np.array(newmagerrlist)
-    newmagerrlist = list(np.sqrt(newmagerrarr**2 + avgmagerrval**2))
-    print newmagerrlist 
+    # TO ADD IN QUADRATURE TO THE MODEL ERROR     
+    print spline_model_errlist
+    insterrestimate = np.average(magerrvals)
+    print insterrestimate
+    spline_model_errarr = np.array(spline_model_errlist)
+    spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2))
+    print spline_model_errlist 
     
     obsblock.explist = None
     obsblock.fluxarr=None
@@ -380,7 +384,7 @@ def SmartInterpolation(obsblock,desired_time_array):
     
     obsblock.tmidlist=10**logtarray
     obsblock.maglist=newmaglist
-    obsblock.magerrlist=newmagerrlist
+    obsblock.magerrlist=spline_model_errlist
     return obsblock
     
 def DumbInterpolation(obsblock,desired_time_array,fake_error=0.0):
