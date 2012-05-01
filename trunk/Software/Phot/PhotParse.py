@@ -321,12 +321,14 @@ def SmartInterpolation(obsblock,desired_time_array):
     magvals = np.array(obsblock.maglist)[detectinds]
     magerrvals = np.array(obsblock.magerrlist)[detectinds]
     
+    logtimevals = np.log10(timevals)
+    
     magout=file(writemagpath,'w')
     ind = 0
-    for tval in timevals:
+    for logtval in logtimevals:
         mval = magvals[ind]
         meval = magerrvals[ind]
-        outstr = str(tval) + ' ' + str(mval) + ' ' + str(meval) + '\n'
+        outstr = str(logtval) + ' ' + str(mval) + ' ' + str(meval) + '\n'
         magout.write(outstr)
         ind += 1
     magout.close()
@@ -359,6 +361,15 @@ def SmartInterpolation(obsblock,desired_time_array):
         except:
             print "skipping line %s" % line
     g.close()
+    
+    # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
+    # TO ADD IN QUADRATURE TO THE MODEL ERROR 
+    print newmagerrlist
+    avgmagerrval = np.average(magerrvals)
+    print avgmagerrval
+    newmagerrarr = np.array(newmagerrlist)
+    newmagerrlist = list(np.sqrt(newmagerrarr**2 + avgmagerrval**2))
+    print newmagerrlist 
     
     obsblock.explist = None
     obsblock.fluxarr=None
