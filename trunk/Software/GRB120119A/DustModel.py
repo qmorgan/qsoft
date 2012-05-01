@@ -111,7 +111,7 @@ def ChiSqMap(initial_param='smc'):
     # Out[167]: <matplotlib.text.Text at 0x20acd850>
 
 
-def BuildDumbInterpolation():
+def BuildInterpolation(interp_type='dumb'):
     objblock=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
 
     
@@ -132,7 +132,10 @@ def BuildDumbInterpolation():
     interpolate_list = ['PROMPT_I','PROMPT_R']
     for obs in interpolate_list:
         obsblock = objblock.obsdict[obs]
-        newobsblock=PhotParse.DumbInterpolation(obsblock,extraptime,fake_error=0.1)
+        if interp_type=='dumb':
+            newobsblock=PhotParse.DumbInterpolation(obsblock,extraptime,fake_error=0.1)
+        elif interp_type=='smart':
+            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
@@ -162,7 +165,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     
     if test_interpolation == True:
         directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
-        objblock = BuildDumbInterpolation()
+        objblock = BuildInterpolation(interp_type='smart')
 
         sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
         addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
