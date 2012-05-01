@@ -48,8 +48,8 @@ regrSplineTextout = function(maxdf=floor(length(x)/2),method="gcv",outbase='regr
    
    # Reads in text outputted to the store directory 
    
-   magpath=paste(store_dir,'regrSpline_magin.txt',sep='')
-   toutpath=paste(store_dir,'regrSpline_toutin.txt',sep='')
+   magpath=paste(store_dir,'regrSpline_y_in.txt',sep='')
+   toutpath=paste(store_dir,'regrSpline_x_in.txt',sep='')
    
    magmat = as.matrix(read.table(magpath),header=FALSE)
    x = magmat[,1] #tmids

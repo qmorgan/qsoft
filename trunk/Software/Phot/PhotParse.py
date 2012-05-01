@@ -294,48 +294,29 @@ class ObsBlock:
         self.explist.append(exp)                 
     
 
-def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
-    
-    allowed_error_estimates = ['simple','spline']
-    if errestimate not in allowed_error_estimates:
-        raise ValueError('Please Specify an allowed Error Estimate type')
+def q_spline(xvals,yvals,yerrvals,xgrid):
     
     fitpath = storepath + 'regrSpline_fit.txt'
     fiterrpath = storepath + 'regrSpline_fiterr.txt'
-    
-    writemagpath = storepath + 'regrSpline_magin.txt'
-    writetoutpath = storepath + 'regrSpline_toutin.txt'
-    
-    logtarray = np.log10(desired_time_array)
-    
-    
-    # for interpolation to work, the tmidlist must be in increasing order
-    detectinds = np.array([not a for a in obsblock.isupperlist])
-    toutvals = np.array(logtarray)
-    
+    write_ypath = storepath + 'regrSpline_y_in.txt'
+    write_xpath = storepath + 'regrSpline_x_in.txt'
     
     ### WRITE OUT THE DATA TO FILE FOR R TO READ IN
-    tout=file(writetoutpath,'w')
-    for val in toutvals:
+    xout=file(write_xpath,'w')
+    for val in xgrid:
         outstr = str(val) + '\n'
-        tout.write(outstr)
-    tout.close()
+        xout.write(outstr)
+    xout.close()
     
-    timevals = np.array(obsblock.tmidlist)[detectinds] # get rid of the upper limits 
-    magvals = np.array(obsblock.maglist)[detectinds]
-    magerrvals = np.array(obsblock.magerrlist)[detectinds]
-    
-    logtimevals = np.log10(timevals)
-    
-    magout=file(writemagpath,'w')
+    yout=file(write_ypath,'w')
     ind = 0
-    for logtval in logtimevals:
-        mval = magvals[ind]
-        meval = magerrvals[ind]
-        outstr = str(logtval) + ' ' + str(mval) + ' ' + str(meval) + '\n'
-        magout.write(outstr)
+    for xval in xvals:
+        yval = yvals[ind]
+        yeval = yerrvals[ind]
+        outstr = str(xval) + ' ' + str(yval) + ' ' + str(yeval) + '\n'
+        yout.write(outstr)
         ind += 1
-    magout.close()
+    yout.close()
     
     ### CALL THE R FUNCTION TO CREATE THE SPLINE OUTPUT
     functionstr='R < %scall_regrSpline.R --no-save' % splinedir
@@ -348,14 +329,15 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
     
     # assuming line format of
     # '"10" 17.719301369 \n'
-    newmaglist=[]
+    newylist=[]
     for line in f.readlines():
         linesplit = line.split()
         try:
-            newmaglist.append(float(linesplit[1]))
+            newylist.append(float(linesplit[1]))
         except:
             print "skipping line %s" % line
     f.close()
+    
     
     spline_model_errlist=[]
     for line in g.readlines():
@@ -366,12 +348,42 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
             print "skipping line %s" % line
     g.close()
     
+    newyarr = np.array(newylist)
+    spline_model_errarr = np.array(spline_model_errlist)
+    
+    return newyarr, spline_model_errarr
+
+def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
+    
+    allowed_error_estimates = ['simple','spline']
+    if errestimate not in allowed_error_estimates:
+        raise ValueError('Please Specify an allowed Error Estimate type')
+
+    logtarray = np.log10(desired_time_array)
+        
+    # for interpolation to work, the tmidlist must be in increasing order
+    detectinds = np.array([not a for a in obsblock.isupperlist])
+
+    
+    xoutvals = np.array(logtarray)
+        
+    
+    timevals = np.array(obsblock.tmidlist)[detectinds] # get rid of the upper limits 
+    yvals = np.array(obsblock.maglist)[detectinds]
+    yerrvals = np.array(obsblock.magerrlist)[detectinds]
+    
+    xvals = np.log10(timevals)
+    
+    newyarr, spline_model_errarr = q_spline(xvals,yvals,yerrvals,xoutvals)
+    newylist = list(newyarr)
+    
     # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
     # TO ADD IN QUADRATURE TO THE MODEL ERROR     
-    print spline_model_errlist
-    insterrestimate = np.average(magerrvals)
+    print list(spline_model_errarr)
+    
+    if errestimate == 'simple':
+        insterrestimate = np.average(yerrvals)
     print insterrestimate
-    spline_model_errarr = np.array(spline_model_errlist)
     spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2))
     print spline_model_errlist 
     
@@ -380,10 +392,10 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
     obsblock.fluxerrarr=None
     obsblock.gcfluxerrarr=None
     obsblock.gcfluxarr=None
-    obsblock.isupperlist=list(np.ones(len(newmaglist))==1) # since we forced all upper limits out
+    obsblock.isupperlist=list(np.ones(len(newylist))==1) # since we forced all upper limits out
     
     obsblock.tmidlist=10**logtarray
-    obsblock.maglist=newmaglist
+    obsblock.maglist=newylist
     obsblock.magerrlist=spline_model_errlist
     return obsblock
     
