@@ -323,6 +323,11 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
     
     if errestimate == 'simple':
         insterrestimate = np.average(yerrvals)
+        
+    if errestimate == 'spline':
+        yerr_errvals = yerrvals*0.1 # Assume 10% error on the errors??
+        insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals)
+        
     print insterrestimate
     spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2))
     print spline_model_errlist 
