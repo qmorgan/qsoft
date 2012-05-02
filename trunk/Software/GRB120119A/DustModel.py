@@ -123,6 +123,8 @@ def BuildInterpolation(interp_type='dumb'):
     # taking the times from pairitel and using them as the extrapolation times
     ptelj=objblock.obsdict['PAIRITEL_J']
     extraptime=ptelj.tmidlist[0:20]
+    extraptime_r=ptelj.tmidlist[1:20]
+    
     take_as_given_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K',
         'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
     for obs in take_as_given_list:
@@ -135,7 +137,11 @@ def BuildInterpolation(interp_type='dumb'):
         if interp_type=='dumb':
             newobsblock=PhotParse.DumbInterpolation(obsblock,extraptime,fake_error=0.1)
         elif interp_type=='smart':
-            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime)
+            if obs == 'PROMPT_R':
+                extraptime2 = extraptime_r
+            else:
+                extraptime2 = extraptime
+            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime2)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
