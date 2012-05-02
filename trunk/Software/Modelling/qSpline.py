@@ -1,4 +1,23 @@
-def qSpline(xvals,yvals,yerrvals,xgrid):
+import numpy as np
+import os
+import sys
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+splinedir = os.environ.get("Q_DIR") + '/trunk/Software/Modelling/'
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
+def qSpline(xvals,yvals,yerrvals,xgrid,allow_out_of_bounds=False):
+    
+    if not allow_out_of_bounds:
+        if min(xgrid) < min(xvals):
+            raise ValueError('Desired xgrid out of bounds - min value too low')
+        if max(xgrid) > max(xvals):
+            raise ValueError('Desired xgrid out of bounds - max value too high')
+        
     
     fitpath = storepath + 'regrSpline_fit.txt'
     fiterrpath = storepath + 'regrSpline_fiterr.txt'
