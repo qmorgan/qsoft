@@ -295,7 +295,7 @@ class ObsBlock:
     
 
 
-def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
+def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False):
     from Modelling.qSpline import qSpline
     
     allowed_error_estimates = ['simple','spline']
@@ -314,7 +314,7 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
     
     xvals = np.log10(timevals)
     
-    newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals)
+    newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals,plot=plot)
     newylist = list(newyarr)
     
     # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
@@ -326,7 +326,7 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='simple'):
         
     if errestimate == 'spline':
         yerr_errvals = yerrvals*0.1 # Assume 10% error on the errors??
-        insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals)
+        insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals,plot=plot)
         
     print insterrestimate
     spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2))
