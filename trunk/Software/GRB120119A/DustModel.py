@@ -157,7 +157,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     beta_2init=300,
     randomize_inits=False,
     unred_latetime=False, 
-    test_interpolation=False,
+    interp_type=None,
     plot=False
     ):
     '''
@@ -170,15 +170,16 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     time_thresh=10    
     objblock=PhotParse.PhotParse(directory)    
     
-    if test_interpolation == True:
+    if interp_type != None:
         directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
-        objblock = BuildInterpolation(interp_type='smart')
+        objblock = BuildInterpolation(interp_type=interp_type)
 
         sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
         addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
         for time in addl_sed_times:
             sedtimelist.append(time)
     
+    # interpolation will give us an sedtimelist. If we didnt do this, we need to choose it..
     if sedtimelist == None:
         if defaulttimelist == 'PAIRITEL': # use this as a default if it is not explicitly defined
             sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
@@ -221,7 +222,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     elif fixparam == 'both':
         fixlist=['Av_0','beta_0']
     elif fixparam == 'all':
-        fixlist=['Av_0','Av_1','Av_2','beta_1','beta_2']
+        fixlist=['Av_0','Av_1','Av_2','beta_0','beta_1','beta_2']
     elif fixparam == 'none':
         fixlist=[]
     else: 
@@ -267,6 +268,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     
     outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict,correct_late_time_dust=unred_latetime)
     
+    
+    
     #### FIX THIS - from the fitdict you should be able to get thie initial value 
     # from the ones what were fixed, and those that were free
     # return outdict 
@@ -306,7 +309,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
         fig=plt.figure()
         t=np.arange(100000)+1
         
-        if beta0 and Av0:
+        if not fitdict['beta_0']['fixed'] and not fitdict['Av_0']['fixed']:
             ax1=fig.add_axes([0.1,0.1,0.8,0.4])
             ax2=fig.add_axes([0.1,0.5,0.8,0.4])
             ax1.semilogx()
@@ -317,14 +320,14 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
             ax1.plot(t,c)
             ax2.plot(t,d)
             
-        elif Av0:
+        elif not fitdict['Av_0']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
             # c=BrokenPowerLaw(t,Av0,Av1,Av2)
             c = DecayingExponential(t,Av0,Av1,Av2)
             ax.plot(t,c)
             
-        elif beta0:
+        elif not fitdict['beta_0']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
             # c=BrokenPowerLaw(t,Av0,Av1,Av2)
@@ -372,22 +375,22 @@ def LoopThroughRandomInits(N=1000):
 
 def SEDvsTime120119A():
     # first do fixed Av:
-    fig = SEDtimeSimulFit120119A(fixparam='Av')
+    fig = SEDtimeSimulFit120119A(fixparam='Av',plot=True)
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
     
     # crappy hack way to go about building up the time list if one of the
     # scopes isnt available for each of the SEDs.  Take two timelists, and append
@@ -401,20 +404,20 @@ def SEDvsTime120119A():
     fig.show()
     
     # now fixed beta
-    fig = SEDtimeSimulFit120119A(fixparam='beta')
+    fig = SEDtimeSimulFit120119A(fixparam='beta',plot=True)
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
 
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
 
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
-    fig = SEDvsTime(directory=directory, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
     fig.show()

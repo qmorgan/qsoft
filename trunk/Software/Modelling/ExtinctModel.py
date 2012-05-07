@@ -651,9 +651,14 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
     return fitdict
 
 
-def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimelist=None,
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat',
-    retfig = False, fig=None, color='grey'):
+def testSEDvsTime():
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False)
+
+def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
+    sedtimelist=None, retfig = False, fig=None, color='grey'):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
@@ -661,17 +666,18 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
     
     if retfig: return the plot
     '''
-    
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     fitdict = _getfitdict(initial_param,fitlist=fitlist)
     
-    objblock=PhotParse.PhotParse(directory)
+    # objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst # not used?
     galebv=objblock.galebv
     z=objblock.redshift
     
     time_thresh = 10 # Number of seconds we can be off in time from the reference 
 
-
+    if sedtimelist == None:
+        raise ValueError("Please Specify sedtimelist")
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
     
     paramstr='(%s)' % initial_param
@@ -682,6 +688,8 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
     Averrlist = []
     Avlist = []
     faillist=[]
+    chi2list=[]
+    doflist=[]
     
     # loop through each time, building up an SED for each
     for timestr, val in aligndict.iteritems():
@@ -712,6 +720,8 @@ def SEDvsTime(initial_param='smc', plotsed=True, fitlist=['Av','beta'], sedtimel
             if param.name == 'beta':
                 betalist.append(param.value)
                 betaerrlist.append(param.uncertainty)
+        chi2list.append(outdict['chi2'])
+        doflist.append(outdict['dof'])
    
     if faillist:
         print "SED Fit failed for times:"
