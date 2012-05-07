@@ -147,7 +147,7 @@ def BuildInterpolation(interp_type='dumb'):
     newobjblock.CalculateFlux()
     return newobjblock
     
-def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
+def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, defaulttimelist='PTELSMARTS',
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat',
     Av_0init=-0.62,
     Av_1init=0,
@@ -157,7 +157,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
     beta_2init=300,
     randomize_inits=False,
     unred_latetime=False, 
-    test_interpolation=False
+    test_interpolation=False,
+    plot=False
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -178,8 +179,16 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
         for time in addl_sed_times:
             sedtimelist.append(time)
     
-    if not sedtimelist: # use this as a default if it is not explicitly defined
-        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
+    if sedtimelist == None:
+        if defaulttimelist == 'PAIRITEL': # use this as a default if it is not explicitly defined
+            sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
+        elif defaulttimelist == 'PTELSMARTS':
+            sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
+            addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+            for time in addl_sed_times:
+                sedtimelist.append(time)
+        else:
+            raise ValueError('Invalid defaulttimelist')
     # need to do this to see how many alignments we have    
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
 
@@ -251,55 +260,70 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None,
         for key,value in fitdict.iteritems(): # loop through all the constants
             if key[0:5]=='const':
                 value['init'] = random.uniform(const_range[0],const_range[1])
+    ### END RANDOMIZATION 
+    
     
     fitdict.update(fitdict2)
     
     outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict,correct_late_time_dust=unred_latetime)
     
-    return outdict
-
-
-
-
-def SEDsimulfit120119Atest(fixparam='beta',randomize_inits=False,plot=True,
-    test_interpolation=False):
-    # crappy hack way to go about building up the time list if one of the
-    # scopes isnt available for each of the SEDs.  Take two timelists, and append
-    # the values of one onto the other.  Usually wont have to do this. 
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
-    objblock=PhotParse.PhotParse(directory)
-        
-    
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist #add the smarts
-    for time in addl_sed_times:
-        sedtimelist.append(time)
-    
-    
-    outdict = SEDtimeSimulFit120119A(sedtimelist=sedtimelist,directory=directory,
-        randomize_inits=randomize_inits,fixparam=fixparam,test_interpolation=test_interpolation)
     
     # return outdict 
+    Av1=None
+    Av2=None
+    Av0=None
+    beta1=None
+    beta2=None
+    beta0=None
     for param in outdict['parameters']:
-        if param.name == 'Av_1' or param.name == 'beta_1':
+        if param.name == 'Av_1':
             Av1=param.value
-        elif param.name == 'Av_2' or param.name == 'beta_2':
+        if param.name == 'Av_2':
             Av2=param.value
-        elif param.name == 'Av_0' or param.name ==  'beta_0':
+        if param.name == 'Av_0':
             Av0=param.value
+        if param.name == 'beta_1':
+            beta1=param.value
+        if param.name == 'beta_2':
+            beta2=param.value
+        if param.name == 'beta_0':
+            beta0=param.value
     
     if plot:
         fig=plt.figure()
-        ax=fig.add_axes([0.1,0.1,0.8,0.8])        
-        ax.semilogx()
         t=np.arange(100000)+1
-        # c=BrokenPowerLaw(t,Av0,Av1,Av2)
-        c = DecayingExponential(t,Av0,Av1,Av2)
-        ax.plot(t,c)
+        
+        if beta0 and Av0:
+            ax1=fig.add_axes([0.1,0.1,0.8,0.4])
+            ax2=fig.add_axes([0.1,0.5,0.8,0.4])
+            ax1.semilogx()
+            ax2.semilogx()
+            
+            c = DecayingExponential(t,Av0,Av1,Av2)
+            d = DecayingExponential(t,beta0,beta1,beta2)
+            ax1.plot(t,c)
+            ax2.plot(t,d)
+            
+        elif Av0:
+            ax=fig.add_axes([0.1,0.1,0.8,0.8])        
+            ax.semilogx()
+            # c=BrokenPowerLaw(t,Av0,Av1,Av2)
+            c = DecayingExponential(t,Av0,Av1,Av2)
+            ax.plot(t,c)
+            
+        elif beta0:
+            ax=fig.add_axes([0.1,0.1,0.8,0.8])        
+            ax.semilogx()
+            # c=BrokenPowerLaw(t,Av0,Av1,Av2)
+            c = DecayingExponential(t,beta0,beta1,beta2)
+            ax.plot(t,c)
+        
         fig.show()
         return fig
     else:
         return outdict
+
+
 
 def LoopThroughRandomInits(N=1000):
     '''Testing whether the initial conditions change the final fit value
