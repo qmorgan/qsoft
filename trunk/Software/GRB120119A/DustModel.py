@@ -337,7 +337,7 @@ def LoopThroughRandomInits(N=1000):
     while count < N:
         print 'Now doing Count %i of %i' % (count, N)
         try:
-            outdict= SEDsimulfit120119Atest(fixparam='both',randomize_inits=True,plot=False)
+            outdict= SEDtimeSimulFit120119A(fixparam='both',randomize_inits=True,plot=False)
             outlist.append(outdict)
         except:
             faillist.append(count)
@@ -359,7 +359,7 @@ def LoopThroughRandomInits(N=1000):
 
 def SEDvsTime120119A():
     # first do fixed Av:
-    fig = SEDsimulfit120119Atest(fixparam='Av')
+    fig = SEDtimeSimulFit120119A(fixparam='Av')
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
     objblock=PhotParse.PhotParse(directory)
@@ -388,7 +388,7 @@ def SEDvsTime120119A():
     fig.show()
     
     # now fixed beta
-    fig = SEDsimulfit120119Atest(fixparam='beta')
+    fig = SEDtimeSimulFit120119A(fixparam='beta')
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
     objblock=PhotParse.PhotParse(directory)
