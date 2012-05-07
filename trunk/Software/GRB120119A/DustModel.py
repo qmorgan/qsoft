@@ -267,7 +267,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     
     outdict = SEDtimeSimulFit(objblock,sedtimelist,fitdict,correct_late_time_dust=unred_latetime)
     
-    
+    #### FIX THIS - from the fitdict you should be able to get thie initial value 
+    # from the ones what were fixed, and those that were free
     # return outdict 
     Av1=None
     Av2=None
@@ -278,16 +279,28 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     for param in outdict['parameters']:
         if param.name == 'Av_1':
             Av1=param.value
+        elif fitdict['Av_1']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
+            Av1=fitdict['Av_1']['init']
         if param.name == 'Av_2':
             Av2=param.value
+        elif fitdict['Av_2']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
+            Av2=fitdict['Av_2']['init']
         if param.name == 'Av_0':
             Av0=param.value
+        elif fitdict['Av_0']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
+            Av0=fitdict['Av_0']['init']
         if param.name == 'beta_1':
             beta1=param.value
+        elif fitdict['beta_1']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
+            beta1=fitdict['beta_1']['init']
         if param.name == 'beta_2':
             beta2=param.value
+        elif fitdict['beta_2']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
+            beta2=fitdict['beta_2']['init']
         if param.name == 'beta_0':
             beta0=param.value
+        elif fitdict['beta_0']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
+            beta0=fitdict['beta_0']['init']
     
     if plot:
         fig=plt.figure()
