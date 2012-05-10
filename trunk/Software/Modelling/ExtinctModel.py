@@ -533,7 +533,7 @@ def SEDFitTest(initial_param='smc'):
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
     
-    fitdict=_getfitdict(initial_param)
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45)
     paramstr='(%s)' % initial_param
     
     SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
@@ -550,7 +550,7 @@ def SEDFitTest2(initial_param='smc'):
     # Convert the fluxes to magnitudes
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     
-    fitdict=_getfitdict(initial_param)
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45)
     paramstr='(%s)' % initial_param
     
     
@@ -650,15 +650,54 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
     
     return fitdict
 
-
-def testSEDvsTime():
+def testSEDvsTimeChi2():
+    '''Here we compare the output from SEDvsTime to the SEDtimeSimulFit to verify
+    that they give the same chi2 output.  To do this, we have to fix everything but
+    the constants, since SEDtimeSimulFit forces Av or beta to follow a certain 
+    functional form. So this is just a test to make sure that they give the same
+    chi2 value, which they do.
+    '''
+    from GRB120119A import DustModel
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     objblock=PhotParse.PhotParse(directory)
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=[])
+    
+    DustModel.SEDtimeSimulFit120119A(defaulttimelist='PAIRITEL',directory=directory,fixparam='all')
+
+
+def testSEDvsTime():
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
+    objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
+    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+    for time in addl_sed_times:
+        sedtimelist.append(time)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True)
+    
+    
+    time_thresh=10    
+    objblock=PhotParse.PhotParse(directory)    
+    
+    # Now try interpolation
+    from GRB120119A.DustModel import BuildInterpolation
+    interp_type = 'smart'
+    if interp_type != None:
+        directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
+        objblock = BuildInterpolation(interp_type=interp_type)
+
+        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+        addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+        for time in addl_sed_times:
+            sedtimelist.append(time)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True)
+    
+    
 
 def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
-    sedtimelist=None, retfig = False, fig=None, color='grey'):
+    sedtimelist=None, retfig = False, fig=None, color='grey',plotchi2=False,
+    Av_init=-0.62,beta_init=-1.45):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
@@ -667,7 +706,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     if retfig: return the plot
     '''
     # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
-    fitdict = _getfitdict(initial_param,fitlist=fitlist)
+    fitdict = _getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
     
     # objblock=PhotParse.PhotParse(directory)
     utburststr = objblock.utburst # not used?
@@ -727,29 +766,64 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         print "SED Fit failed for times:"
         print faillist
     
+    print "Total Chi2: ", sum(chi2list), ' / ', sum(doflist), ' = ', sum(chi2list)/sum(doflist)
     timearr = np.array(timelist)
     resttimearr = timearr/(1+z)    
     # plot the fit parameters
-    if Avlist:
+    axindex = 0
+    if Avlist and betalist:
+        pass
+        # if not fig:
+        #     fig=plt.figure()
+        #     ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        #     ax.semilogx()
+        # else:
+        #     ax=fig.get_axes()[axindex]
+        #     axindex += 1
+        # ax.errorbar(resttimearr,Avlist,yerr=Averrlist,fmt='o',color=color)
+        # ax.set_ylabel(r'$-1*A_v$')
+        # ax.set_xlabel(r'$t$ (s, rest frame)')
+        # if retfig:
+        #     return(fig)
+        # fig.show()
+        # fig = None
+    elif Avlist or betalist: #but not both!!
         if not fig:
             fig=plt.figure()
-        ax=fig.add_axes([0.1,0.1,0.8,0.8])
-        ax.semilogx()
-        ax.errorbar(resttimearr,Avlist,yerr=Averrlist,fmt='o',color=color)
-        ax.set_ylabel(r'$-1*A_v$')
-        ax.set_xlabel(r'$t$ (s, rest frame)')
-        if retfig:
-            return(fig)
-        fig.show()
-        fig = None
-    if betalist:
-        if not fig:
-            fig=plt.figure()
-        ax1=fig.add_axes([0.1,0.1,0.8,0.8])
-        ax1.semilogx()
-        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-        ax1.set_ylabel(r'$\beta$')
-        ax1.set_xlabel(r'$t$ (s, rest frame)')
+            if not plotchi2:
+                ax1=fig.add_axes([0.1,0.1,0.8,0.8])
+                ax1.semilogx()
+            else:
+                ax1=fig.add_axes([0.1,0.4,0.8,0.5])
+                ax2=fig.add_axes([0.1,0.1,0.8,0.3])
+                ax1.semilogx()
+                ax2.semilogx()
+        else:
+            plotchi2=False # cant plot chi2 if being given a figure
+            ax1=fig.get_axes()[axindex]
+            axindex += 1 
+        if Avlist:
+            ax1.errorbar(resttimearr,Avlist,yerr=Averrlist,fmt='o',color=color)
+            ax1.set_ylabel(r'$-1*A_v$')
+            ax1.set_xlabel(r'$t$ (s, rest frame)')
+            
+            string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
+            fig.text(0.55,0.3,string)
+            string = 'beta = %s (fixed)' % (beta_init)
+            fig.text(0.55,0.5,string)
+        elif betalist:
+            ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
+            ax1.set_ylabel(r'$\beta$')
+            ax1.set_xlabel(r'$t$ (s, rest frame)')
+            
+            string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
+            fig.text(0.55,0.3,string)
+            string = 'Av = %s (fixed)' % (Av_init)
+            fig.text(0.55,0.5,string)
+        if plotchi2:
+            ax2.scatter(resttimearr,chi2list,color=color)
+            ax2.set_ylabel(r'$\chi^2$')
+            ax2.set_xlabel(r'$t$ (s, rest frame)')
         if retfig:
             return(fig)
         fig.show()
