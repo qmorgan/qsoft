@@ -10,7 +10,7 @@ from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 
-def ChiSqMap(initial_param='smc'):
+def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45):
     '''
     Loop through a bunch of different parameter values and map out how 
     chisq changes as you change these values.
@@ -45,7 +45,7 @@ def ChiSqMap(initial_param='smc'):
     # need to do this to see how many alignments we have    
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
     # set up the fit dict            
-    fitdict = _getfitdict(initial_param)
+    fitdict = _getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init)
     fitdict.pop('const') # get rid of the old const
     fitdict.pop('Av')
     fitdict.pop('beta')
@@ -195,7 +195,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
 
     
     # set up the fit dict            
-    fitdict = _getfitdict(initial_param)
+    fitdict = _getfitdict(initial_param,Av_init=Av_0init,beta_init=beta_0init)
     fitdict.pop('const') # get rid of the old const
     fitdict.pop('Av')
     fitdict.pop('beta')
@@ -221,7 +221,7 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
         fixlist=['Av_0','Av_1','Av_2']
     elif fixparam == 'both':
         fixlist=['Av_0','beta_0']
-    elif fixparam == 'all':
+    elif fixparam == 'all': # for testing purposes
         fixlist=['Av_0','Av_1','Av_2','beta_0','beta_1','beta_2']
     elif fixparam == 'none':
         fixlist=[]
@@ -305,11 +305,16 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
         elif fitdict['beta_0']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             beta0=fitdict['beta_0']['init']
     
+    ####
+    # recalculate chi2 as a function of time based on the model and each time point
+    
+    ####
+    
     if plot:
         fig=plt.figure()
         t=np.arange(100000)+1
         
-        if not fitdict['beta_0']['fixed'] and not fitdict['Av_0']['fixed']:
+        if not fitdict['beta_1']['fixed'] and not fitdict['Av_1']['fixed']:
             ax1=fig.add_axes([0.1,0.1,0.8,0.4])
             ax2=fig.add_axes([0.1,0.5,0.8,0.4])
             ax1.semilogx()
@@ -320,14 +325,14 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
             ax1.plot(t,c)
             ax2.plot(t,d)
             
-        elif not fitdict['Av_0']['fixed']:
+        elif not fitdict['Av_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
             # c=BrokenPowerLaw(t,Av0,Av1,Av2)
             c = DecayingExponential(t,Av0,Av1,Av2)
             ax.plot(t,c)
             
-        elif not fitdict['beta_0']['fixed']:
+        elif not fitdict['beta_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
             # c=BrokenPowerLaw(t,Av0,Av1,Av2)
@@ -421,3 +426,9 @@ def SEDvsTime120119A():
     sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
     fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
     fig.show()
+
+    # Doesn't make sense to plot Av and Beta simultaneously with PhotParse because 
+    # these are each independent fits, whereas the simulfit ties the allowed values 
+    # of Av and Beta together as a function of time.
+    # Perhaps instead we could calculate the Chi2 statistic of flux at each time given
+    # the model? Would this be a useful comparison?
