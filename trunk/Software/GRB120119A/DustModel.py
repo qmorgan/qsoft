@@ -158,7 +158,8 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     randomize_inits=False,
     unred_latetime=False, 
     interp_type=None,
-    plot=False
+    plot=False,
+    plotchi2=True    
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -306,24 +307,71 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
             beta0=fitdict['beta_0']['init']
     
     ####
+    #####
     # recalculate chi2 as a function of time based on the model and each time point
-    
+    chi2list=[]
+    for time in sedtimelist:
+        corrtime = time/(1.+objblock.redshift)
+        # grab the Av and beta values for each time point
+        # note we use the corrected time here, but the observer time in the SEDvsTime,
+        # because SEDvsTime only uses it as an index
+        Av_snap = DecayingExponential(corrtime,Av0,Av1,Av2)
+        beta_snap = DecayingExponential(corrtime,beta0,beta1,beta2)
+        
+        #hack!
+        chi2=SEDvsTime(objblock,initial_param='smc',plotsed=False, fitlist=[],
+        sedtimelist=[time],retfig=False,fig=None,plotchi2=False, retchi2=True,
+        Av_init=Av_snap,beta_init=beta_snap)
+        chi2list.append(chi2)
+    print chi2list
+    print sum(chi2list)
+    corrtimelist = np.array(sedtimelist)/(1.+objblock.redshift)    
+    # raise Exception
     ####
-    
+    ####
     if plot:
         fig=plt.figure()
         t=np.arange(100000)+1
         
         if not fitdict['beta_1']['fixed'] and not fitdict['Av_1']['fixed']:
-            ax1=fig.add_axes([0.1,0.1,0.8,0.4])
-            ax2=fig.add_axes([0.1,0.5,0.8,0.4])
-            ax1.semilogx()
-            ax2.semilogx()
+            if not plotchi2:
+                ax1=fig.add_axes([0.1,0.1,0.8,0.4])
+                ax2=fig.add_axes([0.1,0.5,0.8,0.4])
+                ax1.semilogx()
+                ax2.semilogx()
+            else:
+                ax2=fig.add_axes([0.1,0.6,0.8,0.3])
+                ax1=fig.add_axes([0.1,0.3,0.8,0.3])
+                ax3=fig.add_axes([0.1,0.1,0.8,0.2])
+                ax3.semilogx()
+                ax1.semilogx()
+                ax2.semilogx()
             
             c = DecayingExponential(t,Av0,Av1,Av2)
             d = DecayingExponential(t,beta0,beta1,beta2)
             ax1.plot(t,c)
             ax2.plot(t,d)
+            ax1.set_ylabel(r'$-1*A_v$')
+            ax2.set_ylabel(r'$\beta$')
+            ax2.set_xlabel(r'$t$ (s, rest frame)')
+            
+            if plotchi2:
+                ax3.scatter(corrtimelist,chi2list)
+                ax2.set_xlabel('')
+                ax3.set_xlabel(r'$t$ (s, rest frame)')
+                ax3.set_ylabel(r'$\chi^2$')
+                xlim=ax3.get_xlim()# set all xlims to be the same
+                ax1.set_xlim(xlim)
+                ax1.set_xticks(ax1.get_xticks()[1:-1])
+                ax2.set_xlim(xlim)
+                ax2.set_xticks(ax2.get_xticks()[1:-1])
+                
+                ax1.set_yticks(ax1.get_yticks()[1:-1])
+                ax2.set_yticks(ax2.get_yticks()[1:])
+                ax3.set_yticks(ax3.get_yticks()[:-1])
+                
+                string = 'Total chi2 / dof = %.2f / %i' % (outdict['chi2'],outdict['dof'])
+                fig.text(0.55,0.2,string)
             
         elif not fitdict['Av_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
