@@ -696,7 +696,7 @@ def testSEDvsTime():
     
 
 def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
-    sedtimelist=None, retfig = False, fig=None, color='grey',plotchi2=False,
+    sedtimelist=None, retfig = False, retchi2=False, fig=None, color='grey',plotchi2=False,
     Av_init=-0.62,beta_init=-1.45):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
@@ -818,7 +818,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             
             string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
             fig.text(0.55,0.3,string)
-            string = 'Av = %s (fixed)' % (Av_init)
+            string = '-1*Av = %s (fixed)' % (Av_init)
             fig.text(0.55,0.5,string)
         if plotchi2:
             ax2.scatter(resttimearr,chi2list,color=color)
@@ -828,6 +828,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             return(fig)
         fig.show()
         fig = None
+    if retchi2:
+        return sum(chi2list)
 
 def _get_initial_dust_params(initial_param):
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
