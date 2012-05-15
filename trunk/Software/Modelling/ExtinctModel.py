@@ -822,6 +822,13 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             fig.text(0.55,0.5,string)
         if plotchi2:
             ax2.scatter(resttimearr,chi2list,color=color)
+            ylim = ax2.get_ylim()
+            ax2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
+            
+            ax1.set_xticks(ax1.get_xticks()[1:-1])
+            ax1.set_yticks(ax1.get_yticks()[1:])
+            ax2.set_yticks(ax2.get_yticks()[:-1])
+            
             ax2.set_ylabel(r'$\chi^2$')
             ax2.set_xlabel(r'$t$ (s, rest frame)')
         if retfig:

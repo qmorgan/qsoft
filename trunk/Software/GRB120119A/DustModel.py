@@ -357,10 +357,15 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
             
             if plotchi2:
                 ax3.scatter(corrtimelist,chi2list)
+
                 ax2.set_xlabel('')
                 ax3.set_xlabel(r'$t$ (s, rest frame)')
                 ax3.set_ylabel(r'$\chi^2$')
+                
+                ylim = ax3.get_ylim()
+                ax3.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
                 xlim=ax3.get_xlim()# set all xlims to be the same
+                
                 ax1.set_xlim(xlim)
                 ax1.set_xticks(ax1.get_xticks()[1:-1])
                 ax2.set_xlim(xlim)
