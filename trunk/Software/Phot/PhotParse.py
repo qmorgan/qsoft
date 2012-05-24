@@ -105,8 +105,23 @@ class ObjBlock:
                 if upperinds.any(): # only plot here if we have at least one detection
                     ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
         
-        # duplicate axis for AB mag
+
+        
+        old_ylim=ax.get_ylim() # saving for later, as gets modified.. 
+        
         ax2=ax.twinx()
+        ax3=ax.twiny()
+        ax3.loglog()
+        
+        xobstime=ax.get_xlim()
+        xresttime0=xobstime[0]/(1+self.redshift)
+        xresttime1=xobstime[1]/(1+self.redshift)
+        xrest=(xresttime0,xresttime1)
+        ax3.set_xlim(xrest)
+        
+        
+        # duplicate axis for AB mag
+        ax.set_ylim(old_ylim)
         ylimflux=ax.get_ylim()
         ylimmag0=flux2abmag(ylimflux[0])
         ylimmag1=flux2abmag(ylimflux[1])
@@ -115,8 +130,11 @@ class ObjBlock:
         
         # Label the axes
         ax.set_ylabel(r'$F_\nu$ (uJy)')
-        ax.set_xlabel(r'$t_{mid}$ (s)')
+        zsubscript=str(self.redshift)
+        topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
+        ax.set_xlabel(r'$t$ (s)')
         ax2.set_ylabel('AB Mag')
+        ax3.set_xlabel(topxlabel)
                 
         fig.show()
         
@@ -297,6 +315,7 @@ class ObsBlock:
 
 def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False):
     from Modelling.qSpline import qSpline
+    from Modelling.qSpline import qSplinePlot
     
     allowed_error_estimates = ['simple','spline']
     if errestimate not in allowed_error_estimates:
@@ -313,8 +332,12 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
     yerrvals = np.array(obsblock.magerrlist)[detectinds]
     
     xvals = np.log10(timevals)
-    
-    newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals,plot=plot)
+    ylab = r"$m_%s$" % obsblock.filtstr
+    newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals,plot=False)
+    if plot:
+        fig=plt.figure(figsize=(8,8))
+        ax1=fig.add_axes([0.1,0.4,0.8,0.5])
+        qSplinePlot(xvals,yvals,yerrvals,fig=fig,ax_index=0, inverse_y=True,xlabel=r'$t$(s)',ylabel=ylab) #repeat for plot
     newylist = list(newyarr)
     
     # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
@@ -326,7 +349,26 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         
     if errestimate == 'spline':
         yerr_errvals = yerrvals*0.1 # Assume 10% error on the errors??
-        insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals,plot=plot)
+        ylab = r"$m_%s$ err" % obsblock.filtstr
+        insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals,plot=False)
+        if plot:
+            ax2=fig.add_axes([0.1,0.1,0.8,0.3])
+            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,xlabel=r'$t$ (s)',ylabel=ylab)
+            
+    
+    if plot:
+        #touching up the labels. May just adjust to make margins slightly larger rather than removing ticks.
+        ax1lim = ax1.get_ylim()
+        ax1adjust = (max(ax1lim)-min(ax1lim))*0.05 #range times a small number
+        
+        ax2lim = ax2.get_ylim()
+        ax2adjust = (max(ax2lim)-min(ax2lim))*0.05
+        
+        ax1.set_ylim(ax1.get_ylim()[0]+ax1adjust,ax1.get_ylim()[1]-ax1adjust) # backwards due to inverse mag scale
+        ax2.set_ylim(0,ax2.get_ylim()[1]+ax2adjust) # bottom axis is zero, cant have - error
+        ax1.set_xticks(ax1.get_xticks()[1:-1]) # removing edge xticks for middle plot
+        ax1.set_yticks(ax1.get_yticks()[:-1])
+        ax2.set_yticks(ax2.get_yticks()[:-1])
         
     print insterrestimate
     spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2))
