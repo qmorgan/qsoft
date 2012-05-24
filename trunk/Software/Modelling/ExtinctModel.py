@@ -666,7 +666,7 @@ def testSEDvsTimeChi2():
     DustModel.SEDtimeSimulFit120119A(defaulttimelist='PAIRITEL',directory=directory,fixparam='all')
 
 
-def testSEDvsTime():
+def testSEDvsTime(Av_init=-0.62):
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     objblock=PhotParse.PhotParse(directory)
     # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
@@ -674,7 +674,8 @@ def testSEDvsTime():
     addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
     for time in addl_sed_times:
         sedtimelist.append(time)
-    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
+        Av_init=Av_init)
     
     
     time_thresh=10    
@@ -686,12 +687,13 @@ def testSEDvsTime():
     if interp_type != None:
         directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
         objblock = BuildInterpolation(interp_type=interp_type)
-
-        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+        sedtimelist = objblock.sedtimelist #made sedtimelist an attribute in BuildInterpolation
+        # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
         addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
         for time in addl_sed_times:
             sedtimelist.append(time)
-    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
+        Av_init=Av_init)
     
     
 
@@ -701,7 +703,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
-    threshhold of that time, and build up an SED for each.
+    # threshhold of that time, and build up an SED for each.
     
     if retfig: return the plot
     '''

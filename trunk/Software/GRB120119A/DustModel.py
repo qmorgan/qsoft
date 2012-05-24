@@ -121,31 +121,55 @@ def BuildInterpolation(interp_type='dumb'):
     newobjblock.galebv = objblock.galebv
     
     # taking the times from pairitel and using them as the extrapolation times
-    ptelj=objblock.obsdict['PAIRITEL_J']
-    extraptime=ptelj.tmidlist[0:20]
-    extraptime_r=ptelj.tmidlist[1:20]
+    #FIXME - instead, loop through the take_as_given list and extrapolate to those times
+    # perhaps allow for some non-extrap times to be included in the sedtime list (SMARTS) 
+    # As these are better for the late time values.. worried about contamination
+    # from nearby star for small telescopes
     
-    take_as_given_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K',
+    # perhaps this could be an attribute of the object block instead.. this would be better 
+    # than returning two values.  could have a caveat to align_sed_times or further
+    # down the road (i.e. in the SEDfit) to not try to do a fit if not more than 3 or 4 points 
+    
+    # ptelj=objblock.obsdict['PAIRITEL_J']
+    # extraptime=ptelj.tmidlist[0:20]
+    # extraptime_r=ptelj.tmidlist[1:20] # special hack for when extrapolating prompt R band
+    
+    promptR=objblock.obsdict['PROMPT_R']
+    promptV=objblock.obsdict['PROMPT_V']
+    livz=objblock.obsdict["Liverpool_z'"]
+    promptB=objblock.obsdict['PROMPT_B']
+    extraptime=promptR.tmidlist[:-10]
+    for time in promptV.tmidlist[0:5]:
+        extraptime.append(time)
+    for time in livz.tmidlist:
+        extraptime.append(time)
+
+    
+    # 30 on 128
+    
+    take_as_given_list = ['PROMPT_I','PROMPT_R', 'PROMPT_V', 'PROMPT_B',"Liverpool_z'",
         'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
     for obs in take_as_given_list:
         obsblock=objblock.obsdict[obs]
         newobjblock.obsdict.update({obs:obsblock})
     
-    interpolate_list = ['PROMPT_I','PROMPT_R']
+    newobjblock.sedtimelist = extraptime
+    
+    interpolate_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K']
     for obs in interpolate_list:
         obsblock = objblock.obsdict[obs]
         if interp_type=='dumb':
             newobsblock=PhotParse.DumbInterpolation(obsblock,extraptime,fake_error=0.1)
         elif interp_type=='smart':
-            if obs == 'PROMPT_R':
+            if obs == 'PROMPT_R': # cheap hack to fix the extrapolation time for R band since it doesnt go back as far
                 extraptime2 = extraptime_r
             else:
                 extraptime2 = extraptime
-            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime2)
+            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime2,plot=True)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
-    return newobjblock
+    return newobjblock 
     
 def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, defaulttimelist='PTELSMARTS',
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat',
@@ -174,8 +198,10 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     if interp_type != None:
         directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
         objblock = BuildInterpolation(interp_type=interp_type)
-
-        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+        sedtimelist = objblock.sedtimelist #made sedtimelist an attribute in BuildInterpolation
+        # FIXME : need to have a smarter way of building the sedtimelist; should be built up in 
+        # the smartinterpolation stage, using all the "take as given" frames
+        # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
         addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
         for time in addl_sed_times:
             sedtimelist.append(time)
