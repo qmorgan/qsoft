@@ -23,25 +23,45 @@ def qSpline(xvals,yvals,yerrvals,xgrid,allow_out_of_bounds=False,plot=False):
     newyarr, spline_model_errarr = _callRegrSpline(xvals,yvals,yerrvals,xgrid)
     
     if plot:
-        rc('font', family='Times New Roman')
+        qSplinePlot(xvals,yvals,yerrvals)
+
+    return newyarr, spline_model_errarr
+
+def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,inverse_x=False,xlabel='',ylabel=''):
+    '''Use the min and max xvals to generate a plot showing what the continuous 
+    plot would be'''
+    
+    rc('font', family='Times New Roman')
+    if not fig:
         fig=plt.figure()
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
-        
+    else:
+        if ax_index==None:
+            ax_index=0
+        ax=fig.get_axes()[ax_index]
+    
+    print "Rerunning spline fit for plot"
+    model_xgrid = np.linspace(xvals.min(),xvals.max(),num=500)
+    modelyarr, modelyerrarr = _callRegrSpline(xvals,yvals,yerrvals,model_xgrid)
+    
 
-        print "Rerunning spline fit for plot"
-        model_xgrid = np.linspace(xvals.min(),xvals.max(),num=500)
-        modelyarr, modelyerrarr = _callRegrSpline(xvals,yvals,yerrvals,model_xgrid)
-        
-
-        # plot model
-        ax.plot(model_xgrid,modelyarr,lw=2,color='black')
-        ax.plot(model_xgrid,modelyarr-modelyerrarr,lw=1,color='grey')
-        ax.plot(model_xgrid,modelyarr+modelyerrarr,lw=1,color='grey')
-        # plot data
-        ax.errorbar(xvals,yvals,yerr=yerrvals,color='black',fmt='o')
-        
-        fig.show()    
-    return newyarr, spline_model_errarr
+    # plot model
+    ax.plot(model_xgrid,modelyarr,lw=2,color='black')
+    ax.plot(model_xgrid,modelyarr-modelyerrarr,lw=1,color='grey')
+    ax.plot(model_xgrid,modelyarr+modelyerrarr,lw=1,color='grey')
+    # plot data
+    ax.errorbar(xvals,yvals,yerr=yerrvals,color='black',fmt='o')
+    
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel)
+    
+    if inverse_y:
+        ax.set_ylim(ax.get_ylim()[1],ax.get_ylim()[0])
+    if inverse_x:
+        ax.set_xlim(ax.get_xlim()[1],ax.get_xlim()[0])
+    
+    fig.show()
+    
     
 def _callRegrSpline(xvals,yvals,yerrvals,xgrid):
     fitpath = storepath + 'regrSpline_fit.txt'
