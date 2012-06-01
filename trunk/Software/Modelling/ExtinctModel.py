@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+import os, sys
 from MiscBin.q import filtcheck
 from MiscBin.q import mag2flux
 from MiscBin.q import maglist2fluxarr
@@ -10,6 +11,14 @@ from Modelling import qFit
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 from Phot import PhotParse
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
 
 class Extinction:
     '''Represents an extinction law'''
@@ -538,6 +547,41 @@ def SEDFitTest(initial_param='smc'):
     
     SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
 
+def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'],plotmarg=False):
+    
+    objblock=PhotParse.PhotParse(directory)
+    z=objblock.redshift
+    galebv=objblock.galebv
+    # loop through the obsdict, which should have one observation per filter
+    # all at a simultaneous time
+    tmidlist = []
+    maglist=[]
+    magerrlist=[]
+    filtlist=[]
+    for obsblock in objblock.obsdict.itervalues():
+        assert len(obsblock.tmidlist) == 1 # should only have one observation
+        assert obsblock.isupperlist[0] == False # should not be upper limit
+        tmidlist.append(obsblock.tmidlist[0])
+        maglist.append(obsblock.maglist[0])
+        magerrlist.append(obsblock.magerrlist[0])
+        filtlist.append(obsblock.filt)
+    
+    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    fitdict=_getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
+    paramstr='(%s)' % initial_param
+
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
+    
+    
+    if plotmarg:
+        figure=plt.figure()
+        paramnames = ('Av','beta')
+        qFit.plot_marg_from_fitdict(fitdict,paramnames)
+        path = storepath + 'SED_AVbeta_marg.png'
+        figure.savefig(path)
+    
+    return fitdict
+
 def SEDFitTest2(initial_param='smc'):
     '''another SED fit test, this time starting with magnitudes'''
     z=1.728
@@ -550,7 +594,7 @@ def SEDFitTest2(initial_param='smc'):
     # Convert the fluxes to magnitudes
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     
-    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45)
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
     paramstr='(%s)' % initial_param
     
     
@@ -820,7 +864,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             
             string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
             fig.text(0.55,0.3,string)
-            string = '-1*Av = %s (fixed)' % (Av_init)
+            string = 'Av = %.2f (fixed)' % (-1*float(Av_init)) # negate Av
             fig.text(0.55,0.5,string)
         if plotchi2:
             ax2.scatter(resttimearr,chi2list,color=color)
@@ -886,7 +930,7 @@ def _get_initial_dust_params(initial_param):
     
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
-            timestr='', paramstr='', plot=True):
+            timestr='', paramstr='', plot=True,showfig=False):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -1001,9 +1045,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         textoffset=0.24    
         for string in outdict['strings']:
             if not string.find('const') != -1:
+                if string.find('Av: -') == 0:
+                    string=string.replace('Av: -','Av: ') # since Av is negative what it should be in this code
                 fig2.text(0.2,textoffset,string)
                 textoffset+=0.04
-    
     
         if timestr:
             fig2.text(0.45,0.8,timestr)
@@ -1076,8 +1121,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax.xaxis.set_major_formatter(formatter)
         ax.yaxis.set_major_formatter(formatter)
         ax3.xaxis.set_major_formatter(formatter)
-
-        fig2.show()
+        
+        filepath = storepath + 'SED.png'
+        fig2.savefig(filepath)
+        
     return outdict
 
 def log_10_product(x, pos):
