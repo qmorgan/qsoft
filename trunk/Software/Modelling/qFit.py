@@ -280,13 +280,14 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     
     import matplotlib.pyplot as plt
     
-    
-    CS = plt.contour(dx,dy,delta_chi_sq,levels)
-    plt.clabel(CS, inline=1, fontsize=10)
+    fig=plt.figure()
+    ax=fig.add_axes([0.1,0.1,0.8,0.8])
+    CS = ax.contour(dx,dy,delta_chi_sq,levels)
+    ax.clabel(CS, inline=1, fontsize=10)
     yname = '$\delta %s$' % names[0]
     xname = '$\delta %s$' % names[1]
-    plt.ylabel(yname)
-    plt.xlabel(xname)
+    ax.set_ylabel(yname)
+    ax.set_xlabel(xname)
     
 
     # marginalize over two parameters and plot the corresponding lines; 
@@ -297,24 +298,24 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     # margins, gives the uncertainty for a single parameter of interest).
 
     
-    plt.axvline(x=unc_2,linestyle='dashed')
-    plt.axvline(x=-1*unc_2,linestyle='dashed')
+    ax.axvline(x=unc_2,linestyle='dashed')
+    ax.axvline(x=-1*unc_2,linestyle='dashed')
     
-    plt.axhline(y=unc_1,linestyle='dashed')
-    plt.axhline(y=-1*unc_1,linestyle='dashed')
+    ax.axhline(y=unc_1,linestyle='dashed')
+    ax.axhline(y=-1*unc_1,linestyle='dashed')
     
     # 
     if values != None:
-        xlim = plt.xlim() + values[1]
-        ylim = plt.ylim() + values[0]
-        plt.twiny()
-        plt.twinx()
-        plt.xlim(xlim)
-        plt.ylim(ylim)
+        xlim = ax.get_xlim() + values[1]
+        ylim = ax.get_ylim() + values[0]
+        ax2=ax.twiny()
+        ax3=ax.twinx()
+        ax2.set_xlim(xlim)
+        ax3.set_ylim(ylim)
         yname = '$%s$' % names[0]
         xname = '$%s$' % names[1]
-        plt.ylabel(yname)
-        plt.xlabel(xname)
+        ax3.set_ylabel(yname)
+        ax2.set_xlabel(xname)
     
     return (dx,dy,delta_chi_sq,levels)
     
