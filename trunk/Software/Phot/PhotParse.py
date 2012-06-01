@@ -314,6 +314,18 @@ class ObsBlock:
 
 
 def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False):
+    '''Will take an obsblock (lightcurve) and desired array of times to 
+    interpolate to. 
+    
+    It will use qSpline optimizing over a number of nodes using GCV methodology
+    the model uncertainty given by the spline fit (grey in Figure X) 
+    is not the estimated uncertainty on that point had a photometric measurement been made there.  
+     instead, this must be added in quadrature with some estimate of what the 
+     uncertainty on a measurement would be at that time.  To achieve this, we 
+     take the set of all PAIRITEL photometric uncertainties with time and fit
+     another spline fit for interpolating to achieve an instrumental uncertainty estimate.
+     The final uncertainty on each interpolated point is given by these two added in quadrature.
+     '''
     from Modelling.qSpline import qSpline
     from Modelling.qSpline import qSplinePlot
     
@@ -370,8 +382,11 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         ax1.set_yticks(ax1.get_yticks()[:-1])
         ax2.set_yticks(ax2.get_yticks()[:-1])
         
-    print insterrestimate
-    spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2))
+        filepath = storepath + 'spline' + obsblock.source + '_' + obsblock.filtstr + '.png'
+        fig.savefig(filepath)
+        
+    print insterrestimate       #add uncertainties in quadrature
+    spline_model_errlist = list(np.sqrt(spline_model_errarr**2 + insterrestimate**2)) 
     print spline_model_errlist 
     
     obsblock.explist = None
