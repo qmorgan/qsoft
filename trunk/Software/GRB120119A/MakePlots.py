@@ -12,6 +12,10 @@ from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 
 
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have Q_DIR installed"
+    sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 paperdir = os.environ.get("Q_DIR") + '/Papers/GRB120119A/'
@@ -31,7 +35,9 @@ def _lateSED():
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
     a=ExtinctModel.DefaultSEDFit(directory,plotmarg=True)
-    cmd = "mv " + storepath + 'SED.png '+ figuresdir
+    cmd = "mv " + storepath + 'SED.png '+ figuresdir + 'lateSED.png'
+    os.system(cmd)
+    cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg.png'
     os.system(cmd)
     print 'New SED plots moved to paper directory.'
     
