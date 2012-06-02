@@ -574,11 +574,9 @@ def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fi
     
     
     if plotmarg:
-        figure=plt.figure()
         paramnames = ('Av','beta')
         qFit.plot_marg_from_fitdict(fitdict,paramnames)
-        path = storepath + 'SED_AVbeta_marg.png'
-        figure.savefig(path)
+
     
     return fitdict
 
