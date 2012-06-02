@@ -6,6 +6,16 @@ import pylab
 import os, sys
 import matplotlib.pyplot as plt
 import copy
+import os
+import sys
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have Q_DIR installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
 
 class Param:
     '''Parameter for model fitting.
@@ -316,6 +326,16 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
         xname = '$%s$' % names[1]
         ax3.set_ylabel(yname)
         ax2.set_xlabel(xname)
+    
+    #### HACK ### Av needs to be inverted
+    invert_yticks=True
+    if invert_yticks:
+        yticks=ax3.get_yticks()
+        ax3.set_yticklabels(yticks*-1)
+    ### END HACK ###
+    
+    path = storepath + 'marginalization.png'
+    fig.savefig(path)
     
     return (dx,dy,delta_chi_sq,levels)
     
