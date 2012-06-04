@@ -365,8 +365,7 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals,plot=False)
         if plot:
             ax2=fig.add_axes([0.1,0.1,0.8,0.3])
-            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,xlabel=r'$t$ (s)',ylabel=ylab)
-            
+            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,xlabel=r'$t_{obs}$ (s)',ylabel=ylab)
     
     if plot:
         #touching up the labels. May just adjust to make margins slightly larger rather than removing ticks.
@@ -381,6 +380,15 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         ax1.set_xticks(ax1.get_xticks()[1:-1]) # removing edge xticks for middle plot
         ax1.set_yticks(ax1.get_yticks()[:-1])
         ax2.set_yticks(ax2.get_yticks()[:-1])
+        
+        xticks=ax2.get_xticks()
+        newxticks = 10**xticks
+        strticks=[]
+        for tick in newxticks:
+            strtick =  '%.1e' % (tick)
+            strticks.append(strtick)
+        ax2.set_xticklabels(strticks)
+        
         
         filepath = storepath + 'spline' + obsblock.source + '_' + obsblock.filtstr + '.png'
         fig.savefig(filepath)
