@@ -111,11 +111,23 @@ def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45):
     # Out[167]: <matplotlib.text.Text at 0x20acd850>
 
 
-def BuildInterpolation(interp_type='dumb'):
-    objblock=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
-
+def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=None,interp_type='dumb'):
+    '''Inputs:
+    objblock: block of all relevant observations
+    extraptime: list of desired times to extrapolate to
+    interpolate_list: obsdict names to interpolate
+    take_as_given_list: obsdict names to leave alone. if None, just add all names not in interpolate_list
     
-    newobjblock=PhotParse.ObjBlock()
+    
+    
+    interpolate_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K']
+    take_as_given_list = ['PROMPT_I','PROMPT_R', 'PROMPT_V', 'PROMPT_B',"Liverpool_z'","Liverpool_r'",
+        'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
+    
+    '''
+    
+    
+    newobjblock=PhotParse.ObjBlock() #initialize blank objblock
     newobjblock.utburst = objblock.utburst
     newobjblock.redshift = objblock.redshift
     newobjblock.galebv = objblock.galebv
@@ -129,43 +141,32 @@ def BuildInterpolation(interp_type='dumb'):
     # perhaps this could be an attribute of the object block instead.. this would be better 
     # than returning two values.  could have a caveat to align_sed_times or further
     # down the road (i.e. in the SEDfit) to not try to do a fit if not more than 3 or 4 points 
-    
-    # ptelj=objblock.obsdict['PAIRITEL_J']
-    # extraptime=ptelj.tmidlist[0:20]
-    # extraptime_r=ptelj.tmidlist[1:20] # special hack for when extrapolating prompt R band
-    
-    promptR=objblock.obsdict['PROMPT_R']
-    promptV=objblock.obsdict['PROMPT_V']
-    livz=objblock.obsdict["Liverpool_z'"]
-    promptB=objblock.obsdict['PROMPT_B']
-    extraptime=promptR.tmidlist[:-10]
-    for time in promptV.tmidlist[0:5]:
-        extraptime.append(time)
-    for time in livz.tmidlist:
-        extraptime.append(time)
 
     
     # 30 on 128
     
-    take_as_given_list = ['PROMPT_I','PROMPT_R', 'PROMPT_V', 'PROMPT_B',"Liverpool_z'",
-        'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
-    for obs in take_as_given_list:
-        obsblock=objblock.obsdict[obs]
-        newobjblock.obsdict.update({obs:obsblock})
+    if take_as_given_list != None:
+        for obs in take_as_given_list:
+            obsblock=objblock.obsdict[obs]
+            newobjblock.obsdict.update({obs:obsblock})
+    else: # just default to adding all keys not in the interpolate list
+        for obs, obsblock in objblock.obsdict.iteritems():
+            if obs not in interpolate_list:
+                newobjblock.obsdict.update({obs:obsblock})
     
     newobjblock.sedtimelist = extraptime
     
-    interpolate_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K']
+
     for obs in interpolate_list:
         obsblock = objblock.obsdict[obs]
         if interp_type=='dumb':
             newobsblock=PhotParse.DumbInterpolation(obsblock,extraptime,fake_error=0.1)
         elif interp_type=='smart':
-            if obs == 'PROMPT_R': # cheap hack to fix the extrapolation time for R band since it doesnt go back as far
-                extraptime2 = extraptime_r
-            else:
-                extraptime2 = extraptime
-            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime2,plot=True)
+            # if obs == 'PROMPT_R': # cheap hack to fix the extrapolation time for R band since it doesnt go back as far
+            #     extraptime2 = extraptime_r
+            # else:
+            #     extraptime2 = extraptime
+            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime,plot=True)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
