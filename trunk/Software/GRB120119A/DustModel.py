@@ -172,8 +172,7 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     newobjblock.CalculateFlux()
     return newobjblock 
     
-def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, defaulttimelist='PTELSMARTS',
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat',
+def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedtimelist=None, 
     Av_0init=-0.62,
     Av_1init=0,
     Av_2init=300,
@@ -182,42 +181,54 @@ def SEDtimeSimulFit120119A(initial_param='smc',fixparam='Av', sedtimelist=None, 
     beta_2init=300,
     randomize_inits=False,
     unred_latetime=False, 
-    interp_type=None,
     plot=False,
     plotchi2=True    
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
-    
+    interp_type used to be a paaramter when it was done inside here, but now we want 
+    the interpolation to be done prior to calling this function
     set unred_latetime=True and initial param to mw for the assumption of late-time SMC and early time MW
     '''
 
 
     time_thresh=10    
-    objblock=PhotParse.PhotParse(directory)    
     
-    if interp_type != None:
-        directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
-        objblock = BuildInterpolation(interp_type=interp_type)
-        sedtimelist = objblock.sedtimelist #made sedtimelist an attribute in BuildInterpolation
-        # FIXME : need to have a smarter way of building the sedtimelist; should be built up in 
-        # the smartinterpolation stage, using all the "take as given" frames
-        # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+    if objblock==None:
+        print "WARNING: NO OBJBLOCK SPECIFIED. USING DEFAULTS"
+        directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
+        objblock=PhotParse.PhotParse(directory)    
+
+
+        #NOTE: Now do the interpolation PRIOR to calling this function
+    # if interp_type != None:
+        # directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
+        # objblock = BuildInterpolation(interp_type=interp_type)
+        # sedtimelist = objblock.sedtimelist #made sedtimelist an attribute in BuildInterpolation
+        # # FIXME : need to have a smarter way of building the sedtimelist; should be built up in 
+        # # the smartinterpolation stage, using all the "take as given" frames
+        # # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+        # addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+        # for time in addl_sed_times:
+        #     sedtimelist.append(time)
+    
+    # defaulttimelist='PTELSMARTS'
+    # interpolation will give us an sedtimelist. If we didnt do this, we need to choose it..
+    if sedtimelist == None:
+        print "WARNING: NO SEDTIMELIST SPECIFIED. USING DEFAULTS."
+        sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
         addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
         for time in addl_sed_times:
             sedtimelist.append(time)
-    
-    # interpolation will give us an sedtimelist. If we didnt do this, we need to choose it..
-    if sedtimelist == None:
-        if defaulttimelist == 'PAIRITEL': # use this as a default if it is not explicitly defined
-            sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
-        elif defaulttimelist == 'PTELSMARTS':
-            sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
-            addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
-            for time in addl_sed_times:
-                sedtimelist.append(time)
-        else:
-            raise ValueError('Invalid defaulttimelist')
+        # if defaulttimelist == 'PAIRITEL': # use this as a default if it is not explicitly defined
+        #     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist    
+        # elif defaulttimelist == 'PTELSMARTS':
+        #     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
+        #     addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+        #     for time in addl_sed_times:
+        #         sedtimelist.append(time)
+        # else:
+        #     raise ValueError('Invalid defaulttimelist')
     # need to do this to see how many alignments we have    
     aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
 
