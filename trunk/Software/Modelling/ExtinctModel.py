@@ -574,6 +574,7 @@ def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fi
     
     
     if plotmarg:
+
         paramnames = ('Av','beta')
         qFit.plot_marg_from_fitdict(fitdict,paramnames)
 
@@ -878,6 +879,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         if retfig:
             return(fig)
         fig.show()
+        filepath = storepath + 'SEDvsTime.png'
+        fig.savefig(filepath)
         fig = None
     if retchi2:
         return sum(chi2list)
