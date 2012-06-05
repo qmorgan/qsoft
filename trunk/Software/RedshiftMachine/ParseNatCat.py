@@ -125,7 +125,7 @@ def download_file(url,outfile):
 
 def download_nat_web_file(grbname, webtrigid, filename='/bat/zprob.txt', clobber=False):
     
-    base_url = 'http://astro.berkeley.edu/~nat/swift/'
+    base_url = 'http://butler.lab.asu.edu/Swift/'
     outpath = storepath + 'grbs/'
     
     fullurl = base_url + webtrigid + filename
@@ -156,7 +156,7 @@ def download_nat_web_file(grbname, webtrigid, filename='/bat/zprob.txt', clobber
     
 
 def grab_nat_web_data(grbdict, filename='/bat/zprob.txt', clobber=False):
-    base_url = 'http://astro.berkeley.edu/~nat/swift/'
+    base_url = 'http://butler.lab.asu.edu/Swift/'
     outpath = storepath + 'grbs/'
         
     # natzprobdict = {}

@@ -112,7 +112,7 @@ def parseNatWebTable(soup, expected_cols=20,errtype='ul'):
     return grbdict
 
 def ParseBATSpec():
-    sock = urllib2.urlopen('http://astro.berkeley.edu/~nat/swift/bat_spec_table.html')
+    sock = urllib2.urlopen('http://butler.lab.asu.edu/Swift/bat_spec_table.html')
     html = sock.read()
     sock.close()
     soup=BeautifulSoup(html)
@@ -120,7 +120,7 @@ def ParseBATSpec():
     return batspec 
     
 def ParseBATTiming():
-    sock = urllib2.urlopen('http://astro.berkeley.edu/~nat/swift/bat_time_table.html')
+    sock = urllib2.urlopen('http://butler.lab.asu.edu/Swift/bat_time_table.html')
     html = sock.read()
     sock.close()
     soup=BeautifulSoup(html)
@@ -128,7 +128,7 @@ def ParseBATTiming():
     return battiming
     
 def ParseXRTSpec():
-    sock = urllib2.urlopen('http://astro.berkeley.edu/~nat/swift/xrt_spec_table.html')
+    sock = urllib2.urlopen('http://butler.lab.asu.edu/Swift/xrt_spec_table.html')
     html = sock.read()
     sock.close()
     soup=BeautifulSoup(html)
