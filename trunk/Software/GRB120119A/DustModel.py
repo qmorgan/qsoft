@@ -4,11 +4,20 @@ from Modelling.ExtinctModel import _align_SED_times
 from Modelling.ExtinctModel import SEDvsTime
 from Modelling.ExtinctModel import _getfitdict
 from Modelling.Functions import DecayingExponential
-
+import os,sys
 import numpy as np
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
+
+if not os.environ.has_key("Q_DIR"):
+    print "You need to set the environment variable Q_DIR to point to the"
+    print "directory where you have WCSTOOLS installed"
+    sys.exit(1)
+storepath = os.environ.get("Q_DIR") + '/store/'
+loadpath = os.environ.get("Q_DIR") + '/load/'
+
+
 
 def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45):
     '''
@@ -182,7 +191,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     randomize_inits=False,
     unred_latetime=False, 
     plot=False,
-    plotchi2=True    
+    plotchi2=True,    
+    retfig=True
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -431,6 +441,9 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             ax.plot(t,c)
         
         fig.show()
+        filepath = storepath + 'SEDtimesimulfit.png'
+        fig.savefig(filepath)
+    if retfig:
         return fig
     else:
         return outdict
