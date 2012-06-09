@@ -286,7 +286,7 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     # $\Delta \chi^2_{\mathbf{a_i}} = 6.17.$ is where 95.4% of measured values
     # should lie for 2 degrees of freedom (corresponding to 4sigma for 1dof)
     # 9.21 is 99% confidence
-    levels = np.array([1.0,2.3,6.17,6.63,9.21])
+    levels = np.array([1.0,2.3,9,11.8])
     
     import matplotlib.pyplot as plt
     
@@ -306,13 +306,23 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     # the error ellipse corresponding to$\Delta \chi^2 = 1.0,$ as they should
     # (hence the term 'marginalization' - this contour, projected into the 
     # margins, gives the uncertainty for a single parameter of interest).
-
     
+    ax.axvline(x=0,linestyle='dotted',color='grey')
+    ax.axhline(y=0,linestyle='dotted',color='grey')
+    
+    # 1 sigma
     ax.axvline(x=unc_2,linestyle='dashed')
     ax.axvline(x=-1*unc_2,linestyle='dashed')
     
     ax.axhline(y=unc_1,linestyle='dashed')
     ax.axhline(y=-1*unc_1,linestyle='dashed')
+    # 3 sigma
+    ax.axvline(x=3*unc_2,linestyle='dashed',color='orange')
+    ax.axvline(x=-3*unc_2,linestyle='dashed',color='orange')
+    
+    ax.axhline(y=3*unc_1,linestyle='dashed',color='orange')
+    ax.axhline(y=-3*unc_1,linestyle='dashed',color='orange')
+    
     
     # 
     if values != None:

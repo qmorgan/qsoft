@@ -87,7 +87,7 @@ def _lateSED():
     from Modelling import ExtinctModel
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
-    a=ExtinctModel.DefaultSEDFit(directory,initial_param='mw',fitlist=['Av','beta'],plotmarg=False)
+    a=ExtinctModel.DefaultSEDFit(directory,initial_param='smc',fitlist=['Av','beta'],plotmarg=True)
     cmd = "mv " + storepath + 'SED.png '+ figuresdir + 'lateSED.png'
     os.system(cmd)
     cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg.png'
