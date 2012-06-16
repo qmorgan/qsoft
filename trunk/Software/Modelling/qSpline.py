@@ -27,10 +27,14 @@ def qSpline(xvals,yvals,yerrvals,xgrid,allow_out_of_bounds=False,plot=False):
 
     return newyarr, spline_model_errarr
 
-def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,inverse_x=False,xlabel='',ylabel=''):
+def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,
+    inverse_x=False,xlabel='',ylabel='',x_max=None):
     '''Use the min and max xvals to generate a plot showing what the continuous 
-    plot would be'''
+    plot would be
     
+    x_max: only plot up to a particular x value
+    '''
+    plotindices = None
     rc('font', family='Times New Roman')
     if not fig:
         fig=plt.figure()
@@ -41,7 +45,18 @@ def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,inve
         ax=fig.get_axes()[ax_index]
     
     print "Rerunning spline fit for plot"
-    model_xgrid = np.linspace(xvals.min(),xvals.max(),num=500)
+    
+    xmin = xvals.min()
+    if not x_max: # if not explicitly defined, use all data
+        xmax = xvals.max()
+    else: #zoom in on a particualr value
+        xmax = x_max
+        plotindices = np.nonzero(xvals<x_max)[0] # indices; this array should be in order
+        # xvals = xvals[plotindices]
+        # yvals = yvals[plotindices]
+        # yerrvals = yerrvals[plotindices]
+        
+    model_xgrid = np.linspace(xmin,xmax,num=500)
     modelyarr, modelyerrarr = _callRegrSpline(xvals,yvals,yerrvals,model_xgrid)
     
 
@@ -50,7 +65,18 @@ def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,inve
     ax.plot(model_xgrid,modelyarr-modelyerrarr,lw=1,color='grey')
     ax.plot(model_xgrid,modelyarr+modelyerrarr,lw=1,color='grey')
     # plot data
-    ax.errorbar(xvals,yvals,yerr=yerrvals,color='black',fmt='o')
+    
+    # if we redifined what we want to plot, grab the relevant data values
+    if plotindices != None: 
+        xvalsplot = xvals[plotindices]
+        yvalsplot = yvals[plotindices]
+        yerrvalsplot = yerrvals[plotindices]
+    else: 
+        xvalsplot = xvals
+        yvalsplot = yvals
+        yerrvalsplot = yerrvals
+        
+    ax.errorbar(xvalsplot,yvalsplot,yerr=yerrvalsplot,color='black',fmt='o')
     
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xlabel)

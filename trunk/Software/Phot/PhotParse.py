@@ -313,7 +313,7 @@ class ObsBlock:
     
 
 
-def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False):
+def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False,plotzoom=None):
     '''Will take an obsblock (lightcurve) and desired array of times to 
     interpolate to. 
     
@@ -325,6 +325,8 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
      take the set of all PAIRITEL photometric uncertainties with time and fit
      another spline fit for interpolating to achieve an instrumental uncertainty estimate.
      The final uncertainty on each interpolated point is given by these two added in quadrature.
+     
+     plotzoom: float value of time to plot only to a certain end point
      '''
     from Modelling.qSpline import qSpline
     from Modelling.qSpline import qSplinePlot
@@ -343,13 +345,19 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
     yvals = np.array(obsblock.maglist)[detectinds]
     yerrvals = np.array(obsblock.magerrlist)[detectinds]
     
+    if plotzoom:
+        x_max=np.log10(plotzoom)
+    else:
+        x_max = None
+    
     xvals = np.log10(timevals)
     ylab = r"$m_%s$" % obsblock.filtstr
     newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals,plot=False)
     if plot:
         fig=plt.figure(figsize=(8,8))
         ax1=fig.add_axes([0.1,0.4,0.8,0.5])
-        qSplinePlot(xvals,yvals,yerrvals,fig=fig,ax_index=0, inverse_y=True,xlabel=r'$t$(s)',ylabel=ylab) #repeat for plot
+        qSplinePlot(xvals,yvals,yerrvals,fig=fig,ax_index=0, inverse_y=True,
+            xlabel=r'$t$(s)',ylabel=ylab,x_max=x_max) #repeat for plot
     newylist = list(newyarr)
     
     # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
@@ -365,7 +373,8 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals,plot=False)
         if plot:
             ax2=fig.add_axes([0.1,0.1,0.8,0.3])
-            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,xlabel=r'$t_{obs}$ (s)',ylabel=ylab)
+            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,
+            xlabel=r'$t_{obs}$ (s)',ylabel=ylab,x_max=x_max)
     
     if plot:
         #touching up the labels. May just adjust to make margins slightly larger rather than removing ticks.
@@ -389,8 +398,11 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
             strticks.append(strtick)
         ax2.set_xticklabels(strticks)
         
-        
-        filepath = storepath + 'spline' + obsblock.source + '_' + obsblock.filtstr + '.png'
+        if plotzoom:
+            zoomstr = str(plotzoom)
+        else:
+            zoomstr = ''
+        filepath = storepath + 'spline' + obsblock.source + '_' + obsblock.filtstr + zoomstr + '.png'
         fig.savefig(filepath)
         
     print insterrestimate       #add uncertainties in quadrature
