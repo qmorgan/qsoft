@@ -817,21 +817,33 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     # plot the fit parameters
     axindex = 0
     if Avlist and betalist:
-        pass
-        # if not fig:
-        #     fig=plt.figure()
-        #     ax=fig.add_axes([0.1,0.1,0.8,0.8])
-        #     ax.semilogx()
-        # else:
-        #     ax=fig.get_axes()[axindex]
-        #     axindex += 1
-        # ax.errorbar(resttimearr,Avlist,yerr=Averrlist,fmt='o',color=color)
-        # ax.set_ylabel(r'$-1*A_v$')
-        # ax.set_xlabel(r'$t$ (s, rest frame)')
-        # if retfig:
-        #     return(fig)
-        # fig.show()
-        # fig = None
+        # pass
+        if not fig:
+            fig=plt.figure()
+            ax1=fig.add_axes([0.1,0.5,0.8,0.4])
+            ax2=fig.add_axes([0.1,0.1,0.8,0.4])
+            
+            ax1.semilogx()
+            ax2.semilogx()
+        else:
+            ax=fig.get_axes()[axindex]
+            axindex += 1
+        plotAvlist=-1*np.array(Avlist)
+        ax2.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
+        ax2.set_ylabel(r'$A_V $')
+        ax2.set_xlabel(r'$t$ (s, rest frame)')
+        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
+        ax1.set_ylabel(r'$\beta$')
+        ax1.set_xlabel(r'$t$ (s, rest frame)')
+        
+        # Adjust tickmarks
+        ax1.set_xticks(ax1.get_xticks()[1:-1])
+        ax1.set_yticks(ax1.get_yticks()[1:])
+        
+        if retfig:
+            return(fig)
+        fig.show()
+        fig = None
     elif Avlist or betalist: #but not both!!
         if not fig:
             fig=plt.figure()
@@ -840,16 +852,17 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
                 ax1.semilogx()
             else:
                 ax1=fig.add_axes([0.1,0.4,0.8,0.5])
-                ax2=fig.add_axes([0.1,0.1,0.8,0.3])
+                ax_chi2=fig.add_axes([0.1,0.1,0.8,0.3])
                 ax1.semilogx()
-                ax2.semilogx()
+                ax_chi2.semilogx()
         else:
             plotchi2=False # cant plot chi2 if being given a figure
             ax1=fig.get_axes()[axindex]
             axindex += 1 
         if Avlist:
-            ax1.errorbar(resttimearr,Avlist,yerr=Averrlist,fmt='o',color=color)
-            ax1.set_ylabel(r'$-1*A_v$')
+            plotAvlist=-1*np.array(Avlist)
+            ax1.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
+            ax1.set_ylabel(r'$A_V$')
             ax1.set_xlabel(r'$t$ (s, rest frame)')
             
             string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
@@ -866,16 +879,18 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             string = 'Av = %.2f (fixed)' % (-1*float(Av_init)) # negate Av
             fig.text(0.55,0.5,string)
         if plotchi2:
-            ax2.scatter(resttimearr,chi2list,color=color)
-            ylim = ax2.get_ylim()
-            ax2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
+            ax_chi2.scatter(resttimearr,chi2list,color=color)
+            ylim = ax_chi2.get_ylim()
+            ax_chi2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
             
             ax1.set_xticks(ax1.get_xticks()[1:-1])
             ax1.set_yticks(ax1.get_yticks()[1:])
-            ax2.set_yticks(ax2.get_yticks()[:-1])
+            ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
             
-            ax2.set_ylabel(r'$\chi^2$')
-            ax2.set_xlabel(r'$t$ (s, rest frame)')
+            ax_chi2.set_ylabel(r'$\chi^2$')
+            ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
+
+    if fig:
         if retfig:
             return(fig)
         fig.show()
