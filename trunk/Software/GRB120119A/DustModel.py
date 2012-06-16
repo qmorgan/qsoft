@@ -120,7 +120,8 @@ def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45):
     # Out[167]: <matplotlib.text.Text at 0x20acd850>
 
 
-def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=None,interp_type='dumb'):
+def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=None,
+    interp_type='dumb',plot=True,plotzoom=None):
     '''Inputs:
     objblock: block of all relevant observations
     extraptime: list of desired times to extrapolate to
@@ -175,7 +176,7 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
             #     extraptime2 = extraptime_r
             # else:
             #     extraptime2 = extraptime
-            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime,plot=True)
+            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime,plot=plot,plotzoom=plotzoom)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
@@ -397,9 +398,10 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             
             c = DecayingExponential(t,Av0,Av1,Av2)
             d = DecayingExponential(t,beta0,beta1,beta2)
+            c = -1 * np.array(c) #changing since Av negative 
             ax1.plot(t,c)
             ax2.plot(t,d)
-            ax1.set_ylabel(r'$-1*A_v$')
+            ax1.set_ylabel(r'$A_V$')
             ax2.set_ylabel(r'$\beta$')
             ax2.set_xlabel(r'$t$ (s, rest frame)')
             
