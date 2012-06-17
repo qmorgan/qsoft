@@ -27,7 +27,7 @@ def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45):
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     
 
-    time_thresh=10    
+    time_thresh=5    
     objblock=PhotParse.PhotParse(directory)    
     
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
@@ -183,12 +183,12 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     return newobjblock 
     
 def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedtimelist=None, 
-    Av_0init=-0.62,
-    Av_1init=0,
-    Av_2init=300,
-    beta_0init=-1.45,
+    Av_0init=-0.92,
+    Av_1init=-2.5,
+    Av_2init=50,
+    beta_0init=-0.92,
     beta_1init=0,
-    beta_2init=300,
+    beta_2init=50,
     randomize_inits=False,
     unred_latetime=False, 
     plot=False,
@@ -203,7 +203,7 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     '''
 
 
-    time_thresh=10    
+    time_thresh=5    
     
     if objblock==None:
         print "WARNING: NO OBJBLOCK SPECIFIED. USING DEFAULTS"
@@ -452,7 +452,7 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
 
 
 
-def LoopThroughRandomInits(N=1000):
+def LoopThroughRandomInits(objblock=None,N=1000):
     '''Testing whether the initial conditions change the final fit value
     as found by leastsq, or whether it is robust against the choices. Loop 
     through N iterations and return the outdict for each.  The acceptable 
@@ -464,7 +464,7 @@ def LoopThroughRandomInits(N=1000):
     while count < N:
         print 'Now doing Count %i of %i' % (count, N)
         try:
-            outdict= SEDtimeSimulFit120119A(fixparam='both',randomize_inits=True,plot=False)
+            outdict= SEDtimeSimulFit120119A(objblock=objblock,fixparam='both',randomize_inits=True,plot=False)
             outlist.append(outdict)
         except:
             faillist.append(count)
