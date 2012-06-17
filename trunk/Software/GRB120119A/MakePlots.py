@@ -33,14 +33,97 @@ def _build_extraptime(objblock):
     livz=objblock.obsdict["Liverpool_z'"]
     livr=objblock.obsdict["Liverpool_r'"]
     promptB=objblock.obsdict['PROMPT_B']
-    extraptime=promptI.tmidlist[1:-10]### SORT THIS
-    # for time in promptV.tmidlist[0:5]:
-    #     extraptime.append(time)
-    # for time in livz.tmidlist:
-    #     extraptime.append(time)
-    # for time in livr.tmidlist:
-    #     extraptime.append(time)
+    extraptime=promptI.tmidlist[1:]### SORT THIS
+    for time in promptV.tmidlist[0:8]:
+        extraptime.append(time)
+    for time in promptB.tmidlist:
+        extraptime.append(time)
+    for time in livz.tmidlist:
+        extraptime.append(time)
+    for time in livr.tmidlist:
+        extraptime.append(time)
+    # extraptime.sort()
+    # print extraptime
+    extraptime=[62.208000000000006,
+    78.624,
+    93.312,
+    118.368,
+    146.88,
+    177.12,
+    193.98000000000002,
+    202.17600000000002,
+    239.328,
+    # 241.05599999999998,
+    276.84,
+    288.576,
+    # 290.30400000000003,
+    338.688,
+    # 338.688,
+    360.48,
+    388.79999999999995,
+    # 388.79999999999995,
+    444.12,
+    458.784,
+    # 458.784,
+    527.76,
+    550.3679999999999,
+    # 551.232,
+    611.4,
+    694.8,
+    872.76,
+    894.6,
+    916.5,
+    961.8599999999999,
+    984.1200000000001,
+    1005.9599999999999,
+    1058.1599999999999,
+    1209.6000000000001,
+    # 1209.6000000000001,
+    1373.4599999999998,
+    1391.04,
+    # 1391.04,
+    1463.616,
+    1541.1,
+    1570.7520000000002,
+    # 1571.6160000000002,
+    1658.0159999999998,
+    1673.8799999999999,
+    1753.0559999999998,
+    # 1753.0559999999998,
+    1838.592,
+    1977.6960000000001,
+    # 1977.6960000000001,
+    2128.2599999999998,
+    2196.288,
+    2260.2000000000003,
+    2276.64,
+    2337.984,
+    2455.56,
+    2587.44,
+    2719.6800000000003,
+    3506.1119999999996,
+    3523.392,
+    3547.584,
+    4161.024,
+    4178.304,
+    # 4182.624,
+    4879.872,
+    4889.376,
+    5444.928000000001,
+    5577.984,
+    5641.0560000000005,
+    6498.144,
+    7437.312,
+    8589.024,
+    9838.368#,
+    # 11219.039999999999,
+    # 12553.920000000002,
+    # 14552.351999999999,
+    # 16818.624
+    ]
     return extraptime
+    
+    
     
 #### INTERPOLATION PLOTS
 def _interpplot():
@@ -53,8 +136,8 @@ def _interpplot():
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
     objblock_original_2 = copy.deepcopy(objblock_original) #not sure why i have do this..
     
-    take_as_given_list = ['PROMPT_I','PROMPT_R']#, 'PROMPT_V', 'PROMPT_B',"Liverpool_z'","Liverpool_r'",
-       # 'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
+    # take_as_given_list = ['PROMPT_I','PROMPT_R', 'PROMPT_V', 'PROMPT_B',"Liverpool_z'","Liverpool_r'",
+        # 'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
     interpolate_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K']
     # ptelj=objblock.obsdict['PAIRITEL_J']
     # extraptime=ptelj.tmidlist[0:20]
@@ -100,7 +183,7 @@ def _interpplot():
 
     # Now do the SEDtimeSimulfit plot
     fitdict=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
-        sedtimelist=sedtimelist,fixparam='both',plot=True,plotchi2=True,retfig=False)
+        sedtimelist=sedtimelist,fixparam='none',plot=True,plotchi2=True,retfig=False)
     cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir
     os.system(cmd)
     
