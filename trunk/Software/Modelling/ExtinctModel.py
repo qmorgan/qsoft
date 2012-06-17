@@ -374,7 +374,7 @@ def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',
         function.  If the inputs initial_params are the same, you should get
         the same result whether or not you do this step.
     '''
-    time_thresh=10
+    time_thresh=5
     utburststr = objblock.utburst # not used?
     galebv=objblock.galebv
     z=objblock.redshift
@@ -600,7 +600,7 @@ def SEDFitTest2(initial_param='smc'):
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
     return fitdict
 
-def _align_SED_times(objblock,sedtimelist,time_thresh=10):
+def _align_SED_times(objblock,sedtimelist,time_thresh=5):
     '''
     Given an object block and a list of desired times, return a dictionary 
     of the following format: 
@@ -721,7 +721,7 @@ def testSEDvsTime(Av_init=-0.62):
         Av_init=Av_init)
     
     
-    time_thresh=10    
+    time_thresh=5    
     objblock=PhotParse.PhotParse(directory)    
     
     # Now try interpolation
@@ -758,7 +758,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     galebv=objblock.galebv
     z=objblock.redshift
     
-    time_thresh = 10 # Number of seconds we can be off in time from the reference 
+    time_thresh = 5 # Number of seconds we can be off in time from the reference 
 
     if sedtimelist == None:
         raise ValueError("Please Specify sedtimelist")
