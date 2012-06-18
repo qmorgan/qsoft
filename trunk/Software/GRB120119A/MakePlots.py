@@ -131,7 +131,7 @@ def _interpplot():
     zoomtime = 2000 #seconds
     from GRB120119A import DustModel
     addl_sed_times=None
-    
+    testrandom=True
     
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
     objblock_original_2 = copy.deepcopy(objblock_original) #not sure why i have do this..
@@ -164,6 +164,14 @@ def _interpplot():
         for time in addl_sed_times:
             sedtimelist.append(time)
     
+    
+    if testrandom:
+        outlist_rand = DustModel.LoopThroughRandomInits(objblock=objblock_interpolated,
+            sedtimelist=sedtimelist,fixparam='none',N=100)
+        return outlist_rand
+    
+    
+    
     # Make SEDvsTime for fixed Av
     SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
         Av_init=late_time_av)
@@ -183,10 +191,11 @@ def _interpplot():
 
     # Now do the SEDtimeSimulfit plot
     fitdict=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
-        sedtimelist=sedtimelist,fixparam='none',plot=True,plotchi2=True,retfig=False)
+        sedtimelist=sedtimelist,fixparam='none',plot=False,plotchi2=True,retfig=False)
     cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir
     os.system(cmd)
     
+
     # Marginialization plot 
     qFit.plot_marg_from_fitdict(fitdict,('Av_1','beta_1'))
     cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDtimesimulfit_marg.png'
