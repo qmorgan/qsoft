@@ -131,7 +131,7 @@ def _interpplot():
     zoomtime = 2000 #seconds
     from GRB120119A import DustModel
     addl_sed_times=None
-    testrandom=True
+    testrandom=False
     
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
     objblock_original_2 = copy.deepcopy(objblock_original) #not sure why i have do this..
@@ -172,36 +172,38 @@ def _interpplot():
     
     
     
-    # Make SEDvsTime for fixed Av
-    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
-        Av_init=late_time_av)
+    # # Make SEDvsTime for fixed Av
+    #  SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
+    #      Av_init=late_time_av)
+    #  
+    #  cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv.png'
+    #  os.system(cmd)
+    #  print 'New SEDvstime fixed Av plots moved to paper directory.'
+    #  
+    #  
     
-    cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv.png'
-    os.system(cmd)
-    print 'New SEDvstime fixed Av plots moved to paper directory.'
-
     # Make SEDvsTime for free Av and Beta
-    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,fitlist=['Av','beta'],plotchi2=False,
+    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=True,fitlist=['Av','beta'],plotchi2=False,
         Av_init=late_time_av)
     
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_freeAv.png'
     os.system(cmd)
     print 'New SEDvstime plots moved to paper directory.'
 
-
-    # Now do the SEDtimeSimulfit plot
-    fitdict=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
-        sedtimelist=sedtimelist,fixparam='none',plot=False,plotchi2=True,retfig=False)
-    cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir
-    os.system(cmd)
-    
-
-    # Marginialization plot 
-    qFit.plot_marg_from_fitdict(fitdict,('Av_1','beta_1'))
-    cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDtimesimulfit_marg.png'
-    os.system(cmd)
-    print 'New SEDsimulfit plots moved to paper directory.'
-    return fitdict
+    # 
+    # # Now do the SEDtimeSimulfit plot
+    # fitdict=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
+    #     sedtimelist=sedtimelist,fixparam='none',plot=False,plotchi2=True,retfig=False)
+    # cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir
+    # os.system(cmd)
+    # 
+    # 
+    # # Marginialization plot 
+    # qFit.plot_marg_from_fitdict(fitdict,('Av_1','beta_1'))
+    # cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDtimesimulfit_marg.png'
+    # os.system(cmd)
+    # print 'New SEDsimulfit plots moved to paper directory.'
+    # return fitdict
 
 def _lateSED():
     from Modelling import ExtinctModel
