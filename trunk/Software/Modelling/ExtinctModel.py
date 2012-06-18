@@ -1138,7 +1138,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax.yaxis.set_major_formatter(formatter)
         ax3.xaxis.set_major_formatter(formatter)
         
-        filepath = storepath + 'SED.png'
+        filepath = storepath + 'SED' + timestr + '.png'
         fig2.savefig(filepath)
         
     return outdict
