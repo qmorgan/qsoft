@@ -183,10 +183,10 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     return newobjblock 
     
 def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedtimelist=None, 
-    Av_0init=-0.92,
+    Av_0init=-0.57,
     Av_1init=-2.5,
     Av_2init=50,
-    beta_0init=-0.92,
+    beta_0init=-1.57,
     beta_1init=0,
     beta_2init=50,
     randomize_inits=False,
@@ -452,7 +452,7 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
 
 
 
-def LoopThroughRandomInits(objblock=None,N=1000):
+def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',N=1000):
     '''Testing whether the initial conditions change the final fit value
     as found by leastsq, or whether it is robust against the choices. Loop 
     through N iterations and return the outdict for each.  The acceptable 
@@ -464,7 +464,8 @@ def LoopThroughRandomInits(objblock=None,N=1000):
     while count < N:
         print 'Now doing Count %i of %i' % (count, N)
         try:
-            outdict= SEDtimeSimulFit120119A(objblock=objblock,fixparam='both',randomize_inits=True,plot=False)
+            outdict= SEDtimeSimulFit120119A(objblock=objblock,sedtimelist=sedtimelist,
+            fixparam=fixparam,randomize_inits=True,plot=False,retfig=False)
             outlist.append(outdict)
         except:
             faillist.append(count)
