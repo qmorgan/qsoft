@@ -184,6 +184,8 @@ class ObsBlock:
         self._AssignMarker()
         self.maglist=[]
         self.magerrlist=[]
+        self.ctratelist=[]
+        self.ctrateerrlist=[]
         self.isupperlist=[]
         self.tmidlist=[]
         self.explist=[]
@@ -201,8 +203,12 @@ class ObsBlock:
             self.marker='s' # square
         elif self.source.lower()=='liverpool':
             self.marker='*' # star
+        elif self.source.lower()=='p60':
+            self.marker='h' # hexagon
+        elif self.source.lower()=='xrt':
+            self.marker='x' # x
         else:
-            self.marker='p' 
+            self.marker='p' # pentagon
             print "unknown source of %s, using default marker" % self.source
     
     def _AssignFilter(self):
@@ -257,8 +263,14 @@ class ObsBlock:
         
     def updateObs(self,indict):
         # update flux/mag values
-        self.maglist.append(float(indict['mag']))
-        self.magerrlist.append(float(indict['emag']))        
+        if 'mag' in indict:
+            self.maglist.append(float(indict['mag']))
+            self.magerrlist.append(float(indict['emag']))
+        elif 'ctrate' in indict: # xrt values use counts instead of mag
+            self.ctratelist.append(float(indict['ctrate']))
+            self.ctrateerrlist.append(float(indict['ectrate']))
+        else:
+            raise ValueError("Value not given in magnitudes or xrt countrate; cant handle")
         if 'lim' in indict:
             isupperchar = str(indict['lim']).lower()[0] # will return 'n' if None
             if isupperchar == 'n': self.isupperlist.append(False)
@@ -483,7 +495,7 @@ def PhotParse(filename,verbose=False):
             'galebv':'unknown',
             'redshift':'unknown'}
     
-    parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim']
+    parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim','ctrate','ectrate']
     name_replace_dict={'filter':'filt',
                         'exptime':'exp',
                         'exposure':'exp',
