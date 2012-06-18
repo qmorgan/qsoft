@@ -26,8 +26,13 @@ class ObjBlock:
         self.utburst = None
         self.galebv = None
         self.redshift = None
+        self.name = None
         
     def updateObj(self,indict):
+        if not self.name:
+            if 'name' in indict:
+                self.name = indict['name']
+                
         if not self.utburst:
             if 'utburst' in indict:
                 self.utburst = indict['utburst']
@@ -87,7 +92,7 @@ class ObjBlock:
             else:
                 print "No filter for %s, Skipping flux conversion" % (key)
     
-    def PlotLC(self):
+    def PlotLC(self,show=True,save=True):
         # set font
         rc('font', family='Times New Roman')
         
@@ -135,9 +140,14 @@ class ObjBlock:
         ax.set_xlabel(r'$t$ (s)')
         ax2.set_ylabel('AB Mag')
         ax3.set_xlabel(topxlabel)
-                
-        fig.show()
         
+        if save:
+            filepath = storepath + 'LC_' + self.name + '.png' 
+            fig.savefig()
+        if show:        
+            fig.show()
+
+            
     def SimpleAlphaVSTime(self):
         '''
         Step through every pair of points in a lightcurve to calculate a very
@@ -493,7 +503,9 @@ def PhotParse(filename,verbose=False):
             'source':'unkown',
             'utburst':'unknown',
             'galebv':'unknown',
-            'redshift':'unknown'}
+            'redshift':'unknown',
+            'name':'unknown'
+            }
     
     parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim','ctrate','ectrate']
     name_replace_dict={'filter':'filt',
@@ -518,7 +530,7 @@ def PhotParse(filename,verbose=False):
         if head[0] == '@': #special delimiter denoting default param
             key, val = head[1:].split('=')
             if key not in default_keydict:
-                print ' I do not know how to handle key %s, skipping' % (key)
+                print ' I do not know how to handle key %s in the header, skipping' % (key)
             else:
                 default_keydict.update({key:val})
     
@@ -539,7 +551,7 @@ def PhotParse(filename,verbose=False):
                 if key in name_replace_dict:
                     key = name_replace_dict[key]
                 if key not in keydict:
-                    print ' I do not know how to handle key %s, skipping' % (key)
+                    print ' I do not know how to handle key %s in the photometry, skipping' % (key)
                 else:
                     keydict.update({key:val})
                     if key == 'source' and verbose:
