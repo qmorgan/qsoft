@@ -4,11 +4,13 @@ from Modelling.ExtinctModel import _align_SED_times
 from Modelling.ExtinctModel import SEDvsTime
 from Modelling.ExtinctModel import _getfitdict
 from Modelling.Functions import DecayingExponential
+from Modelling.Functions import BrokenPowerLaw
 import os,sys
 import numpy as np
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
+import copy
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -19,15 +21,14 @@ loadpath = os.environ.get("Q_DIR") + '/load/'
 
 
 
-def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45):
+def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45,time_thresh=5):
     '''
     Loop through a bunch of different parameter values and map out how 
     chisq changes as you change these values.
     '''
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     
-
-    time_thresh=5    
+        
     objblock=PhotParse.PhotParse(directory)    
     
     sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
@@ -184,16 +185,17 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     
 def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedtimelist=None, 
     Av_0init=-0.57,
-    Av_1init=-2.5,
-    Av_2init=50,
+    Av_1init=0,
+    Av_2init=100,
     beta_0init=-1.57,
     beta_1init=0,
-    beta_2init=50,
+    beta_2init=100,
     randomize_inits=False,
     unred_latetime=False, 
     plot=False,
     plotchi2=True,    
-    retfig=True
+    retfig=True,
+    time_thresh=5
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -201,9 +203,9 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     the interpolation to be done prior to calling this function
     set unred_latetime=True and initial param to mw for the assumption of late-time SMC and early time MW
     '''
+    fig = None
 
-
-    time_thresh=5    
+        
     
     if objblock==None:
         print "WARNING: NO OBJBLOCK SPECIFIED. USING DEFAULTS"
@@ -431,21 +433,22 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
         elif not fitdict['Av_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
-            # c=BrokenPowerLaw(t,Av0,Av1,Av2)
+            # c=DecayingExponential(t,Av0,Av1,Av2)
             c = DecayingExponential(t,Av0,Av1,Av2)
+            c = -1 * np.array(c) #changing since Av negative 
             ax.plot(t,c)
             
         elif not fitdict['beta_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
-            # c=BrokenPowerLaw(t,Av0,Av1,Av2)
+            # c=DecayingExponential(t,Av0,Av1,Av2)
             c = DecayingExponential(t,beta0,beta1,beta2)
             ax.plot(t,c)
         
         fig.show()
         filepath = storepath + 'SEDtimesimulfit.png'
         fig.savefig(filepath)
-    if retfig:
+    if retfig and fig != None:
         return fig
     else:
         return outdict
@@ -486,23 +489,45 @@ def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',N=1000
     return outlist
 
 def SEDvsTime120119A():
-    # first do fixed Av:
-    fig = SEDtimeSimulFit120119A(fixparam='Av',plot=True)
-    
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
+    sedtimelist=copy.deepcopy(objblock.obsdict['PAIRITEL_J'].tmidlist) # have to copy this as it will be changed
+    sedtimelist2=objblock.obsdict['SMARTS_J'].tmidlist[0:3]
+    for time in sedtimelist2:
+        sedtimelist.append(time)
     
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
-    objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
     
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
-    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
+    # 
+    # # first do fixed Av:
+    fig = SEDtimeSimulFit120119A(objblock=objblock,sedtimelist=sedtimelist,fixparam='Av',plot=True,Av_0init=-0.62,Av_1init=0,Av_2init=100)
+    # 
+    
+    # SEDvsTime(objblock,fitlist=['beta'],sedtimelist=sedtimelist)
+    
+    fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],
+        sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig,
+        Av_init=-0.62,beta_init=-1.45,time_thresh=5)
+    
+    
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
+    # objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    # fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
+    # 
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    # objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    # fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],
+    #     sedtimelist=sedtimelist, retfig=True, color='red',fig=fig,Av_init=-0.62,beta_init=-1.45)
+    # 
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
+    # objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
+    # fig = SEDvsTime(objblock, plotsed=False,fitlist=['beta'],
+    #     sedtimelist=sedtimelist, retfig=True, color='green',fig=fig,Av_init=-0.62,beta_init=-1.45)
+    # 
     
     # crappy hack way to go about building up the time list if one of the
     # scopes isnt available for each of the SEDs.  Take two timelists, and append
@@ -514,24 +539,35 @@ def SEDvsTime120119A():
     #         sedtimelist.append(time)
     
     fig.show()
-    
     # now fixed beta
-    fig = SEDtimeSimulFit120119A(fixparam='beta',plot=True)
+    fig = SEDtimeSimulFit120119A(objblock=objblock,sedtimelist=sedtimelist,fixparam='beta',plot=True,beta_0init=-1.45,beta_1init=0,beta_2init=100)
     
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
     objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    sedtimelist=copy.deepcopy(objblock.obsdict['PAIRITEL_J'].tmidlist) # have to copy this as it will be changed
+    sedtimelist2=objblock.obsdict['SMARTS_J'].tmidlist[0:3]
+    for time in sedtimelist2:
+        sedtimelist.append(time)
     fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
 
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
-    objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='red',fig=fig)
+    
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELonly.dat'
+    # objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    # fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='grey',fig=fig)
+    # 
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    # objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    # fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],
+    #     sedtimelist=sedtimelist, retfig=True, color='red',fig=fig,Av_init=-0.62,beta_init=-1.45)
+    # 
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
+    # objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
+    # fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],
+    #     sedtimelist=sedtimelist, retfig=True, color='green',fig=fig,Av_init=-0.62,beta_init=-1.45)
 
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataSMARTSonly.dat'
-    objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['SMARTS_J'].tmidlist
-    fig = SEDvsTime(objblock, plotsed=False,fitlist=['Av'],sedtimelist=sedtimelist, retfig=True, color='green',fig=fig)
     fig.show()
 
     # Doesn't make sense to plot Av and Beta simultaneously with PhotParse because 
