@@ -328,10 +328,9 @@ def timeDepAvBeta(wave_time_list,paramlist):
         from Modelling import Functions
         # Decaying exponential + constant
         # beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
-        beta = Functions.DecayingExponential(time,beta_0,beta_1,beta_2)
         # Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
+        beta = Functions.DecayingExponential(time,beta_0,beta_1,beta_2)
         Av = Functions.DecayingExponential(time,Av_0,Av_1,Av_2)
-        
 
         fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
         
@@ -361,7 +360,7 @@ def histeq(im,nbr_bins=256):
     
     
 def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',
-    correct_late_time_dust=False):
+    correct_late_time_dust=False,time_thresh=5):
     '''Given blocks of data in different colors at various times, fit the SED 
     at each time, tying them all together via a restricted time evolution of 
     parameters.
@@ -374,7 +373,7 @@ def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',
         function.  If the inputs initial_params are the same, you should get
         the same result whether or not you do this step.
     '''
-    time_thresh=5
+    
     utburststr = objblock.utburst # not used?
     galebv=objblock.galebv
     z=objblock.redshift
@@ -651,6 +650,7 @@ def _align_SED_times(objblock,sedtimelist,time_thresh=5):
                 matched_indices = np.nonzero(abs(tmidarr-sedtime)<time_thresh)[0]
                 # find the length. if its 1, we found one, if its >1, something is wrong
                 if len(matched_indices) == 0:
+                    
                     continue
                 elif len(matched_indices) != 1:
                     raise Exception("Too many matched indices! Threshold too high?")
@@ -742,13 +742,16 @@ def testSEDvsTime(Av_init=-0.62):
 
 def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
     sedtimelist=None, retfig = False, retchi2=False, fig=None, color='grey',plotchi2=False,
-    Av_init=-0.62,beta_init=-1.45):
+    Av_init=-0.62,beta_init=-1.45,time_thresh=5):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
     # threshhold of that time, and build up an SED for each.
     
     if retfig: return the plot
+    
+    timethresh =  Number of seconds we can be off in time from the reference 
+    
     '''
     # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
     fitdict = _getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
@@ -758,11 +761,9 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     galebv=objblock.galebv
     z=objblock.redshift
     
-    time_thresh = 5 # Number of seconds we can be off in time from the reference 
-
     if sedtimelist == None:
         raise ValueError("Please Specify sedtimelist")
-    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)    
     
     paramstr='(%s)' % initial_param
     
@@ -843,7 +844,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         if retfig:
             return(fig)
         fig.show()
-        fig = None
+        
     elif Avlist or betalist: #but not both!!
         if not fig:
             fig=plt.figure()
@@ -889,14 +890,14 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             
             ax_chi2.set_ylabel(r'$\chi^2$')
             ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
-
-    if fig:
+            
+    if fig != None:
         if retfig:
             return(fig)
         fig.show()
         filepath = storepath + 'SEDvsTime.png'
         fig.savefig(filepath)
-        fig = None
+    
     if retchi2:
         return sum(chi2list)
 
