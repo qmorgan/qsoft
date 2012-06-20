@@ -92,26 +92,61 @@ class ObjBlock:
             else:
                 print "No filter for %s, Skipping flux conversion" % (key)
     
-    def PlotLC(self,show=True,save=True):
+    def PlotLC(self,show=True,save=True,legend=True):
         # set font
         rc('font', family='Times New Roman')
         
         fig=plt.figure()
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.loglog()
-
+        
+        # get list of all sources of observations for use in legend-making
+        sources = {}
+        filters = []
         for key, ob in self.obsdict.iteritems():
             if ob.filt != None:
-                upperinds = np.array(ob.isupperlist)
+                if ob.filtstr not in filters:
+                    filters.append(ob.filtstr)
                 detectinds = np.array([not a for a in ob.isupperlist])
-
                 if detectinds.any(): # only plot here if we have at least one detection
-                    ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.gcfluxarr[detectinds],yerr=ob.gcfluxerrarr[detectinds], color=ob.color, fmt=ob.marker)
-                if upperinds.any(): # only plot here if we have at least one detection
-                    ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
+                    if ob.source not in sources: 
+                        sources.update({ob.source:1}) #collecting number of detections for each filter for legend
+                    else:
+                        sources[ob.source]+=1
+        print sources
         
+        #HACK to get most number of sources to left. smarts has most. all alphabetical
+        sourcenames = sources.keys()
+        sourcenames.sort()
+        sourcenames = sourcenames[::-1] #reverse; have smarts first
+        # CAN HACK AS NECESSARY FOR NEW SOURCES - JUST PUT SOURCENAMES IN THE ORDER YOU WANT
+        
+        nsourcelist = [] # get the maximum number of instances for each source
+        for nsource in sources.itervalues():
+            nsourcelist.append(nsource)
+        maxsource = max(nsourcelist)
+        for key, nsource in sources.iteritems():
+            sources[key] = abs(nsource-maxsource) #now the val is how many blank spaces to add for the legend
+        print sources
+            
+        print filters
+        
+        for source in sourcenames: # loop through each source for ordering purposes
+            i=0
+            while i < sources[source]:
+                ax.errorbar((100,100),(100,100),label=' ',color='white',marker=None)
+                i+=1
+            ax.errorbar((100,100),(100,100),label=source,color='white',marker=None)
+            for key, ob in self.obsdict.iteritems():
+                if ob.filt != None and ob.source == source:
+                    upperinds = np.array(ob.isupperlist)
+                    detectinds = np.array([not a for a in ob.isupperlist])
+                    label = ob.filtstr
+                    if detectinds.any(): # only plot here if we have at least one detection
+                        ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.gcfluxarr[detectinds],yerr=ob.gcfluxerrarr[detectinds], color=ob.color, fmt=ob.marker, label=label)
+                    if upperinds.any(): # only plot here if we have at least one upper limit
+                        ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
 
-        
         old_ylim=ax.get_ylim() # saving for later, as gets modified.. 
         
         ax2=ax.twinx()
@@ -123,6 +158,7 @@ class ObjBlock:
         xresttime1=xobstime[1]/(1+self.redshift)
         xrest=(xresttime0,xresttime1)
         ax3.set_xlim(xrest)
+        
         
         
         # duplicate axis for AB mag
@@ -141,9 +177,57 @@ class ObjBlock:
         ax2.set_ylabel('AB Mag')
         ax3.set_xlabel(topxlabel)
         
+        acceptlabels=['K','H','J',"z'","I","i'","R","r'","V","g'","B"]
+        
+        if legend:
+            # hugely convoluted way to get the legend the way I want
+            handles, labels = ax.get_legend_handles_labels()
+            print handles
+            print labels
+            newhandles=[]
+            newlabels=[]
+            # sort the legend symbols
+            i=0
+            strt=0
+            stop=maxsource+1  
+            fullindices = np.arange(0,len(labels))   
+            while i < len(sources):
+                newsublabels=[]
+                sorted_labels=[]
+                new_lab_ind_tup=[]
+                sublabels = labels[strt:stop]
+                indices = np.arange(0,maxsource+1)   
+                
+                lab_ind_tup = zip(sublabels,indices)
+                for labtup in lab_ind_tup:                    
+                    if labtup[0] in sources or labtup[0] == ' ': #only deal with filters
+                        new_lab_ind_tup.append(labtup)
+                    else:
+                        print acceptlabels.index(labtup[0])
+                        sorted_labels.append((acceptlabels.index(labtup[0]),labtup))
+                sorted_labels.sort()
+                print sorted_labels
+                for item in sorted_labels:
+                    new_lab_ind_tup.append(item[1])
+                print lab_ind_tup     
+                print new_lab_ind_tup
+                for indxx in np.arange(0,maxsource+1):
+                    fullindices[lab_ind_tup[indxx][1]+strt]=new_lab_ind_tup[indxx][1]+strt
+                print new_lab_ind_tup
+                strt+=maxsource+1
+                stop+=maxsource+1
+                i+=1
+            print fullindices
+            for indd in fullindices:
+                newlabels.append(labels[indd])
+                newhandles.append(handles[indd])
+            print newlabels
+            
+            ax.legend(newhandles,newlabels,loc=3,numpoints=1,frameon=False,ncol=len(sources))
+        
         if save:
             filepath = storepath + 'LC_' + self.name + '.png' 
-            fig.savefig()
+            fig.savefig(filepath)
         if show:        
             fig.show()
 
