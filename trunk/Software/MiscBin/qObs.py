@@ -176,11 +176,11 @@ class filt:
             self.freq = c/self.wave
             self.energy = h*c/self.wave
         if self.valtype == 'freq':
-            self.freq = self.freq
+            self.freq = self.val
             self.wave = c/self.freq
             self.energy = h*self.freq
         if self.valtype == 'energy':
-            self.energy = self.energy
+            self.energy = self.val
             self.freq = self.energy/h
             self.wave = h*c/self.energy
         
@@ -196,6 +196,9 @@ class filt:
         self.energy_erg = self.energy #no conversion
         self.energy_eV = self.energy * 6.24150974*1E11
         self.energy_J = self.energy * 1E-7
+
+
+xrt1kev=filt(1.6022e-9,valtype='energy',name='XRT 1keV')
 
 # UVOT - source: Poole et al. 2008 and heasarc.nasa.gov/docs/swift/analysis/ for fwhm
 # white values from roming et al 2005 (verified in arxiv/0809.4193)
