@@ -486,7 +486,7 @@ def CorrectLateTimeDust(lateAv,wavearr,fluxarr,fluxerrarr=None):
     else:
         return correctedfluxarr
         
-def powerlawExtRetFlux(wave,paramlist):
+def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None):
     
     '''
     spectral power law + extinction - return flux
@@ -502,6 +502,9 @@ def powerlawExtRetFlux(wave,paramlist):
     # Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
     #                         c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626
     
+    #tie together c1 and c2 if necessary using reichart
+    tiec1c2 = True
+    
     for param in paramlist:
         if param.name == 'Av': Av=param.value
         elif param.name == 'beta': beta=param.value
@@ -516,6 +519,17 @@ def powerlawExtRetFlux(wave,paramlist):
         else: raise Exception ('Invalid parameter')
                 
     
+    if tiec1c2:
+        #errors not implemented yet
+        c1 = -0.064 - 3.275*(c2 - 0.711)
+        # c1err = abs(-0.064 - 3.275*(c2+c2err - 0.711)  - c1)
+        Rv =  3.228 - 2.685*(c2 - 0.721) + 1.806*(c2 - 0.721)**2
+        # Rverr = abs(3.228 - 2.685*(c2+c2err - 0.721) + 1.806*(c2+c2err - 0.721)**2 - Rv)
+        
+        for param in paramlist:
+            if param.name == 'c1': param.value= c1
+            if param.name == 'Rv': param.value= Rv
+    
     fluxarr=np.ones(len(wave)) #just an array of ones
     # c = 2.998E10 #cm/s
     # nu = c/(wave*1E-8) #hertz, for wave in angstroms
@@ -524,11 +538,20 @@ def powerlawExtRetFlux(wave,paramlist):
     extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
     extmodel.EvalCurve(wave,Av/Rv)
     extmodel.UnreddenFlux(fluxarr)
-    flux_normal = const*extmodel.funred*(10000/wave)**beta
+    uvoir_unred = extmodel.funred
+    
+    if xrayflux: # assume xray flux already extinction corrected
+        xray_unred = 1.0
+        totunred = np.append(uvoir_unred,xray_unred)
+        wave = np.append(wave,xraywave) # 1keV @ z=1.728 = 33.821744
+    else:
+        totunred=uvoir_unred
+    flux_normal = totunred*(10000/wave)**beta
+    flux_beta_corrected=const*flux_normal
     # here we're doing 10000/wave to get the constant into a more reasonable
     # range of values for the fit. if we did actual frequency, the constant
     # would be too large and the fit would be too difficult.
-    return flux_normal
+    return flux_beta_corrected
 
 def SEDFitTest(initial_param='smc'):
     '''Proof of concept of SED fitting, using averaged fluxes from dans 
@@ -538,13 +561,24 @@ def SEDFitTest(initial_param='smc'):
     filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
     z=1.728
     galebv=0.108 
+    
+    xrayflux=None
+    xraywave=None
+    xrayeflux=None
+
+    xrayflux=8e-3
+    xraywave=12.398 # 1keV in angstroms
+    xrayeflux=8e-4
+    
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
     
-    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45)
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.05)
+    fitdict['beta']['fixed']=False
     paramstr='(%s)' % initial_param
     
-    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
+    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xrayflux=xrayflux,xrayeflux=xrayeflux,xraywave=xraywave)
 
 def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'],plotmarg=False):
     
@@ -568,7 +602,7 @@ def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fi
     fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     fitdict=_getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
     paramstr='(%s)' % initial_param
-
+    #fitdict['c1']['fixed']=False
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
     
     
@@ -585,6 +619,11 @@ def SEDFitTest2(initial_param='smc'):
     z=1.728
     galebv=0.108
     
+    xrayflux=7000e-3
+    xraywave=12.398 # 1keV in angstroms
+    xrayeflux=7000e-4
+    
+    
     # using SMARTS first epoch magnitudes
     filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
     maglist=[20.07,18.91,18.02,16.96,15.14,14.02,12.94]
@@ -595,8 +634,12 @@ def SEDFitTest2(initial_param='smc'):
     fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
     paramstr='(%s)' % initial_param
     
-    
-    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
+    fitdict['c2']['fixed']=False
+    fitdict['c3']['fixed']=False
+    fitdict['c4']['fixed']=True
+    # fitdict['beta']['fixed']=True
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xrayflux=xrayflux,xrayeflux=xrayeflux,xraywave=xraywave)
     return fitdict
 
 def _align_SED_times(objblock,sedtimelist,time_thresh=5):
@@ -947,7 +990,8 @@ def _get_initial_dust_params(initial_param):
     
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
-            timestr='', paramstr='', plot=True,showfig=False):
+            timestr='', paramstr='', plot=True,showfig=False,
+            xrayflux=None,xrayeflux=None,xraywave=None):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -1035,12 +1079,24 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     galcorrectedfluxarr, galcorrectedfluxerrarr = \
         CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr)
     
+    #append xray values if they exist
+    if xrayflux:
+        galcorrectedfluxarr=np.append(galcorrectedfluxarr,xrayflux)
+        galcorrectedfluxerrarr=np.append(galcorrectedfluxerrarr,xrayeflux)
+        # wavearr=np.append(wavearr,xraywave)
+    
     #correct for redshift
     waverestarr=wavearr/(1+z)
+    if xraywave:
+        xraywavez = xraywave/(1+z)
+    else:
+        xraywavez = None
     
     
-    def f(x): return powerlawExtRetFlux(x,fullparamlist)
-    
+    def f(x): return powerlawExtRetFlux(x,fullparamlist,xrayflux,xraywavez)
+    print len(galcorrectedfluxarr)
+    print len(galcorrectedfluxerrarr)
+    print len(waverestarr)
     outdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
     
     
@@ -1087,6 +1143,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         # ax.scatter(waverestarr,galcorrectedfluxarr,c=wavearr,cmap='jet',s=30,edgecolors='none')
     
         # plot data
+        if xrayflux:
+            galcorrectedfluxarr=galcorrectedfluxarr[:-1] # get rid of the xray point
+            galcorrectedfluxerrarr=galcorrectedfluxerrarr[:-1]
+            
         ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.')
         # annotate data with the filter names
         for name in wavenamearr:
