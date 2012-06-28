@@ -89,16 +89,103 @@ class ObjBlock:
                     wavearr = np.zeros(len(ob.maglist)) + ob.filt.wave_A 
                     ob.gcfluxarr,ob.gcfluxerrarr = \
                         CorrectFluxForGalExt(self.galebv,wavearr,ob.fluxarr,ob.fluxerrarr)
+            elif ob.fluxconv != None:
+                print "Doing direct flux conversion from count rates for %s of %f" % (ob.source,ob.fluxconv)
+                ob.fluxarr = np.array(ob.ctratelist)*ob.fluxconv
+                ob.fluxerrarr = np.array(ob.ctrateerrlist)*ob.fluxconv                
             else:
                 print "No filter for %s, Skipping flux conversion" % (key)
     
-    def PlotLC(self,show=True,save=True,legend=True):
+    def PlotXRTlc(self,show=True,save=True,legend=True,obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K']):
         # set font
+        # EDIT TO SHOW MORE THAN JUST BAT/XRT/KBAND
+        
+        
         rc('font', family='Times New Roman')
         
         fig=plt.figure()
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.loglog()
+        
+        if not 'XRT_unknown' in self.obsdict:
+            print 'Cannot find XRT data; skipping plot'
+            return
+        
+        
+        
+        for obstr in obslist:
+            ob = self.obsdict[obstr]
+            label= obstr.replace('_',' ')
+            label= label.replace(' unknown','')
+            detectinds = np.array([not a for a in ob.isupperlist])     
+            ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.fluxarr[detectinds],yerr=ob.fluxerrarr[detectinds], color=ob.color, fmt=ob.marker, label=label)
+        
+
+        # COPY FROM PlotLC
+        old_ylim=ax.get_ylim() # saving for later, as gets modified.. 
+        
+        ax2=ax.twinx()
+        ax3=ax.twiny()
+        ax3.loglog()
+        
+        xobstime=ax.get_xlim()
+        xresttime0=xobstime[0]/(1+self.redshift)
+        xresttime1=xobstime[1]/(1+self.redshift)
+        xrest=(xresttime0,xresttime1)
+        ax3.set_xlim(xrest)
+        
+        # duplicate axis for AB mag
+        ax.set_ylim(old_ylim)
+        ylimflux=ax.get_ylim()
+        ylimmag0=flux2abmag(ylimflux[0])
+        ylimmag1=flux2abmag(ylimflux[1])
+        ylimmag=(ylimmag0,ylimmag1)
+        ax2.set_ylim(ylimmag)
+        
+        # Label the axes
+        ax.set_ylabel(r'$F_\nu$ (uJy)')
+        zsubscript=str(self.redshift)
+        topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
+        ax.set_xlabel(r'$t$ (s)')
+        ax2.set_ylabel('AB Mag')
+        ax3.set_xlabel(topxlabel)
+        
+        ax.legend(loc=3,numpoints=1,frameon=False)
+        if save:
+            filepath = storepath + 'LCxrt_' + self.name + '.png' 
+            fig.savefig(filepath)
+        if show:        
+            fig.show()
+        
+    
+    def PlotResiduals(self,show=True,save=True):
+        ## HACK
+        pass
+    
+    def PlotLC(self,show=True,save=True,legend=True,residualscale=False):
+        # set font
+        rc('font', family='Times New Roman')
+        
+        fig=plt.figure(figsize=(11.5,8))
+        ax=fig.add_axes([0.1,0.1,0.8,0.8])
+        ax.loglog()
+        
+        ## HACK THiS IS AWFUL AND REMOVES DATA. for use ONLY for one time plots
+        if residualscale:
+            filtlist=['K','H','J',"z'",'I',"i'",'R',"r'",'V','B'] # liverpool are just estimates!
+            removelist=[]
+            fluxconv = [4602.3669,2656.0123,1519.099,850,473.2668,400,242.7565,240,136.0467,57.6771]
+            sed=zip(filtlist,fluxconv)
+            for key, ob in self.obsdict.iteritems():
+                if ob.filtstr not in filtlist:
+                    removelist.append(key)
+                else:
+                    index = filtlist.index(ob.filtstr)
+                    ob.gcfluxarr*=fluxconv[0]/fluxconv[index]
+                    ob.gcfluxerrarr*=fluxconv[0]/fluxconv[index]
+            for key in removelist:
+                del(self.obsdict[key])
+        ##HACK
         
         # get list of all sources of observations for use in legend-making
         sources = {}
@@ -146,7 +233,7 @@ class ObjBlock:
                         ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.gcfluxarr[detectinds],yerr=ob.gcfluxerrarr[detectinds], color=ob.color, fmt=ob.marker, label=label)
                     if upperinds.any(): # only plot here if we have at least one upper limit
                         ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
-
+        # ax.set_ylim(1,1E5)
         old_ylim=ax.get_ylim() # saving for later, as gets modified.. 
         
         ax2=ax.twinx()
@@ -280,6 +367,10 @@ class ObsBlock:
         self.magerrlist=[]
         self.ctratelist=[]
         self.ctrateerrlist=[]
+        if self.source.lower() == 'xrt' or self.source.lower() == 'bat':
+            self.fluxconv = float(indict['fluxconv'])
+        else:
+            self.fluxconv = None
         self.isupperlist=[]
         self.tmidlist=[]
         self.explist=[]
@@ -301,6 +392,10 @@ class ObsBlock:
             self.marker='h' # hexagon
         elif self.source.lower()=='xrt':
             self.marker='x' # x
+            self.color='#333333'
+        elif self.source.lower()=='bat':
+            self.marker='+' # .
+            self.color='#999999'
         else:
             self.marker='p' # pentagon
             print "unknown source of %s, using default marker" % self.source
@@ -353,7 +448,7 @@ class ObsBlock:
         if not hasattr(self,'filt'): 
             print '  Could not find appropriate filt object for filtstr %s on source %s; assigning as None' % (self.filtstr,self.source)
             self.filt = None
-            self.color='#DDDDDD'
+            self.color='#999999'
         
     def updateObs(self,indict):
         # update flux/mag values
@@ -588,7 +683,8 @@ def PhotParse(filename,verbose=False):
             'utburst':'unknown',
             'galebv':'unknown',
             'redshift':'unknown',
-            'name':'unknown'
+            'name':'unknown',
+            'fluxconv':'unknown'
             }
     
     parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim','ctrate','ectrate']
