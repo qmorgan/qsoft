@@ -189,8 +189,12 @@ class FM(Extinction):
         curve=ebv*curve
         self.curve = curve
         
-        
-        
+##############################################################################      
+######################## default dust parameters #############################
+##############################################################################
+###### Testing some implementations of fmmodel; also used later in tests #####     
+##############################################################################
+
 def avgsmc(R_V = 2.74):
     '''
     These models should just take Av, Beta, flux vector, and wavelength vector, 
@@ -242,249 +246,13 @@ def avgmw(R_V = 3.1,c3 = 3.23,c4 = 0.41):
     fmmodel=FM(R_V,c1,c2,c3,c4,gamma,x0)
     return fmmodel
 
-def powerlawExt(wave,flux,Av=0.0,beta=0.0):
-    '''
-    wave = wavelength vector in angstroms 
-    Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
-    
-    FOR NOW JUST USE SMC - Update this if you ever want to use this function
-    for something other than TestPowerlawExt
-    '''
-    c = 2.998E10 #cm/s
-    nu = c/(wave*1E-8) #hertz, for wave in angstroms
-    nu_0 = min(nu) #valid???
-    flux_normal = flux*(nu/nu_0)**beta
-    
-    Rv=2.74
-    extmodel=avgsmc(R_V=Rv)
-    extmodel.EvalCurve(wave,Av/Rv)
-    extmodel.UnreddenFlux(flux_normal)
-    return extmodel
 
+##############################################################################      
+############################# functional forms ###############################
+##############################################################################
+###### Testing some implementations of fmmodel; also used later in tests #####     
+##############################################################################
 
-def timeDepAvBeta(wave_time_list,paramlist):
-    '''Allowing for Av and Beta to change with time
-    
-    wave_time_list: [(1200,60.2),(1800,60.2),(1200,112.8),(1800,112.8)]
-    norm_vec: vector of normalizations (replacing const) - one for each time
-    Av_0: limit at large time
-    Av_1: normalization const
-    Av_2: decay index
-    beta_0: limit at large time
-    beta_1: normalization const
-    beta_2: decay index
-    
-    Av(t) = Av_0 + Av_1*t^{Av_2}
-    beta(t) = beta_0 + beta_1*t^{beta_2}
-    
-    f(t) = f_corr(t)*(nu/nu_0)^-beta(t)
-    where f_corr(t) is the time-dependent extinction corrected normalized flux
-    '''
-    norm_vec=[]
-    for param in paramlist:
-        if param.name == 'Av_0': Av_0=param.value
-        elif param.name == 'Av_1': Av_1=param.value
-        elif param.name == 'Av_2': Av_2=param.value
-        elif param.name == 'beta_0': beta_0=param.value
-        elif param.name == 'beta_1': beta_1=param.value
-        elif param.name == 'beta_2': beta_2=param.value
-        elif param.name[0:5] == 'const': norm_vec.append(param) # worry about ordering here?
-        elif param.name == 'Rv': Rv=param.value
-        elif param.name == 'c1': c1=param.value
-        elif param.name == 'c2': c2=param.value
-        elif param.name == 'c3': c3=param.value
-        elif param.name == 'c4': c4=param.value
-        elif param.name == 'gamma': gamma=param.value
-        elif param.name == 'x0': x0=param.value
-        else: raise Exception ('Invalid parameter')
-
-    
-    
-    longwavelist, longtimelist = zip(*wave_time_list)
-    timelist=[] # vector of all the times (one per entry) in order they appear in longwave_timelist
-    for entry in longtimelist:
-        if not entry in timelist:
-            timelist.append(entry)
-
-    longwavearr=np.array(longwavelist)
-    longtimearr=np.array(longtimelist)
-    
-    # assume extmodel doesn't change with time
-    extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
-    # for each time
-    flux_out=[]
-
-    for time in timelist:
-        count = timelist.index(time)
-        # get the wavelength indices of that time:
-        inds=q.where(longtimearr,time)
-        wavearr=longwavearr[inds] # vector of wavelengths; should be multi-length
-        const = norm_vec[count].value
-        # print "%f: %s" % (time, norm_vec[count].name)
-        
-        ### FUNCTIONAL FORMS OF BETA AND Av
-        # beta = beta_0 + beta_1*(time**(beta_2))
-        # Av = Av_0 + Av_1*(time**(Av_2))
-        from Modelling import Functions
-        # Decaying exponential + constant
-        # beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
-        # Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
-        beta = Functions.DecayingExponential(time,beta_0,beta_1,beta_2)
-        Av = Functions.DecayingExponential(time,Av_0,Av_1,Av_2)
-
-        fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
-        
-        extmodel.EvalCurve(wavearr,Av/Rv)
-        extmodel.UnreddenFlux(fluxarr)
-        
-        extmodel.UnreddenFlux(fluxarr)
-        flux_normal_arr = const*extmodel.funred*(10000/wavearr)**beta
-        for flux_normal in flux_normal_arr:
-            flux_out.append(flux_normal) # append the resultant array to the list
-        
-    return flux_out
-
-
-def histeq(im,nbr_bins=256):
-
-   #get image histogram
-   imhist,bins = np.histogram(im.flatten(),nbr_bins,normed=True)
-   cdf = imhist.cumsum() #cumulative distribution function
-   cdf = 255 * cdf / cdf[-1] #normalize
-
-   #use linear interpolation of cdf to find new pixel values
-   im2 = np.interp(im.flatten(),bins[:-1],cdf)
-
-   return im2.reshape(im.shape), cdf
-
-    
-    
-def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',
-    correct_late_time_dust=False,time_thresh=5):
-    '''Given blocks of data in different colors at various times, fit the SED 
-    at each time, tying them all together via a restricted time evolution of 
-    parameters.
-    
-    If correct_late_time_dust:
-        instead of taking the late time dust parameter Av_0 as set, do an
-        internal unreddening of the dust before doing the fit. This will allow
-        the late time dust to be modelled as a different type than the early
-        time dust.  Late time dust parameters come from CorrectLateTimeDust 
-        function.  If the inputs initial_params are the same, you should get
-        the same result whether or not you do this step.
-    '''
-    
-    utburststr = objblock.utburst # not used?
-    galebv=objblock.galebv
-    z=objblock.redshift
-    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
-
-
-    # BUILD UP PARAMETERS
-    fullparamlist = []
-    fitparamlist = [] 
-    fixparamlist = []
-
-    #set parameters
-    for key, val in fitdict.iteritems():
-        param = qFit.Param(val['init'],name=key)
-        fullparamlist.append(param)
-        if val['fixed'] == False:
-            fitparamlist.append(param)
-        elif val['fixed'] == True:
-            fixparamlist.append(param)
-        else:
-            raise ValueError('Invalid value for Fixed. Must be True/False.')
-    
-    
-    # build up x-vector of tuples and y_vector and y_err vector
-    # this may need to be moved to the other function....
-    longfiltlist=[]
-    longwavelist=[] # wavelength in angstroms
-    longtimelist=[]
-    longwavenamelist=[]
-    longmaglist=[]
-    longmagerrlist=[]
-    
-    # break apart the aligndict into various arrays
-    for sedtimestr, val in aligndict.iteritems():
-        for filt in val['filtlist']: 
-            longfiltlist.append(filt)
-            longwavelist.append(filt.wave_A)
-            longtimelist.append(val['sedtime'])
-            longwavenamelist.append(filt.name)
-        for mag in val['maglist']: longmaglist.append(mag)
-        for magerr in val['magerrlist']: longmagerrlist.append(magerr)
-
-    longfluxarr, longfluxerrarr = maglist2fluxarr(longmaglist,longmagerrlist,longfiltlist)
-    
-    longwavearr=np.array(longwavelist)
-    longtimearr=np.array(longtimelist)
-    
-    # correct for galactic extinction
-    if galebv == 0.0:
-        print "\nWARNING: Not correcting for galactic extinction\n"
-    galcorrectedfluxarr, galcorrectedfluxerrarr = \
-        CorrectFluxForGalExt(galebv,longwavearr,longfluxarr,longfluxerrarr)
-    
-
-    #correct for redshift
-    longwaverestarr=longwavearr/(1+z)
-    longtimerestarr=longtimearr/(1+z)
-    
-    
-    if correct_late_time_dust:
-        for param in fullparamlist:
-            if param.name == 'Av_0':
-                lateAv=-1*param.value
-                param.value=0.0
-                print lateAv
-        galcorrectedfluxarr, galcorrectedfluxerrarr = \
-            CorrectLateTimeDust(lateAv,longwaverestarr,galcorrectedfluxarr,galcorrectedfluxerrarr)
-    
-    #zip them together with the corresponding times
-    longwave_timearr=zip(longwaverestarr,longtimerestarr)
-    
-    
-    def f(x): return timeDepAvBeta(x,fullparamlist)
-    
-    outdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
-    return outdict
-    
-def CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr=None):
-    '''
-    Use the FM implementation of the average milkyway extinction to unredden
-    the flux due to the galactic sightlines.
-    '''
-    galAv=galebv*3.1 #Rv=3.1 for mw
-    mw=avgmw()
-    mw.EvalCurve(wavearr,galebv)
-    mw.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
-    galcorrectedfluxarr=mw.funred
-    mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
-    galcorrectedfluxerrarr=mw.funred
-    if fluxerrarr != None:
-        return galcorrectedfluxarr, galcorrectedfluxerrarr
-    else:
-        return galcorrectedfluxarr
-    
-def CorrectLateTimeDust(lateAv,wavearr,fluxarr,fluxerrarr=None):
-    '''
-    Use the FM implementation to correct the late time flux beforehand
-    This can be used to fix the late time flux as fixed, while allowing a different
-    kind of extinction for the early time dust addition.
-    '''
-    smc=avgsmc()
-    lateebv=lateAv/smc.R_V #Rv = 2.74 for smc
-    smc.EvalCurve(wavearr,lateebv)
-    smc.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
-    correctedfluxarr=smc.funred
-    smc.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
-    correctedfluxerrarr=smc.funred
-    if fluxerrarr != None:
-        return correctedfluxarr, correctedfluxerrarr
-    else:
-        return correctedfluxarr
         
 def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None):
     
@@ -572,107 +340,166 @@ def retBeta(waves,refwave,fluxatwave,beta):
 
     return flux_corr
 
-def SEDFitTest(initial_param='smc'):
-    '''Proof of concept of SED fitting, using averaged fluxes from dans 
-    lcurve fitting.  
-    NOTE THE ERRORS ARE MADE UP HERE. Do not trust wholly.
+
+
+def powerlawExt(wave,flux,Av=0.0,beta=0.0):
     '''
-    filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
-    z=1.728
-    galebv=0.108 
+    wave = wavelength vector in angstroms 
+    Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
     
-    xrayflux=None
-    xraywave=None
-    xrayeflux=None
+    FOR NOW JUST USE SMC - Update this if you ever want to use this function
+    for something other than TestPowerlawExt
+    '''
+    c = 2.998E10 #cm/s
+    nu = c/(wave*1E-8) #hertz, for wave in angstroms
+    nu_0 = min(nu) #valid???
+    flux_normal = flux*(nu/nu_0)**beta
+    
+    Rv=2.74
+    extmodel=avgsmc(R_V=Rv)
+    extmodel.EvalCurve(wave,Av/Rv)
+    extmodel.UnreddenFlux(flux_normal)
+    return extmodel
 
-    xbetaneg= None
-    xbeta= None
-    xbetapos = None
-    
-    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
-        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}
 
+def timeDepAvBeta(wave_time_list,paramlist):
+    '''Allowing for Av and Beta to change with time
     
-    fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
-    fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
+    wave_time_list: [(1200,60.2),(1800,60.2),(1200,112.8),(1800,112.8)]
+    norm_vec: vector of normalizations (replacing const) - one for each time
+    Av_0: limit at large time
+    Av_1: normalization const
+    Av_2: decay index
+    beta_0: limit at large time
+    beta_1: normalization const
+    beta_2: decay index
     
-    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.05)
-    fitdict['beta']['fixed']=False
-    paramstr='(%s)' % initial_param
+    Av(t) = Av_0 + Av_1*t^{Av_2}
+    beta(t) = beta_0 + beta_1*t^{beta_2}
     
-    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-        xraydict=xraydict)
+    f(t) = f_corr(t)*(nu/nu_0)^-beta(t)
+    where f_corr(t) is the time-dependent extinction corrected normalized flux
+    '''
+    norm_vec=[]
+    for param in paramlist:
+        if param.name == 'Av_0': Av_0=param.value
+        elif param.name == 'Av_1': Av_1=param.value
+        elif param.name == 'Av_2': Av_2=param.value
+        elif param.name == 'beta_0': beta_0=param.value
+        elif param.name == 'beta_1': beta_1=param.value
+        elif param.name == 'beta_2': beta_2=param.value
+        elif param.name[0:5] == 'const': norm_vec.append(param) # worry about ordering here?
+        elif param.name == 'Rv': Rv=param.value
+        elif param.name == 'c1': c1=param.value
+        elif param.name == 'c2': c2=param.value
+        elif param.name == 'c3': c3=param.value
+        elif param.name == 'c4': c4=param.value
+        elif param.name == 'gamma': gamma=param.value
+        elif param.name == 'x0': x0=param.value
+        else: raise Exception ('Invalid parameter')  
+    
+    longwavelist, longtimelist = zip(*wave_time_list)
+    timelist=[] # vector of all the times (one per entry) in order they appear in longwave_timelist
+    for entry in longtimelist:
+        if not entry in timelist:
+            timelist.append(entry)
 
-def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'],plotmarg=False):
+    longwavearr=np.array(longwavelist)
+    longtimearr=np.array(longtimelist)
     
-    objblock=PhotParse.PhotParse(directory)
-    z=objblock.redshift
-    galebv=objblock.galebv
-    # loop through the obsdict, which should have one observation per filter
-    # all at a simultaneous time
-    tmidlist = []
-    maglist=[]
-    magerrlist=[]
-    filtlist=[]
-    for obsblock in objblock.obsdict.itervalues():
-        assert len(obsblock.tmidlist) == 1 # should only have one observation
-        assert obsblock.isupperlist[0] == False # should not be upper limit
-        tmidlist.append(obsblock.tmidlist[0])
-        maglist.append(obsblock.maglist[0])
-        magerrlist.append(obsblock.magerrlist[0])
-        filtlist.append(obsblock.filt)
-    
-    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
-    fitdict=_getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
-    paramstr='(%s)' % initial_param
-    #fitdict['c1']['fixed']=False
-    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
-    
-    
-    if plotmarg:
+    # assume extmodel doesn't change with time
+    extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
+    # for each time
+    flux_out=[]
 
-        paramnames = ('Av','beta')
-        qFit.plot_marg_from_fitdict(fitdict,paramnames)
+    for time in timelist:
+        count = timelist.index(time)
+        # get the wavelength indices of that time:
+        inds=q.where(longtimearr,time)
+        wavearr=longwavearr[inds] # vector of wavelengths; should be multi-length
+        const = norm_vec[count].value
+        # print "%f: %s" % (time, norm_vec[count].name)
+        
+        ### FUNCTIONAL FORMS OF BETA AND Av
+        # beta = beta_0 + beta_1*(time**(beta_2))
+        # Av = Av_0 + Av_1*(time**(Av_2))
+        from Modelling import Functions
+        # Decaying exponential + constant
+        # beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
+        # Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
+        beta = Functions.DecayingExponential(time,beta_0,beta_1,beta_2)
+        Av = Functions.DecayingExponential(time,Av_0,Av_1,Av_2)
 
-    
-    return fitdict
+        fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
+        
+        extmodel.EvalCurve(wavearr,Av/Rv)
+        extmodel.UnreddenFlux(fluxarr)
+        
+        extmodel.UnreddenFlux(fluxarr)
+        flux_normal_arr = const*extmodel.funred*(10000/wavearr)**beta
+        for flux_normal in flux_normal_arr:
+            flux_out.append(flux_normal) # append the resultant array to the list
+        
+    return flux_out
 
-def SEDFitTest2(initial_param='smc'):
-    '''another SED fit test, this time starting with magnitudes'''
-    z=1.728
-    galebv=0.108
-    
-    xrayflux=7000e-3
-    xraywave=12.398 # 1keV in angstroms
-    xrayeflux=7000e-4
-    
-    # can obtain these from Gamma in xrt /specpc_report.txt summary report
-    # gamma = 1+beta (for f=f_0 * nu^-beta; note i usually use the opposite convention)
-    xbetaneg= 0.66
-    xbeta= 0.78
-    xbetapos = 0.91
-    
-    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
-        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
-    
-    # using SMARTS first epoch magnitudes
-    filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
-    maglist=[20.07,18.91,18.02,16.96,15.14,14.02,12.94]
-    magerrlist=[0.06,0.05,0.03,0.03,0.05,0.06,0.10]
-    # Convert the fluxes to magnitudes
-    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
-    
-    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
-    paramstr='(%s)' % initial_param
-    
-    fitdict['c2']['fixed']=False
-    # fitdict['c3']['fixed']=False
-    # fitdict['c4']['fixed']=True
-    # fitdict['beta']['fixed']=True
-    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-        xraydict=xraydict)
-    return fitdict
 
+
+##############################################################################      
+############################# Helper Functions ###############################
+##############################################################################
+
+def log_10_product(x, pos):
+    """The two args are the value and tick position.
+    Label ticks with the product of the exponentiation"""
+    return '%1i' % (x)
+
+def histeq(im,nbr_bins=256):
+
+   #get image histogram
+   imhist,bins = np.histogram(im.flatten(),nbr_bins,normed=True)
+   cdf = imhist.cumsum() #cumulative distribution function
+   cdf = 255 * cdf / cdf[-1] #normalize
+
+   #use linear interpolation of cdf to find new pixel values
+   im2 = np.interp(im.flatten(),bins[:-1],cdf)
+
+   return im2.reshape(im.shape), cdf
+
+def CorrectFluxForGalExt(galebv,wavearr,fluxarr,fluxerrarr=None):
+    '''
+    Use the FM implementation of the average milkyway extinction to unredden
+    the flux due to the galactic sightlines.
+    '''
+    galAv=galebv*3.1 #Rv=3.1 for mw
+    mw=avgmw()
+    mw.EvalCurve(wavearr,galebv)
+    mw.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
+    galcorrectedfluxarr=mw.funred
+    mw.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
+    galcorrectedfluxerrarr=mw.funred
+    if fluxerrarr != None:
+        return galcorrectedfluxarr, galcorrectedfluxerrarr
+    else:
+        return galcorrectedfluxarr
+    
+def CorrectLateTimeDust(lateAv,wavearr,fluxarr,fluxerrarr=None):
+    '''
+    Use the FM implementation to correct the late time flux beforehand
+    This can be used to fix the late time flux as fixed, while allowing a different
+    kind of extinction for the early time dust addition.
+    '''
+    smc=avgsmc()
+    lateebv=lateAv/smc.R_V #Rv = 2.74 for smc
+    smc.EvalCurve(wavearr,lateebv)
+    smc.UnreddenFlux(fluxarr) #need to correct the uncertainties as well
+    correctedfluxarr=smc.funred
+    smc.UnreddenFlux(fluxerrarr) #since uncertainties also scale with extinction, can do direct correction 
+    correctedfluxerrarr=smc.funred
+    if fluxerrarr != None:
+        return correctedfluxarr, correctedfluxerrarr
+    else:
+        return correctedfluxarr
+        
 def _align_SED_times(objblock,sedtimelist,time_thresh=5):
     '''
     Given an object block and a list of desired times, return a dictionary 
@@ -767,215 +594,11 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
     
     return fitdict
 
-def testSEDvsTimeChi2():
-    '''Here we compare the output from SEDvsTime to the SEDtimeSimulFit to verify
-    that they give the same chi2 output.  To do this, we have to fix everything but
-    the constants, since SEDtimeSimulFit forces Av or beta to follow a certain 
-    functional form. So this is just a test to make sure that they give the same
-    chi2 value, which they do.
-    '''
-    from GRB120119A import DustModel
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
-    objblock=PhotParse.PhotParse(directory)
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=[])
-    
-    DustModel.SEDtimeSimulFit120119A(defaulttimelist='PAIRITEL',directory=directory,fixparam='all')
-
-
-def testSEDvsTime(Av_init=-0.62):
-    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
-    objblock=PhotParse.PhotParse(directory)
-    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
-    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
-    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
-    for time in addl_sed_times:
-        sedtimelist.append(time)
-    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
-        Av_init=Av_init)
-    
-    
-    time_thresh=5    
-    objblock=PhotParse.PhotParse(directory)    
-    
-    # Now try interpolation
-    from GRB120119A.DustModel import BuildInterpolation
-    interp_type = 'smart'
-    if interp_type != None:
-        directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
-        objblock = BuildInterpolation(interp_type=interp_type)
-        sedtimelist = objblock.sedtimelist #made sedtimelist an attribute in BuildInterpolation
-        # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
-        addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
-        for time in addl_sed_times:
-            sedtimelist.append(time)
-    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
-        Av_init=Av_init)
-    
-    
-
-def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
-    sedtimelist=None, retfig = False, retchi2=False, fig=None, color='grey',plotchi2=False,
-    Av_init=-0.62,beta_init=-1.45,time_thresh=5):
-    '''A function which will take a phot objBlock object from the revamping of
-    PhotParse, loop through each time in a given time list and search through 
-    each set of observations to find those times that overlap within a given 
-    # threshhold of that time, and build up an SED for each.
-    
-    if retfig: return the plot
-    
-    timethresh =  Number of seconds we can be off in time from the reference 
-    
-    '''
-    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
-    fitdict = _getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
-    
-    # objblock=PhotParse.PhotParse(directory)
-    utburststr = objblock.utburst # not used?
-    galebv=objblock.galebv
-    z=objblock.redshift
-    
-    if sedtimelist == None:
-        raise ValueError("Please Specify sedtimelist")
-    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)    
-    
-    paramstr='(%s)' % initial_param
-    
-    timelist = []
-    betalist = []
-    betaerrlist = []
-    Averrlist = []
-    Avlist = []
-    faillist=[]
-    chi2list=[]
-    doflist=[]
-    
-    # loop through each time, building up an SED for each
-    for timestr, val in aligndict.iteritems():
-        maglist=val['maglist'] 
-        magerrlist=val['magerrlist']
-        filtlist=val['filtlist']
-        # convert collected magnitudes to fluxes:
-        fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
-        print '**'
-        print [filt.name for filt in filtlist]
-        print maglist
-        print magerrlist
-        print fluxarr
-        print fluxerrarr
-        print '**'
-        # perform SED fit
-        try:
-            outdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,timestr=timestr,paramstr=paramstr,plot=plotsed)
-        except:
-            faillist.append(timestr)
-            continue
-        # build up the lists of fit parameters
-        timelist.append(val['sedtime'])
-        for param in outdict['parameters']:
-            if param.name == 'Av':
-                Avlist.append(param.value)
-                Averrlist.append(param.uncertainty)
-            if param.name == 'beta':
-                betalist.append(param.value)
-                betaerrlist.append(param.uncertainty)
-        chi2list.append(outdict['chi2'])
-        doflist.append(outdict['dof'])
-   
-    if faillist:
-        print "SED Fit failed for times:"
-        print faillist
-    
-    print "Total Chi2: ", sum(chi2list), ' / ', sum(doflist), ' = ', sum(chi2list)/sum(doflist)
-    timearr = np.array(timelist)
-    resttimearr = timearr/(1+z)    
-    # plot the fit parameters
-    axindex = 0
-    if Avlist and betalist:
-        # pass
-        if not fig:
-            fig=plt.figure()
-            ax1=fig.add_axes([0.1,0.5,0.8,0.4])
-            ax2=fig.add_axes([0.1,0.1,0.8,0.4])
-            
-            ax1.semilogx()
-            ax2.semilogx()
-        else:
-            ax=fig.get_axes()[axindex]
-            axindex += 1
-        plotAvlist=-1*np.array(Avlist)
-        ax2.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
-        ax2.set_ylabel(r'$A_V $')
-        ax2.set_xlabel(r'$t$ (s, rest frame)')
-        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-        ax1.set_ylabel(r'$\beta$')
-        ax1.set_xlabel(r'$t$ (s, rest frame)')
-        
-        # Adjust tickmarks
-        ax1.set_xticks(ax1.get_xticks()[1:-1])
-        ax1.set_yticks(ax1.get_yticks()[1:])
-        
-        if retfig:
-            return(fig)
-        fig.show()
-        
-    elif Avlist or betalist: #but not both!!
-        if not fig:
-            fig=plt.figure()
-            if not plotchi2:
-                ax1=fig.add_axes([0.1,0.1,0.8,0.8])
-                ax1.semilogx()
-            else:
-                ax1=fig.add_axes([0.1,0.4,0.8,0.5])
-                ax_chi2=fig.add_axes([0.1,0.1,0.8,0.3])
-                ax1.semilogx()
-                ax_chi2.semilogx()
-        else:
-            plotchi2=False # cant plot chi2 if being given a figure
-            ax1=fig.get_axes()[axindex]
-            axindex += 1 
-        if Avlist:
-            plotAvlist=-1*np.array(Avlist)
-            ax1.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
-            ax1.set_ylabel(r'$A_V$')
-            ax1.set_xlabel(r'$t$ (s, rest frame)')
-            
-            string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
-            fig.text(0.55,0.3,string)
-            string = 'beta = %s (fixed)' % (beta_init)
-            fig.text(0.55,0.5,string)
-        elif betalist:
-            ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-            ax1.set_ylabel(r'$\beta$')
-            ax1.set_xlabel(r'$t$ (s, rest frame)')
-            
-            string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
-            fig.text(0.55,0.3,string)
-            string = 'Av = %.2f (fixed)' % (-1*float(Av_init)) # negate Av
-            fig.text(0.55,0.5,string)
-        if plotchi2:
-            ax_chi2.scatter(resttimearr,chi2list,color=color)
-            ylim = ax_chi2.get_ylim()
-            ax_chi2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
-            
-            ax1.set_xticks(ax1.get_xticks()[1:-1])
-            ax1.set_yticks(ax1.get_yticks()[1:])
-            ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
-            
-            ax_chi2.set_ylabel(r'$\chi^2$')
-            ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
-            
-    if fig != None:
-        if retfig:
-            return(fig)
-        fig.show()
-        filepath = storepath + 'SEDvsTime.png'
-        fig.savefig(filepath)
-    
-    if retchi2:
-        return sum(chi2list)
-
 def _get_initial_dust_params(initial_param):
+    '''
+    lookup table to obtain the initial parameters for a variety of dust laws as 
+    listed in acceptable_initial_param_list.  
+    '''
     acceptable_initial_param_list=['smc','lmc','lmc2','mw']
     if not initial_param in acceptable_initial_param_list:
         print 'Initial parameter set of %s is not valid. Please choose from:' % (initial_param)
@@ -1018,8 +641,72 @@ def _get_initial_dust_params(initial_param):
         gamma_init = 0.99
         x0_init = 4.596
     return Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init
+
+
+
+##############################################################################      
+############################# Fitting Functions ##############################
+##############################################################################
+###### Main SED Fit, SED vs Time, and SEDSimulfit base functions here ########     
+##############################################################################
+
+def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'],plotmarg=False):
+    '''Wrapper around SEDfit to do it based on the directory alone. 
+    Requires a file of type:
+    
+    @name=GRB120119A
+    @inunit=sec
+    @expunit=sec
+    @utburst=04:04:30.21
+    @galebv=0.108
+    @redshift=1.728
+
+    @inunit=hours
+    @expunit=min
+    @source=SMARTS
+    % tmid	filt	exp		mag +/- emag	lim
+    0.64466	B		3.0		20.07 +/- 0.06	
+    0.64466	V		2.0		18.91 +/- 0.05
+    0.64466	R		3.0		18.02 +/- 0.03
+    0.64466	I		3.0		16.96 +/- 0.03
+    0.64466	J		3.0		15.14 +/- 0.05
+    0.64466	H		2.0		14.02 +/- 0.06
+    0.64466 K		3.0		12.94 +/- 0.10
+    
+    '''
+    objblock=PhotParse.PhotParse(directory)
+    z=objblock.redshift
+    galebv=objblock.galebv
+    # loop through the obsdict, which should have one observation per filter
+    # all at a simultaneous time
+    tmidlist = []
+    maglist=[]
+    magerrlist=[]
+    filtlist=[]
+    for obsblock in objblock.obsdict.itervalues():
+        assert len(obsblock.tmidlist) == 1 # should only have one observation
+        assert obsblock.isupperlist[0] == False # should not be upper limit
+        tmidlist.append(obsblock.tmidlist[0])
+        maglist.append(obsblock.maglist[0])
+        magerrlist.append(obsblock.magerrlist[0])
+        filtlist.append(obsblock.filt)
+    
+    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    fitdict=_getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
+    paramstr='(%s)' % initial_param
+    #fitdict['c1']['fixed']=False
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
     
     
+    if plotmarg:
+
+        paramnames = ('Av','beta')
+        qFit.plot_marg_from_fitdict(fitdict,paramnames)
+
+    return fitdict
+  
+  
+   
 def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             timestr='', paramstr='', plot=True,showfig=False,
             xraydict={}):
@@ -1321,11 +1008,267 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
 
             
     return outdict
+    
 
-def log_10_product(x, pos):
-    """The two args are the value and tick position.
-    Label ticks with the product of the exponentiation"""
-    return '%1i' % (x)
+
+def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
+    sedtimelist=None, retfig = False, retchi2=False, fig=None, color='grey',plotchi2=False,
+    Av_init=-0.62,beta_init=-1.45,time_thresh=5):
+    '''A function which will take a phot objBlock object from the revamping of
+    PhotParse, loop through each time in a given time list and search through 
+    each set of observations to find those times that overlap within a given 
+    # threshhold of that time, and build up an SED for each.
+    
+    if retfig: return the plot
+    
+    timethresh =  Number of seconds we can be off in time from the reference 
+    
+    '''
+    # directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    fitdict = _getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
+    
+    # objblock=PhotParse.PhotParse(directory)
+    utburststr = objblock.utburst # not used?
+    galebv=objblock.galebv
+    z=objblock.redshift
+    
+    if sedtimelist == None:
+        raise ValueError("Please Specify sedtimelist")
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)    
+    
+    paramstr='(%s)' % initial_param
+    
+    timelist = []
+    betalist = []
+    betaerrlist = []
+    Averrlist = []
+    Avlist = []
+    faillist=[]
+    chi2list=[]
+    doflist=[]
+    
+    # loop through each time, building up an SED for each
+    for timestr, val in aligndict.iteritems():
+        maglist=val['maglist'] 
+        magerrlist=val['magerrlist']
+        filtlist=val['filtlist']
+        # convert collected magnitudes to fluxes:
+        fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+        print '**'
+        print [filt.name for filt in filtlist]
+        print maglist
+        print magerrlist
+        print fluxarr
+        print fluxerrarr
+        print '**'
+        # perform SED fit
+        try:
+            outdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,timestr=timestr,paramstr=paramstr,plot=plotsed)
+        except:
+            faillist.append(timestr)
+            continue
+        # build up the lists of fit parameters
+        timelist.append(val['sedtime'])
+        for param in outdict['parameters']:
+            if param.name == 'Av':
+                Avlist.append(param.value)
+                Averrlist.append(param.uncertainty)
+            if param.name == 'beta':
+                betalist.append(param.value)
+                betaerrlist.append(param.uncertainty)
+        chi2list.append(outdict['chi2'])
+        doflist.append(outdict['dof'])
+   
+    if faillist:
+        print "SED Fit failed for times:"
+        print faillist
+    
+    print "Total Chi2: ", sum(chi2list), ' / ', sum(doflist), ' = ', sum(chi2list)/sum(doflist)
+    timearr = np.array(timelist)
+    resttimearr = timearr/(1+z)    
+    # plot the fit parameters
+    axindex = 0
+    if Avlist and betalist:
+        # pass
+        if not fig:
+            fig=plt.figure()
+            ax1=fig.add_axes([0.1,0.5,0.8,0.4])
+            ax2=fig.add_axes([0.1,0.1,0.8,0.4])
+            
+            ax1.semilogx()
+            ax2.semilogx()
+        else:
+            ax=fig.get_axes()[axindex]
+            axindex += 1
+        plotAvlist=-1*np.array(Avlist)
+        ax2.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
+        ax2.set_ylabel(r'$A_V $')
+        ax2.set_xlabel(r'$t$ (s, rest frame)')
+        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
+        ax1.set_ylabel(r'$\beta$')
+        ax1.set_xlabel(r'$t$ (s, rest frame)')
+        
+        # Adjust tickmarks
+        ax1.set_xticks(ax1.get_xticks()[1:-1])
+        ax1.set_yticks(ax1.get_yticks()[1:])
+        
+        if retfig:
+            return(fig)
+        fig.show()
+        
+    elif Avlist or betalist: #but not both!!
+        if not fig:
+            fig=plt.figure()
+            if not plotchi2:
+                ax1=fig.add_axes([0.1,0.1,0.8,0.8])
+                ax1.semilogx()
+            else:
+                ax1=fig.add_axes([0.1,0.4,0.8,0.5])
+                ax_chi2=fig.add_axes([0.1,0.1,0.8,0.3])
+                ax1.semilogx()
+                ax_chi2.semilogx()
+        else:
+            plotchi2=False # cant plot chi2 if being given a figure
+            ax1=fig.get_axes()[axindex]
+            axindex += 1 
+        if Avlist:
+            plotAvlist=-1*np.array(Avlist)
+            ax1.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
+            ax1.set_ylabel(r'$A_V$')
+            ax1.set_xlabel(r'$t$ (s, rest frame)')
+            
+            string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
+            fig.text(0.55,0.3,string)
+            string = 'beta = %s (fixed)' % (beta_init)
+            fig.text(0.55,0.5,string)
+        elif betalist:
+            ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
+            ax1.set_ylabel(r'$\beta$')
+            ax1.set_xlabel(r'$t$ (s, rest frame)')
+            
+            string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
+            fig.text(0.55,0.3,string)
+            string = 'Av = %.2f (fixed)' % (-1*float(Av_init)) # negate Av
+            fig.text(0.55,0.5,string)
+        if plotchi2:
+            ax_chi2.scatter(resttimearr,chi2list,color=color)
+            ylim = ax_chi2.get_ylim()
+            ax_chi2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
+            
+            ax1.set_xticks(ax1.get_xticks()[1:-1])
+            ax1.set_yticks(ax1.get_yticks()[1:])
+            ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
+            
+            ax_chi2.set_ylabel(r'$\chi^2$')
+            ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
+            
+    if fig != None:
+        if retfig:
+            return(fig)
+        fig.show()
+        filepath = storepath + 'SEDvsTime.png'
+        fig.savefig(filepath)
+    
+    if retchi2:
+        return sum(chi2list)
+
+
+def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',
+    correct_late_time_dust=False,time_thresh=5):
+    '''Given blocks of data in different colors at various times, fit the SED 
+    at each time, tying them all together via a restricted time evolution of 
+    parameters.
+    
+    If correct_late_time_dust:
+        instead of taking the late time dust parameter Av_0 as set, do an
+        internal unreddening of the dust before doing the fit. This will allow
+        the late time dust to be modelled as a different type than the early
+        time dust.  Late time dust parameters come from CorrectLateTimeDust 
+        function.  If the inputs initial_params are the same, you should get
+        the same result whether or not you do this step.
+    '''
+    
+    utburststr = objblock.utburst # not used?
+    galebv=objblock.galebv
+    z=objblock.redshift
+    aligndict = _align_SED_times(objblock,sedtimelist,time_thresh=time_thresh)
+
+
+    # BUILD UP PARAMETERS
+    fullparamlist = []
+    fitparamlist = [] 
+    fixparamlist = []
+
+    #set parameters
+    for key, val in fitdict.iteritems():
+        param = qFit.Param(val['init'],name=key)
+        fullparamlist.append(param)
+        if val['fixed'] == False:
+            fitparamlist.append(param)
+        elif val['fixed'] == True:
+            fixparamlist.append(param)
+        else:
+            raise ValueError('Invalid value for Fixed. Must be True/False.')
+    
+    
+    # build up x-vector of tuples and y_vector and y_err vector
+    # this may need to be moved to the other function....
+    longfiltlist=[]
+    longwavelist=[] # wavelength in angstroms
+    longtimelist=[]
+    longwavenamelist=[]
+    longmaglist=[]
+    longmagerrlist=[]
+    
+    # break apart the aligndict into various arrays
+    for sedtimestr, val in aligndict.iteritems():
+        for filt in val['filtlist']: 
+            longfiltlist.append(filt)
+            longwavelist.append(filt.wave_A)
+            longtimelist.append(val['sedtime'])
+            longwavenamelist.append(filt.name)
+        for mag in val['maglist']: longmaglist.append(mag)
+        for magerr in val['magerrlist']: longmagerrlist.append(magerr)
+
+    longfluxarr, longfluxerrarr = maglist2fluxarr(longmaglist,longmagerrlist,longfiltlist)
+    
+    longwavearr=np.array(longwavelist)
+    longtimearr=np.array(longtimelist)
+    
+    # correct for galactic extinction
+    if galebv == 0.0:
+        print "\nWARNING: Not correcting for galactic extinction\n"
+    galcorrectedfluxarr, galcorrectedfluxerrarr = \
+        CorrectFluxForGalExt(galebv,longwavearr,longfluxarr,longfluxerrarr)
+    
+
+    #correct for redshift
+    longwaverestarr=longwavearr/(1+z)
+    longtimerestarr=longtimearr/(1+z)
+    
+    
+    if correct_late_time_dust:
+        for param in fullparamlist:
+            if param.name == 'Av_0':
+                lateAv=-1*param.value
+                param.value=0.0
+                print lateAv
+        galcorrectedfluxarr, galcorrectedfluxerrarr = \
+            CorrectLateTimeDust(lateAv,longwaverestarr,galcorrectedfluxarr,galcorrectedfluxerrarr)
+    
+    #zip them together with the corresponding times
+    longwave_timearr=zip(longwaverestarr,longtimerestarr)
+    
+    
+    def f(x): return timeDepAvBeta(x,fullparamlist)
+    
+    outdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,longwave_timearr)
+    return outdict
+    
+
+##############################################################################
+################################ TEST FUNCTIONS ##############################
+##############################################################################
 
 def TestPowerLawExt():
     w=1250. + np.arange(100)*100.
@@ -1513,3 +1456,119 @@ def Test120119A():
     return b
     
 
+def SEDFitTest(initial_param='smc'):
+    '''Proof of concept of SED fitting, using averaged fluxes from dans 
+    lcurve fitting.  
+    NOTE THE ERRORS ARE MADE UP HERE. Do not trust wholly.
+    '''
+    filtlist=[qObs.B,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
+    z=1.728
+    galebv=0.108 
+    
+    xrayflux=None
+    xraywave=None
+    xrayeflux=None
+
+    xbetaneg= None
+    xbeta= None
+    xbetapos = None
+    
+    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}
+
+    
+    fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
+    fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
+    
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.05)
+    fitdict['beta']['fixed']=False
+    paramstr='(%s)' % initial_param
+    
+    SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict)
+
+def SEDFitTest2(initial_param='smc'):
+    '''another SED fit test, this time starting with magnitudes'''
+    z=1.728
+    galebv=0.108
+    
+    xrayflux=8000e-3
+    xraywave=12.398 # 1keV in angstroms
+    xrayeflux=8000e-4
+    
+    # can obtain these from Gamma in xrt /specpc_report.txt summary report
+    # gamma = 1+beta (for f=f_0 * nu^-beta; note i usually use the opposite convention)
+    xbetaneg= 0.66
+    xbeta= 0.78
+    xbetapos = 0.91
+    
+    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
+    
+    # using SMARTS first epoch magnitudes
+    filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
+    maglist=[20.07,18.91,18.02,16.96,15.14,14.02,12.94]
+    magerrlist=[0.06,0.05,0.03,0.03,0.05,0.06,0.10]
+    # Convert the fluxes to magnitudes
+    fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
+    paramstr='(%s)' % initial_param
+    
+    fitdict['c2']['fixed']=False
+    # fitdict['c3']['fixed']=False
+    # fitdict['c4']['fixed']=True
+    # fitdict['beta']['fixed']=True
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict)
+    return fitdict
+    
+
+def testSEDvsTimeChi2():
+    '''Here we compare the output from SEDvsTime to the SEDtimeSimulFit to verify
+    that they give the same chi2 output.  To do this, we have to fix everything but
+    the constants, since SEDtimeSimulFit forces Av or beta to follow a certain 
+    functional form. So this is just a test to make sure that they give the same
+    chi2 value, which they do.
+    '''
+    from GRB120119A import DustModel
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT.dat'
+    objblock=PhotParse.PhotParse(directory)
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=[])
+    
+    DustModel.SEDtimeSimulFit120119A(defaulttimelist='PAIRITEL',directory=directory,fixparam='all')
+
+
+def testSEDvsTime(Av_init=-0.62):
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/PTELDustCompare/AlignedDataPTELPROMPT+SMARTS.dat'
+    objblock=PhotParse.PhotParse(directory)
+    # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist
+    sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20]#only take the first ptel ones
+    addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+    for time in addl_sed_times:
+        sedtimelist.append(time)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
+        Av_init=Av_init)
+    
+    
+    time_thresh=5    
+    objblock=PhotParse.PhotParse(directory)    
+    
+    # Now try interpolation
+    from GRB120119A.DustModel import BuildInterpolation
+    interp_type = 'smart'
+    interp_type = None
+    if interp_type != None:
+        # OLD CODE - NEED TO CHANGE HOW TO DO INTERPOLATIONS TO PROPERLY TEST THEM
+        directory='/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat'
+        objblock = BuildInterpolation(interp_type=interp_type)
+        sedtimelist = objblock.sedtimelist #made sedtimelist an attribute in BuildInterpolation
+        # sedtimelist=objblock.obsdict['PAIRITEL_J'].tmidlist[0:20] #only take the first ptel ones
+        addl_sed_times=objblock.obsdict['SMARTS_J'].tmidlist[0:3] #add the smarts
+        for time in addl_sed_times:
+            sedtimelist.append(time)
+    SEDvsTime(objblock,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
+        Av_init=Av_init)
+    
+    
