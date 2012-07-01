@@ -553,6 +553,25 @@ def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None):
     # would be too large and the fit would be too difficult.
     return flux_beta_corrected
 
+
+def retBeta(waves,refwave,fluxatwave,beta):
+    '''
+    refwave is the starting wavelength (angstroms)
+    fluxatwave is the flux at this wavelength (uJy)
+    beta is the spectral index 
+    
+    '''
+    # logwaves = np.log10(wave) + np.linspace(0,5,100)
+    # 
+    # waves = 10**logwaves #create array of waves starting with lowest
+    fluxarr=np.ones(len(waves)) #just an array of ones
+    
+    const = fluxatwave/(refwave**(beta)) # determining constant
+    
+    flux_corr=const*fluxarr*(waves)**beta
+
+    return flux_corr
+
 def SEDFitTest(initial_param='smc'):
     '''Proof of concept of SED fitting, using averaged fluxes from dans 
     lcurve fitting.  
@@ -635,8 +654,8 @@ def SEDFitTest2(initial_param='smc'):
     paramstr='(%s)' % initial_param
     
     fitdict['c2']['fixed']=False
-    fitdict['c3']['fixed']=False
-    fitdict['c4']['fixed']=True
+    # fitdict['c3']['fixed']=False
+    # fitdict['c4']['fixed']=True
     # fitdict['beta']['fixed']=True
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xrayflux=xrayflux,xrayeflux=xrayeflux,xraywave=xraywave)
@@ -1116,13 +1135,18 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         string = 'chi2 / dof = %.2f / %i' % (outdict['chi2'],outdict['dof'])
         fig2.text(0.2,0.2,string)
         textoffset=0.24    
+        
+        betastring = 'unknown beta'
+
         for string in outdict['strings']:
             if not string.find('const') != -1:
                 if string.find('Av: -') == 0:
                     string=string.replace('Av: -','Av: ') # since Av is negative what it should be in this code
                 fig2.text(0.2,textoffset,string)
                 textoffset+=0.04
-    
+                if string.find('beta') == 0:
+                    betastring = string # saving for later
+
         if timestr:
             fig2.text(0.45,0.8,timestr)
     
@@ -1141,7 +1165,11 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         # i cant seem to get a scatter plot to appear above a line plot. HMM. 
         # Forget it. No need to have colors on the points.
         # ax.scatter(waverestarr,galcorrectedfluxarr,c=wavearr,cmap='jet',s=30,edgecolors='none')
-    
+        newparamlist=copy.deepcopy(fullparamlist)
+        newwavearr=np.append(waverestarr,xraywavez)
+        newfluxarr=copy.deepcopy(galcorrectedfluxarr)
+        newfluxerrarr=copy.deepcopy(galcorrectedfluxerrarr)
+            
         # plot data
         if xrayflux:
             galcorrectedfluxarr=galcorrectedfluxarr[:-1] # get rid of the xray point
@@ -1199,9 +1227,54 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax.yaxis.set_major_formatter(formatter)
         ax3.xaxis.set_major_formatter(formatter)
         
+
+        
         filepath = storepath + 'SED' + timestr + '.png'
+        filepath2 = storepath + 'SEDxray' + timestr + '.png'
         fig2.savefig(filepath)
         
+        if xrayflux:
+            fig3=plt.figure()
+            ax5=fig3.add_axes([0.1,0.1,0.8,0.8])
+            
+            ax5.plot(w,c,label='Best Fit XRT+OIR')
+            constant = 'unknown'
+            for param in newparamlist:
+                if param.name == 'Av': param.value=0.0
+                if param.name == 'const': constant = param.value
+            
+            w2=1. + np.arange(500)*100
+            uncorrectedbeta = powerlawExtRetFlux(w2,newparamlist)
+            ax5.plot(w2,uncorrectedbeta,linestyle='--',label=betastring)
+            
+            logwaves = np.linspace(0,5,100)
+            waves = 10**(logwaves)
+            # HACK for now, using fake values for beta
+            test_down=retBeta(waves,xraywavez,xrayflux,0.66)
+            test= retBeta(waves,xraywavez,xrayflux,0.78)
+            test_up = retBeta(waves,xraywavez,xrayflux,0.91)
+
+            ax5.fill_between(waves,test_down,test_up,color='#CCCCCC')
+            
+            # Eventually want to change this into a grey triangle with a black line in the middle
+            
+            ax5.plot(waves,test,color='black',ls='--',label='Best Fit XRT only')
+            ax5.plot(waves,test_up,color="white",ls='-')
+            ax5.plot(waves,test_down,color="white",ls='-')
+            
+            ax5.errorbar(newwavearr,newfluxarr,yerr=newfluxerrarr,fmt='.')
+            
+            ax5.loglog()
+            ax5.set_ylim(4.0,1.0e4)
+            ax5.set_xlim(1.0e4,3.0) #reverse
+            
+            # Label the 4 axes
+            ax5.set_ylabel(r'$F_\nu$ (uJy)')
+            ax5.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
+            ax5.legend()
+            fig3.savefig(filepath2)
+
+            
     return outdict
 
 def log_10_product(x, pos):
