@@ -585,9 +585,13 @@ def SEDFitTest(initial_param='smc'):
     xraywave=None
     xrayeflux=None
 
-    xrayflux=8e-3
-    xraywave=12.398 # 1keV in angstroms
-    xrayeflux=8e-4
+    xbetaneg= None
+    xbeta= None
+    xbetapos = None
+    
+    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}
+
     
     fluxarr=np.array([4.52318,17.7811,19.9167,38.1636,48.2493,78.5432,145.145,288.604,499.728])
     fluxerrarr=np.array([0.2,0.85,1.0,2.0,2.5,3.9,6.0,11.0,20.0])
@@ -597,7 +601,7 @@ def SEDFitTest(initial_param='smc'):
     paramstr='(%s)' % initial_param
     
     SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-        xrayflux=xrayflux,xrayeflux=xrayeflux,xraywave=xraywave)
+        xraydict=xraydict)
 
 def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'],plotmarg=False):
     
@@ -642,6 +646,14 @@ def SEDFitTest2(initial_param='smc'):
     xraywave=12.398 # 1keV in angstroms
     xrayeflux=7000e-4
     
+    # can obtain these from Gamma in xrt /specpc_report.txt summary report
+    # gamma = 1+beta (for f=f_0 * nu^-beta; note i usually use the opposite convention)
+    xbetaneg= 0.66
+    xbeta= 0.78
+    xbetapos = 0.91
+    
+    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
     
     # using SMARTS first epoch magnitudes
     filtlist=[qObs.B,qObs.V,qObs.Rc,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
@@ -658,7 +670,7 @@ def SEDFitTest2(initial_param='smc'):
     # fitdict['c4']['fixed']=True
     # fitdict['beta']['fixed']=True
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-        xrayflux=xrayflux,xrayeflux=xrayeflux,xraywave=xraywave)
+        xraydict=xraydict)
     return fitdict
 
 def _align_SED_times(objblock,sedtimelist,time_thresh=5):
@@ -1010,7 +1022,7 @@ def _get_initial_dust_params(initial_param):
     
 def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             timestr='', paramstr='', plot=True,showfig=False,
-            xrayflux=None,xrayeflux=None,xraywave=None):
+            xraydict={}):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -1046,6 +1058,16 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
                 'x0':{'init':x0_init,'fixed':True},
                 'gamma':{'init':gamma_init,'fixed':True}
                 }
+    * xraydict: optional dictionary of values from a single xray point
+        refwave: Wavelength (in angstroms) of the xray reference value
+        refflux: flux (in uJy) at the xray reference value
+        refeflux: uncertainty in the xray flux
+        xbeta: value of beta inferred from xray data alone
+        xbetapos: positive uncertainty value of beta (beta + unc)
+        xbetaneg: negative uncertainty value of beta  (beta - unc)
+        [can obtain these from Gamma in xrt /specpc_report.txt summary report
+        gamma = 1+beta (for f=f_0 * nu^-beta; note i usually use the opposite 
+        convention]
         
     ''' 
 
@@ -1055,6 +1077,18 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     assert len(fluxarr) == len(fluxerrarr)
     assert len(fluxarr) == len(filtlist)
     
+    
+    # extract xray parameters
+    if 'refflux' in xraydict:
+        assert 'refeflux' in xraydict
+        assert 'refwave' in xraydict
+        xrayflux = xraydict['refflux']
+        xrayeflux = xraydict['refeflux']
+        xraywave = xraydict['refwave']
+    else:
+        xrayflux = None
+        xrayeflux=None
+        xraywave=None
     
     # VERIFY INITIAL PARAMETER LIST
     acceptable_fit_param_list=['const','beta','Av','Rv','x0','gamma','c1','c2','c3','c4']
@@ -1124,7 +1158,9 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         rc('font', family='Times New Roman') 
         
         #get model array
-        w=1000. + np.arange(500)*100
+        # w=1000. + np.arange(500)*100
+        logw=np.linspace(3,5,500) # 1000 to 100000
+        w=10**logw
         f = w*0. + 1
 
         c = powerlawExtRetFlux(w,fullparamlist)
@@ -1233,6 +1269,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         filepath2 = storepath + 'SEDxray' + timestr + '.png'
         fig2.savefig(filepath)
         
+        # if we have xray flux value, make a second plot incuding this 
         if xrayflux:
             fig3=plt.figure()
             ax5=fig3.add_axes([0.1,0.1,0.8,0.8])
@@ -1243,24 +1280,32 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
                 if param.name == 'Av': param.value=0.0
                 if param.name == 'const': constant = param.value
             
-            w2=1. + np.arange(500)*100
+            # w2=1. + np.arange(500)*100
+            logwaves = np.linspace(0,5,100)
+            w2 = 10**(logwaves)
+            
             uncorrectedbeta = powerlawExtRetFlux(w2,newparamlist)
             ax5.plot(w2,uncorrectedbeta,linestyle='--',label=betastring)
             
+            # create array of waves
             logwaves = np.linspace(0,5,100)
             waves = 10**(logwaves)
-            # HACK for now, using fake values for beta
-            test_down=retBeta(waves,xraywavez,xrayflux,0.66)
-            test= retBeta(waves,xraywavez,xrayflux,0.78)
-            test_up = retBeta(waves,xraywavez,xrayflux,0.91)
+            
+            #  Obtain the values for beta from xray data alone, if available
+            # this makes the little "cone" plot in the xrt plot
+            if 'xbeta' in xraydict:
+                assert 'xbetapos' in xraydict # xbeta + 1sig err
+                assert 'xbetaneg' in xraydict # xbeta - 1sig err
+                
+                xbetanegarr=retBeta(waves,xraywavez,xrayflux,xraydict['xbetaneg'])
+                xbetaarr= retBeta(waves,xraywavez,xrayflux,xraydict['xbeta'])
+                xbetaposarr = retBeta(waves,xraywavez,xrayflux,xraydict['xbetapos'])
+                
+                # plot the grey cone for the uncertainties
+                ax5.fill_between(waves,xbetanegarr,xbetaposarr,color='#CCCCCC')
+                # plot the median value of the xrt alone beta
+                ax5.plot(waves,xbetaarr,color='black',ls='--',label='Best Fit XRT only')
 
-            ax5.fill_between(waves,test_down,test_up,color='#CCCCCC')
-            
-            # Eventually want to change this into a grey triangle with a black line in the middle
-            
-            ax5.plot(waves,test,color='black',ls='--',label='Best Fit XRT only')
-            ax5.plot(waves,test_up,color="white",ls='-')
-            ax5.plot(waves,test_down,color="white",ls='-')
             
             ax5.errorbar(newwavearr,newfluxarr,yerr=newfluxerrarr,fmt='.')
             
