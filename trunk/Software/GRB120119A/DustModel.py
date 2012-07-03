@@ -186,10 +186,10 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
 def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedtimelist=None, 
     Av_0init=-0.57,
     Av_1init=0,
-    Av_2init=100,
+    Av_2init=50,
     beta_0init=-1.57,
     beta_1init=0,
-    beta_2init=100,
+    beta_2init=50,
     randomize_inits=False,
     unred_latetime=False, 
     plot=False,
@@ -370,7 +370,7 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
         beta_snap = DecayingExponential(corrtime,beta0,beta1,beta2)
         
         #hack!
-        chi2=SEDvsTime(objblock,initial_param='smc',plotsed=False, fitlist=[],
+        chi2=SEDvsTime(objblock,initial_param=initial_param,plotsed=False, fitlist=[],
         sedtimelist=[time],retfig=False,fig=None,plotchi2=False, retchi2=True,
         Av_init=Av_snap,beta_init=beta_snap)
         chi2list.append(chi2)
