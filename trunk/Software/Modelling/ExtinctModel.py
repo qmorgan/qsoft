@@ -254,7 +254,7 @@ def avgmw(R_V = 3.1,c3 = 3.23,c4 = 0.41):
 ##############################################################################
 
         
-def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None):
+def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None,TieReichart=False):
     
     '''
     spectral power law + extinction - return flux
@@ -266,12 +266,14 @@ def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None):
     wave = wavelength vector in angstroms 
     Assumes a power law of the type F = F_0*(nu/nu_0)^-beta
     
+    TieReichart: tie together c1, c2, and Rv via Reichart 2000
+    
     '''
     # Av=0.0,beta=0.0,const=1.0E3,Rv=2.74,c1=-4.959,
     #                         c2=2.264,c3=0.389,c4=0.461,gamma=1.05,x0=4.626
     
     #tie together c1 and c2 if necessary using reichart
-    tiec1c2 = True
+    
     
     for param in paramlist:
         if param.name == 'Av': Av=param.value
@@ -287,7 +289,7 @@ def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None):
         else: raise Exception ('Invalid parameter')
                 
     
-    if tiec1c2:
+    if TieReichart:
         #errors not implemented yet
         c1 = -0.064 - 3.275*(c2 - 0.711)
         # c1err = abs(-0.064 - 3.275*(c2+c2err - 0.711)  - c1)
@@ -599,7 +601,7 @@ def _get_initial_dust_params(initial_param):
     lookup table to obtain the initial parameters for a variety of dust laws as 
     listed in acceptable_initial_param_list.  
     '''
-    acceptable_initial_param_list=['smc','lmc','lmc2','mw']
+    acceptable_initial_param_list=['smc','lmc','lmc2','mw','DPgrb120119A','DPgrb120119Axrt']
     if not initial_param in acceptable_initial_param_list:
         print 'Initial parameter set of %s is not valid. Please choose from:' % (initial_param)
         print acceptable_initial_param_list
@@ -640,6 +642,26 @@ def _get_initial_dust_params(initial_param):
         c1_init = 2.030 - 3.007*c2_init
         gamma_init = 0.99
         x0_init = 4.596
+        
+    # see EverNote on June 29 2012    
+    elif initial_param == 'DPgrb120119A': 
+        Rv_init = 3.555
+        c1_init = -5.336
+        c2_init = 2.321
+        c3_init = 1.797
+        c4_init = 0.0
+        gamma_init = 0.99
+        x0_init = 4.596
+    
+    elif initial_param == 'DPgrb120119Axrt':
+        Rv_init = 3.458
+        c1_init = -5.232
+        c2_init = 2.289
+        c3_init = 1.436
+        c4_init = 0.0
+        gamma_init = 0.99
+        x0_init = 4.596
+    
     return Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init
 
 
@@ -709,7 +731,7 @@ def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fi
    
 def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             timestr='', paramstr='', plot=True,showfig=False,
-            xraydict={}):
+            xraydict={},TieReichart=False):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -833,7 +855,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         xraywavez = None
     
     
-    def f(x): return powerlawExtRetFlux(x,fullparamlist,xrayflux,xraywavez)
+    def f(x): return powerlawExtRetFlux(x,fullparamlist,xrayflux,xraywavez,TieReichart=TieReichart)
     print len(galcorrectedfluxarr)
     print len(galcorrectedfluxerrarr)
     print len(waverestarr)
@@ -1107,6 +1129,9 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
         ax1.set_ylabel(r'$\beta$')
         ax1.set_xlabel(r'$t$ (s, rest frame)')
+        
+        string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
+        fig.text(0.55,0.3,string)
         
         # Adjust tickmarks
         ax1.set_xticks(ax1.get_xticks()[1:-1])
@@ -1487,7 +1512,7 @@ def SEDFitTest(initial_param='smc'):
     SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict)
 
-def SEDFitTest2(initial_param='smc'):
+def SEDFitTest2(initial_param='smc',TieReichart=False):
     '''another SED fit test, this time starting with magnitudes'''
     z=1.728
     galebv=0.108
@@ -1515,12 +1540,13 @@ def SEDFitTest2(initial_param='smc'):
     fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
     paramstr='(%s)' % initial_param
     
-    fitdict['c2']['fixed']=False
+    if TieReichart == True:
+        fitdict['c2']['fixed']=False
     # fitdict['c3']['fixed']=False
     # fitdict['c4']['fixed']=True
     # fitdict['beta']['fixed']=True
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-        xraydict=xraydict)
+        xraydict=xraydict,TieReichart=TieReichart)
     return fitdict
     
 
