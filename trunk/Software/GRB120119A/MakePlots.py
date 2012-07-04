@@ -3,7 +3,8 @@ from Phot import PhotParse
 from Modelling.ExtinctModel import _align_SED_times
 from Modelling.ExtinctModel import SEDvsTime
 from Modelling.ExtinctModel import _getfitdict
-from Modelling.Functions import DecayingExponential
+from Modelling.Functions import DecayingExponentialbeta
+from Modelling.Functions import DecayingExponentialAv
 import os
 import sys
 import numpy as np
@@ -25,14 +26,14 @@ tablesdir = paperdir + 'Tables/'
 
 
 def _build_extraptime(objblock):
-    fullextraptime=True
-    justIRextraptime=False
+    fullextraptime=False
+    justIRextraptime=True
     
     ### BUILD UP A REASONABLE EXTRAPOLTION TIME CODE
     ### BUILD UP AN SED AT EACH POINT IN TIME
     promptI=objblock.obsdict['PROMPT_I']
     promptR=objblock.obsdict['PROMPT_R']
-    promptV=objblock.obsdict['PROMPT_V']
+    # promptV=objblock.obsdict['PROMPT_V']
     livz=objblock.obsdict["Liverpool_z'"]
     livi=objblock.obsdict["Liverpool_i'"]
     livr=objblock.obsdict["Liverpool_r'"]
@@ -57,7 +58,7 @@ def _build_extraptime(objblock):
     if justIRextraptime: #also smarts maybe
         extraptime = [62.208000000000006,
         # 78.624,
-        78.624,
+        # 78.624,
         # 93.312,
         95.04,
         # 118.368,
@@ -80,8 +81,8 @@ def _build_extraptime(objblock):
         458.784,
         # 550.3679999999999,
         551.232,
+        # # 1209.6000000000001, # SUP WITH THIS OUTLIER
         # 1209.6000000000001,
-        1209.6000000000001,
         # 1391.04,
         1391.04,
         # 1570.7520000000002,
@@ -92,38 +93,38 @@ def _build_extraptime(objblock):
         1977.6960000000001,
         # 2291.328,
         # 2337.984,
-        2320.776,  #SMARTS
+        # 2320.776,  #SMARTS
         # 3523.392,
-        # 3549.312,
+        3549.312,
         # 4173.9839999999995,
-        # 4178.304,
+        4178.304,
         # 4877.28,
-        # 4879.872,
-        # 5640.192,
-        # 5641.0560000000005,
-        6163.776#, #SMARTS
-        # 6494.688,
-        # 6498.144,
-        # 7383.744,
-        # 7437.312,
-        # 8589.024,
-        # 8616.672,
-        # 9838.368,
-        # 9908.352,
-        # 10678.788, #SMARTS
-        # 11163.743999999999,
-        # 11219.039999999999,
-        # 12500.352,
-        # 12553.920000000002,
-        # 14442.624,
-        # 14552.351999999999,
-        # 16687.296000000002,
-        # 16818.624,
-        # 88782.912
+        4879.872,
+        5640.192,
+        # # 5641.0560000000005,
+        # 6163.776#, #SMARTS
+        # # 6494.688,
+        # # 6498.144,
+        # # 7383.744,
+        # # 7437.312,
+        # # 8589.024,
+        # # 8616.672,
+        # # 9838.368,
+        # # 9908.352,
+        # # 10678.788, #SMARTS
+        # # 11163.743999999999,
+        # # 11219.039999999999,
+        # # 12500.352,
+        # # 12553.920000000002,
+        # # 14442.624,
+        # # 14552.351999999999,
+        # # 16687.296000000002,
+        # # 16818.624,
+        # # 88782.912
     ]
     if fullextraptime:
         extraptime=[62.208000000000006,
-        78.624,
+        # 78.624,
         93.312,
         118.368,
         146.88,
@@ -144,8 +145,8 @@ def _build_extraptime(objblock):
         458.784,
         # 458.784,
         527.76,
-        550.3679999999999,
-        # 551.232,
+        # 550.3679999999999,
+        551.232,
         611.4,
         694.8,
         872.76,
@@ -155,30 +156,30 @@ def _build_extraptime(objblock):
         984.1200000000001,
         1005.9599999999999,
         1058.1599999999999,
-        1209.6000000000001,
-        # 1209.6000000000001,
-        # 1210.26,
-        1373.4599999999998,
-        1391.04,
+        # # 1209.6000000000001, SUP WITH THIS OUTLIER?
+        # # 1209.6000000000001,
+        # # 1210.26,
+        # 1373.4599999999998,
         # 1391.04,
-        1463.616,
-        1541.1,
-        1570.7520000000002,
-        # 1571.6160000000002,
-        1658.0159999999998,
-        1673.8799999999999,
-        1753.0559999999998,
+        # # 1391.04,
+        # 1463.616,
+        # 1541.1,
+        # 1570.7520000000002,
+        # # 1571.6160000000002,
+        # 1658.0159999999998,
+        # 1673.8799999999999,
         # 1753.0559999999998,
-        # 1834.44,
-        1838.592,
-        1966.26,
-        1977.6960000000001,
+        # # 1753.0559999999998,
+        # # 1834.44,
+        # 1838.592,
+        # 1966.26,
         # 1977.6960000000001,
-        2128.2599999999998,
-        2196.288,
-        2260.2000000000003,
-        2276.64,
-        2320.776,  #SMARTS
+        # # 1977.6960000000001,
+        # 2128.2599999999998,
+        # 2196.288,
+        # 2260.2000000000003,
+        # 2276.64,
+        # 2320.776,  #SMARTS
         # 2337.984,
         # 2455.56,
         # 2587.44,
@@ -214,11 +215,20 @@ def _build_extraptime(objblock):
     
 #### INTERPOLATION PLOTS
 def _interpplot():
-    late_time_av=-0.57
+    # late_time_av=-0.86
+    # late_time_beta=-0.90
+    
+    late_time_av = -0.963 # for DPgrb120119A
+    late_time_beta=-1.0
+    Av_1init = -1.7
+    beta_1init= 2.0
+    Av_2init = 70
+    beta_2init = 70
     zoomtime = 2000 #seconds
     from GRB120119A import DustModel
     addl_sed_times=None
     testrandom=False
+    initial_param = 'DPgrb120119A'
     
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
     objblock_original_2 = copy.deepcopy(objblock_original) #not sure why i have do this..
@@ -251,37 +261,69 @@ def _interpplot():
         for time in addl_sed_times:
             sedtimelist.append(time)
     
-    
     if testrandom:
         outlist_rand = DustModel.LoopThroughRandomInits(objblock=objblock_interpolated,
-            sedtimelist=sedtimelist,fixparam='none',N=100)
+            sedtimelist=sedtimelist,fixparam='both',N=100)
         return outlist_rand
     
-    
+    fig = None
+    # fig = DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,sedtimelist=sedtimelist,fixparam='Av',plot=True,Av_0init=late_time_av,Av_1init=0,Av_2init=100)
     
     # Make SEDvsTime for fixed Av
-    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,fitlist=['beta'],plotchi2=True,
-        Av_init=late_time_av)
+    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
+        fitlist=['beta'],plotchi2=True,
+        Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
+        retfig = False, retchi2=False, color='grey',
+        time_thresh=5)
      
-    cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv.png'
+    cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv_' + initial_param + '.png'
     os.system(cmd)
     print 'New SEDvstime fixed Av plots moved to paper directory.'
+    
+    # Make SEDvsTime for fixed beta
+    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
+        fitlist=['Av'],plotchi2=True,
+        Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
+        retfig = False, retchi2=False, color='grey',
+        time_thresh=5)
      
-     
+    cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedbeta_' + initial_param + '.png'
+    os.system(cmd)
+    print 'New SEDvstime fixed Av plots moved to paper directory.'
     
     # Make SEDvsTime for free Av and Beta
-    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,fitlist=['Av','beta'],plotchi2=False,
-        Av_init=late_time_av)
-    
-    cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_freeAv.png'
+
+    SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
+        fitlist=['Av','beta'],plotchi2=False,
+        Av_init=late_time_av,beta_init=late_time_beta,initial_param=initial_param,
+        retfig = False, retchi2=False, fig=None, color='grey',
+        time_thresh=5)
+        
+    cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_freeAv_' + initial_param + '.png'
     os.system(cmd)
     print 'New SEDvstime plots moved to paper directory.'
     
     
     # Now do the SEDtimeSimulfit plot
+    # Av_0init=-0.57,
+    # Av_1init=0,
+    # Av_2init=100,
+    # beta_0init=-1.57,
+    # beta_1init=0,
+    # beta_2init=100,
     fitdict=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
-        sedtimelist=sedtimelist,fixparam='both',plot=True,plotchi2=True,retfig=False)
-    cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir
+        sedtimelist=sedtimelist,fixparam='both',
+        initial_param=initial_param,
+        time_thresh=5,
+        plot=True,plotchi2=True,retfig=False,
+        Av_0init=late_time_av,beta_0init=late_time_beta,
+        Av_1init=Av_1init,beta_1init=beta_1init,
+        Av_2init=Av_2init,beta_2init=beta_2init,
+        randomize_inits=False,
+        unred_latetime=False)
+        
+
+    cmd = "mv " + storepath + 'SEDtimesimulfit_' + initial_param + '.png '+ figuresdir
     os.system(cmd)
     
     
@@ -294,9 +336,10 @@ def _interpplot():
  
 def _lateSED():
     from Modelling import ExtinctModel
+    initial_param = 'smc'
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
-    a=ExtinctModel.DefaultSEDFit(directory,initial_param='smc',fitlist=['Av','beta'],plotmarg=True)
+    a=ExtinctModel.DefaultSEDFit(directory,initial_param=initial_param,fitlist=['Av','beta'],plotmarg=True)
     cmd = "mv " + storepath + 'SED.png '+ figuresdir + 'lateSED.png'
     os.system(cmd)
     cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg.png'

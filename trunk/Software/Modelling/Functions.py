@@ -1,8 +1,14 @@
 import numpy as np
 
-def DecayingExponential(timearr,Av_0,Av_1,tau):
-    Av = Av_0 + Av_1*np.exp(-1*timearr/tau)
+def DecayingExponentialAv(timearr,Av_0,Av_1,tau):
+    # constraining Av_0 to be negative
+    # constraining Av_1 to be negative - cant have dust creation
+    Av = -1*abs(Av_0) + -1*abs(Av_1)*np.exp(-1*timearr/tau)
     return Av
+
+def DecayingExponentialbeta(timearr,beta_0,beta_1,tau):
+    beta = beta_0 + beta_1*np.exp(-1*timearr/tau)
+    return beta
 
 def BrokenPowerLaw(time,Av_0,Av_1,Av_2):
     # Av_2 = tbreak

@@ -429,9 +429,10 @@ def timeDepAvBeta(wave_time_list,paramlist):
         # Decaying exponential + constant
         # beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
         # Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
-        beta = Functions.DecayingExponential(time,beta_0,beta_1,beta_2)
-        Av = Functions.DecayingExponential(time,Av_0,Av_1,Av_2)
-
+        beta = Functions.DecayingExponentialbeta(time,beta_0,beta_1,beta_2)
+        Av = Functions.DecayingExponentialAv(time,Av_0,Av_1,Av_2)
+        
+        
         fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
         
         extmodel.EvalCurve(wavearr,Av/Rv)

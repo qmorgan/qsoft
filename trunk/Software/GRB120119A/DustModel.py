@@ -3,7 +3,8 @@ from Phot import PhotParse
 from Modelling.ExtinctModel import _align_SED_times
 from Modelling.ExtinctModel import SEDvsTime
 from Modelling.ExtinctModel import _getfitdict
-from Modelling.Functions import DecayingExponential
+from Modelling.Functions import DecayingExponentialAv
+from Modelling.Functions import DecayingExponentialbeta
 from Modelling.Functions import BrokenPowerLaw
 import os,sys
 import numpy as np
@@ -366,8 +367,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
         # grab the Av and beta values for each time point
         # note we use the corrected time here, but the observer time in the SEDvsTime,
         # because SEDvsTime only uses it as an index
-        Av_snap = DecayingExponential(corrtime,Av0,Av1,Av2)
-        beta_snap = DecayingExponential(corrtime,beta0,beta1,beta2)
+        Av_snap = DecayingExponentialAv(corrtime,Av0,Av1,Av2)
+        beta_snap = DecayingExponentialbeta(corrtime,beta0,beta1,beta2)
         
         #hack!
         chi2=SEDvsTime(objblock,initial_param=initial_param,plotsed=False, fitlist=[],
@@ -398,8 +399,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 ax1.semilogx()
                 ax2.semilogx()
             
-            c = DecayingExponential(t,Av0,Av1,Av2)
-            d = DecayingExponential(t,beta0,beta1,beta2)
+            c = DecayingExponentialAv(t,Av0,Av1,Av2)
+            d = DecayingExponentialbeta(t,beta0,beta1,beta2)
             c = -1 * np.array(c) #changing since Av negative 
             ax1.plot(t,c)
             ax2.plot(t,d)
@@ -433,16 +434,16 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
         elif not fitdict['Av_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
-            # c=DecayingExponential(t,Av0,Av1,Av2)
-            c = DecayingExponential(t,Av0,Av1,Av2)
+            # c=DecayingExponentialAv(t,Av0,Av1,Av2)
+            c = DecayingExponentialAv(t,Av0,Av1,Av2)
             c = -1 * np.array(c) #changing since Av negative 
             ax.plot(t,c)
             
         elif not fitdict['beta_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
-            # c=DecayingExponential(t,Av0,Av1,Av2)
-            c = DecayingExponential(t,beta0,beta1,beta2)
+            # c=DecayingExponentialbeta(t,Av0,Av1,Av2)
+            c = DecayingExponentialbeta(t,beta0,beta1,beta2)
             ax.plot(t,c)
         
         fig.show()
@@ -455,7 +456,11 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
 
 
 
-def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',N=1000):
+def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',
+    initial_param='smc',time_thresh=5,N=1000,
+    Av_0init=0,beta_0init=0,
+    Av_1init=-0.7,beta_1init=0.5,
+    Av_2init=50,beta_2init=70,):
     '''Testing whether the initial conditions change the final fit value
     as found by leastsq, or whether it is robust against the choices. Loop 
     through N iterations and return the outdict for each.  The acceptable 
@@ -468,7 +473,13 @@ def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',N=1000
         print 'Now doing Count %i of %i' % (count, N)
         try:
             outdict= SEDtimeSimulFit120119A(objblock=objblock,sedtimelist=sedtimelist,
-            fixparam=fixparam,randomize_inits=True,plot=False,retfig=False)
+            intial_param=initial_param,fixparam=fixparam,randomize_inits=True,
+            plot=False,time_thresh=time_thresh,retfig=False,
+            Av_0init=Av_0init,beta_0init=beta_0init,
+            Av_1init=Av_1init,beta_1init=beta_1init,
+            Av_2init=Av_2init,beta_2init=beta_2init)
+
+            
             outlist.append(outdict)
         except:
             faillist.append(count)
