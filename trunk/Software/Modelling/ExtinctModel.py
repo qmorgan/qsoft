@@ -1111,15 +1111,26 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     resttimearr = timearr/(1+z)    
     # plot the fit parameters
     axindex = 0
-    if Avlist and betalist:
+    if Avlist and betalist: # Both of them! Special 2-3 
         # pass
         if not fig:
             fig=plt.figure()
-            ax1=fig.add_axes([0.1,0.5,0.8,0.4])
-            ax2=fig.add_axes([0.1,0.1,0.8,0.4])
             
-            ax1.semilogx()
-            ax2.semilogx()
+            if not plotchi2:
+                ax1=fig.add_axes([0.1,0.5,0.8,0.4])
+                ax2=fig.add_axes([0.1,0.1,0.8,0.4])
+            
+                ax1.semilogx()
+                ax2.semilogx()
+            else:
+                # 3 prong plot using chi2
+                ax2=fig.add_axes([0.1,0.6,0.8,0.3])
+                ax1=fig.add_axes([0.1,0.3,0.8,0.3])
+                ax_chi2=fig.add_axes([0.1,0.1,0.8,0.2])
+                ax_chi2.semilogx()
+                ax1.semilogx()
+                ax2.semilogx()
+                
         else:
             ax=fig.get_axes()[axindex]
             axindex += 1
@@ -1176,17 +1187,17 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             fig.text(0.55,0.3,string)
             string = 'Av = %.2f (fixed)' % (-1*float(Av_init)) # negate Av
             fig.text(0.55,0.5,string)
-        if plotchi2:
-            ax_chi2.scatter(resttimearr,chi2list,color=color)
-            ylim = ax_chi2.get_ylim()
-            ax_chi2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
-            
-            ax1.set_xticks(ax1.get_xticks()[1:-1])
-            ax1.set_yticks(ax1.get_yticks()[1:])
-            ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
-            
-            ax_chi2.set_ylabel(r'$\chi^2$')
-            ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
+    if plotchi2:
+        ax_chi2.scatter(resttimearr,chi2list,color=color)
+        ylim = ax_chi2.get_ylim()
+        ax_chi2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
+    
+        ax1.set_xticks(ax1.get_xticks()[1:-1])
+        ax1.set_yticks(ax1.get_yticks()[1:])
+        ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
+    
+        ax_chi2.set_ylabel(r'$\chi^2$')
+        ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
             
     if fig != None:
         if retfig:
