@@ -673,7 +673,8 @@ def _get_initial_dust_params(initial_param):
 ###### Main SED Fit, SED vs Time, and SEDSimulfit base functions here ########     
 ##############################################################################
 
-def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'],plotmarg=False):
+def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,
+    fitlist=['Av','beta'],plot=True,plotmarg=False,incl_xray=False):
     '''Wrapper around SEDfit to do it based on the directory alone. 
     Requires a file of type:
     
@@ -718,7 +719,16 @@ def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,fi
     fitdict=_getfitdict(initial_param,Av_init=Av_init,beta_init=beta_init,fitlist=fitlist)
     paramstr='(%s)' % initial_param
     #fitdict['c1']['fixed']=False
-    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr)
+    
+    # If we want to include the xraydict (if provided) in the fit:
+    if incl_xray:
+        xraydict = objblock.xraydict
+        if not xraydict:
+            xraydict = {}
+    else:
+        xraydict = {}    
+    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,plot=plot,z=z,galebv=galebv,paramstr=paramstr,xraydict=xraydict)
     
     
     if plotmarg:
@@ -857,9 +867,9 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     
     
     def f(x): return powerlawExtRetFlux(x,fullparamlist,xrayflux,xraywavez,TieReichart=TieReichart)
-    print len(galcorrectedfluxarr)
-    print len(galcorrectedfluxerrarr)
-    print len(waverestarr)
+    print str(len(galcorrectedfluxarr)) + ' len(galcorrectedfluxarr)'
+    print str(len(galcorrectedfluxerrarr)) + ' len(galcorrectedfluxerrarr)'
+    print str(len(waverestarr)) + ' len(waverestarr)'
     outdict = qFit.fit(f,fitparamlist,galcorrectedfluxarr,galcorrectedfluxerrarr,waverestarr)
     
     
@@ -888,6 +898,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             if not string.find('const') != -1:
                 if string.find('Av: -') == 0:
                     string=string.replace('Av: -','Av: ') # since Av is negative what it should be in this code
+                else:
+                    string=string.replace('Av: ','Av: -') #replacing in case the fit actually shows the best fit Av IS negative
                 fig2.text(0.2,textoffset,string)
                 textoffset+=0.04
                 if string.find('beta') == 0:
@@ -1561,6 +1573,56 @@ def SEDFitTest2(initial_param='smc',TieReichart=False):
         xraydict=xraydict,TieReichart=TieReichart)
     return fitdict
     
+
+def SEDFitTest3(initial_param='smc',TieReichart=True):
+    '''another SED fit test, this time using the SED generated from a lightcurve fit'''
+    z=1.728
+    galebv=0.108
+    
+    xrayflux=9.98
+    xraywave=12.398 # 1keV in angstroms
+    xrayeflux=0.1
+    
+    # can obtain these from Gamma in xrt /specpc_report.txt summary report
+    # gamma = 1+beta (for f=f_0 * nu^-beta; note i usually use the opposite convention)
+    xbetaneg= 0.66
+    xbeta= 0.78
+    xbetapos = 0.91
+    
+    xrayflux=None
+    xraywave=None
+    xrayeflux=None
+
+    xbetaneg= None
+    xbeta= None
+    xbetapos = None
+    
+    
+    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
+    
+    filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
+    fluxlist=[48.2234,107.296,192.937,228.737,413.989,535.119,865.566,1566.37,2990.96,5127.84]
+    fluxerrlist=[2.48157,5.08708,1.53680,9.35190,3.46332,21.7457,10.9168,35.6574,67.9095,118.435]
+    # fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    fluxarr=np.array(fluxlist)
+    fluxerrarr=np.array(fluxerrlist)
+    
+    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
+    paramstr='(%s)' % initial_param
+    
+    if TieReichart == True:
+        fitdict['c2']['fixed']=False
+    fitdict['c1']['fixed']=False
+    fitdict['c3']['fixed']=False
+    fitdict['c4']['fixed']=True
+    fitdict['beta']['fixed']=False
+    fitdict['Rv']['fixed']=True
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+    return fitdict
+
+
 
 def testSEDvsTimeChi2():
     '''Here we compare the output from SEDvsTime to the SEDtimeSimulFit to verify
