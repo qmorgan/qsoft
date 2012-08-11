@@ -58,7 +58,7 @@ def _build_extraptime(objblock):
     if justIRextraptime: #also smarts maybe
         extraptime = [62.208000000000006,
         # 78.624,
-        # 78.624,
+        78.624,
         # 93.312,
         95.04,
         # 118.368,
@@ -91,10 +91,10 @@ def _build_extraptime(objblock):
         1753.0559999999998,
         # 1975.968,
         1977.6960000000001,
-        # 2291.328,
-        # 2337.984,
-        # 2320.776,  #SMARTS
-        # 3523.392,
+        2291.328,
+        2337.984,
+        2320.776,  #SMARTS
+        3523.392,
         3549.312,
         # 4173.9839999999995,
         4178.304,
@@ -124,7 +124,7 @@ def _build_extraptime(objblock):
     ]
     if fullextraptime:
         extraptime=[62.208000000000006,
-        # 78.624,
+        78.624,
         93.312,
         118.368,
         146.88,
@@ -159,27 +159,27 @@ def _build_extraptime(objblock):
         # # 1209.6000000000001, SUP WITH THIS OUTLIER?
         # # 1209.6000000000001,
         # # 1210.26,
-        # 1373.4599999999998,
+        1373.4599999999998,
+        1391.04,
         # 1391.04,
-        # # 1391.04,
-        # 1463.616,
-        # 1541.1,
-        # 1570.7520000000002,
-        # # 1571.6160000000002,
-        # 1658.0159999999998,
-        # 1673.8799999999999,
+        1463.616,
+        1541.1,
+        1570.7520000000002,
+        # 1571.6160000000002,
+        1658.0159999999998,
+        1673.8799999999999,
+        1753.0559999999998,
         # 1753.0559999999998,
-        # # 1753.0559999999998,
-        # # 1834.44,
-        # 1838.592,
-        # 1966.26,
+        # 1834.44,
+        1838.592,
+        1966.26,
+        1977.6960000000001,
         # 1977.6960000000001,
-        # # 1977.6960000000001,
-        # 2128.2599999999998,
-        # 2196.288,
-        # 2260.2000000000003,
-        # 2276.64,
-        # 2320.776,  #SMARTS
+        2128.2599999999998,
+        2196.288,
+        2260.2000000000003,
+        2276.64,
+        2320.776,  #SMARTS
         # 2337.984,
         # 2455.56,
         # 2587.44,
@@ -294,7 +294,7 @@ def _interpplot():
     # Make SEDvsTime for free Av and Beta
 
     SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
-        fitlist=['Av','beta'],plotchi2=False,
+        fitlist=['Av','beta'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,initial_param=initial_param,
         retfig = False, retchi2=False, fig=None, color='grey',
         time_thresh=5)
@@ -334,15 +334,111 @@ def _interpplot():
     print 'New SEDsimulfit plots moved to paper directory.'
     return fitdict
  
-def _lateSED():
+def _lateSED(initial_param = 'smc',incl_xray=False):
     from Modelling import ExtinctModel
-    initial_param = 'smc'
+    if incl_xray:
+        addl_str = '_xrt'
+    else:
+        addl_str = ''
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
-    a=ExtinctModel.DefaultSEDFit(directory,initial_param=initial_param,fitlist=['Av','beta'],plotmarg=True)
-    cmd = "mv " + storepath + 'SED.png '+ figuresdir + 'lateSED.png'
+    a=ExtinctModel.DefaultSEDFit(directory,initial_param=initial_param,fitlist=['Av','beta'],
+        plotmarg=True, incl_xray=incl_xray)
+    cmd = "mv " + storepath + 'SED.png '+ figuresdir + 'lateSED_' + initial_param + addl_str +  '.png'
     os.system(cmd)
-    cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg.png'
+    cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg_' + initial_param + addl_str + '.png'
     os.system(cmd)
     print 'New SED plots moved to paper directory.'
- 
+
+def _lightcurves():
+    objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
+    objblock_xrt = PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/xrt/xrtlcbin_test.dat')
+    
+    objblock_original.PlotLC(show=True,save=True,legend=True,residualscale=False,
+        xlimits=(3e1,1e5),ylimits=(1e0,3e4))
+    cmd = "mv " + storepath + 'LC_GRB120119A.png '+ figuresdir
+    os.system(cmd)
+    
+    objblock_xrt.PlotXRTlc(show=True,save=True,legend=True,
+        obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K'],
+        xlimits=(1e0,1e6),ylimits=None)
+
+    cmd = "mv " + storepath + 'LCxrt_GRB120119A.png '+ figuresdir
+    os.system(cmd)
+    print 'New lightcurve plots moved to paper directory.'
+
+def _make_SED_table():
+    from Modelling import ExtinctModel
+    
+    directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
+    
+    
+    paramlist=['mw','lmc','lmc2','smc']
+    inclxrt=[True,True,True,True]
+    
+    contentlist = []
+        
+    for param in paramlist:
+        
+        if inclxrt[paramlist.index(param)]:
+            incllist = [False,True]
+        else:
+            incllist = [False]
+        for incl in incllist:    # repeat the fit if including XRT
+            fitdict=ExtinctModel.DefaultSEDFit(directory,initial_param=param,fitlist=['Av','beta'],
+            plotmarg=False, plot=False, incl_xray=incl)
+            for outstr in fitdict['strings']:
+                if 'beta:' in outstr:
+                    betastr = outstr.lstrip('beta:')
+                if 'Av:' in outstr:
+                    if outstr.find('Av: -') == 0:
+                        outstr=outstr.replace('Av: -','Av: ') # since Av is negative what it should be in this code
+                    else:
+                        outstr=outstr.replace('Av: ','Av: -') #replacing in case the fit actually shows the best fit Av IS negative                    
+                    Avstr = outstr.lstrip('Av:')    
+            
+            
+            if incl:
+                inclXstr = 'Y'
+            else:
+                inclXstr = 'N'
+
+            newstring = '%s & %s & $%s$ & $%s$ & %.1f / %i \\\\' % (param.upper(),inclXstr,betastr.replace("+/-","\pm"),Avstr.replace("+/-","\pm"), fitdict['chi2'],fitdict['dof'])
+            contentlist.append(newstring)
+
+
+    content = ''
+    for contentline in contentlist:
+        content += ''' %s
+''' % contentline
+        
+
+    header='''
+\\begin{deluxetable}{lllll}
+\\tablecaption{Results of Extinction Fits}
+\\tablewidth{0pt}
+\\tablehead{
+\\colhead{Dust} & \\colhead{+XRT?} & \\colhead{$\\beta$} & \\colhead{$A_V$}  & \\colhead{$\chi^2$ $/$ dof} \\\\
+\\colhead{Model}           & \\colhead{}    & \\colhead{}        & \\colhead{(mag)}    & \\colhead{}}
+\\startdata
+
+'''
+
+    footer= '''
+\\enddata
+\\tablecomments{Results of standard dust model fits to the SED of GRB~110119A from the contemporaneous SMARTS data at $t=38.7$ minutes after the burst.}
+\\label{tab:extfits}
+\\end{deluxetable}
+    '''
+    
+    tabletext = header + content + footer
+    try:
+        filename = tablesdir + 'dusttable.tex'
+        f = open(filename,'w')
+        f.write(tabletext)
+        f.close()
+        
+        print ''
+        print "Wrote dust table to tables directory"
+    except:
+        print "FAILED TO WRITE TABLE" 
