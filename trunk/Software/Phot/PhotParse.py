@@ -7,6 +7,7 @@ from MiscBin.q import mag2alpha
 from matplotlib import rc
 import os
 import sys
+from ast import literal_eval
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -26,6 +27,7 @@ class ObjBlock:
         self.utburst = None
         self.galebv = None
         self.redshift = None
+        self.xraydict = None
         self.name = None
         
     def updateObj(self,indict):
@@ -64,6 +66,13 @@ class ObjBlock:
                 if self.redshift != float(indict['redshift']):
                     raise ValueError('redshift values do not match!')
         
+        if not self.xraydict:
+            if 'xraydict' in indict:
+                if indict['xraydict'] != 'unknown':
+                    # special handling for xray dict; convert from str to dict
+                    self.xraydict = literal_eval(indict['xraydict']) # literal_eval is safe!
+                
+        
         name = indict['source'] + '_' + indict['filt']
         if not name in self.obsdict:
             newobs = ObsBlock(indict)
@@ -96,14 +105,29 @@ class ObjBlock:
             else:
                 print "No filter for %s, Skipping flux conversion" % (key)
     
-    def PlotXRTlc(self,show=True,save=True,legend=True,obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K']):
+    def PlotXRTlc(self,show=True,save=True,legend=True,
+        obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K'],
+        xlimits=None,ylimits=None,figsize=None):
+        '''
+        show: Plot to screen
+        save: Save to disk
+        legend: include a legend
+        obslist: parameters to plot
+        xlimits: optional tuple of limits (observer frame)
+        ylimits: optional tuple of limits (flux units)
+        figsize: figsize tuple in inches
+        '''
         # set font
         # EDIT TO SHOW MORE THAN JUST BAT/XRT/KBAND
         
         
         rc('font', family='Times New Roman')
         
-        fig=plt.figure()
+        if not figsize:
+            fig=plt.figure()
+        else:
+            fig=plt.figure(figsize=figsize)
+        
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.loglog()
         
@@ -128,6 +152,11 @@ class ObjBlock:
         ax3=ax.twiny()
         ax3.loglog()
         
+        if xlimits:
+            ax.set_xlim(xlimits)
+        if ylimits:
+            ax.set_ylim(ylimits)
+            
         xobstime=ax.get_xlim()
         xresttime0=xobstime[0]/(1+self.redshift)
         xresttime1=xobstime[1]/(1+self.redshift)
@@ -162,11 +191,22 @@ class ObjBlock:
         ## HACK
         pass
     
-    def PlotLC(self,show=True,save=True,legend=True,residualscale=False):
+    def PlotLC(self,show=True,save=True,legend=True,residualscale=False,
+        xlimits=None,ylimits=None,figsize=(11.5,8)):
+        '''
+        show: Plot to screen
+        save: Save to disk
+        legend: include a legend
+        residualscale: BETA. CURRENTLY ONLY FOR USE WITH GRB120119A. HACK.
+        xlimits: optional tuple of limits (observer frame)
+        ylimits: optional tuple of limits (flux units)      
+        figsize: figsize tuple in inches  
+        '''
         # set font
+        
         rc('font', family='Times New Roman')
         
-        fig=plt.figure(figsize=(11.5,8))
+        fig=plt.figure(figsize=figsize)
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.loglog()
         
@@ -234,6 +274,12 @@ class ObjBlock:
                     if upperinds.any(): # only plot here if we have at least one upper limit
                         ax.errorbar(np.array(ob.tmidlist)[upperinds],ob.gcfluxarr[upperinds],yerr=ob.gcfluxerrarr[upperinds], color=ob.color, fmt='v')
         # ax.set_ylim(1,1E5)
+        
+        if xlimits:
+            ax.set_xlim(xlimits)
+        if ylimits:
+            ax.set_ylim(ylimits)        
+        
         old_ylim=ax.get_ylim() # saving for later, as gets modified.. 
         
         ax2=ax.twinx()
@@ -664,6 +710,19 @@ def DumbInterpolation(obsblock,desired_time_array,fake_error=0.0):
     return obsblock
         
 def PhotParse(filename,verbose=False):
+    '''
+    
+    @xraydict={'refflux':9.98,'refeflux':0.1,'refwave':12.398,'xbeta':0.78,'xbetapos':0.91,'xbetaneg':0.66}
+    Handling of xray dictionary - FOR USE IN SED FITS ONLY. i.e. do not use this if you have multiple epochs
+    refflux:
+        xray flux and uncertainty at reference time
+    refwave:
+        effective wavelength of xray data (12.398 is 1keV in angstroms)
+    xbeta: 
+        # can obtain these from Gamma in xrt /specpc_report.txt summary report
+        # gamma = 1+beta (for f=f_0 * nu^-beta; note i usually use the opposite convention)
+        These are used for plotting purposes. The beta inferred from XRT data alone.
+    '''
     object_block = ObjBlock()
     f=file(filename)
     wholefile=f.read() # read in the whole file as a string
@@ -684,7 +743,8 @@ def PhotParse(filename,verbose=False):
             'galebv':'unknown',
             'redshift':'unknown',
             'name':'unknown',
-            'fluxconv':'unknown'
+            'fluxconv':'unknown',
+            'xraydict':'unknown'
             }
     
     parseable_names=['tmid','tstart','tend','exp','mag','emag','filt','lim','ctrate','ectrate']
