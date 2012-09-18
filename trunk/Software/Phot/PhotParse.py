@@ -191,6 +191,66 @@ class ObjBlock:
         ## HACK
         pass
     
+    def WriteTable(self):
+        contentlist = []
+        
+        for ob in self.obsdict.itervalues():
+            assert len(ob.tmidlist) == len(ob.explist)
+            assert len(ob.tmidlist) == len(ob.maglist)
+            assert len(ob.tmidlist) == len(ob.magerrlist)
+            assert len(ob.tmidlist) == len(ob.isupperlist)
+            strtmidlist = ["%.2f" % tmid for tmid in ob.tmidlist]
+            strexplist = ["%.1f" % exp for exp in ob.explist]
+            strmaglist = ["%.2f" % mag if not ob.isupperlist[ob.maglist.index(mag)] == True else '> %.2f' % mag for mag in ob.maglist]
+            strmagerrlist = ["%.2f" % magerr if not ob.isupperlist[ob.magerrlist.index(magerr)] == True else '...' for magerr in ob.magerrlist]            
+            assert len(strtmidlist) == len(strexplist)
+            assert len(strmaglist) == len(strexplist)
+            assert len(strmagerrlist) == len(strexplist)
+            
+            count = 0 
+            while count < len(strexplist):
+                # newstring=inst  filt  tmid   expt   mag    magerr
+                newstring = '%s & $%s$ & $%s$ & $%s$ & $%s$ & $%s$ \\\\' % (ob.source,ob.filtstr,strtmidlist[count],strexplist[count],strmaglist[count],strmagerrlist[count])
+                contentlist.append(newstring)
+                count+=1
+
+        header='''
+    \\begin{deluxetable}{llllllll}
+    \\tablecaption{Results of Color Change Fits}
+    \\tabletypesize{\scriptsize}
+    \\tablewidth{0pt}
+    \\tablehead{
+    \\colhead{Instrument} & \\colhead{Filter} & \\colhead{$t_{\\rm mid}$} & \\colhead{$exp$} & \\colhead{Mag} & \\colhead{MagErr}  \\\\
+    \\colhead{}           & \\colhead{}    & \\colhead{(s)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{$1\\sigma$ }}
+    \\startdata
+
+    '''
+
+        footer= '''
+    \\enddata
+    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Corrected for extinction? %f }
+    \\label{tab:%sphot}
+    \\end{deluxetable}
+        ''' % (self.name, self.galebv, self.name)
+
+
+        content = ''
+        for contentline in contentlist:
+            content += ''' %s
+    ''' % contentline
+
+        tabletext = header + content + footer
+        try:
+            filename = storepath + 'photometry.tex'
+            f = open(filename,'w')
+            f.write(tabletext)
+            f.close()
+
+            print ''
+            print "Wrote colorchange table to tables directory"
+        except:
+            print "FAILED TO WRITE COLOR CHANGE TABLE"    
+            
     def PlotLC(self,show=True,save=True,legend=True,residualscale=False,
         xlimits=None,ylimits=None,figsize=(11.5,8)):
         '''
@@ -839,3 +899,4 @@ def PhotParse(filename,verbose=False):
     object_block.CalculateFlux()            
     
     return object_block
+    
