@@ -13,6 +13,8 @@ from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 from Modelling import qFit
 import copy
+from Modelling import ExtinctModel
+from GRB120119A import DustModel
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -210,25 +212,27 @@ def _build_extraptime(objblock):
         # # 16818.624
         ]
     return extraptime
-    
-    
+     
     
 #### INTERPOLATION PLOTS
-def _interpplot():
+def _interpplot(initial_param = 'DPgrb120119A',
+    late_time_av = -0.963, 
+    late_time_beta=-1.0,
+    Av_1init = -1.7,
+    beta_1init= 2.0,
+    Av_2init = 70,
+    beta_2init = 70,
+    sedvstimeylimdict={"betaonly":None,"Avonly":None,"bothAv":None,"bothbeta":None}
+    ):
+    # sedvstimeylimdict dictionary of ylimits for sedvstime
     # late_time_av=-0.86
     # late_time_beta=-0.90
     
-    late_time_av = -0.963 # for DPgrb120119A
-    late_time_beta=-1.0
-    Av_1init = -1.7
-    beta_1init= 2.0
-    Av_2init = 70
-    beta_2init = 70
+
     zoomtime = 2000 #seconds
-    from GRB120119A import DustModel
     addl_sed_times=None
     testrandom=False
-    initial_param = 'DPgrb120119A'
+    
     
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
     objblock_original_2 = copy.deepcopy(objblock_original) #not sure why i have do this..
@@ -274,7 +278,7 @@ def _interpplot():
         fitlist=['beta'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
         retfig = False, retchi2=False, color='grey',
-        time_thresh=5)
+        time_thresh=5,fixylimbeta=sedvstimeylimdict['betaonly'])
      
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv_' + initial_param + '.png'
     os.system(cmd)
@@ -285,7 +289,7 @@ def _interpplot():
         fitlist=['Av'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
         retfig = False, retchi2=False, color='grey',
-        time_thresh=5)
+        time_thresh=5,fixylimAv=sedvstimeylimdict['Avonly'])
      
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedbeta_' + initial_param + '.png'
     os.system(cmd)
@@ -294,10 +298,10 @@ def _interpplot():
     # Make SEDvsTime for free Av and Beta
 
     SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
-        fitlist=['Av','beta'],plotchi2=True,
+        fitlist=['Av','beta'],plotchi2=False,
         Av_init=late_time_av,beta_init=late_time_beta,initial_param=initial_param,
         retfig = False, retchi2=False, fig=None, color='grey',
-        time_thresh=5)
+        time_thresh=5,fixylimbeta=sedvstimeylimdict['bothbeta'],fixylimAv=sedvstimeylimdict['bothAv'])
         
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_freeAv_' + initial_param + '.png'
     os.system(cmd)
@@ -323,13 +327,13 @@ def _interpplot():
         unred_latetime=False)
         
 
-    cmd = "mv " + storepath + 'SEDtimesimulfit_' + initial_param + '.png '+ figuresdir
+    cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '.png'
     os.system(cmd)
     
     
     # Marginialization plot 
     qFit.plot_marg_from_fitdict(fitdict,('Av_1','beta_1'))
-    cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDtimesimulfit_marg.png'
+    cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '_marg.png'
     os.system(cmd)
     print 'New SEDsimulfit plots moved to paper directory.'
     return fitdict
@@ -338,17 +342,25 @@ def _lateSED(initial_param = 'smc',incl_xray=False):
     from Modelling import ExtinctModel
     if incl_xray:
         addl_str = '_xrt'
+        addl = 'xray'
     else:
         addl_str = ''
+        addl = ''
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
     a=ExtinctModel.DefaultSEDFit(directory,initial_param=initial_param,fitlist=['Av','beta'],
         plotmarg=True, incl_xray=incl_xray)
-    cmd = "mv " + storepath + 'SED.png '+ figuresdir + 'lateSED_' + initial_param + addl_str +  '.png'
+    
+    cmd = "mv " + storepath + 'SED' + addl + '.png '+ figuresdir + 'lateSED_' + initial_param + addl_str +  '.png'
     os.system(cmd)
     cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg_' + initial_param + addl_str + '.png'
     os.system(cmd)
     print 'New SED plots moved to paper directory.'
+
+def _lateSEDx2(initial_param = 'smc'):
+    _lateSED(initial_param=initial_param,incl_xray=False)
+    _lateSED(initial_param=initial_param,incl_xray=True)
+    
 
 def _lightcurves():
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
@@ -367,14 +379,151 @@ def _lightcurves():
     os.system(cmd)
     print 'New lightcurve plots moved to paper directory.'
 
+def _make_colorchange_table():
+    contentlist=[]
+    
+    modeldict={
+        # 'smc':{
+        #     'dust_model':'smc',
+        #     'xrt_incl':False,
+        #     'late_time_av':-0.70, 
+        #     'late_time_beta':-1.21,
+        #     'Av_1init':-1.7,
+        #     'beta_1init':2.0,
+        #     'Av_2init':70,
+        #     'beta_2init':70
+        #     },
+        'smcx':{
+            'dust_model':'smc',
+            'xrt_incl':True,
+            'late_time_av':-0.85, 
+            'late_time_beta':-0.90,
+            'Av_1init':-1.7,
+            'beta_1init':2.0,
+            'Av_2init':70,
+            'beta_2init':70,
+            'sedvstimeylimdict':{"betaonly":(-1.8,-0.8),"Avonly":(0.7,1.5),"bothAv":(0,2.5),"bothbeta":(-2.0,0.9)}
+            },
+        'lmc2':{
+            'dust_model':'lmc2',
+            'xrt_incl':True,
+            'late_time_av':-1.15, 
+            'late_time_beta':-0.94,
+            'Av_1init':-1.7,
+            'beta_1init':2.0,
+            'Av_2init':70,
+            'beta_2init':70,
+            'sedvstimeylimdict':{"betaonly":(-1.7,-0.7),"Avonly":(0.9,1.8),"bothAv":(0,3),"bothbeta":(-3,0.9)}
+            },
+        'DPgrb120119A':{
+            'dust_model':'DPgrb120119A',
+            'xrt_incl':False,
+            'late_time_av':-0.81, # NEED TO RECHECK THESE VALUES 
+            'late_time_beta':-1.26, # NEED TO RECHECK THESE VALUES
+            'Av_1init':-1.7,
+            'beta_1init':2.0,
+            'Av_2init':70,
+            'beta_2init':70,
+            'sedvstimeylimdict':{"betaonly":(-2.0,-1.0),"Avonly":(0.8,1.5),"bothAv":(0,6.0),"bothbeta":(-2.5,4.5)}
+            },
+        'DPgrb120119Axrt':{
+            'dust_model':'DPgrb120119Axrt',
+            'xrt_incl':True,
+            'late_time_av':-1.00, #NEED TO RECHECK THESE VALUES
+            'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
+            'Av_1init':-1.7,
+            'beta_1init':2.0,
+            'Av_2init':70,
+            'beta_2init':70,
+            'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.9,2.0),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
+            }
+        }
+            
+    for paramlist in modeldict.itervalues():
+        fitdict = _interpplot(initial_param = paramlist['dust_model'],
+            late_time_av = paramlist['late_time_av'], 
+            late_time_beta= paramlist['late_time_beta'],
+            Av_1init = paramlist['Av_1init'],
+            beta_1init= paramlist['beta_1init'],
+            Av_2init = paramlist['Av_2init'],
+            beta_2init = paramlist['beta_2init'],
+            sedvstimeylimdict=paramlist['sedvstimeylimdict']
+            ) 
+        
+        
+        beta_1str = 'error'
+        Av_1str = 'error'
+        taubetastr = 'error'
+        tauAvstr = 'error'
+            
+        for outstr in fitdict['strings']: #assume beta_0 and Av_0 are fixed and thus not in strin list
+            if 'beta_1:' in outstr:
+                beta_1str = outstr.lstrip('beta_1:')
+            if 'beta_2:' in outstr:
+                taubetastr = outstr.lstrip('beta_2:')
+            if 'Av_1:' in outstr:
+                if outstr.find('Av_1: -') == 0:
+                    outstr=outstr.replace('Av_1: -','Av_1: ') # since Av is negative what it should be in this code
+                else:
+                    outstr=outstr.replace('Av_1: ','Av_1: -') #replacing in case the fit actually shows the best fit Av IS negative                    
+                Av_1str = outstr.lstrip('Av_1:')
+            if 'Av_2:' in outstr:
+                tauAvstr = outstr.lstrip('Av_2:')
+        
+        Av_0str = str(paramlist['late_time_av']) + ' (fixed)'
+        beta_0str = str(paramlist['late_time_beta']) + ' (fixed)'
+        
+        newstring = '%s & %s & $%s$ & $%s$ & %s & $%s$ & $%s$ & %.1f / %i \\\\' % (paramlist['dust_model'],Av_0str,Av_1str.replace("+/-","\pm"),tauAvstr.replace("+/-","\pm"),beta_0str,beta_1str.replace("+/-","\pm"),taubetastr.replace("+/-","\pm"),fitdict['chi2'],fitdict['dof'])
+        contentlist.append(newstring)
+    
+
+    header='''
+\\begin{deluxetable}{llllllll}
+\\tablecaption{Results of Color Change Fits}
+\\tabletypesize{\scriptsize}
+\\tablewidth{0pt}
+\\tablehead{
+\\colhead{Dust} & \\colhead{$A_{V,0}$} & \\colhead{$A_{V,1}$} & \\colhead{$\\tau_{A_V}$} & \\colhead{$\\beta_{0}$} & \\colhead{$\\beta_{1}$} & \\colhead{$\\tau_{\\beta}$} & \\colhead{$\chi^2$ $/$ dof} \\\\
+\\colhead{Model}           & \\colhead{(mag)}    & \\colhead{(mag)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{} & \\colhead{(s)} & \\colhead{}}
+\\startdata
+
+'''
+
+    footer= '''
+\\enddata
+\\tablecomments{Results of color change model fits to the interpolated early-time SEDs of GRB~110119A.}
+\\label{tab:ccfits}
+\\end{deluxetable}
+    '''
+    
+    
+    content = ''
+    for contentline in contentlist:
+        content += ''' %s
+''' % contentline
+    
+    tabletext = header + content + footer
+    tabletext = tabletext.replace("DPGRB120119AXRT","FMX")
+    tabletext = tabletext.replace("DPGRB120119A","FM")
+    try:
+        filename = tablesdir + 'colorchangetable.tex'
+        f = open(filename,'w')
+        f.write(tabletext)
+        f.close()
+        
+        print ''
+        print "Wrote colorchange table to tables directory"
+    except:
+        print "FAILED TO WRITE COLOR CHANGE TABLE" 
+    
+
 def _make_SED_table():
-    from Modelling import ExtinctModel
     
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
     
     
-    paramlist=['mw','lmc','lmc2','smc']
-    inclxrt=[True,True,True,True]
+    paramlist=['mw','lmc','lmc2','smc','DPgrb120119Axrt','DPgrb120119A']
+    inclxrt=[True,True,True,True,True,False]
     
     contentlist = []
         
@@ -426,12 +575,14 @@ def _make_SED_table():
 
     footer= '''
 \\enddata
-\\tablecomments{Results of standard dust model fits to the SED of GRB~110119A from the contemporaneous SMARTS data at $t=38.7$ minutes after the burst.}
+\\tablecomments{Results of standard dust model fits to the SED of GRB~110119A from the contemporaneous SMARTS data at $t=38.7$ minutes after the burst. [Converged on negative extinction for MW - what is standard practice here? Say just $<0.02$? Leave as-is? Rewire modelling to disallow negative Av?]}
 \\label{tab:extfits}
 \\end{deluxetable}
     '''
     
     tabletext = header + content + footer
+    tabletext = tabletext.replace("DPgrb120119Axrt","FMX")
+    tabletext = tabletext.replace("DPgrb120119A","FM")
     try:
         filename = tablesdir + 'dusttable.tex'
         f = open(filename,'w')
