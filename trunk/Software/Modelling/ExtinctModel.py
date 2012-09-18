@@ -430,7 +430,7 @@ def timeDepAvBeta(wave_time_list,paramlist):
         # beta = beta_0 + beta_1*np.exp(-1*time/beta_2)
         # Av = Av_0 + Av_1*np.exp(-1*time/Av_2)
         beta = Functions.DecayingExponentialbeta(time,beta_0,beta_1,beta_2)
-        Av = Functions.DecayingExponentialAv(time,Av_0,Av_1,Av_2)
+        Av = Functions.DecayingExponentialAv(time,Av_0,Av_1,Av_2) #doesnt allow for negative Av_0 or Av_1
         
         
         fluxarr = fluxarr=np.ones(len(wavearr)) #just an array of ones
@@ -1048,11 +1048,13 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
 
 def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
     sedtimelist=None, retfig = False, retchi2=False, fig=None, color='grey',plotchi2=False,
-    Av_init=-0.62,beta_init=-1.45,time_thresh=5):
+    Av_init=-0.62,beta_init=-1.45,time_thresh=5,fixylimAv=None,fixylimbeta=None):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
     # threshhold of that time, and build up an SED for each.
+    
+    if fixylim: tuple of y limits to override defaults
     
     if retfig: return the plot
     
@@ -1147,12 +1149,12 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             ax=fig.get_axes()[axindex]
             axindex += 1
         plotAvlist=-1*np.array(Avlist)
-        ax2.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
-        ax2.set_ylabel(r'$A_V $')
-        ax2.set_xlabel(r'$t$ (s, rest frame)')
-        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-        ax1.set_ylabel(r'$\beta$')
+        ax1.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
+        ax1.set_ylabel(r'$A_V $')
         ax1.set_xlabel(r'$t$ (s, rest frame)')
+        ax2.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
+        ax2.set_ylabel(r'$\beta$')
+        ax2.set_xlabel(r'$t$ (s, rest frame)')
         
         string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
         fig.text(0.55,0.3,string)
@@ -1161,6 +1163,15 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         ax1.set_xticks(ax1.get_xticks()[1:-1])
         ax1.set_yticks(ax1.get_yticks()[1:])
         
+        if not fixylimAv:
+            ax1.set_ylim([0,np.ceil(max(plotAvlist))+1]) # ensure bottom is 0; cant have Av < 0
+        else:
+            ax1.set_ylim(fixylimAv)
+        if not fixylimbeta:
+            ax2.set_ylim([np.floor(min(betalist))-1,np.ceil(max(betalist))+1])
+        else:
+            ax2.set_ylim(fixylimbeta)
+                
         if retfig:
             return(fig)
         fig.show()
@@ -1190,6 +1201,12 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             fig.text(0.55,0.3,string)
             string = 'beta = %s (fixed)' % (beta_init)
             fig.text(0.55,0.5,string)
+            # ax1.set_ylim([0,np.ceil(max(plotAvlist))+1]) # ensure bottom is 0; cant have Av < 0
+            if not fixylimAv:
+                pass
+            else:
+                ax1.set_ylim(fixylimAv)
+            
         elif betalist:
             ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
             ax1.set_ylabel(r'$\beta$')
@@ -1199,6 +1216,13 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             fig.text(0.55,0.3,string)
             string = 'Av = %.2f (fixed)' % (-1*float(Av_init)) # negate Av
             fig.text(0.55,0.5,string)
+            
+            if not fixylimbeta:
+                pass
+            else:
+                ax1.set_ylim(fixylimbeta)
+            # ax1.set_ylim([np.floor(min(betalist))-1,np.ceil(max(betalist))+1])
+            
     if plotchi2:
         ax_chi2.scatter(resttimearr,chi2list,color=color)
         ylim = ax_chi2.get_ylim()
