@@ -144,8 +144,9 @@ def SwiftGRBFlow(incl_reg=True,incl_fc=True,\
                 triggerid = '0'
             if len(triggerid) == 6:
                 _do_all_trigger_actions(triggerid, incl_reg=incl_reg, incl_fc=incl_fc, mail_reg=mail_reg,mail_to=mail_to, make_html=make_html, html_path=html_path, mail_html=mail_html, feed_type=feed_type, force_mail=force_mail, tweet=tweet, feed_url=feed_url, out_url_path=out_url_path)
-
+        print time.ctime()
         time.sleep(60)
+        
 
 def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
                         mail_reg=False, mail_to='amorgan@berkeley.edu',\
