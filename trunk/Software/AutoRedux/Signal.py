@@ -165,7 +165,9 @@ def _do_all_trigger_actions(triggerid,  incl_reg=True,incl_fc=True,\
     triggerid = triggerid.lstrip('0')
     print 'Loading GCN for trigger %s' % (triggerid)
     gcn = LoadGCN.LoadGCN(triggerid, clobber=True)
-    
+    if not gcn.successful_load:
+        return # if we didn't load successfully, dont try to do trigger actions
+        
     # From the date of the GRB, we can take a guess as to what the GRB name will be.
     # Note this takes the new naming convention of putting A after each new burst.
     # With this info, we can add it to the database.
