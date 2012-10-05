@@ -402,11 +402,11 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             c = DecayingExponentialAv(t,Av0,Av1,Av2)
             d = DecayingExponentialbeta(t,beta0,beta1,beta2)
             c = -1 * np.array(c) #changing since Av negative 
-            ax1.plot(t,c)
             ax2.plot(t,d)
+            ax1.plot(t,c)
             ax1.set_ylabel(r'$A_V$')
             ax2.set_ylabel(r'$\beta$')
-            ax2.set_xlabel(r'$t$ (s, rest frame)')
+            ax1.set_xlabel(r'$t$ (s, rest frame)')
             
             if plotchi2:
                 ax3.scatter(corrtimelist,chi2list)
@@ -430,7 +430,11 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 
                 string = 'Total chi2 / dof = %.2f / %i' % (outdict['chi2'],outdict['dof'])
                 fig.text(0.55,0.2,string)
-            
+            else:
+                ax2.set_xticks([]]) #beta
+                ax2.set_yticks(ax2.get_yticks()[1:])
+                
+                
         elif not fitdict['Av_1']['fixed']:
             ax=fig.add_axes([0.1,0.1,0.8,0.8])        
             ax.semilogx()
