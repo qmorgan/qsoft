@@ -12,6 +12,8 @@ from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 import copy
+import scipy.stats as stats
+
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -332,31 +334,46 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     beta1=None
     beta2=None
     beta0=None
+    
+    paramcount=0 # keeping track of parameters since qFit.fit throws them in random places
     for param in outdict['parameters']:
         if param.name == 'Av_1':
             Av1=param.value
+            Av1_index=paramcount
         elif fitdict['Av_1']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             Av1=fitdict['Av_1']['init']
+            Av1_index=None
         if param.name == 'Av_2':
             Av2=param.value
+            Av2_index=paramcount
         elif fitdict['Av_2']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             Av2=fitdict['Av_2']['init']
+            Av2_index=None
         if param.name == 'Av_0':
             Av0=param.value
+            Av0_index=paramcount
         elif fitdict['Av_0']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             Av0=fitdict['Av_0']['init']
+            Av0_index=None
         if param.name == 'beta_1':
             beta1=param.value
+            beta1_index=paramcount
         elif fitdict['beta_1']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             beta1=fitdict['beta_1']['init']
+            beta1_index=None
         if param.name == 'beta_2':
             beta2=param.value
+            beta2_index=paramcount
         elif fitdict['beta_2']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             beta2=fitdict['beta_2']['init']
+            beta2_index=None
         if param.name == 'beta_0':
             beta0=param.value
+            beta0_index=paramcount
         elif fitdict['beta_0']['fixed'] == True: # if we fixed it, wouldnt have gone to parameters
             beta0=fitdict['beta_0']['init']
+            beta0_index=None
+        paramcount+=1
     
     ####
     #####
@@ -383,7 +400,7 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     ####
     if plot:
         fig=plt.figure()
-        t=np.arange(100000)+1
+        t=np.arange(10000)+1
         
         if not fitdict['beta_1']['fixed'] and not fitdict['Av_1']['fixed']:
             if not plotchi2:
@@ -399,14 +416,85 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 ax1.semilogx()
                 ax2.semilogx()
             
+
+            ## plot unerlying uncertainty, drawing from multivariate gaussian
+            mean = [param.value for param in outdict['parameters']]
+            mean = tuple(mean)
+            cov = outdict['covarmatrix']
+            # nxvals=1000 
+            nsimulations=1500
+            samples=np.random.multivariate_normal(mean,cov,(nsimulations))
+            simymat=np.zeros((nsimulations,len(t)))
+            
+            ## FOR BETA
+            count=0
+            for sample in samples:
+                if beta0_index is not None:
+                    sample_beta_0 = sample[beta0_index]
+                else:
+                    sample_beta_0 = beta0 # fixed value if beta0_index is None
+                if beta2_index is not None:
+                    sample_beta_2 = sample[beta2_index]
+                else:
+                    sample_beta_2 = beta2 # fixed value if beta2_index is None
+                if beta1_index is not None:
+                    sample_beta_1 = sample[beta1_index]
+                else:
+                    sample_beta_1 = beta1 # fixed value if beta1_index is None
+                  
+                simyvals=DecayingExponentialbeta(t,sample_beta_0,sample_beta_1,sample_beta_2)
+                simymat[count]=simyvals
+                count+=1
+                       
+            #two sigma is 95.4%
+            simylower02point3 = stats.scoreatpercentile(simymat,2.3)
+            simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
+            ax2.fill_between(t,simylower02point3,simyupper97point7,color='#CCCCCC')            
+            simyupper84 = stats.scoreatpercentile(simymat,84.1)
+            simylower16 = stats.scoreatpercentile(simymat,15.9)
+            ax2.fill_between(t,simylower16,simyupper84,color='#888888')
+            
+            ## FOR AV
+            count=0
+            for sample in samples:
+                if Av0_index is not None:
+                    sample_Av_0 = sample[Av0_index]
+                else:
+                    sample_Av_0 = Av0 # fixed value if Av0_index is None
+                if Av2_index is not None:
+                    sample_Av_2 = sample[Av2_index]
+                else:
+                    sample_Av_2 = Av2 # fixed value if Av2_index is None
+                if Av1_index is not None:
+                    sample_Av_1 = sample[Av1_index]
+                else:
+                    sample_Av_1 = Av1 # fixed value if Av1_index is None
+                  
+                simyvals=DecayingExponentialAv(t,sample_Av_0,sample_Av_1,sample_Av_2)
+                simyvals=-1*np.array(simyvals) #changing since Av negative 
+                simymat[count]=simyvals
+                count+=1
+                       
+            #two sigma is 95.4%
+            simylower02point3 = stats.scoreatpercentile(simymat,2.3)
+            simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
+            ax1.fill_between(t,simylower02point3,simyupper97point7,color='#CCCCCC')            
+            simyupper84 = stats.scoreatpercentile(simymat,84.1)
+            simylower16 = stats.scoreatpercentile(simymat,15.9)
+            ax1.fill_between(t,simylower16,simyupper84,color='#888888')
+            
+            
+            ## plot model
             c = DecayingExponentialAv(t,Av0,Av1,Av2)
             d = DecayingExponentialbeta(t,beta0,beta1,beta2)
             c = -1 * np.array(c) #changing since Av negative 
-            ax2.plot(t,d)
-            ax1.plot(t,c)
+            ax2.plot(t,d,lw=2,color='black') #beta
+            ax1.plot(t,c,lw=2,color='black') #Av
             ax1.set_ylabel(r'$A_V$')
             ax2.set_ylabel(r'$\beta$')
             ax1.set_xlabel(r'$t$ (s, rest frame)')
+
+            
             
             if plotchi2:
                 ax3.scatter(corrtimelist,chi2list)
@@ -431,7 +519,7 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 string = 'Total chi2 / dof = %.2f / %i' % (outdict['chi2'],outdict['dof'])
                 fig.text(0.55,0.2,string)
             else:
-                ax2.set_xticks([]]) #beta
+                ax2.set_xticks([]) #beta
                 ax2.set_yticks(ax2.get_yticks()[1:])
                 
                 
