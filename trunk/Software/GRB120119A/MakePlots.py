@@ -222,7 +222,8 @@ def _interpplot(initial_param = 'DPgrb120119A',
     beta_1init= 2.0,
     Av_2init = 70,
     beta_2init = 70,
-    sedvstimeylimdict={"betaonly":None,"Avonly":None,"bothAv":None,"bothbeta":None}
+    sedvstimeylimdict={"betaonly":None,"Avonly":None,"bothAv":None,"bothbeta":None},
+    retfigfortesting=False
     ):
     # sedvstimeylimdict dictionary of ylimits for sedvstime
     # late_time_av=-0.86
@@ -284,7 +285,7 @@ def _interpplot(initial_param = 'DPgrb120119A',
     os.system(cmd)
     print 'New SEDvstime fixed Av plots moved to paper directory.'
     
-    # Make SEDvsTime for fixed beta
+    # Make g for fixed beta
     SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
         fitlist=['Av'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
@@ -298,7 +299,7 @@ def _interpplot(initial_param = 'DPgrb120119A',
     # Make SEDvsTime for free Av and Beta
 
     SEDvsTime(objblock_interpolated,sedtimelist=sedtimelist,plotsed=False,
-        fitlist=['Av','beta'],plotchi2=False,
+        fitlist=['Av','beta'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,initial_param=initial_param,
         retfig = False, retchi2=False, fig=None, color='grey',
         time_thresh=5,fixylimbeta=sedvstimeylimdict['bothbeta'],fixylimAv=sedvstimeylimdict['bothAv'])
@@ -326,7 +327,19 @@ def _interpplot(initial_param = 'DPgrb120119A',
         randomize_inits=False,
         unred_latetime=False)
         
-
+    if retfigfortesting:
+        fig=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
+            sedtimelist=sedtimelist,fixparam='both',
+            initial_param=initial_param,
+            time_thresh=5,
+            plot=True,plotchi2=False,retfig=True,
+            Av_0init=late_time_av,beta_0init=late_time_beta,
+            Av_1init=Av_1init,beta_1init=beta_1init,
+            Av_2init=Av_2init,beta_2init=beta_2init,
+            randomize_inits=False,
+            unred_latetime=False)
+        return fig
+        
     cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '.png'
     os.system(cmd)
     
@@ -379,20 +392,67 @@ def _lightcurves():
     os.system(cmd)
     print 'New lightcurve plots moved to paper directory.'
 
+def _make_proposal_figure():
+    modeldict={
+        'DPgrb120119Axrt':{
+            'dust_model':'DPgrb120119Axrt',
+            'xrt_incl':True,
+            'late_time_av':-1.00, #NEED TO RECHECK THESE VALUES
+            'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
+            'Av_1init':-1.7,
+            'beta_1init':2.0,
+            'Av_2init':70,
+            'beta_2init':70,
+            'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.9,2.0),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
+            }
+        }
+
+    for paramlist in modeldict.itervalues():
+        myfig = _interpplot(initial_param = paramlist['dust_model'],
+            late_time_av = paramlist['late_time_av'], 
+            late_time_beta= paramlist['late_time_beta'],
+            Av_1init = paramlist['Av_1init'],
+            beta_1init= paramlist['beta_1init'],
+            Av_2init = paramlist['Av_2init'],
+            beta_2init = paramlist['beta_2init'],
+            sedvstimeylimdict=paramlist['sedvstimeylimdict'],
+            retfigfortesting=True
+            ) 
+            
+        
+        ax1=myfig.get_axes()[0]
+        ax2=myfig.get_axes()[1]
+        ax2.set_ylabel(r'$\beta$',size=20)
+        ax1.set_xlabel('$t$ (s, rest frame)',size=20)
+        ax1.set_ylabel('$A_V$',size=20)
+        ax2.set_xticks([])
+        ax1.set_ylim(0.95,1.79)
+        
+        # beta_1: -0.24 +/- 0.07
+        # beta_2: 799.48 +/- 289.05
+        # Av_1: -0.72 +/- 0.10
+        # Av_2: 53.62 +/- 13.48
+        myfig.text(0.6,0.28,r'$\Delta A_V = 0.72 \pm 0.1$',size=20)
+        myfig.text(0.6,0.35,r'$\tau_{A_V} = 53 \pm 13$ s',size=20)
+        myfig.text(0.6,0.61,r'$\Delta \beta = -0.24 \pm 0.07$',size=20)
+        myfig.text(0.6,0.68,r'$\tau_{\beta} = 800 \pm 290$ s',size=20)
+        
+        return myfig
+
 def _make_colorchange_table():
     contentlist=[]
     
     modeldict={
-        # 'smc':{
-        #     'dust_model':'smc',
-        #     'xrt_incl':False,
-        #     'late_time_av':-0.70, 
-        #     'late_time_beta':-1.21,
-        #     'Av_1init':-1.7,
-        #     'beta_1init':2.0,
-        #     'Av_2init':70,
-        #     'beta_2init':70
-        #     },
+        'smc':{
+            'dust_model':'smc',
+            'xrt_incl':False,
+            'late_time_av':-0.70, 
+            'late_time_beta':-1.21,
+            'Av_1init':-1.7,
+            'beta_1init':2.0,
+            'Av_2init':70,
+            'beta_2init':70
+            },
         'smcx':{
             'dust_model':'smc',
             'xrt_incl':True,
@@ -447,9 +507,8 @@ def _make_colorchange_table():
             beta_1init= paramlist['beta_1init'],
             Av_2init = paramlist['Av_2init'],
             beta_2init = paramlist['beta_2init'],
-            sedvstimeylimdict=paramlist['sedvstimeylimdict']
+            sedvstimeylimdict=paramlist['sedvstimeylimdict'],
             ) 
-        
         
         beta_1str = 'error'
         Av_1str = 'error'
