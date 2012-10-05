@@ -1149,12 +1149,12 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             ax=fig.get_axes()[axindex]
             axindex += 1
         plotAvlist=-1*np.array(Avlist)
-        ax1.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
-        ax1.set_ylabel(r'$A_V $')
-        ax1.set_xlabel(r'$t$ (s, rest frame)')
-        ax2.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-        ax2.set_ylabel(r'$\beta$')
+        ax2.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
+        ax2.set_ylabel(r'$A_V $')
         ax2.set_xlabel(r'$t$ (s, rest frame)')
+        ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
+        ax1.set_ylabel(r'$\beta$')
+        ax1.set_xlabel(r'$t$ (s, rest frame)')
         
         string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
         fig.text(0.55,0.3,string)
@@ -1164,13 +1164,13 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         ax1.set_yticks(ax1.get_yticks()[1:])
         
         if not fixylimAv:
-            ax1.set_ylim([0,np.ceil(max(plotAvlist))+1]) # ensure bottom is 0; cant have Av < 0
+            ax2.set_ylim([0,np.ceil(max(plotAvlist))+1]) # ensure bottom is 0; cant have Av < 0
         else:
-            ax1.set_ylim(fixylimAv)
+            ax2.set_ylim(fixylimAv)
         if not fixylimbeta:
-            ax2.set_ylim([np.floor(min(betalist))-1,np.ceil(max(betalist))+1])
+            ax1.set_ylim([np.floor(min(betalist))-1,np.ceil(max(betalist))+1])
         else:
-            ax2.set_ylim(fixylimbeta)
+            ax1.set_ylim(fixylimbeta)
                 
         if retfig:
             return(fig)
@@ -1230,6 +1230,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     
         ax1.set_xticks(ax1.get_xticks()[1:-1])
         ax1.set_yticks(ax1.get_yticks()[1:])
+        if Avlist and betalist: # Both of them! Special 2-3 
+            ax2.set_xticks(ax2.get_xticks()[1:-1])
         ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
     
         ax_chi2.set_ylabel(r'$\chi^2$')
