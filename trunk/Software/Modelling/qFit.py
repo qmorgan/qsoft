@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import copy
 import os
 import sys
+import scipy.stats as stats
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -389,7 +390,7 @@ def test_fit():
 
 
     #Fit the function (provided 'data' is an array with the data to fit):
-    fit(f, [mu, sigma, height], ydata, yerr, zipxvals)
+    retdict = fit(f, [mu, sigma, height], ydata, yerr, zipxvals)
 
     #Plot the fitted model over the data if desired
     simxvals = np.arange(10000)/100. # 10000 points from 0-100
@@ -402,7 +403,71 @@ def test_fit():
     
     ax.scatter(xvals,ydata)
     fig2.show()
+    return retdict
 
+def sample_from_multivariate_normal_test(retdict,plot_every_model=True):
+    '''Proof of concept of sampling from a multivariate gaussian to generate
+    a distribution of model fits.
+    
+    docs.scipy.org/doc/numpy/reference/generated/numpy.random.multivariate_normal.html
+    The multivariate normal, multinormal or Gaussian distribution is a 
+    generalization of the one-dimensional normal distribution to higher 
+    dimensions. Such a distribution is specified by its mean and covariance 
+    matrix. These parameters are analogous to the mean (average or "center") 
+    and variance (standard deviation, or "width," squared) of the 
+    one-dimensional normal distribution.
+    
+    
+    '''
+    
+    # definition of the underlying functional model
+    def f(x,mu,sigma,height):
+        return height * np.exp(-((x-mu)/sigma)**2)
+        
+    # extracting the mean values and covariance matrix from the fit retdict
+    mean = [param.value for param in retdict['parameters']]
+    mean = tuple(mean)
+    cov = retdict['covarmatrix']
+    
+    
+    nxvals=1000
+    nsimulations=1500
+    
+    # nxvals samples from normal distribution 
+    samples=np.random.multivariate_normal(mean,cov,(nsimulations))
+    
+    simxvals = np.linspace(0,100,nxvals) # 1000 points from 0-100
+    
+    fig2=plt.figure()
+    ax=fig2.add_axes([0.1,0.1,0.8,0.8])
+    
+    #array of simulated y values
+    simymat=np.zeros((nsimulations,nxvals))
+    
+    count=0
+    for sample in samples:
+        simyvals=f(simxvals,sample[0],sample[1],sample[2])
+        simymat[count]=simyvals
+        if plot_every_model:
+            ax.plot(simxvals,simyvals,lw=2,color='black',alpha=0.01)
+        count+=1
+    
+    #two sigma is 95.4%
+    simylower02point3 = stats.scoreatpercentile(simymat,2.3)
+    simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
+    
+    if not plot_every_model:
+        ax.fill_between(simxvals,simylower02point3,simyupper97point7,color='#CCCCCC')
+        simyupper84 = stats.scoreatpercentile(simymat,84.1)
+        simylower16 = stats.scoreatpercentile(simymat,15.9)
+        ax.fill_between(simxvals,simylower16,simyupper84,color='#888888')
+        ax.plot(simxvals,f(simxvals,mean[0],mean[1],mean[2]),color='black')
+        
+    else:
+        ax.plot(simxvals,simyupper97point7,color='red',lw=2)
+        ax.plot(simxvals,simylower02point3,color='blue',lw=2)
+    return simymat
+    
 def test_fit_fmin():
     import matplotlib.pyplot as plt
     #Give initial paramaters:
