@@ -47,8 +47,14 @@ client=TwilioRestClient()
 
 
 def _usage():
-    print "[USAGE] qCall.py callto callfrom message"
-    print "[EXAMPLE] qCall.py 5551234567 5558675309 hello how are you today?"
+    print "[USAGE] qPhone.py callto callfrom message"
+    print "[EXAMPLE] qPhone.py 5551234567 5558675309 'Hello, how are you?'"
+    print "Environment variables TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN"
+    print " must be set up correctly, and the callfrom number must be the "
+    print " associated twilio number."
+    print "Anything after the callfrom number is interpreted as a message."
+    print "Place sentences in quotation marks to avoid pauses in text-to-speech"
+    print "Can also include the URL for an audio file to play back."
     return
 
 def call(callto,callfrom,messages):
@@ -84,7 +90,6 @@ def call(callto,callfrom,messages):
         raise ValueError("messages needs to be a list or a string")
         
     url="http://twimlets.com/message?"+outstring
-    print url
     call=client.calls.create(to=callto,from_=callfrom,url=url)
     
     ## old version using the echo twimlet
@@ -111,8 +116,6 @@ def test_call(callto="5102297683",callfrom="5102503825"):
     Test the calling functionality call()
     Replace the callto and callfrom with your numbers here to test the 
     application"""
-    # text = "A+G.R.B.+has+occured+at+coordinates+R.A.+21+hours+32+minutes+23"
-    # text += "+seconds+declination+positive+23+degrees+23+minutes+55+seconds."
     text = "Here is a nice song for you to enjoy."
     mp3 = "http://dl.dropbox.com/u/2484822/boil.mp3"
     messages = [text,mp3]
@@ -126,13 +129,16 @@ def test_sms(callto="5102297683",callfrom="5102503825"):
     text = "How doth the little crocodile improve his shining tail"
     sms(callto,callfrom,text)
 
-
+# Calling from command line
 if __name__ == '__main__':
+    
+    if (len(sys.argv) < 4):
+        print usage()
+        sys.exit(0)
         
     if ((sys.argv[1] == '-h') or (sys.argv[1] == "--h")):
         print _usage()
         sys.exit(0)
     
-    # Change if want to be able to send attachments from command line    
     call(sys.argv[1],sys.argv[2],sys.argv[3:])
     sys.exit(0)
