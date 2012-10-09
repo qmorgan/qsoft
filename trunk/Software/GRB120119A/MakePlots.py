@@ -317,15 +317,16 @@ def _interpplot(initial_param = 'DPgrb120119A',
     # beta_1init=0,
     # beta_2init=100,
     fitdict=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
-        sedtimelist=sedtimelist,fixparam='both',
+        sedtimelist=sedtimelist,fixparam='both', #fixparam both is Av0 and beta0
         initial_param=initial_param,
         time_thresh=5,
-        plot=True,plotchi2=True,retfig=False,
+        plot=True,plotchi2=False,retfig=False,
         Av_0init=late_time_av,beta_0init=late_time_beta,
         Av_1init=Av_1init,beta_1init=beta_1init,
         Av_2init=Av_2init,beta_2init=beta_2init,
         randomize_inits=False,
-        unred_latetime=False)
+        unred_latetime=False,
+        plot_every_model=True)
         
     if retfigfortesting:
         fig=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
@@ -403,7 +404,7 @@ def _make_proposal_figure():
             'beta_1init':2.0,
             'Av_2init':70,
             'beta_2init':70,
-            'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.9,2.0),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
+            'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.95,1.79),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
             }
         }
 
@@ -426,7 +427,10 @@ def _make_proposal_figure():
         ax1.set_xlabel('$t$ (s, rest frame)',size=20)
         ax1.set_ylabel('$A_V$',size=20)
         ax2.set_xticks([])
-        ax1.set_ylim(0.95,1.79)
+        # ax1.set_ylim(0.95,1.79)
+        
+        ax1.set_xlim(10,1e4)
+        ax2.set_xlim(10,1e4)
         
         # beta_1: -0.24 +/- 0.07
         # beta_2: 799.48 +/- 289.05
@@ -434,8 +438,8 @@ def _make_proposal_figure():
         # Av_2: 53.62 +/- 13.48
         myfig.text(0.6,0.28,r'$\Delta A_V = 0.72 \pm 0.1$',size=20)
         myfig.text(0.6,0.35,r'$\tau_{A_V} = 53 \pm 13$ s',size=20)
-        myfig.text(0.6,0.61,r'$\Delta \beta = -0.24 \pm 0.07$',size=20)
-        myfig.text(0.6,0.68,r'$\tau_{\beta} = 800 \pm 290$ s',size=20)
+        myfig.text(0.6,0.55,r'$\Delta \beta = -0.24 \pm 0.07$',size=20)
+        myfig.text(0.6,0.62,r'$\tau_{\beta} = 800 \pm 290$ s',size=20)
         
         return myfig
 
@@ -443,16 +447,16 @@ def _make_colorchange_table():
     contentlist=[]
     
     modeldict={
-        'smc':{
-            'dust_model':'smc',
-            'xrt_incl':False,
-            'late_time_av':-0.70, 
-            'late_time_beta':-1.21,
-            'Av_1init':-1.7,
-            'beta_1init':2.0,
-            'Av_2init':70,
-            'beta_2init':70
-            },
+        # 'smc':{
+            # 'dust_model':'smc',
+            # 'xrt_incl':False,
+            # 'late_time_av':-0.70, 
+            # 'late_time_beta':-1.21,
+            # 'Av_1init':-1.7,
+            # 'beta_1init':2.0,
+            # 'Av_2init':70,
+            # 'beta_2init':70
+            # },
         'smcx':{
             'dust_model':'smc',
             'xrt_incl':True,
