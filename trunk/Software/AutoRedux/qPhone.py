@@ -45,6 +45,12 @@ if not os.environ.has_key("TWILIO_AUTH_TOKEN"):
 # default, but you can define them explicitly in this function if you want)
 client=TwilioRestClient()
 
+
+def _usage():
+    print "[USAGE] qCall.py callto callfrom message"
+    print "[EXAMPLE] qCall.py 5551234567 5558675309 hello how are you today?"
+    return
+
 def call(callto,callfrom,messages):
     '''
     Place a phone call from a twilio number to another number, and have the 
@@ -119,4 +125,14 @@ def test_sms(callto="5102297683",callfrom="5102503825"):
     application"""
     text = "How doth the little crocodile improve his shining tail"
     sms(callto,callfrom,text)
+
+
+if __name__ == '__main__':
+        
+    if ((sys.argv[1] == '-h') or (sys.argv[1] == "--h")):
+        print _usage()
+        sys.exit(0)
     
+    # Change if want to be able to send attachments from command line    
+    call(sys.argv[1],sys.argv[2],sys.argv[3:])
+    sys.exit(0)
