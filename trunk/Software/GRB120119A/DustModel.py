@@ -437,11 +437,12 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 # nxvals=1000 
                 nsimulations=1500
                 samples=np.random.multivariate_normal(mean,cov,(nsimulations))
-                simymat=np.zeros((nsimulations,len(t)))
-            
+                simymat=np.empty((nsimulations,len(t)))                
+                
                 #############
                 ## FOR BETA
                 count=0
+                badbetacount=0
                 for sample in samples:
                     if beta0_index is not None:
                         sample_beta_0 = sample[beta0_index]
@@ -457,11 +458,23 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                         sample_beta_1 = beta1 # fixed value if beta1_index is None
                   
                     simyvals=DecayingExponentialbeta(t,sample_beta_0,sample_beta_1,sample_beta_2)
-                    simymat[count]=simyvals
-                    if plot_every_model:
-                        ax2.plot(t,simyvals,lw=2,color='black',alpha=0.01)
-                    count+=1
-                       
+                    
+                    # some samples were diverging to unphysical values; weird since
+                    # the late time values were supposedly fixed to set values. Given
+                    # that, here we will only add to the matrix and plot if the late
+                    # time value is not something crazy. Lazy hack now of just +/- 100
+                    if simyvals[-1] < 100 and simyvals[-1] > -100: 
+                        simymat[count]=simyvals
+                        if plot_every_model:
+                            ax2.plot(t,simyvals,lw=2,color='black',alpha=0.01)
+                        count+=1
+                    else:
+                        badbetacount+=1  
+                
+                #correct for the bad fits above:
+                goodcount = nsimulations - badbetacount
+                simymat = simymat[:goodcount]
+                
                 #two sigma is 95.4%
                 simylower02point3 = stats.scoreatpercentile(simymat,2.3)
                 simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
@@ -479,7 +492,9 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                     ax2.plot(t,simyupper84,linestyle='--',lw=2,color='#FF3300')
             
                 ## FOR AV
+                simymat=np.empty((nsimulations,len(t)))
                 count=0
+                badavcount=0
                 for sample in samples:
                     if Av0_index is not None:
                         sample_Av_0 = sample[Av0_index]
@@ -493,14 +508,26 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                         sample_Av_1 = sample[Av1_index]
                     else:
                         sample_Av_1 = Av1 # fixed value if Av1_index is None
-                  
+                    
                     simyvals=DecayingExponentialAv(t,sample_Av_0,sample_Av_1,sample_Av_2)
                     simyvals=-1*np.array(simyvals) #changing since Av negative 
-                    simymat[count]=simyvals
-                    if plot_every_model:
-                        ax1.plot(t,simyvals,lw=2,color='black',alpha=0.01)
-                    count+=1
-                       
+
+                    # some samples were diverging to unphysical values; weird since
+                    # the late time values were supposedly fixed to set values. Given
+                    # that, here we will only add to the matrix and plot if the late
+                    # time value is not something crazy. Lazy hack now of just +/- 100
+                    if simyvals[-1] < 100 and simyvals[-1] > -100: 
+                        simymat[count]=simyvals
+                        if plot_every_model:
+                            ax1.plot(t,simyvals,lw=2,color='black',alpha=0.01)
+                        count+=1
+                    else:
+                        badavcount+=1
+                
+                #correct for the bad fits above:
+                goodcount = nsimulations - badavcount
+                simymat = simymat[:goodcount]
+                        
                 #two sigma is 95.4%
                 simylower02point3 = stats.scoreatpercentile(simymat,2.3)
                 simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
@@ -517,6 +544,10 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                     ax1.plot(t,simylower16,linestyle='--',lw=2,color='#FF3300')
                     ax1.plot(t,simyupper84,linestyle='--',lw=2,color='#FF3300')
                 #######
+                
+                
+                print "Number of betas diverging out of %i: %i" % (nsimulations,badbetacount)
+                print "Number of Avs diverging out of %i: %i" % (nsimulations,badavcount)
                 
                 #plot again
                 c = DecayingExponentialAv(t,Av0,Av1,Av2)
