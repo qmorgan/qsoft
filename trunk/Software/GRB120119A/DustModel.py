@@ -198,7 +198,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     plot=False,
     plotchi2=True,    
     retfig=True,
-    time_thresh=5
+    time_thresh=5,
+    plot_every_model=False
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -400,7 +401,9 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     ####
     if plot:
         fig=plt.figure()
-        t=np.arange(10000)+1
+        t=10**np.linspace(1,4,1000) #evenly spaced in log space
+        plot_uncertainty_estimate = True
+        
         
         if not fitdict['beta_1']['fixed'] and not fitdict['Av_1']['fixed']:
             if not plotchi2:
@@ -416,84 +419,127 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 ax1.semilogx()
                 ax2.semilogx()
             
-
-            ## plot unerlying uncertainty, drawing from multivariate gaussian
-            mean = [param.value for param in outdict['parameters']]
-            mean = tuple(mean)
-            cov = outdict['covarmatrix']
-            # nxvals=1000 
-            nsimulations=1500
-            samples=np.random.multivariate_normal(mean,cov,(nsimulations))
-            simymat=np.zeros((nsimulations,len(t)))
-            
-            ## FOR BETA
-            count=0
-            for sample in samples:
-                if beta0_index is not None:
-                    sample_beta_0 = sample[beta0_index]
-                else:
-                    sample_beta_0 = beta0 # fixed value if beta0_index is None
-                if beta2_index is not None:
-                    sample_beta_2 = sample[beta2_index]
-                else:
-                    sample_beta_2 = beta2 # fixed value if beta2_index is None
-                if beta1_index is not None:
-                    sample_beta_1 = sample[beta1_index]
-                else:
-                    sample_beta_1 = beta1 # fixed value if beta1_index is None
-                  
-                simyvals=DecayingExponentialbeta(t,sample_beta_0,sample_beta_1,sample_beta_2)
-                simymat[count]=simyvals
-                count+=1
-                       
-            #two sigma is 95.4%
-            simylower02point3 = stats.scoreatpercentile(simymat,2.3)
-            simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
-            ax2.fill_between(t,simylower02point3,simyupper97point7,color='#CCCCCC')            
-            simyupper84 = stats.scoreatpercentile(simymat,84.1)
-            simylower16 = stats.scoreatpercentile(simymat,15.9)
-            ax2.fill_between(t,simylower16,simyupper84,color='#888888')
-            
-            ## FOR AV
-            count=0
-            for sample in samples:
-                if Av0_index is not None:
-                    sample_Av_0 = sample[Av0_index]
-                else:
-                    sample_Av_0 = Av0 # fixed value if Av0_index is None
-                if Av2_index is not None:
-                    sample_Av_2 = sample[Av2_index]
-                else:
-                    sample_Av_2 = Av2 # fixed value if Av2_index is None
-                if Av1_index is not None:
-                    sample_Av_1 = sample[Av1_index]
-                else:
-                    sample_Av_1 = Av1 # fixed value if Av1_index is None
-                  
-                simyvals=DecayingExponentialAv(t,sample_Av_0,sample_Av_1,sample_Av_2)
-                simyvals=-1*np.array(simyvals) #changing since Av negative 
-                simymat[count]=simyvals
-                count+=1
-                       
-            #two sigma is 95.4%
-            simylower02point3 = stats.scoreatpercentile(simymat,2.3)
-            simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
-            ax1.fill_between(t,simylower02point3,simyupper97point7,color='#CCCCCC')            
-            simyupper84 = stats.scoreatpercentile(simymat,84.1)
-            simylower16 = stats.scoreatpercentile(simymat,15.9)
-            ax1.fill_between(t,simylower16,simyupper84,color='#888888')
-            
-            
-            ## plot model
+            # plot model
             c = DecayingExponentialAv(t,Av0,Av1,Av2)
             d = DecayingExponentialbeta(t,beta0,beta1,beta2)
             c = -1 * np.array(c) #changing since Av negative 
-            ax2.plot(t,d,lw=2,color='black') #beta
-            ax1.plot(t,c,lw=2,color='black') #Av
+            ax2.plot(t,d,lw=2,color='#FF0000') #beta
+            old_ax2lim = ax2.get_ylim() #saving for later
+            ax1.plot(t,c,lw=2,color='#FF0000') #Av
+            old_ax1lim = ax1.get_ylim() # saving for later
+            
+            if plot_uncertainty_estimate:
+                
+                ## plot unerlying uncertainty, drawing from multivariate gaussian
+                mean = [param.value for param in outdict['parameters']]
+                mean = tuple(mean)
+                cov = outdict['covarmatrix']
+                # nxvals=1000 
+                nsimulations=1500
+                samples=np.random.multivariate_normal(mean,cov,(nsimulations))
+                simymat=np.zeros((nsimulations,len(t)))
+            
+                #############
+                ## FOR BETA
+                count=0
+                for sample in samples:
+                    if beta0_index is not None:
+                        sample_beta_0 = sample[beta0_index]
+                    else:
+                        sample_beta_0 = beta0 # fixed value if beta0_index is None
+                    if beta2_index is not None:
+                        sample_beta_2 = sample[beta2_index]
+                    else:
+                        sample_beta_2 = beta2 # fixed value if beta2_index is None
+                    if beta1_index is not None:
+                        sample_beta_1 = sample[beta1_index]
+                    else:
+                        sample_beta_1 = beta1 # fixed value if beta1_index is None
+                  
+                    simyvals=DecayingExponentialbeta(t,sample_beta_0,sample_beta_1,sample_beta_2)
+                    simymat[count]=simyvals
+                    if plot_every_model:
+                        ax2.plot(t,simyvals,lw=2,color='black',alpha=0.01)
+                    count+=1
+                       
+                #two sigma is 95.4%
+                simylower02point3 = stats.scoreatpercentile(simymat,2.3)
+                simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
+                if not plot_every_model:
+                    ax2.fill_between(t,simylower02point3,simyupper97point7,color='#CCCCCC')      
+                else:
+                    ax2.plot(t,simylower02point3,linestyle=':',lw=2,color='#FF6600')
+                    ax2.plot(t,simyupper97point7,linestyle=':',lw=2,color='#FF6600')      
+                simyupper84 = stats.scoreatpercentile(simymat,84.1)
+                simylower16 = stats.scoreatpercentile(simymat,15.9)
+                if not plot_every_model:
+                    ax2.fill_between(t,simylower16,simyupper84,color='#888888')
+                else:
+                    ax2.plot(t,simylower16,linestyle='--',lw=2,color='#FF3300')
+                    ax2.plot(t,simyupper84,linestyle='--',lw=2,color='#FF3300')
+            
+                ## FOR AV
+                count=0
+                for sample in samples:
+                    if Av0_index is not None:
+                        sample_Av_0 = sample[Av0_index]
+                    else:
+                        sample_Av_0 = Av0 # fixed value if Av0_index is None
+                    if Av2_index is not None:
+                        sample_Av_2 = sample[Av2_index]
+                    else:
+                        sample_Av_2 = Av2 # fixed value if Av2_index is None
+                    if Av1_index is not None:
+                        sample_Av_1 = sample[Av1_index]
+                    else:
+                        sample_Av_1 = Av1 # fixed value if Av1_index is None
+                  
+                    simyvals=DecayingExponentialAv(t,sample_Av_0,sample_Av_1,sample_Av_2)
+                    simyvals=-1*np.array(simyvals) #changing since Av negative 
+                    simymat[count]=simyvals
+                    if plot_every_model:
+                        ax1.plot(t,simyvals,lw=2,color='black',alpha=0.01)
+                    count+=1
+                       
+                #two sigma is 95.4%
+                simylower02point3 = stats.scoreatpercentile(simymat,2.3)
+                simyupper97point7 = stats.scoreatpercentile(simymat,97.7)
+                if not plot_every_model: 
+                    ax1.fill_between(t,simylower02point3,simyupper97point7,color='#CCCCCC')    
+                else:
+                    ax1.plot(t,simylower02point3,linestyle=':',lw=2,color='#FF6600')
+                    ax1.plot(t,simyupper97point7,linestyle=':',lw=2,color='#FF6600')        
+                simyupper84 = stats.scoreatpercentile(simymat,84.1)
+                simylower16 = stats.scoreatpercentile(simymat,15.9)
+                if not plot_every_model:
+                    ax1.fill_between(t,simylower16,simyupper84,color='#888888')
+                else:
+                    ax1.plot(t,simylower16,linestyle='--',lw=2,color='#FF3300')
+                    ax1.plot(t,simyupper84,linestyle='--',lw=2,color='#FF3300')
+                #######
+                
+                #plot again
+                c = DecayingExponentialAv(t,Av0,Av1,Av2)
+                d = DecayingExponentialbeta(t,beta0,beta1,beta2)
+                c = -1 * np.array(c) #changing since Av negative 
+                ax2.plot(t,d,lw=2,color='#FF0000') #beta
+                ax1.plot(t,c,lw=2,color='#FF0000') #Av
+            
+            ax1.set_ylim(old_ax1lim)
+            ax2.set_ylim(old_ax2lim)
+            
             ax1.set_ylabel(r'$A_V$')
             ax2.set_ylabel(r'$\beta$')
             ax1.set_xlabel(r'$t$ (s, rest frame)')
-
+            
+            # if not fixylimAv:
+            #     pass
+            # else:
+            #     ax1.set_ylim(fixylimAv)
+            # if not fixylimbeta:
+            #     pass
+            # else:
+            #     ax2.set_ylim(fixylimbeta)
             
             
             if plotchi2:
