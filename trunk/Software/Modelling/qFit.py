@@ -448,6 +448,8 @@ def sample_from_multivariate_normal_test(retdict,plot_every_model=True):
     for sample in samples:
         simyvals=f(simxvals,sample[0],sample[1],sample[2])
         simymat[count]=simyvals
+        # plot every simulated model with low opacity. This takes a long time
+        # but gives a nice illustration of the underlying possible models
         if plot_every_model:
             ax.plot(simxvals,simyvals,lw=2,color='black',alpha=0.01)
         count+=1
