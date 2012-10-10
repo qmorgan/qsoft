@@ -29,10 +29,10 @@ class Event():
         
 class Image():
     """docstring for Image"""
-    def __init__(self, imagefilename,objectfile,calfile=None,objectname="UnknownSource",ap=1.2,telescope=None,forcefilter=None):
+    def __init__(self, imagefilename,objectfile=None, calfile=None,autocal=True,telescope=None,forcefilter=None):
         self.imagefilename = imagefilename
-        self.objectname = objectname # could potentially look in header for this name
-        if not calfile:
+        # self.objectname = objectname # could potentially look in header for this name
+        if autocal and not calfile:
             print "No calibration file specified; attempting to grab SDSS Calibration"
             calpath = storepath + objectname + 'sdss.txt'
             self.get_sdss_calibration(calpath) 
@@ -42,15 +42,34 @@ class Image():
             else:
                 self.calfile=None
                 print "Warning: No SDSS calibration; Please provide your own calibration field and run again."
+                return
+        elif not calfile:
+            print "No calibration file specified and autocal = False; Please provide calibration file and run again"
+            return
         else:
             self.calfile = calfile
         self.objectfile = objectfile
         self.telescope = telescope
-        self.ap = ap
+        # self.ap = ap
         self.telescope = telescope
         self.forcefilter = forcefilter
+    
+    # def extract_objects(self,objectfile):
+    #     '''
+    #     If given an object file in the format
+    #     Objname RA Dec
+    #     Extract each line as a position and add to the object dictionary
+    #     ignore anything after the 3rd item
+    #     '''
+    #     f=open(objectfile,'r')
+    #     for line in f.readlines():
+    #         if line[0] == '#':
+    #             pass
+    #         else:
+    #             linesplit = line.split()
+    #         
         
-    def do_phot(self):
+    def do_phot(self,ap):
         '''
         q_phot.do_phot subkeys:
         ['calib_stars',
@@ -73,7 +92,11 @@ class Image():
          'zp',x
          'EXPTIME']x
         '''
+        if not hasattr(self,'objectfile'):
+            print "Need to specify object file first, can't do photometry without positions!"
+            return
 
+        
         image_name = self.imagefilename
 
         photdict = {'FileName':image_name}
@@ -124,22 +147,23 @@ class Image():
 
         photdict.update({'STRT_CPU':strt_cpu})
         photdict.update({'STOP_CPU':stop_cpu})    
-        photdict.update({'Aperture':self.ap})
-
+        photdict.update({'Aperture':ap})
 
 
         #Performing Photometry
-        IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +  "', '"  + str(self.objectfile) + "', rad=" + str(self.ap)+", filter='"+str(self.forcefilter)+"'"
+        IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +  "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.forcefilter)+"'"
         idl(IDL_command)
         # 
         # #Read the filename
         filename = 'tmpphot.txt'
         f=open(filename,'r')
         lines = f.readlines()
+        magdict = {} #dictionary of magnitudes; note departure here from q_phot! 
         for line in lines:
             if line[0:4] == "Phot":
                 # ['Phot:', '051008', ':', 'g', '=', '24.46', '+/-', '0.06', '(+/-', '0.01)']
                 photlist = line.split()
+                objstr = photlist[1]
                 filtstr = photlist[3]
                 mag = float(photlist[5])
                 magerr = float(photlist[7])
@@ -149,7 +173,7 @@ class Image():
                 # here add the stat error and sys error in quadrature
                 # not 100% correct since there is some covariance, but roughly right
                 targ_mag = (mag, np.sqrt(magerr**2+syserr**2))
-                photdict.update({'targ_mag':targ_mag})
+                magdict.update({objstr:targ_mag})
                 photdict.update({'filter':filtstr})
 
             elif line[0:4] == "Expt":
@@ -161,6 +185,7 @@ class Image():
                 zplist = line.split()
                 zp = (float(zplist[-3]),float(zplist[-1]))
                 photdict.update({'zp':zp})
+        photdict.update({'magdict':magdict})
 
         self.imagedict = photdict
         return photdict
@@ -179,7 +204,7 @@ class Image():
             self.sdssfield=False
     
     
-    def p_photreturn(self,clobber=False):
+    def p_photreturn(self,ap,clobber=False):
         '''
         attempt to build up same structure as the photdict from q_phot
 
@@ -189,7 +214,7 @@ class Image():
         '''
         photdict={}
 
-        filepath = storepath + self.objectname + 'ap' + str(self.ap)  
+        filepath = storepath + 'phot_'+ self.imagefilename + 'ap' + str(ap)  
         # if calregion:
         #     calibration_list = openCalRegion(calregion)
         #     n_calstars = len(calibration_list)
@@ -207,7 +232,6 @@ class Image():
             else:
                 clobber = True
 
-
         while clobber == True:
 
             if os.path.isfile(filepath) == False:
@@ -217,10 +241,13 @@ class Image():
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
 
             # create dictionary for file
-            data = self.do_phot()
+            data = self.do_phot(ap=ap)
+            if not data:
+                print "Photometry failed. No data returned."
+                return
             #rerun to get upper limit??
             
-            label = data['FileName']
+            label = data['FileName'] + "ap" + str(ap)
             # somehow update time here?
             # time = float(t_mid.t_mid(filename, trigger = trigger_id))
             # terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -247,4 +274,13 @@ def kait_data_check(directory):
             hdulist.close()
             string = "%s \t %s \t %s \t %s \t %s" % (filestr, header['UT'], header['EXPTIME'], header['FILTERS'], header['AIRMASS'])
             print string
+            
+def qmorgan_test_photometry():
+    '''
+    For quick testing/example of photometry. Not transferrable.
+    '''
+    print "Initializing directory and filenames..."
+    directory = "/Users/amorgan/testphot/"   
+    filename = directory + '051008_g.fits'
+    position_file = directory + 'allhosts.pos'
             
