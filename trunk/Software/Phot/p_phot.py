@@ -29,12 +29,25 @@ class Event():
         
 class Image():
     """docstring for Image"""
-    def __init__(self, imagefilename,objectfile=None, calfile=None,autocal=True,telescope=None,forcefilter=None):
+    def __init__(self, imagefilename,objectfile=None, calfile=None,autocal=True,telescope=None,autofilter=True,filt=None):
         self.imagefilename = imagefilename
+        
+        image_name = self.imagefilename
+        # open up the file and read the header
+        hdulist = pyfits.open(image_name)
+        self.image_data = hdulist[0].data
+        self.imagefile_header = hdulist[0].header
+        hdulist.close()
+        
+        if not filt and autofilter == True:
+            self.filt=self._get_filter()
+        else:
+            print "could not determine filter; remaining as None"
+        
         # self.objectname = objectname # could potentially look in header for this name
         if autocal and not calfile:
             print "No calibration file specified; attempting to grab SDSS Calibration"
-            calpath = storepath + objectname + 'sdss.txt'
+            calpath = storepath + imagefilename + 'sdss.txt'
             self.get_sdss_calibration(calpath) 
             if self.sdssfield:
                 self.calfile = self.sdsscal
@@ -52,8 +65,19 @@ class Image():
         self.telescope = telescope
         # self.ap = ap
         self.telescope = telescope
-        self.forcefilter = forcefilter
     
+    
+    def _get_filter(self):
+        # determine the telescope, if possible
+        if self.imagefile_header.has_key("FILTERS"):
+            filt = str(self.imagefile_header["FILTERS"])
+        elif self.imagefile_header.has_key("FILTER"):
+            filt = str(self.imagefile_header["FILTER"])
+        elif self.imagefile_header.has_key("FILT"):
+            filt = str(self.imagefile_header["FILT"])
+        else:
+            filt = None
+        return filt
     # def extract_objects(self,objectfile):
     #     '''
     #     If given an object file in the format
@@ -91,25 +115,17 @@ class Image():
          'targ_flux',
          'zp',x
          'EXPTIME']x
-        '''
+         '''
         if not hasattr(self,'objectfile'):
             print "Need to specify object file first, can't do photometry without positions!"
             return
 
-        
-        image_name = self.imagefilename
+        photdict = {'FileName':self.imagefilename}
 
-        photdict = {'FileName':image_name}
-
-        # open up the file and read the header
-        hdulist = pyfits.open(image_name)
-        image_data = hdulist[0].data
-        imagefile_header = hdulist[0].header
-        hdulist.close()
 
         # determine the telescope, if possible
-        if imagefile_header.has_key("TELESCOP"):
-            TELESCOP = str(imagefile_header["TELESCOP"])
+        if self.imagefile_header.has_key("TELESCOP"):
+            TELESCOP = str(self.imagefile_header["TELESCOP"])
             if TELESCOP.strip() == 'K.A.I.T.':
                 scope = 'kait'
             elif TELESCOP.find('PAIRITEL') != -1:
@@ -123,21 +139,27 @@ class Image():
         # error checking of individual telescopes
         if scope == 'kait':
             #if KAIT, verify that ccdproc has been done
-            if not imagefile_header.has_key('BIASID'):
-                raise Exception("BIASID doesnt exist for KAIT image")
-            if not imagefile_header.has_key('DARKID'):
-                raise Exception("DARKID doesnt exist for KAIT image")
-            if not imagefile_header.has_key('FLATID'):
-                raise Exception("FLATID doesnt exist for KAIT image")
+            if not self.imagefile_header.has_key('BIASID'):
+                warnmsg = "BIASID doesnt exist for KAIT image"
+                print warnmsg
+                # raise Exception(warnmsg)
+            if not self.imagefile_header.has_key('DARKID'):
+                warnmsg = "DARKID doesnt exist for KAIT image"
+                print warnmsg
+                # raise Exception(warnmsg)
+            if not self.imagefile_header.has_key('FLATID'):
+                warnmsg = "FLATID doesnt exist for KAIT image"
+                print warnmsg
+                # raise Exception(warnmsg)
 
 
-        if imagefile_header.has_key("STRT_CPU"): #PAIRITEL
-            strt_cpu = str(imagefile_header["STRT_CPU"])
-            stop_cpu = str(imagefile_header["STOP_CPU"])
-        elif imagefile_header.has_key("DATE-OBS") and imagefile_header.has_key("UT"): #KAIT
+        if self.imagefile_header.has_key("STRT_CPU"): #PAIRITEL
+            strt_cpu = str(self.imagefile_header["STRT_CPU"])
+            stop_cpu = str(self.imagefile_header["STOP_CPU"])
+        elif self.imagefile_header.has_key("DATE-OBS") and self.imagefile_header.has_key("UT"): #KAIT
 
-            bbb = str(imagefile_header["DATE-OBS"])
-            ccc = str(imagefile_header['UT'])
+            bbb = str(self.imagefile_header["DATE-OBS"])
+            ccc = str(self.imagefile_header['UT'])
             strt_cpu = bbb[6:10]+'-'+bbb[3:5]+'-'+bbb[0:2] + ccc
             stop_cpu = 'no_stop_cpu' # could just add the exposure time..
         else:
@@ -151,7 +173,7 @@ class Image():
 
 
         #Performing Photometry
-        IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +  "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.forcefilter)+"'"
+        IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +  "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.filt)+"'"
         idl(IDL_command)
         # 
         # #Read the filename
@@ -164,18 +186,21 @@ class Image():
                 # ['Phot:', '051008', ':', 'g', '=', '24.46', '+/-', '0.06', '(+/-', '0.01)']
                 photlist = line.split()
                 objstr = photlist[1]
-                filtstr = photlist[3]
-                mag = float(photlist[5])
-                magerr = float(photlist[7])
-                syserr = float(photlist[9].strip(')'))
+                filtstr = photlist[3] # CHECK IF SAME GIVEN UP EARLEIR 
+                equals = photlist[4]
+                if equals.strip() == '=':
+                    mag = float(photlist[5])
+                    magerr = float(photlist[7])
+                    syserr = float(photlist[9].strip(')'))
 
-                # to match qphot targ mag format of tuple of mag and mag err
-                # here add the stat error and sys error in quadrature
-                # not 100% correct since there is some covariance, but roughly right
-                targ_mag = (mag, np.sqrt(magerr**2+syserr**2))
-                magdict.update({objstr:targ_mag})
-                photdict.update({'filter':filtstr})
-
+                    # to match qphot targ mag format of tuple of mag and mag err
+                    # here add the stat error and sys error in quadrature
+                    # not 100% correct since there is some covariance, but roughly right
+                    targ_mag = (mag, np.sqrt(magerr**2+syserr**2))
+                    magdict.update({objstr:targ_mag})
+                    photdict.update({'filter':filtstr})
+                else:
+                    print "cannot handle upper limits yet"
             elif line[0:4] == "Expt":
                 explist = line.split()
                 exptime = float(explist[1])
