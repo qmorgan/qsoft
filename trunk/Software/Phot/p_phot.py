@@ -41,9 +41,12 @@ class Image():
         
         if not filt and autofilter == True:
             self.filt=self._get_filter()
+        elif filt:
+            self.filt=filt
         else:
             print "could not determine filter; remaining as None"
-        
+            self.filt=None
+            
         # self.objectname = objectname # could potentially look in header for this name
         if autocal and not calfile:
             print "No calibration file specified; attempting to grab SDSS Calibration"
@@ -211,6 +214,9 @@ class Image():
                     syserr = float(photlist[9].strip(')'))
                     print magul
                     print limsig
+                    targ_ul = (magul,limsig)
+                    magdict.update({objstr:targ_ul})
+                    photdict.update({'filter':filtstr}) #why again? 
             elif line[0:4] == "Expt":
                 explist = line.split()
                 exptime = float(explist[1])
