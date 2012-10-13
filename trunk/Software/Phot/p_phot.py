@@ -93,7 +93,7 @@ class Image():
     #             linesplit = line.split()
     #         
         
-    def do_phot(self,ap):
+    def do_phot(self,ap,limsigma=3.0):
         '''
         q_phot.do_phot subkeys:
         ['calib_stars',
@@ -173,7 +173,9 @@ class Image():
 
 
         #Performing Photometry
-        IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +  "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.filt)+"'"
+        IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +\
+            "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.filt)+"', limsigma='"+\
+            str(limsigma)+"'"
         idl(IDL_command)
         # 
         # #Read the filename
@@ -199,8 +201,16 @@ class Image():
                     targ_mag = (mag, np.sqrt(magerr**2+syserr**2))
                     magdict.update({objstr:targ_mag})
                     photdict.update({'filter':filtstr})
-                else:
-                    print "cannot handle upper limits yet"
+                    
+                elif equals.strip() == '>':
+                    print "No detection; grabbing upper limit"
+                    magul = float(photlist[5])
+                    limsig = float(photlist[6].lstrip('['))
+                    assert photlist[7].strip() == 'sig]'
+                    assert photlist[8].strip() == '(+/-'
+                    syserr = float(photlist[9].strip(')'))
+                    print magul
+                    print limsig
             elif line[0:4] == "Expt":
                 explist = line.split()
                 exptime = float(explist[1])
