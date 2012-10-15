@@ -29,7 +29,7 @@ class Event():
         
 class Image():
     """docstring for Image"""
-    def __init__(self, imagefilename,objectfile=None, calfile=None,autocal=True,telescope=None,autofilter=True,filt=None):
+    def __init__(self, imagefilename,objectfile=None, calfile=None,autocal=True,scope=None,autofilter=True,filt=None):
         self.imagefilename = imagefilename
         
         image_name = self.imagefilename
@@ -46,6 +46,13 @@ class Image():
         else:
             print "could not determine filter; remaining as None"
             self.filt=None
+            
+        if not scope:
+            self.scope = self._get_scope()
+            print "Determined scope to be %s" % self.scope
+        else:
+            print "Scope explicitly specified as %s" % scope
+            self.scope = scope
             
         # self.objectname = objectname # could potentially look in header for this name
         if autocal and not calfile:
@@ -64,14 +71,13 @@ class Image():
             return
         else:
             self.calfile = calfile
+            
         self.objectfile = objectfile
-        self.telescope = telescope
         # self.ap = ap
-        self.telescope = telescope
     
     
     def _get_filter(self):
-        # determine the telescope, if possible
+        # determine the filter, if possible
         if self.imagefile_header.has_key("FILTERS"):
             filt = str(self.imagefile_header["FILTERS"])
         elif self.imagefile_header.has_key("FILTER"):
@@ -80,7 +86,28 @@ class Image():
             filt = str(self.imagefile_header["FILT"])
         else:
             filt = None
-        return filt
+        self.header_filter=filt # this is the string of the actual header keyword
+        # do auto filter overrides to determine which filter to use for actual calibration
+        
+    def _get_scope(self):
+        # determine the telescope, if possible
+        if self.imagefile_header.has_key("TELESCOP"):
+            TELESCOP = str(self.imagefile_header["TELESCOP"])
+            self.header_scope = TELESCOP
+        else:
+            TELESCOP = None
+        
+        self.header_scope=TELESCOP
+        
+        if TELESCOP.strip() == 'K.A.I.T.':
+            scope = 'kait'
+        elif TELESCOP.find('PAIRITEL') != -1:
+            scope = 'pairitel'
+        else:
+            scope = TELESCOP
+            
+        return scope
+        
     # def extract_objects(self,objectfile):
     #     '''
     #     If given an object file in the format
@@ -126,21 +153,8 @@ class Image():
         photdict = {'FileName':self.imagefilename}
 
 
-        # determine the telescope, if possible
-        if self.imagefile_header.has_key("TELESCOP"):
-            TELESCOP = str(self.imagefile_header["TELESCOP"])
-            if TELESCOP.strip() == 'K.A.I.T.':
-                scope = 'kait'
-            elif TELESCOP.find('PAIRITEL') != -1:
-                scope = 'pairitel'
-            else:
-                scope = 'unknown'
-        else:
-            scope = 'unknown'
-
-
         # error checking of individual telescopes
-        if scope == 'kait':
+        if self.scope == 'kait':
             #if KAIT, verify that ccdproc has been done
             if not self.imagefile_header.has_key('BIASID'):
                 warnmsg = "BIASID doesnt exist for KAIT image"
@@ -305,6 +319,10 @@ class Image():
         return photdict
 
 
+# def p_phot_loop(directory):
+#     for photfile in directiory:
+#         if 
+
 def kait_data_check(directory):
     globlist = glob.glob(directory)
 
@@ -315,7 +333,11 @@ def kait_data_check(directory):
             hdulist.close()
             string = "%s \t %s \t %s \t %s \t %s" % (filestr, header['UT'], header['EXPTIME'], header['FILTERS'], header['AIRMASS'])
             print string
-            
+
+
+
+
+
 def qmorgan_test_photometry():
     '''
     For quick testing/example of photometry. Not transferrable.
