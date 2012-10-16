@@ -39,6 +39,14 @@ class Image():
         self.imagefile_header = hdulist[0].header
         hdulist.close()
         
+        # Get scope before filter because some are determinant on scope
+        if not scope:
+            self.scope = self._get_scope()
+            print "Determined scope to be %s" % self.scope
+        else:
+            print "Scope explicitly specified as %s" % scope
+            self.scope = scope
+            
         if not filt and autofilter == True:
             self.filt=self._get_filter()
         elif filt:
@@ -46,13 +54,7 @@ class Image():
         else:
             print "could not determine filter; remaining as None"
             self.filt=None
-            
-        if not scope:
-            self.scope = self._get_scope()
-            print "Determined scope to be %s" % self.scope
-        else:
-            print "Scope explicitly specified as %s" % scope
-            self.scope = scope
+        
             
         # self.objectname = objectname # could potentially look in header for this name
         if autocal and not calfile:
@@ -88,6 +90,11 @@ class Image():
             filt = None
         self.header_filter=filt # this is the string of the actual header keyword
         # do auto filter overrides to determine which filter to use for actual calibration
+        if self.scope == 'kait':
+            if filt == 'clear':
+                filt = 'r'
+                print 'Reassigning KAIT clear filter as r'
+        return filt
         
     def _get_scope(self):
         # determine the telescope, if possible
@@ -123,7 +130,7 @@ class Image():
     #             linesplit = line.split()
     #         
         
-    def do_phot(self,ap,limsigma=3.0):
+    def do_phot(self,ap,limsigma=3.0,plotcalib=True):
         '''
         q_phot.do_phot subkeys:
         ['calib_stars',
@@ -190,9 +197,15 @@ class Image():
 
 
         #Performing Photometry
+        if not plotcalib:
+            plotcalibidl = '0'
+        else:
+            plotcalibidl = '1'
+            
         IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +\
             "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.filt)+"', limsigma='"+\
-            str(limsigma)+"'"
+            str(limsigma)+"', plotcalib="+plotcalibidl+""
+        print IDL_command
         idl(IDL_command)
         # 
         # #Read the filename
@@ -259,17 +272,17 @@ class Image():
             self.sdssfield=False
     
     
-    def p_photreturn(self,ap,clobber=False):
+    def p_photreturn(self,outname,ap,limsigma=3.0,plotcalib=True,clobber=False):
         '''
         attempt to build up same structure as the photdict from q_phot
-
+    
         keys: filename
-
-
+    
+    
         '''
         photdict={}
-
-        filepath = storepath + 'phot_'+ self.imagefilename + 'ap' + str(ap)  
+        newname =  self.imagefilename + '_ap' + str(ap) 
+        filepath = storepath + 'phot_'+ outname #outname is the filepath
         # if calregion:
         #     calibration_list = openCalRegion(calregion)
         #     n_calstars = len(calibration_list)
@@ -280,29 +293,29 @@ class Image():
         while clobber == False:     # why did i make this a while loop?? lol
             if os.path.isfile(filepath) == True:
                 data = qPickle.load(filepath)
-                if self.imagefilename in data:
+                if newname in data:
                     return data
                 else:
                     clobber = True
             else:
                 clobber = True
-
+    
         while clobber == True:
-
+    
             if os.path.isfile(filepath) == False:
                 photdict = {}  
             else:
                 #f = file(filepath)
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
-
+    
             # create dictionary for file
-            data = self.do_phot(ap=ap)
+            data = self.do_phot(ap=ap,limsigma=limsigma,plotcalib=plotcalib)
             if not data:
                 print "Photometry failed. No data returned."
                 return
             #rerun to get upper limit??
             
-            label = data['FileName'] + "ap" + str(ap)
+            label = newname
             # somehow update time here?
             # time = float(t_mid.t_mid(filename, trigger = trigger_id))
             # terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
@@ -311,17 +324,36 @@ class Image():
             photdict.update({label:data})
             qPickle.save(photdict, filepath, clobber = True)
             return photdict
-
-
+    
+    
         qPickle.save(photdict, filepath, clobber = True)
-
-
+    
+    
         return photdict
 
 
-# def p_phot_loop(directory):
-#     for photfile in directiory:
-#         if 
+def p_photLoop(outname,ap,objectfile,calfile,clobber=False):
+    '''Run photreturn on every file in a directory; return a dictionary
+    with the keywords as each filename that was observed with photreturn
+    '''   
+    import glob
+    GRBlist = []
+    GRBlistwweight = glob.glob('*.fits')
+    filepath = storepath + outname + '.data'
+
+    if clobber == True:
+        if os.path.isfile(filepath) == True:
+            os.remove(filepath)
+    for item in GRBlistwweight:        # Remove the weight images from the list
+        if item.find('weight') == -1:
+            GRBlist.append(item)
+    if not GRBlist:
+        raise ValueError('No files to perform photometry on. In right directory?')
+        
+    for filename in GRBlist:
+        img=Image(filename,objectfile=objectfile,calfile=calfile)
+        photdict=img.p_photreturn(outname,ap=ap,plotcalib=False,clobber=clobber) #dont plot for this
+    return photdict
 
 def kait_data_check(directory):
     globlist = glob.glob(directory)
