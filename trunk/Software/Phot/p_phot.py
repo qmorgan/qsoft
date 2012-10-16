@@ -367,7 +367,103 @@ def kait_data_check(directory):
             print string
 
 
+def textoutput(photdict,utburst,filt=None, day=False):
+    '''outputs a text file from photdict.  If filt specified, only output that
+    particular filter. Requires a utburst string in the form of hh:mm:ss. 
+    Days are integers (e.g. second day observation => day=2. WARNING: If the 
+    observations consists of multiple days, care needs to be exercised! 
+    Current fix: do it manually!
+    '''
 
+    import datetime
+    from operator import itemgetter
+    
+    # filts = ['j','h','k']
+    # if filt:
+    #     if not filt in filts:
+    #         raise ValueError('Unacceptable value for filt. Needs to be j, h, or k')
+            
+    uniquename = photdict.keys()[0]
+    if filt:
+        uniquename = uniquename + '_' + filt
+    savepath = storepath + uniquename + '_data.dat'
+    text = file(savepath, "w")
+
+    text.write('@inunit=days')
+    text.write('\n')
+    text.write('@expunit=sec')
+    text.write('\n')
+    utburst_text = '@utburst=' + str(utburst)
+    text.write(utburst_text)
+    text.write('\n')
+    text.write('@source=PAIRITEL')
+    text.write('\n')
+    namelist = ['%', 't_mid', 'ut_start_date', 'ut_start_time', 'ut_end_date', 'ut_end_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
+    text.write(' '.join(namelist))
+    text.write('\n')
+
+    mosaiclist=[]
+    for mosaics in photdict:
+        mosaiclist += [photdict[mosaics]]
+    #sorting w.r.t time
+    get = itemgetter('t_mid')
+    mosaiclist.sort(key=get)
+
+    h_list = []
+    her_list = []
+    j_list = []
+    jer_list = []
+    k_list = []
+    ker_list = []
+    tstart_list = []
+    tstop_list = []
+    exp_list = []
+
+    burst_time_sec = float(utburst.split(':')[0])*3600 + float(utburst.split(':')[1])*60 + float(utburst.split(':')[2]) 
+    
+    for mosaics in mosaiclist:
+        
+        strt_cpu = mosaics['STRT_CPU']
+        stop_cpu = mosaics['STOP_CPU']
+        t_mid_days = mosaics['t_mid'][0]/86400.
+        
+        timestart_str = mosaics['STRT_CPU'].split(' ')[1]
+        timestart_sec = float(timestart_str.split(':')[0])*3600. + float(timestart_str.split(':')[1])*60. + float(timestart_str.split(':')[2])
+        if day:
+            start_after_burst_sec = timestart_sec - burst_time_sec + (day-1)*86400
+        else:
+            start_after_burst_sec = timestart_sec - burst_time_sec
+        timestop_str = mosaics['STOP_CPU'].split(' ')[1]
+        timestop_sec = float(timestop_str.split(':')[0])*3600. + float(timestop_str.split(':')[1])*60. + float(timestop_str.split(':')[2])
+        if day:
+            stop_after_burst_sec = timestop_sec - burst_time_sec + (day-1)*86400
+        else:
+            stop_after_burst_sec = timestop_sec - burst_time_sec
+        exp = mosaics['EXPTIME']
+        
+        if 'magdict' in mosaics: 
+            valu = float(mosaics['targ_mag'][mosaic][0])
+            verr = float(mosaics['targ_mag'][mosaic][1])
+            
+  
+        else:
+            print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)    
+ 
+        if str(magerr)=="3.0":  #indicative of upperlimit
+            magerr=0
+            datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+        else:   
+            datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr)]
+        # old    
+        # if 'upper_green' in mosaics:
+        #     datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+        # else:   
+        #     datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr)]
+        # 
+
+        text.write(' '.join(datalist))
+        text.write('\n')
+    text.close()
 
 
 def qmorgan_test_photometry():
