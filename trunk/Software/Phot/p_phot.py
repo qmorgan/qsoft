@@ -7,6 +7,7 @@ from Phot import t_mid
 from MiscBin import qPickle
 import pidly
 import glob
+import datetime
 import pyfits
 
 # autophot, '051008_g.fits', '051008.sdss', 'allhosts.pos', rad=1.2
@@ -184,7 +185,7 @@ class Image():
 
             bbb = str(self.imagefile_header["DATE-OBS"])
             ccc = str(self.imagefile_header['UT'])
-            strt_cpu = bbb[6:10]+'-'+bbb[3:5]+'-'+bbb[0:2] + ccc
+            strt_cpu = bbb[6:10]+'-'+bbb[3:5]+'-'+bbb[0:2] + ' ' + ccc
             stop_cpu = 'no_stop_cpu' # could just add the exposure time..
         else:
             strt_cpu = 'no_strt_cpu'
@@ -367,12 +368,16 @@ def kait_data_check(directory):
             print string
 
 
-def textoutput(photdict,utburst,filt=None, day=False):
+def textoutput(photdict,objname,utburst=None,filt=None, source=None, day=False):
     '''outputs a text file from photdict.  If filt specified, only output that
     particular filter. Requires a utburst string in the form of hh:mm:ss. 
     Days are integers (e.g. second day observation => day=2. WARNING: If the 
     observations consists of multiple days, care needs to be exercised! 
     Current fix: do it manually!
+    
+    
+    Here we provide the optional utburst string to find tmid of the burst 
+    if not specified in the dictionary.
     '''
 
     import datetime
@@ -383,10 +388,10 @@ def textoutput(photdict,utburst,filt=None, day=False):
     #     if not filt in filts:
     #         raise ValueError('Unacceptable value for filt. Needs to be j, h, or k')
             
-    uniquename = photdict.keys()[0]
+    objname = photdict.keys()[0]
     if filt:
         uniquename = uniquename + '_' + filt
-    savepath = storepath + uniquename + '_data.dat'
+    savepath = storepath + uniquename + '_data.txt'
     text = file(savepath, "w")
 
     text.write('@inunit=days')
@@ -396,9 +401,11 @@ def textoutput(photdict,utburst,filt=None, day=False):
     utburst_text = '@utburst=' + str(utburst)
     text.write(utburst_text)
     text.write('\n')
-    text.write('@source=PAIRITEL')
+    scopetext = '@source=%s' % (source)
+    text.write(scopetext)
     text.write('\n')
-    namelist = ['%', 't_mid', 'ut_start_date', 'ut_start_time', 'ut_end_date', 'ut_end_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
+    namelist = ['%', 'ut_start_date', 'ut_start_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
+    # namelist = ['%', 't_mid', 'ut_start_date', 'ut_start_time', 'ut_end_date', 'ut_end_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
     text.write(' '.join(namelist))
     text.write('\n')
 
@@ -406,7 +413,7 @@ def textoutput(photdict,utburst,filt=None, day=False):
     for mosaics in photdict:
         mosaiclist += [photdict[mosaics]]
     #sorting w.r.t time
-    get = itemgetter('t_mid')
+    get = itemgetter('STRT_CPU')
     mosaiclist.sort(key=get)
 
     h_list = []
@@ -419,13 +426,14 @@ def textoutput(photdict,utburst,filt=None, day=False):
     tstop_list = []
     exp_list = []
 
+
     burst_time_sec = float(utburst.split(':')[0])*3600 + float(utburst.split(':')[1])*60 + float(utburst.split(':')[2]) 
     
     for mosaics in mosaiclist:
         
         strt_cpu = mosaics['STRT_CPU']
-        stop_cpu = mosaics['STOP_CPU']
-        t_mid_days = mosaics['t_mid'][0]/86400.
+        # stop_cpu = mosaics['STOP_CPU']
+        # t_mid_days = mosaics['t_mid'][0]/86400.
         
         timestart_str = mosaics['STRT_CPU'].split(' ')[1]
         timestart_sec = float(timestart_str.split(':')[0])*3600. + float(timestart_str.split(':')[1])*60. + float(timestart_str.split(':')[2])
@@ -433,27 +441,32 @@ def textoutput(photdict,utburst,filt=None, day=False):
             start_after_burst_sec = timestart_sec - burst_time_sec + (day-1)*86400
         else:
             start_after_burst_sec = timestart_sec - burst_time_sec
-        timestop_str = mosaics['STOP_CPU'].split(' ')[1]
-        timestop_sec = float(timestop_str.split(':')[0])*3600. + float(timestop_str.split(':')[1])*60. + float(timestop_str.split(':')[2])
-        if day:
-            stop_after_burst_sec = timestop_sec - burst_time_sec + (day-1)*86400
-        else:
-            stop_after_burst_sec = timestop_sec - burst_time_sec
+        # timestop_str = mosaics['STOP_CPU'].split(' ')[1]
+        # timestop_sec = float(timestop_str.split(':')[0])*3600. + float(timestop_str.split(':')[1])*60. + float(timestop_str.split(':')[2])
+        # if day:
+        #     stop_after_burst_sec = timestop_sec - burst_time_sec + (day-1)*86400
+        # else:
+        #     stop_after_burst_sec = timestop_sec - burst_time_sec
         exp = mosaics['EXPTIME']
         
         if 'magdict' in mosaics: 
-            valu = float(mosaics['targ_mag'][mosaic][0])
-            verr = float(mosaics['targ_mag'][mosaic][1])
-            
-  
+            mag = float(mosaics['magdict'][objname][0])
+            magerr = float(mosaics['magdict'][objname][1])        
         else:
             print 'NO MAG OR ULIM FOUND, SKIPPING %s' % (mosaics)    
  
+        filt = mosaics['filter']
+        
+        
         if str(magerr)=="3.0":  #indicative of upperlimit
             magerr=0
-            datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+            # datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr), 'yes']
+            datalist = [str(strt_cpu),  str(exp), filt, '=', str(mag), str(magerr), 'yes']
+
         else:   
-            datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr)]
+            # datalist = [str(t_mid_days), str(strt_cpu), str(stop_cpu), str(exp), filt, '=', str(mag), str(magerr)]
+            datalist = [str(strt_cpu), str(exp), filt, '=', str(mag), str(magerr)]
+
         # old    
         # if 'upper_green' in mosaics:
         #     datalist = [str(start_after_burst_sec), str(stop_after_burst_sec), str(exp), filt, '=', str(mag), str(magerr), 'yes']
@@ -466,6 +479,28 @@ def textoutput(photdict,utburst,filt=None, day=False):
     text.close()
 
 
+def startexp2tmid(utburst,uttstart,exp):
+    '''
+    exposure time in seconds
+    %Y-%m-%d %H:%M:%S
+    '''
+    start = datetime.datetime.strptime(uttstart.split('.')[0], "%Y-%m-%d %H:%M:%S")
+    #handle the fractions of a second, if there are any
+    if len(uttstart.split('.')) == 2:
+        start_microseconds_str = uttstart.split('.')[1]
+        start_microseconds = int(start_microseconds_str)
+        start = start + datetime.timedelta(microseconds=start_microseconds)
+    
+    burst = datetime.datetime.strptime(utburst.split('.')[0], "%Y-%m-%d %H:%M:%S")
+    #handle the fractions of a second, if there are any
+    if len(utburst.split('.')) == 2:
+        burst_microseconds_str = utburst.split('.')[1]
+        burst_microseconds = int(burst_microseconds_str)
+        burst = burst + datetime.timedelta(microseconds=burst_microseconds)
+        
+    tmid = (start + (datetime.timedelta(seconds=exp))/2 - burst)
+    return tmid.days*86400 + tmid.seconds + tmid.microseconds/1e6
+    
 def qmorgan_test_photometry():
     '''
     For quick testing/example of photometry. Not transferrable.
