@@ -304,6 +304,13 @@ def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None,TieReichart=Fa
     # c = 2.998E10 #cm/s
     # nu = c/(wave*1E-8) #hertz, for wave in angstroms
     # # nu_0 = const #valid???    
+
+    # force c4 to be positive
+    c4 = abs(c4)
+    for param in paramlist:
+        if param.name == 'c4': 
+            param.value= c4
+
     
     extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
     extmodel.EvalCurve(wave,Av/Rv)
@@ -1600,12 +1607,12 @@ def SEDFitTest2(initial_param='smc',TieReichart=False):
     return fitdict
     
 
-def SEDFitTest3(initial_param='smc',TieReichart=True):
+def SEDFitTest3(initial_param='mw',TieReichart=True):
     '''another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
     galebv=0.108
     
-    xrayflux=9.98
+    xrayflux=8.34
     xraywave=12.398 # 1keV in angstroms
     xrayeflux=0.1
     
@@ -1615,21 +1622,21 @@ def SEDFitTest3(initial_param='smc',TieReichart=True):
     xbeta= 0.78
     xbetapos = 0.91
     
-    xrayflux=None
-    xraywave=None
-    xrayeflux=None
-
-    xbetaneg= None
-    xbeta= None
-    xbetapos = None
+    # xrayflux=None
+    # xraywave=None
+    # xrayeflux=None
+    # 
+    # xbetaneg= None
+    # xbeta= None
+    # xbetapos = None
     
     
     xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
         'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
     
     filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
-    fluxlist=[48.2234,107.296,192.937,228.737,413.989,535.119,865.566,1566.37,2990.96,5127.84]
-    fluxerrlist=[2.48157,5.08708,1.53680,9.35190,3.46332,21.7457,10.9168,35.6574,67.9095,118.435]
+    fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
+    fluxerrlist=[2.40588,25.6298,12.7137,12.7718,55.7066,55.3687,137.555,89.5435,167.118,355.945]
     # fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
@@ -1637,13 +1644,13 @@ def SEDFitTest3(initial_param='smc',TieReichart=True):
     fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
     paramstr='(%s)' % initial_param
     
-    if TieReichart == True:
-        fitdict['c2']['fixed']=False
-    fitdict['c1']['fixed']=False
-    fitdict['c3']['fixed']=False
-    fitdict['c4']['fixed']=True
-    fitdict['beta']['fixed']=False
-    fitdict['Rv']['fixed']=True
+    # if TieReichart == True:
+    #     fitdict['c2']['fixed']=False
+    # fitdict['c1']['fixed']=True
+    # fitdict['c3']['fixed']=False
+    # fitdict['c4']['fixed']=False
+    # fitdict['beta']['fixed']=False
+    # fitdict['Rv']['fixed']=True
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
     return fitdict
