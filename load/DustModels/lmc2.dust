@@ -1,0 +1,7 @@
+Rv_init = 3.1
+c1_init = -2.16
+c2_init = 1.31
+c3_init = 1.92
+c4_init = 0.42
+gamma_init = 1.05 
+x0_init = 4.626
