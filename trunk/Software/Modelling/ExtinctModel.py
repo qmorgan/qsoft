@@ -11,6 +11,7 @@ from Modelling import qFit
 from matplotlib import rc
 from matplotlib.ticker import FuncFormatter
 from Phot import PhotParse
+import glob
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -608,68 +609,77 @@ def _get_initial_dust_params(initial_param):
     '''
     lookup table to obtain the initial parameters for a variety of dust laws as 
     listed in acceptable_initial_param_list.  
+    
+    Looks for files in the loadpath/DustModels directory with the file extension .dust
+    
+    
+    format for these files is 
+    
+    Rv_init = 2.74
+    c1_init = -4.959
+    c2_init = 2.264  
+    c3_init = 0.389
+    c4_init = 0.461
+    gamma_init = 1.05
+    x0_init = 4.626
+    
+    
     '''
-    acceptable_initial_param_list=['smc','lmc','lmc2','mw','DPgrb120119A','DPgrb120119Axrt']
+    
+    dmpath=loadpath+"DustModels/*.dust"
+    #all files in dust path
+    fullpaths = glob.glob(dmpath)
+    
+    acceptable_initial_param_list=[os.path.basename(fullpath).split('.dust')[0] for fullpath in fullpaths]
+    # e.g. ['DPgrb120119A', 'DPgrb120119Axrt', 'lmc', 'lmc2', 'mw', 'smc']
+    
     if not initial_param in acceptable_initial_param_list:
         print 'Initial parameter set of %s is not valid. Please choose from:' % (initial_param)
         print acceptable_initial_param_list
-        raise Exception
-    
-    if initial_param == 'smc':
-        Rv_init = 2.74
-        c1_init = -4.959
-        c2_init = 2.264        
-        c3_init = 0.389
-        c4_init = 0.461
-        gamma_init = 1.05
-        x0_init = 4.626
-
-    elif initial_param == 'lmc':
-        Rv_init = 3.2
-        c1_init = -1.28
-        c2_init = 1.11
-        c3_init = 2.73
-        c4_init = 0.64
-        gamma_init = 0.91
-        x0_init = 4.596
-    
-    elif initial_param == 'lmc2':
-        Rv_init = 3.1
-        c1_init = -2.16
-        c2_init = 1.31
-        c3_init = 1.92
-        c4_init = 0.42
-        gamma_init = 1.05
-        x0_init = 4.626
-    
-    elif initial_param == 'mw':
-        Rv_init = 3.1
-        c3_init = 3.23
-        c4_init = 0.41
-        c2_init = -0.824 + 4.717/Rv_init
-        c1_init = 2.030 - 3.007*c2_init
-        gamma_init = 0.99
-        x0_init = 4.596
         
-    # see EverNote on June 29 2012    
-    elif initial_param == 'DPgrb120119A': 
-        Rv_init = 3.555
-        c1_init = -5.336
-        c2_init = 2.321
-        c3_init = 1.797
-        c4_init = 0.0
-        gamma_init = 0.99
-        x0_init = 4.596
+        raise Exception ("initial_param invalid. See printout list above")
     
-    elif initial_param == 'DPgrb120119Axrt':
-        Rv_init = 3.458
-        c1_init = -5.232
-        c2_init = 2.289
-        c3_init = 1.436
-        c4_init = 0.0
-        gamma_init = 0.99
-        x0_init = 4.596
     
+    Rv_init = None
+    c1_init = None
+    c2_init = None    
+    c3_init = None
+    c4_init = None
+    gamma_init = None
+    x0_init = None
+        
+    # grab file
+    filepath = loadpath + "DustModels/" + initial_param + ".dust"
+    f=open(filepath,'r')
+    lines = f.readlines()
+    for line in lines:
+        if line[0] == "#": #ignore comments
+            continue
+        linesplit = line.split("=") #split up via equal sign
+        if len(linesplit) != 2:
+            exceptionmsg = "%s malformed line in %s" % (line,filepath)
+            raise Exception(exceptionmsg)
+        if linesplit[0].strip() == "Rv_init": Rv_init = float(linesplit[1].strip())
+        elif linesplit[0].strip() == "c1_init": c1_init = float(linesplit[1].strip())
+        elif linesplit[0].strip() == "c2_init": c2_init = float(linesplit[1].strip())
+        elif linesplit[0].strip() == "c3_init": c3_init = float(linesplit[1].strip())
+        elif linesplit[0].strip() == "c4_init": c4_init = float(linesplit[1].strip())
+        elif linesplit[0].strip() == "gamma_init": gamma_init = float(linesplit[1].strip())
+        elif linesplit[0].strip() == "x0_init": x0_init = float(linesplit[1].strip())
+        else: 
+            exceptionmsg = "%s is an invalid parameter in %s" % (linesplit[0],filepath)
+            raise Exception(exceptionmsg)
+    
+    print "Loaded %s" % (filepath)
+    if Rv_init == None: raise Exception("Rv not defined")
+    if c1_init == None: raise Exception("c1 not defined")
+    if c2_init == None: raise Exception("c2 not defined")
+    if c3_init == None: raise Exception("c3 not defined")
+    if c4_init == None: raise Exception("c4 not defined")
+    if gamma_init == None: raise Exception("gamma not defined")
+    if x0_init == None: raise Exception("x0 not defined")
+    
+
     return Rv_init, c1_init, c2_init, c3_init, c4_init, gamma_init, x0_init
 
 
@@ -1607,7 +1617,7 @@ def SEDFitTest2(initial_param='smc',TieReichart=False):
     return fitdict
     
 
-def SEDFitTest3(initial_param='mw',TieReichart=True):
+def SEDFitTest3(initial_param='smc',TieReichart=True):
     '''another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
     galebv=0.108
@@ -1622,35 +1632,43 @@ def SEDFitTest3(initial_param='mw',TieReichart=True):
     xbeta= 0.78
     xbetapos = 0.91
     
-    # xrayflux=None
-    # xraywave=None
-    # xrayeflux=None
-    # 
-    # xbetaneg= None
-    # xbeta= None
-    # xbetapos = None
+    xrayflux=None
+    xraywave=None
+    xrayeflux=None
+    
+    xbetaneg= None
+    xbeta= None
+    xbetapos = None
     
     
     xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
         'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
     
     filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
+    # weighting by chi2
     fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
     fluxerrlist=[2.40588,25.6298,12.7137,12.7718,55.7066,55.3687,137.555,89.5435,167.118,355.945]
+    # no weighting by chi2
+    # fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
+    # fluxerrlist=[2.40588,5.72097,10.7207,11.3507,21.4268,29.5704,41.5807,73.1677,150.643,262.519]
+    # 
     # fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
+    #weighting by chi2 after oct26 fix
+    fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
+    fluxerrlist=[2.32662,16.9254,6.72603,7.98012,17.7301,19.8258,38.0854,34.5964,62.6122,122.599]
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
     
     fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
     paramstr='(%s)' % initial_param
     
-    # if TieReichart == True:
-    #     fitdict['c2']['fixed']=False
-    # fitdict['c1']['fixed']=True
-    # fitdict['c3']['fixed']=False
-    # fitdict['c4']['fixed']=False
-    # fitdict['beta']['fixed']=False
-    # fitdict['Rv']['fixed']=True
+    if TieReichart == True:
+        fitdict['c2']['fixed']=False
+    fitdict['c1']['fixed']=True
+    fitdict['c3']['fixed']=False
+    fitdict['c4']['fixed']=False
+    fitdict['beta']['fixed']=False
+    fitdict['Rv']['fixed']=True
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
     return fitdict
