@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+import shutil
+import time
 import os, sys
 from MiscBin.q import filtcheck
 from MiscBin.q import mag2flux
@@ -655,7 +657,8 @@ def _get_initial_dust_params(initial_param):
     for line in lines:
         if line[0] == "#": #ignore comments
             continue
-        linesplit = line.split("=") #split up via equal sign
+        newline = line.split("#")[0] #ignore everything after #
+        linesplit = newline.split("=") #split up via equal sign
         if len(linesplit) != 2:
             exceptionmsg = "%s malformed line in %s" % (line,filepath)
             raise Exception(exceptionmsg)
@@ -910,17 +913,23 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         textoffset=0.24    
         
         betastring = 'unknown beta'
-
+        
+        dust_model_out_text=''
+        
         for string in outdict['strings']:
             if not string.find('const') != -1:
                 if string.find('Av: -') == 0:
                     string=string.replace('Av: -','Av: ') # since Av is negative what it should be in this code
-                else:
+                elif string.find('Av:') == 0:
                     string=string.replace('Av: ','Av: -') #replacing in case the fit actually shows the best fit Av IS negative
+                elif string.find('beta') == 0:
+                    betastring = string # saving for later
+                else:
+                    dust_model_out_text+=string.replace(": ","_init = ").replace(" +/- "," # +/- ")
+                    dust_model_out_text+="""
+"""
                 fig2.text(0.2,textoffset,string)
                 textoffset+=0.04
-                if string.find('beta') == 0:
-                    betastring = string # saving for later
 
         if timestr:
             fig2.text(0.45,0.8,timestr)
@@ -932,7 +941,19 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             string = fixedparam.name + ': ' + str(fixedparam.value)
             fig2.text(0.7,textoffset,string)
             textoffset-=0.04
-    
+
+            dust_model_out_text+=string.replace(": ","_init = ")
+            dust_model_out_text+=""" # fixed
+"""
+        
+        # output out_text
+        dust_model_out_text += "# " + time.ctime()
+        fittextoutpath = storepath + "SEDFit.dust"
+        ff = open(fittextoutpath,'w')
+        ff.write(dust_model_out_text)
+        ff.close()
+        
+        
         #underplot the model
         ax.plot(w,c) 
 
@@ -1617,7 +1638,7 @@ def SEDFitTest2(initial_param='smc',TieReichart=False):
     return fitdict
     
 
-def SEDFitTest3(initial_param='smc',TieReichart=True):
+def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
     '''another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
     galebv=0.108
@@ -1671,6 +1692,12 @@ def SEDFitTest3(initial_param='smc',TieReichart=True):
     fitdict['Rv']['fixed']=True
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
+        
+        
+    if export_dustmodel:
+        dmoutpath=loadpath+"DustModels/SEDFitTest3.dust"
+        dminpath=storepath+"SEDFit.dust"
+        shutil.copy(dminpath,dmoutpath)
     return fitdict
 
 
