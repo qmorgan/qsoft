@@ -1,0 +1,10 @@
+c3: 0.389 (fixed)
+c2: 2.264 (fixed)
+c1: -4.959 (fixed)
+x0: 4.626 (fixed)
+Rv: 2.74 (fixed)
+gamma: 1.05 (fixed)
+c4: 0.461 (fixed)
+beta: -0.90 +/- 0.00
+const: 8268.67 +/- 171.35
+Av: -0.87 +/- 0.01
