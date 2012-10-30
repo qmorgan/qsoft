@@ -21,7 +21,7 @@ if not os.environ.has_key("Q_DIR"):
     sys.exit(1)
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
-
+dustfitpath = storepath + 'dustfits/'
 
 class Extinction:
     '''Represents an extinction law'''
@@ -1646,7 +1646,22 @@ def SEDFitTest2(initial_param='smc',TieReichart=False):
     return fitdict
     
 
-def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
+def _write_results_to_file(outfile,outdict):
+    f = open(outfile,'w')
+    for string in outdict['fixstrings']:
+        f.write(string)
+        f.write("\n")
+    for string in outdict['strings']:
+        f.write(string)
+        f.write("\n")
+    outstr = "# chi2 / dof = " + str(outdict['chi2']) + '/' + str(outdict['dof'])
+    f.write(outstr)
+    f.write("\n")
+    outstr = "# reduced chi2 = %f" % (outdict['chi2']/outdict['dof'])
+    f.write(outstr)
+    f.close
+
+def SEDFitTest3(initial_param='smc',export_dustmodel=False):
     '''another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
     galebv=0.108
@@ -1696,51 +1711,66 @@ def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
     
-    
+    TieReichart = False    
     
     fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % 'SMC'
-    
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    
+    outfile = dustfitpath+"dustfit_smc.txt"
+    _write_results_to_file(outfile,fitdict)
     
     fitdict=_getfitdict('lmc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % "LMC"
-    
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    
+    outfile = dustfitpath+"dustfit_lmc.txt"
+    _write_results_to_file(outfile,fitdict)
     
     fitdict=_getfitdict('lmc2',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % "LMC2"
-    
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    
+    outfile = dustfitpath+"dustfit_lmc2.txt"
+    _write_results_to_file(outfile,fitdict)
     
     fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % 'MW'
-    
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
+    outfile = dustfitpath+"dustfit_mw.txt"
+    _write_results_to_file(outfile,fitdict)
+
+
+    fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+    paramstr='(%s)' % ''
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+    outfile = dustfitpath+"dustfit_FM.txt"
+    _write_results_to_file(outfile,fitdict)
     
+    if export_dustmodel:
+        dmoutpath=loadpath+"DustModels/FMfit.dust"
+        dminpath=storepath+"SEDFit.dust"
+        shutil.copy(dminpath,dmoutpath)
     
     TieReichart = True
     fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','c2','c3','c4'])
     paramstr='(%s)' % ''
-    
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-        
-        
-    TieReichart = False    
-    fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
-    paramstr='(%s)' % ''
+    outfile = dustfitpath+"dustfit_FMreichart.txt"
+    _write_results_to_file(outfile,fitdict)
     
-    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-        xraydict=xraydict,TieReichart=TieReichart)
-    
+    if export_dustmodel:
+        dmoutpath=loadpath+"DustModels/FMfit_Reichart.dust"
+        dminpath=storepath+"SEDFit.dust"
+        shutil.copy(dminpath,dmoutpath)
+
+
+        
+
+
     # if TieReichart == True:
     #     fitdict['c2']['fixed']=False
     #     fitdict['Rv']['fixed']=True
@@ -1755,12 +1785,6 @@ def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
     # fitdict['c4']['init']= 0.0
 
 
-        
-        
-    if export_dustmodel:
-        dmoutpath=loadpath+"DustModels/SEDFitTest3.dust"
-        dminpath=storepath+"SEDFit.dust"
-        shutil.copy(dminpath,dmoutpath)
     return fitdict
 
 
