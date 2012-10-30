@@ -933,7 +933,15 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
 
         if timestr:
             fig2.text(0.45,0.8,timestr)
-    
+        
+        fixstrings=[]
+        for fixparam in fixparamlist:
+            fixstr = fixparam.name + ": " + str(fixparam.value) + ' (fixed)'
+            fixstrings.append(fixstr)
+        outdict.update({"fixparams":fixparamlist})
+        outdict.update({"fixstrings":fixstrings})
+        
+        
         string = 'Fixed params %s' % (paramstr)
         fig2.text(0.7,0.8,string)
         textoffset=0.76        
@@ -1653,6 +1661,9 @@ def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
     xbeta= 0.78
     xbetapos = 0.91
     
+    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+        'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}
+    
     xrayflux=None
     xraywave=None
     xrayeflux=None
@@ -1661,8 +1672,8 @@ def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
     xbeta= None
     xbetapos = None
     
-    
-    xraydict={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
+    # 
+    xraydict_empty={'refflux':xrayflux,'refeflux':xrayeflux,'refwave':xraywave,
         'xbeta':xbeta,'xbetapos':xbetapos,'xbetaneg':xbetaneg}    
     
     filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
@@ -1677,21 +1688,73 @@ def SEDFitTest3(initial_param='smc',TieReichart=True,export_dustmodel=False):
     #weighting by chi2 after oct26 fix
     fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
     fluxerrlist=[2.32662,16.9254,6.72603,7.98012,17.7301,19.8258,38.0854,34.5964,62.6122,122.599]
+    
+    # with new smarts photometry from dan perley
+    fluxlist=[44.5774,109.301,161.772,192.708,343.207,461.300,707.670,1357.15,2519.23,4322.62]
+    fluxerrlist=[2.59274,4.93373,6.66431,7.99352,14.1644,18.9757,17.4284,29.5530,57.7732,107.265]
+    
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
     
-    fitdict=_getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'])
-    paramstr='(%s)' % initial_param
     
-    if TieReichart == True:
-        fitdict['c2']['fixed']=False
-    fitdict['c1']['fixed']=True
-    fitdict['c3']['fixed']=False
-    fitdict['c4']['fixed']=False
-    fitdict['beta']['fixed']=False
-    fitdict['Rv']['fixed']=True
+    
+    fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
+    paramstr='(%s)' % 'SMC'
+    
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
+    
+    
+    fitdict=_getfitdict('lmc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
+    paramstr='(%s)' % "LMC"
+    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+    
+    
+    fitdict=_getfitdict('lmc2',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
+    paramstr='(%s)' % "LMC2"
+    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+    
+    
+    fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
+    paramstr='(%s)' % 'MW'
+    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+    
+    
+    TieReichart = True
+    fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','c2','c3','c4'])
+    paramstr='(%s)' % ''
+    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+        
+        
+    TieReichart = False    
+    fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+    paramstr='(%s)' % ''
+    
+    fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        xraydict=xraydict,TieReichart=TieReichart)
+    
+    # if TieReichart == True:
+    #     fitdict['c2']['fixed']=False
+    #     fitdict['Rv']['fixed']=True
+    #     fitdict['c1']['fixed']=True
+    # else:
+    #     fitdict['c2']['fixed']=False
+    #     fitdict['Rv']['fixed']=False
+    #     fitdict['c1']['fixed']=False
+    # fitdict['beta']['fixed']=False
+    # fitdict['c3']['fixed']=False
+    # fitdict['c4']['fixed']=True
+    # fitdict['c4']['init']= 0.0
+
+
         
         
     if export_dustmodel:
