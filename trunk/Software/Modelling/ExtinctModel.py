@@ -928,6 +928,9 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
                     dust_model_out_text+=string.replace(": ","_init = ").replace(" +/- "," # +/- ")
                     dust_model_out_text+="""
 """
+                if string.find('Av:') == 0 or string.find('beta') == 0:
+                    tmptxt = "# " + string.replace(": ","_init = ").replace(" +/- "," # +/- ") + "\n"
+                    dust_model_out_text+=tmptxt
                 fig2.text(0.2,textoffset,string)
                 textoffset+=0.04
 
