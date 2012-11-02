@@ -610,10 +610,9 @@ def _getfitdict(initial_param,Av_init=-0.62,beta_init=-1.45,fitlist=['Av','beta'
 def _get_initial_dust_params(initial_param):
     '''
     lookup table to obtain the initial parameters for a variety of dust laws as 
-    listed in acceptable_initial_param_list.  
+    listed in the loadpath/DustModels directory.  
     
     Looks for files in the loadpath/DustModels directory with the file extension .dust
-    
     
     format for these files is 
     
@@ -624,7 +623,7 @@ def _get_initial_dust_params(initial_param):
     c4_init = 0.461
     gamma_init = 1.05
     x0_init = 4.626
-    
+    # comments
     
     '''
     
@@ -958,6 +957,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
 """
         
         # output out_text
+        # This can later be loaded by _get_initial_dust_params
         dust_model_out_text += "# " + time.ctime()
         fittextoutpath = storepath + "SEDFit.dust"
         ff = open(fittextoutpath,'w')
@@ -1720,28 +1720,28 @@ def SEDFitTest3(initial_param='smc',export_dustmodel=False):
     paramstr='(%s)' % 'SMC'
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    outfile = dustfitpath+"dustfit_smc.txt"
+    outfile = dustfitpath+"120119Adustfit_smc.txt"
     _write_results_to_file(outfile,fitdict)
     
     fitdict=_getfitdict('lmc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % "LMC"
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    outfile = dustfitpath+"dustfit_lmc.txt"
+    outfile = dustfitpath+"120119Adustfit_lmc.txt"
     _write_results_to_file(outfile,fitdict)
     
     fitdict=_getfitdict('lmc2',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % "LMC2"
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    outfile = dustfitpath+"dustfit_lmc2.txt"
+    outfile = dustfitpath+"120119Adustfit_lmc2.txt"
     _write_results_to_file(outfile,fitdict)
     
     fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
     paramstr='(%s)' % 'MW'
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    outfile = dustfitpath+"dustfit_mw.txt"
+    outfile = dustfitpath+"120119Adustfit_mw.txt"
     _write_results_to_file(outfile,fitdict)
 
 
@@ -1749,12 +1749,12 @@ def SEDFitTest3(initial_param='smc',export_dustmodel=False):
     paramstr='(%s)' % ''
     fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
         xraydict=xraydict,TieReichart=TieReichart)
-    outfile = dustfitpath+"dustfit_FM.txt"
+    outfile = dustfitpath+"120119Adustfit_FM.txt"
     _write_results_to_file(outfile,fitdict)
     
     if export_dustmodel:
         dmoutpath=loadpath+"DustModels/FMfit.dust"
-        dminpath=storepath+"SEDFit.dust"
+        dminpath=storepath+"SEDFit.dust" # this is output by SEDfit every time. Here we just transfer.
         shutil.copy(dminpath,dmoutpath)
     
     TieReichart = True
@@ -1767,7 +1767,7 @@ def SEDFitTest3(initial_param='smc',export_dustmodel=False):
     
     if export_dustmodel:
         dmoutpath=loadpath+"DustModels/FMfit_Reichart.dust"
-        dminpath=storepath+"SEDFit.dust"
+        dminpath=storepath+"SEDFit.dust" # this is output by SEDfit every time. Here we just transfer.
         shutil.copy(dminpath,dmoutpath)
 
 
