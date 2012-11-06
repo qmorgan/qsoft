@@ -23,6 +23,7 @@ if not os.environ.has_key("Q_DIR"):
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 paperdir = os.environ.get("Q_DIR") + '/Papers/GRB120119A/'
+paperloaddir = paperdir + "load/"
 figuresdir = paperdir + 'Figures/'
 tablesdir = paperdir + 'Tables/'
 
@@ -580,8 +581,97 @@ def _make_colorchange_table():
         print "FAILED TO WRITE COLOR CHANGE TABLE" 
     
 
-def _make_SED_table():
+def _make_SED_table(rerun=True):
+    '''
+    New SED table wrapper. Rerun SEDFitTest3 which has  the flux values 
+    from the latest lighcurve SED interpolation from perleys lcurve
     
+    SEDfitTest3 will export all results to text files.
+    
+    '''
+    
+    contentlist = []
+    
+    import glob
+    dustfitdirectory = storepath + 'dustfits/'
+    searchpath = dustfitdirectory + "120119Adustfit_*.txt"
+    dfits = glob.glob(searchpath)
+    for fitfile in dfits:
+        
+        f=open(fitfile,'r')
+        
+        outstrs = f.readlines()
+        
+        for outstr in outstrs:
+            outstr = outstr.strip() # geting rid of line breaks
+            if 'beta:' in outstr:
+                betastr = outstr.lstrip('beta:')
+            if 'Av:' in outstr:
+                if outstr.find('Av: -') == 0:
+                    outstr=outstr.replace('Av: -','Av: ') # since Av is negative what it should be in this code
+                else:
+                    outstr=outstr.replace('Av: ','Av: -') #replacing in case the fit actually shows the best fit Av IS negative                    
+                Avstr = outstr.lstrip('Av:')    
+            if "chi2 / dof" in outstr:
+                chi2str = outstr.replace("# chi2 / dof = ","")
+        
+        fitname=fitfile.split('.txt')[0].split('_')
+        # search for the string _xrt in the filename
+        if 'xrt' in fitname:
+            inclXstr = 'Y'
+        else:
+            inclXstr = 'N'
+            
+        param = fitname[1] # 2nd item in list should be the name of the model
+        
+        newstring = '%s & %s & $%s$ & $%s$ & %s \\\\' % (param.upper(),inclXstr,betastr.replace("+/-","\pm"),Avstr.replace("+/-","\pm"), chi2str)
+        contentlist.append(newstring)
+        
+    content = ''
+    for contentline in contentlist:
+        content += ''' %s
+''' % contentline
+        
+
+    header='''
+\\begin{deluxetable}{lllll}
+\\tablecaption{Results of Extinction Fits}
+\\tablewidth{0pt}
+\\tablehead{
+\\colhead{Dust} & \\colhead{+XRT?} & \\colhead{$\\beta$} & \\colhead{$A_V$}  & \\colhead{$\chi^2$ $/$ dof} \\\\
+\\colhead{Model}           & \\colhead{}    & \\colhead{}        & \\colhead{(mag)}    & \\colhead{}}
+\\startdata
+
+'''
+
+    footer= '''
+\\enddata
+\\tablecomments{Results of standard dust model fits to the interpolated SED of GRB~110119A (\ref{sec:latesed}.}
+\\label{tab:extfits}
+\\end{deluxetable}
+    '''
+    
+    tabletext = header + content + footer
+    tabletext = tabletext.replace("DPgrb120119Axrt","FMX")
+    tabletext = tabletext.replace("DPgrb120119A","FM")
+    try:
+        filename = tablesdir + 'dusttable.tex'
+        f = open(filename,'w')
+        f.write(tabletext)
+        f.close()
+        
+        print ''
+        print "Wrote dust table to tables directory"
+    except:
+        print "FAILED TO WRITE TABLE" 
+
+def _make_SED_table_old():
+    '''
+    Old method of generating SED table using the SMARTS magnitude SED
+    
+    wraps around the DefaultSEDFit program
+    
+    '''
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
     
     
