@@ -1657,10 +1657,10 @@ def _write_results_to_file(outfile,outdict):
     for string in outdict['strings']:
         f.write(string)
         f.write("\n")
-    outstr = "# chi2 / dof = " + str(outdict['chi2']) + '/' + str(outdict['dof'])
+    outstr = "chi2 / dof = %.2f / %i" % (outdict['chi2'],outdict['dof'])
     f.write(outstr)
     f.write("\n")
-    outstr = "# reduced chi2 = %f" % (outdict['chi2']/outdict['dof'])
+    outstr = "# reduced chi2 = %.3f" % (outdict['chi2']/outdict['dof'])
     f.write(outstr)
     f.close
 
@@ -1766,7 +1766,7 @@ def SEDFitTest3(initial_param='smc',export_dustmodel=False):
         paramstr='(%s)' % ''
         fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
             xraydict=xrd,TieReichart=TieReichart)
-        outfile = dustfitpath+"dustfit_FMreichart"+xrttext+".txt"
+        outfile = dustfitpath+"120119Adustfit_FMreichart"+xrttext+".txt"
         _write_results_to_file(outfile,fitdict)
     
         if export_dustmodel:
