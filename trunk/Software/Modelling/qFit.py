@@ -168,9 +168,9 @@ def fit(function, parameters, y, yerr, x = None, return_covar=False):
     chi2 = sum(np.power(errfunc(paramfinal), 2)) 
     degrees_of_freedom = y.shape[0] - len(paramfinal)
     chi2r = chi2/degrees_of_freedom
-     
-    print "chi^2/dof", chi2, '/', degrees_of_freedom
-    print "reduced chi^2 = %f  \n" % (chi2r)
+    
+    print "chi^2 / dof = %.2f / %i" (chi2,degrees_of_freedom)
+    print "reduced chi^2 = %.3f  \n" % (chi2r)
         
     retdict = {'parameters':parameters,'covarmatrix':covarmatrix,'chi2':chi2,'dof':degrees_of_freedom}
     
