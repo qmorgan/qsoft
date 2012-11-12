@@ -1664,7 +1664,7 @@ def _write_results_to_file(outfile,outdict):
     f.write(outstr)
     f.close
 
-def SEDFitTest3(initial_param='smc',export_dustmodel=False):
+def SEDFitTest3(export_dustmodel=False):
     '''another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
     galebv=0.108
