@@ -252,6 +252,142 @@ def Coadd(filelist, outname):
     total_time = end_time - start_time
     print "Program finished, execution time %f seconds." % total_time
 
+
+def _header_test(image_name):
+    '''testing the header for kait images to recreate the start and 
+    stop times of the exposure
+    '''
+    import pyfits
+    import datetime 
+    hdulist = pyfits.open(image_name)
+    imagefile_header = hdulist[0].header
+    
+    bbb = str(imagefile_header["DATE-OBS"])
+    ccc = str(imagefile_header['UT'])
+    exp = float(imagefile_header["EXPTIME"])
+    
+    
+    strt_cpu = bbb[6:10]+'-'+bbb[3:5]+'-'+bbb[0:2] + ' ' + ccc
+    
+    start = datetime.datetime.strptime(strt_cpu,"%Y-%m-%d %H:%M:%S")
+    # multiply exposure time by a million, convert to integer, treat as microseconds 
+    exp_timedelta = datetime.timedelta(0,0,int(exp*1e6)) #assuming exp in seconds
+    stop = start + exp_timedelta
+    
+    stop_cpu=datetime.datetime.strftime(stop,"%Y-%m-%d %H:%M:%S")
+    
+    print strt_cpu
+    print stop_cpu
+    # stop_cpu = 'no_stop_cpu' # could just add the exposure time..
+
+def kaitCoadd(filelist, outname):
+    try:
+        from multiprocessing import Pool
+        from multiprocessing import cpu_count as cpuCount
+        doparallel = 1
+    except:
+        print "Parallel processing library not installed. Not paralellizing."
+        doparallel = 0
+        
+    if doparallel == 1:
+        numprocessors = cpuCount()
+    else:
+        numprocessors = 1
+        
+    from time import time
+    # Begin program execution timing.
+    start_time = time()
+    
+    # OBTAIN WORKING DIRECTORIES 
+    # reduction_output_directory = str(obs_string) + "-reduction_output"
+    # 
+    # ## Obtain Obs String
+    # globlist = glob.glob(obs_string+'*-reduction_output')
+    kait_long_list = file("kait_images_to_coadd.txt", "w")
+
+
+    kait_stop_list = []
+    kait_start_list = []
+
+    for item in filelist:
+        # Requires filename to be something.fits, and the weight file to be something.weight.fits
+        kait_path = item
+        if kait_path.find('.fits') == -1:
+            print kait_path
+            raise ValueError('File must end in .fits')
+        # if kait_path.find('.weight.fits') != -1:
+        #     print kait_path
+        #     raise ValueError('Cannot coadd weight files')
+        # kait_w_path = item.split('.fits')[0] + '.weight.fits'
+        kait_long_list.write(kait_path+'\n')
+        # kait_long_list_weights.write(kait_w_path+'\n')
+    
+        # Obtain the start and stop times of the image
+        kait_hdulist = pyfits.open(kait_path)
+        kait_header = kait_hdulist[0].header
+        kait_stop_list.append(str(kait_header["STOP_CPU"]))
+        kait_start_list.append(str(kait_header["STRT_CPU"]))
+        kait_hdulist.close()
+    
+    ## Sort the lists of start and stop times
+    kait_start_list.sort()
+    kait_stop_list.sort()
+
+    ## Take the first start time and the last stop time
+    kait_earliest_start = kait_start_list[0]
+    kait_latest_stop = kait_stop_list[-1]
+
+    # Close the relevant files
+    kait_long_list.close()
+    kait_long_list_weights.close()
+    
+    if outname.find('.fits') == -1:
+        print outname
+        raise ValueError('Output file must end in .fits')
+    # outweightname = outname.split('.fits')[0] + '.weight.fits'
+    
+    # Run the mosaicing. 
+    # Make list of swarp_commands.
+    swarp_commands = [
+        swarp_bin + " @kait_long_mosaics.txt " + 
+        "-c " + loadpath + "kait_redux.swarp " + 
+        # "-WEIGHT_IMAGE @kait_long_mosaic_weights.txt " + 
+        "-IMAGEOUT_NAME " + outname # +
+        # " -WEIGHTOUT_NAME "+ outweightname
+        ]
+
+    if doparallel == 1:
+        # Run the mosaicing with parallel processing.
+        p = Pool(numprocessors)
+        result = p.map_async(run_swarp, swarp_commands)
+        poolresult = result.get()
+    else:
+        # Run the mosaicing without parallel processing.
+        for command in swarp_commands:
+            run_swarp(command)
+
+    # We insert the STRT_CPU of the first triplestack and the STOP_CPU of 
+    # the last triplestack used to make the mosaic.
+
+    kait_hdulist = pyfits.open(outname,mode='update')
+
+    kait_header = kait_hdulist[0].header
+
+    kait_header.update('STRT_CPU',kait_earliest_start)
+    kait_header.update('STOP_CPU',kait_latest_stop)
+    
+    kait_hdulist.flush()
+    kait_hdulist.close()
+
+    # Remove extraneous text files
+    #system('rm ?_long*mosaic*.txt')
+
+    # End program execution timing.
+    end_time = time()
+    total_time = end_time - start_time
+    print "Program finished, execution time %f seconds." % total_time
+
+
 def MakeMultStack(imlist, stacknum, Clobber=False, name_str='000'):
     from operator import itemgetter
     from Phot import t_mid
