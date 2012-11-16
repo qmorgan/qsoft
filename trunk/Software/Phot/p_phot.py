@@ -185,8 +185,17 @@ class Image():
 
             bbb = str(self.imagefile_header["DATE-OBS"])
             ccc = str(self.imagefile_header['UT'])
+            exp = float(imagefile_header["EXPTIME"])
             strt_cpu = bbb[6:10]+'-'+bbb[3:5]+'-'+bbb[0:2] + ' ' + ccc
-            stop_cpu = 'no_stop_cpu' # could just add the exposure time..
+            # stop_cpu = 'no_stop_cpu' # could just add the exposure time..
+            
+            start = datetime.datetime.strptime(strt_cpu,"%Y-%m-%d %H:%M:%S")
+            # multiply exposure time by a million, convert to integer, treat as microseconds 
+            exp_timedelta = datetime.timedelta(0,0,int(exp*1e6)) #assuming exp in seconds
+            stop = start + exp_timedelta
+            stop_cpu=datetime.datetime.strftime(stop,"%Y-%m-%d %H:%M:%S")
+            
+            
         else:
             strt_cpu = 'no_strt_cpu'
             stop_cpu = 'no_stop_cpu'
