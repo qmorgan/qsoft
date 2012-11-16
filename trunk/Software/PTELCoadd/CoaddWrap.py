@@ -38,6 +38,9 @@ import os, sys
 import shutil
 import glob
 import pyfits
+import datetime
+
+
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
 swarp_bin = "swarp"
@@ -257,11 +260,20 @@ def _header_test(image_name):
     '''testing the header for kait images to recreate the start and 
     stop times of the exposure
     '''
-    import pyfits
-    import datetime 
+
     hdulist = pyfits.open(image_name)
     imagefile_header = hdulist[0].header
     
+    strt_cpu,stop_cpu=_generate_start_and_stop_time_for_kait(imagefile_header)
+    print strt_cpu
+    print stop_cpu
+    # stop_cpu = 'no_stop_cpu' # could just add the exposure time..
+
+def _generate_start_and_stop_time_for_kait(imagefile_header):
+    '''given the pyfits header of an image which has date-obs, ut, exptime
+    (read:kait), calculate the stop time assuming it is just equal to the 
+    start time plus the exposure time.
+    '''
     bbb = str(imagefile_header["DATE-OBS"])
     ccc = str(imagefile_header['UT'])
     exp = float(imagefile_header["EXPTIME"])
@@ -276,9 +288,12 @@ def _header_test(image_name):
     
     stop_cpu=datetime.datetime.strftime(stop,"%Y-%m-%d %H:%M:%S")
     
-    print strt_cpu
-    print stop_cpu
-    # stop_cpu = 'no_stop_cpu' # could just add the exposure time..
+    # print strt_cpu
+    # print stop_cpu
+    
+    return strt_cpu,stop_cpu
+
+
 
 def kaitCoadd(filelist, outname):
     try:
@@ -325,8 +340,9 @@ def kaitCoadd(filelist, outname):
         # Obtain the start and stop times of the image
         kait_hdulist = pyfits.open(kait_path)
         kait_header = kait_hdulist[0].header
-        kait_stop_list.append(str(kait_header["STOP_CPU"]))
-        kait_start_list.append(str(kait_header["STRT_CPU"]))
+        strt_cpu,stop_cpu = _generate_start_and_stop_time_for_kait(kait_header)
+        kait_stop_list.append(stop_cpu)
+        kait_start_list.append(strt_cpu)
         kait_hdulist.close()
     
     ## Sort the lists of start and stop times
