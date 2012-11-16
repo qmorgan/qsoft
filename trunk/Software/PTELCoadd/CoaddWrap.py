@@ -308,10 +308,17 @@ def kaitCoadd(filelist, outname):
         numprocessors = cpuCount()
     else:
         numprocessors = 1
-        
+
     from time import time
     # Begin program execution timing.
     start_time = time()
+
+
+    if outname.find('.fits') == -1:
+        print outname
+        raise ValueError('Output file must end in .fits')
+    # outweightname = outname.split('.fits')[0] + '.weight.fits'
+
     
     # OBTAIN WORKING DIRECTORIES 
     # reduction_output_directory = str(obs_string) + "-reduction_output"
@@ -323,6 +330,7 @@ def kaitCoadd(filelist, outname):
 
     kait_stop_list = []
     kait_start_list = []
+    kait_filter_list = []
 
     for item in filelist:
         # Requires filename to be something.fits, and the weight file to be something.weight.fits
@@ -343,6 +351,7 @@ def kaitCoadd(filelist, outname):
         strt_cpu,stop_cpu = _generate_start_and_stop_time_for_kait(kait_header)
         kait_stop_list.append(stop_cpu)
         kait_start_list.append(strt_cpu)
+        kait_filter_list.append(kait_header["FILTERS"])
         kait_hdulist.close()
     
     ## Sort the lists of start and stop times
@@ -353,14 +362,14 @@ def kaitCoadd(filelist, outname):
     kait_earliest_start = kait_start_list[0]
     kait_latest_stop = kait_stop_list[-1]
 
+    ### VERIFY THAT THE FILTERS ARE THE SAME BEFORE COADDING
+    filts yay
+
     # Close the relevant files
     kait_long_list.close()
     kait_long_list_weights.close()
-    
-    if outname.find('.fits') == -1:
-        print outname
-        raise ValueError('Output file must end in .fits')
-    # outweightname = outname.split('.fits')[0] + '.weight.fits'
+
+    raise(Exception)
     
     # Run the mosaicing. 
     # Make list of swarp_commands.
