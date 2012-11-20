@@ -559,3 +559,10 @@ def SaveSortedDictTxt(indict,outpath='prettydict.txt'):
         f.write(prettydict)
     f.close
 
+def AllSame(items,printlist=False):
+    '''Check if all items lin list "items" are the same. 
+    http://stackoverflow.com/questions/3787908/python-determine-if-all-items-of-a-list-are-the-same-item
+    '''
+    if printlist:
+        print items
+    return all(x == items[0] for x in items)
