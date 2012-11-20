@@ -39,7 +39,7 @@ import shutil
 import glob
 import pyfits
 import datetime
-
+from MiscBin import q
 
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
@@ -294,7 +294,61 @@ def _generate_start_and_stop_time_for_kait(imagefile_header):
     return strt_cpu,stop_cpu
 
 
-
+def kaitFilterSeparation(filelist):
+    '''Go through a list of KAIT images and sort them into separate folders
+    based on what filter they are. Files all need to be in the same directory.
+    '''
+    kait_long_list = file("kait_images_to_sort.txt", "w")
+    
+    possible_filter_list = []
+    
+    kait_stop_list = []
+    kait_start_list = []
+    kait_filter_list = []
+    
+    checkdir = os.path.dirname(filelist[0]) # to compare to other directories
+    
+    for item in filelist:
+        itemdir = os.path.dirname(item) #directory of item
+        if itemdir != checkdir:
+            raise ValueError("Directory for each file must be the same")
+        
+        
+        # Requires filename to be something.fits, and the weight file to be something.weight.fits
+        kait_path = item
+        if kait_path.find('.fits') == -1:
+            print kait_path
+            raise ValueError('File must end in .fits')
+        # if kait_path.find('.weight.fits') != -1:
+        #     print kait_path
+        #     raise ValueError('Cannot coadd weight files')
+        # kait_w_path = item.split('.fits')[0] + '.weight.fits'
+        kait_long_list.write(kait_path+'\n')
+        # kait_long_list_weights.write(kait_w_path+'\n')
+    
+        # Obtain the start and stop times of the image
+        kait_hdulist = pyfits.open(kait_path)
+        kait_header = kait_hdulist[0].header
+        strt_cpu,stop_cpu = _generate_start_and_stop_time_for_kait(kait_header)
+        kait_stop_list.append(stop_cpu)
+        kait_start_list.append(strt_cpu)
+        
+        current_filter = kait_header["FILTERS"]
+        kait_filter_list.append(current_filter)
+        
+        # add to current filter list if not there already
+        if current_filter not in possible_filter_list:
+            cmd = 'mkdir %s%s' % (checkdir,current_filter)
+            os.system(cmd)
+            possible_filter_list.append(current_filter)
+            
+        # move image to correct filter directory
+        cmd = 'mv %s %s%s/.' % (item, checkdir, current_filter)
+        os.system(cmd)
+        
+        kait_hdulist.close()
+    
+    
 def kaitCoadd(filelist, outname):
     try:
         from multiprocessing import Pool
@@ -363,7 +417,9 @@ def kaitCoadd(filelist, outname):
     kait_latest_stop = kait_stop_list[-1]
 
     ### VERIFY THAT THE FILTERS ARE THE SAME BEFORE COADDING
-    filts yay
+    if not q.AllSame(kait_filter_list)==True:
+        print kait_filter_list
+        raise ValueError("All filters are not the same. Not Coadding.")
 
     # Close the relevant files
     kait_long_list.close()
