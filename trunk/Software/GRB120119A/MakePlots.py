@@ -579,8 +579,88 @@ def _make_colorchange_table():
         print "Wrote colorchange table to tables directory"
     except:
         print "FAILED TO WRITE COLOR CHANGE TABLE" 
-    
 
+def _CARMA_output():                              
+    
+    z=1.728
+    p=2.7
+    dl=4e28 #cm
+    Eiso = 2.1e53 #erg
+    beta_opt = -0.84
+                                    
+    day_in_seconds = 86400.                               
+                                  
+    carma_freq = 95e9 #hz 
+    carma_time = 31752.0 # seconds         
+    carma_UL = 990. #uJy
+    
+    evla_freq = 5.8e9 #hz
+    evla_time = 172800.0 # two days
+
+    xrt_opt_similar_time = 3e3 #seconds
+    
+    k_band_freq = 1.4e14 # hz, = c/220nm              
+    
+    r_band_freq = 4.8e14 # hz = c/620nm
+    r_band_flux = 6. #uJy, at carma time
+                                                  
+    xray_break_time_ul = 86400. #s                           
+    xray_freq = 2.4e17 #Hz  (1kev)
+    
+    nu_m_upper_lim = k_band_freq * (carma_time/xrt_opt_similar_time)**(-3/2.)       
+    nu_m_lower_lim = ( (carma_UL/r_band_flux) * (carma_freq**(-1/3.))/(r_band_freq**(-1*beta_opt)) )**(1/(-1/3.+beta_opt))
+                                                                                                                     
+    print "%.3g < nu_m < %.3g" % (nu_m_lower_lim, nu_m_upper_lim)               
+    
+    F_m_lower_lim = r_band_flux * (nu_m_upper_lim/r_band_freq)**beta_opt
+    F_m_upper_lim = r_band_flux * (nu_m_lower_lim/r_band_freq)**beta_opt     
+                             
+    print "%.1e uJy < F_m < %.1e uJy" % (F_m_lower_lim, F_m_upper_lim)        
+                     
+    print " "
+    
+    yost_nu_m_backstuff = 3.3e14 * (z+1)**0.5 * (0.5)**2 * ((p-2)/(p-1))**2 * (Eiso/1.0e52)**0.5 * (carma_time/day_in_seconds)**(-1.5)
+    # print yost_nu_m_backstuff          
+    print "I:   %.1e < (epsilon_B/0.01)^0.5 * (epsilon_e/0.5)^2 < %.1e" % (nu_m_lower_lim/yost_nu_m_backstuff, nu_m_upper_lim/yost_nu_m_backstuff)               
+    
+    # multiply by 1000 for uJy
+    yost_F_m_backstuff = 1.6 * 1000 * (z+1) * (dl/1.0e28)**-2 * (Eiso/1.0e52)
+    # print yost_F_m_backstuff    
+                       
+    print "II:  %.1e < (epsilon_B/0.01)^0.5 * (n/1cm^3)^0.5 < %.1e" % (F_m_lower_lim/yost_F_m_backstuff, F_m_upper_lim/yost_F_m_backstuff)               
+                 
+    
+    yost_nu_c_backstuff = 6.3e15* (z+1)**-0.5 * (Eiso/1.0e52)**-0.5 * (xray_break_time_ul/day_in_seconds)**-0.5
+    print "III: (epsilon_B/0.01)^-1.5 * (n/1cm^3)^-1 > %.1e" % (xray_freq/yost_nu_c_backstuff)
+    
+    print " "
+    
+    # Take a guess for two parameters
+    eb = 0.001
+    n = 0.1
+    print "With epsilon_B = %.3f and n = %.3f cm^-3:" % (eb,n)
+     
+    III_check = (eb/0.01)**-1.5 * (n)**-1   
+    II_check = (eb/0.01)**0.5 * (n)**0.5
+    print "III = %.1e" % (III_check)    
+    print "II = %.1e" % (II_check)      
+    
+    print " "
+    # calculate ee based on remaining equations 
+    I_backstuff = (eb/0.01)**0.5 * (1/0.5)**2                     
+    ee_LL = np.sqrt((nu_m_lower_lim/yost_nu_m_backstuff)/I_backstuff)                   
+    ee_UL = np.sqrt((nu_m_upper_lim/yost_nu_m_backstuff)/I_backstuff)
+    print "Thus: %.3f < epsilon_e < %.3f" % (ee_LL,ee_UL)
+                           
+    # NU_A??
+    
+    # at two days, time of radio observation
+    nu_m_inferred_evlatime = (eb/0.01)**0.5 * (ee_UL/0.5)**2 * 3.3e14 * (z+1)**0.5 * (0.5)**2 * ((p-2)/(p-1))**2 * (Eiso/1.0e52)**0.5 * (evla_time/day_in_seconds)**(-1.5)
+    F_m_inferred = (eb/0.01)**0.5 * (n)**0.5 * 1.6 * 1000 * (z+1) * (dl/1.0e28)**-2 * (Eiso/1.0e52)
+
+    F_evla_inferred =  F_m_inferred * (evla_freq/nu_m_inferred_evlatime) ** (1/3.)
+    print "inferred EVLA flux: %.2f" % (F_evla_inferred) 
+    
 def _make_SED_table(rerun=True):
     '''
     New SED table wrapper. Rerun SEDFitTest3 which has  the flux values 
