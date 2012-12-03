@@ -636,8 +636,12 @@ def _CARMA_output():
     print " "
     
     # Take a guess for two parameters
-    eb = 0.001
-    n = 0.1
+    # eb = 0.0178
+    # n = 0.0014
+    xx = ((F_m_lower_lim/yost_F_m_backstuff)/(1/(xray_freq/yost_nu_c_backstuff))**(0.5))**-4
+    eb = 0.01*xx
+    n = 1/(xray_freq/yost_nu_c_backstuff) * xx**(-3/2.)
+    
     print "With epsilon_B = %.3f and n = %.3f cm^-3:" % (eb,n)
      
     III_check = (eb/0.01)**-1.5 * (n)**-1   
