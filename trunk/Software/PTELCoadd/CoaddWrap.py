@@ -40,6 +40,7 @@ import glob
 import pyfits
 import datetime
 from MiscBin import q
+import numpy as np
 
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
@@ -146,7 +147,7 @@ def MakeTriplestack(reduced_filelist,allow_nontriple=False,sumcombine=False):
     j_hdulist.flush()
     j_hdulist.close()
 
-def Coadd(filelist, outname):
+def Coadd(filelist, outname=None):
     try:
         from multiprocessing import Pool
         from multiprocessing import cpu_count as cpuCount
@@ -294,9 +295,11 @@ def _generate_start_and_stop_time_for_kait(imagefile_header):
     return strt_cpu,stop_cpu
 
 
-def kaitFilterSeparation(filelist):
+def kaitFilterSeparation(filelist,copy=False):
     '''Go through a list of KAIT images and sort them into separate folders
     based on what filter they are. Files all need to be in the same directory.
+    
+    if copy=True, then copy instead of move
     '''
     kait_long_list = file("kait_images_to_sort.txt", "w")
     
@@ -305,6 +308,11 @@ def kaitFilterSeparation(filelist):
     kait_stop_list = []
     kait_start_list = []
     kait_filter_list = []
+    
+    if copy:
+        cmdname = 'cp'
+    else:
+        cmdname = 'mv'
     
     checkdir = os.path.dirname(filelist[0]) # to compare to other directories
     
@@ -339,17 +347,21 @@ def kaitFilterSeparation(filelist):
         # add to current filter list if not there already
         if current_filter not in possible_filter_list:
             cmd = 'mkdir %s%s' % (checkdir,current_filter)
+            print "Creating Directory %s" % (current_filter)
             os.system(cmd)
             possible_filter_list.append(current_filter)
             
         # move image to correct filter directory
-        cmd = 'mv %s %s%s/.' % (item, checkdir, current_filter)
+        
+        cmd = '%s %s %s%s/.' % (cmdname, item, checkdir, current_filter)
         os.system(cmd)
         
         kait_hdulist.close()
+    print "Completed move of files to individual directories:"
+    print possible_filter_list
     
     
-def kaitCoadd(filelist, outname):
+def kaitCoadd(filelist, outname=None, appendtimes=False):
     try:
         from multiprocessing import Pool
         from multiprocessing import cpu_count as cpuCount
@@ -367,7 +379,11 @@ def kaitCoadd(filelist, outname):
     # Begin program execution timing.
     start_time = time()
 
-
+    if not outname:
+        # if outname not explicitly specified, make one up
+        outname = 'qcoadd.fits'
+        appendtimes=True
+    
     if outname.find('.fits') == -1:
         print outname
         raise ValueError('Output file must end in .fits')
@@ -416,6 +432,13 @@ def kaitCoadd(filelist, outname):
     kait_earliest_start = kait_start_list[0]
     kait_latest_stop = kait_stop_list[-1]
 
+    # add the times to the filenames if desired.
+    appendtime = '_' + kait_earliest_start.split(' ')[1] + '-' + kait_latest_stop.split(' ')[1]
+    appendtime = appendtime.replace(":","") # get rid of colons
+    if appendtimes:
+        outname = outname.split(".fits")[0] + appendtime + ".fits"
+
+
     ### VERIFY THAT THE FILTERS ARE THE SAME BEFORE COADDING
     if not q.AllSame(kait_filter_list)==True:
         print kait_filter_list
@@ -423,14 +446,14 @@ def kaitCoadd(filelist, outname):
 
     # Close the relevant files
     kait_long_list.close()
-    kait_long_list_weights.close()
+    # kait_long_list_weights.close()
 
-    raise(Exception)
+    # raise(Exception)
     
     # Run the mosaicing. 
     # Make list of swarp_commands.
     swarp_commands = [
-        swarp_bin + " @kait_long_mosaics.txt " + 
+        swarp_bin + " @kait_images_to_coadd.txt " + 
         "-c " + loadpath + "kait_redux.swarp " + 
         # "-WEIGHT_IMAGE @kait_long_mosaic_weights.txt " + 
         "-IMAGEOUT_NAME " + outname # +
@@ -459,7 +482,10 @@ def kaitCoadd(filelist, outname):
     
     kait_hdulist.flush()
     kait_hdulist.close()
+    
 
+        
+    
     # Remove extraneous text files
     #system('rm ?_long*mosaic*.txt')
 
@@ -467,7 +493,41 @@ def kaitCoadd(filelist, outname):
     end_time = time()
     total_time = end_time - start_time
     print "Program finished, execution time %f seconds." % total_time
+    print "Wrote %s" % outname
 
+def kaitCoaddLoop(fulllist,tuplelist):
+    '''
+    from index 11-20, coadd every 2
+    from index 21-32, coadd every 4
+    from index 33-62, coadd every 10
+    tuplelist=[(11,20,2),(21,32,4),(33,62,10)]
+    
+    '''
+
+    
+    for looptuple in tuplelist:
+        bigstart = looptuple[0]
+        bigend = looptuple[1]
+        num_in_each_coadd = looptuple[2]
+        num_images = bigend - bigstart + 1 # how many images there are 
+        assert num_images > 0 # end bigger than start
+        assert num_images >= num_in_each_coadd # trying to coadd more images than there are? you fool
+        number_of_loops = num_images/num_in_each_coadd
+        num_to_tack_onto_end = np.mod(num_images,num_in_each_coadd)
+        count=0
+        current_start = bigstart
+        while count < number_of_loops:
+            count += 1 
+            if count == number_of_loops:
+                # if we're in the last loop, tack images onto end
+                num_in_current_coadd = num_in_each_coadd + num_to_tack_onto_end
+            else:
+                num_in_current_coadd = num_in_each_coadd
+            current_end = current_start + num_in_current_coadd 
+            kaitCoadd(fulllist[current_start:current_end],outname='kait.fits',appendtimes=True)
+            print "Now Coadding " + str(current_start) + ":" + str(current_end)
+            # update the new current start
+            current_start += num_in_current_coadd
 
 def MakeMultStack(imlist, stacknum, Clobber=False, name_str='000'):
     from operator import itemgetter
