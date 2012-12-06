@@ -360,6 +360,29 @@ def kaitFilterSeparation(filelist,copy=False):
     print "Completed move of files to individual directories:"
     print possible_filter_list
     
+def kaitRename(filename,copy=False):
+    '''Rename file to include time of observation
+    if copy, then dont remove old file
+    '''
+    
+    kait_hdulist = pyfits.open(filename)
+    kait_header = kait_hdulist[0].header
+    ccc = str(kait_header['UT'])
+    
+    outname='kait.fits'
+    
+    if copy:
+        cmdname = 'cp'
+    else:
+        cmdname = 'mv'
+        
+    
+    appendtime = '_' + ccc 
+    appendtime = appendtime.replace(":","") # get rid of colons
+    
+    outname = outname.split(".fits")[0] + appendtime + ".fits"
+    cmd = "%s %s %s" % (cmdname,filename,outname)
+    os.system(cmd)
     
 def kaitCoadd(filelist, outname=None, appendtimes=False):
     try:
@@ -497,10 +520,14 @@ def kaitCoadd(filelist, outname=None, appendtimes=False):
 
 def kaitCoaddLoop(fulllist,tuplelist):
     '''
-    from index 11-20, coadd every 2
-    from index 21-32, coadd every 4
-    from index 33-62, coadd every 10
-    tuplelist=[(11,20,2),(21,32,4),(33,62,10)]
+    Given a list of filenames (in ascending time order)
+    coadd according to the provided list of tuples, e.g.:
+    tuplelist=[(1,10,1),(11,20,2),(21,32,4),(33,62,10)]
+    NOTE for some reason im not doing 0 as start of the index
+    #for images 1-10, just rename
+    #from images 11-20, coadd every 2
+    #from images 21-32, coadd every 4
+    #from images 33-62, coadd every 10
     
     '''
 
@@ -524,8 +551,13 @@ def kaitCoaddLoop(fulllist,tuplelist):
             else:
                 num_in_current_coadd = num_in_each_coadd
             current_end = current_start + num_in_current_coadd 
-            kaitCoadd(fulllist[current_start:current_end],outname='kait.fits',appendtimes=True)
-            print "Now Coadding " + str(current_start) + ":" + str(current_end)
+            if num_in_current_coadd == 1:
+                # just rename file if not actually coadding
+                kaitRename(fulllist[current_start],copy=True)
+                print "Renaming File " + str(current_start) 
+            else:
+                print "Now Coadding " + str(current_start) + ":" + str(current_end-1)
+                kaitCoadd(fulllist[current_start:current_end],outname='kait.fits',appendtimes=True)
             # update the new current start
             current_start += num_in_current_coadd
 
