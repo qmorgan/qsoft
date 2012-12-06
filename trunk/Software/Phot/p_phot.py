@@ -29,7 +29,11 @@ class Event():
         self.eventname = eventname
         
 class Image():
-    """docstring for Image"""
+    """docstring for Image
+    
+    
+    
+    """
     def __init__(self, imagefilename,objectfile=None, calfile=None,autocal=True,scope=None,autofilter=True,filt=None):
         self.imagefilename = imagefilename
         
@@ -52,6 +56,7 @@ class Image():
             self.filt=self._get_filter()
         elif filt:
             self.filt=filt
+            print 'Setting filter as %s, determined from image' % (filt)
         else:
             print "could not determine filter; remaining as None"
             self.filt=None
@@ -270,6 +275,9 @@ class Image():
 
 
     def get_sdss_calibration(self,sdsscal):
+        '''Print sdss calibration text file (if available) to the current 
+        directory with filename sdsscal
+        '''
         #IDL> printsdss, 'OBS1_R.fits', outfile="calib.txt"
 
         #Performing Photometry
@@ -278,8 +286,10 @@ class Image():
         self.sdsscal = sdsscal
         if os.path.exists(self.sdsscal):
             self.sdssfield=True
+            print "Successfully wrote sdss calibration file to %s" % (self.sdsscal) 
         else:
             self.sdssfield=False
+            print "Failed to write sdss calibration file."
     
     
     def p_photreturn(self,outname,ap,limsigma=3.0,plotcalib=True,clobber=False):
