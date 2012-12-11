@@ -1669,7 +1669,8 @@ def SEDFitTest3(export_dustmodel=False):
     z=1.728
     galebv=0.108
     
-    xrayflux=8.34
+    # xrayflux=8.34
+    xrayflux = 8.713 # as of fixing the xrt fit in november to broken powerlaw?
     xraywave=12.398 # 1keV in angstroms
     xrayeflux=0.1
     
@@ -1702,6 +1703,10 @@ def SEDFitTest3(export_dustmodel=False):
     # with new smarts photometry from dan perley
     fluxlist=[44.5774,109.301,161.772,192.708,343.207,461.300,707.670,1357.15,2519.23,4322.62]
     fluxerrlist=[2.59274,4.93373,6.66431,7.99352,14.1644,18.9757,17.4284,29.5530,57.7732,107.265]
+    
+    # with added kait photometry 
+    fluxlist=[44.9600,109.732,160.529,193.570,341.548,455.652,706.789,1357.65,2522.23,4308.75]
+    fluxerrlist=[2.53424,4.95319,6.67211,8.20993,17.9301,19.2250,37.8012,33.3349,57.8048,107.991]
     
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
