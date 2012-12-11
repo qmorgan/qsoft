@@ -190,7 +190,7 @@ class Image():
 
             bbb = str(self.imagefile_header["DATE-OBS"])
             ccc = str(self.imagefile_header['UT'])
-            exp = float(imagefile_header["EXPTIME"])
+            exp = float(self.imagefile_header["EXPTIME"])
             strt_cpu = bbb[6:10]+'-'+bbb[3:5]+'-'+bbb[0:2] + ' ' + ccc
             # stop_cpu = 'no_stop_cpu' # could just add the exposure time..
             
@@ -352,7 +352,7 @@ class Image():
         return photdict
 
 
-def p_photLoop(outname,ap,objectfile,calfile,clobber=False):
+def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''   
@@ -360,7 +360,11 @@ def p_photLoop(outname,ap,objectfile,calfile,clobber=False):
     GRBlist = []
     GRBlistwweight = glob.glob('*.fits')
     filepath = storepath + outname + '.data'
-
+    
+    if not os.path.exists(calfile):
+        raise ValueError("calfile does not exist in specified path")
+    if not os.path.exists(objectfile):
+        raise ValueError("objectfile does not exist in specified path")
     if clobber == True:
         if os.path.isfile(filepath) == True:
             os.remove(filepath)
@@ -369,9 +373,10 @@ def p_photLoop(outname,ap,objectfile,calfile,clobber=False):
             GRBlist.append(item)
     if not GRBlist:
         raise ValueError('No files to perform photometry on. In right directory?')
-        
+    if forcefilter:
+        filt=forcefilter
     for filename in GRBlist:
-        img=Image(filename,objectfile=objectfile,calfile=calfile)
+        img=Image(filename,objectfile=objectfile,calfile=calfile,filt=filt)
         photdict=img.p_photreturn(outname,ap=ap,plotcalib=False,clobber=clobber) #dont plot for this
     return photdict
 
