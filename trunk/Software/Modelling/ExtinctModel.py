@@ -1755,7 +1755,10 @@ def SEDFitTest3(export_dustmodel=False):
 
 
         fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
-        paramstr='(%s)' % ''
+        paramstr='(%s)' % 'FM'
+        fitdict['c4']['fixed']=True
+        fitdict['c4']['init']= 0.43
+        print 'FIXING C4 to Schady Values'
         fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
             xraydict=xrd,TieReichart=TieReichart)
         outfile = dustfitpath+"120119Adustfit_FM"+xrttext+".txt"
@@ -1768,7 +1771,10 @@ def SEDFitTest3(export_dustmodel=False):
     
         TieReichart = True
         fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','c2','c3','c4'])
-        paramstr='(%s)' % ''
+        paramstr='(%s)' % 'FM - Reichart'
+        fitdict['c4']['fixed']=True
+        fitdict['c4']['init']= 0.43
+        print 'FIXING C4 to Schady Values'
         fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
             xraydict=xrd,TieReichart=TieReichart)
         outfile = dustfitpath+"120119Adustfit_FMreichart"+xrttext+".txt"
