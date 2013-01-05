@@ -480,21 +480,21 @@ def _make_colorchange_table():
             'beta_2init':70,
             'sedvstimeylimdict':{"betaonly":(-1.7,-0.7),"Avonly":(0.9,1.8),"bothAv":(0,3),"bothbeta":(-3,0.9)}
             },
-        'DPgrb120119A':{
-            'dust_model':'DPgrb120119A',
+        'FMfit':{
+            'dust_model':'FMfit',
             'xrt_incl':False,
-            'late_time_av':-0.81, # NEED TO RECHECK THESE VALUES 
-            'late_time_beta':-1.26, # NEED TO RECHECK THESE VALUES
+            'late_time_av':-5.52, # NEED TO RECHECK THESE VALUES 
+            'late_time_beta':3.51, # NEED TO RECHECK THESE VALUES
             'Av_1init':-1.7,
             'beta_1init':2.0,
             'Av_2init':70,
             'beta_2init':70,
             'sedvstimeylimdict':{"betaonly":(-2.0,-1.0),"Avonly":(0.8,1.5),"bothAv":(0,6.0),"bothbeta":(-2.5,4.5)}
             },
-        'DPgrb120119Axrt':{
-            'dust_model':'DPgrb120119Axrt',
+        'FMfit_xrt':{
+            'dust_model':'FMfit_xrt',
             'xrt_incl':True,
-            'late_time_av':-1.00, #NEED TO RECHECK THESE VALUES
+            'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
             'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
             'Av_1init':-1.7,
             'beta_1init':2.0,
@@ -586,7 +586,7 @@ def _CARMA_output():
     p=2.7
     dl=4e28 #cm
     Eiso = 2.1e53 #erg
-    beta_opt = -0.84
+    beta_opt = -0.90
                                     
     day_in_seconds = 86400.                               
                                   
@@ -602,7 +602,7 @@ def _CARMA_output():
     k_band_freq = 1.4e14 # hz, = c/220nm              
     
     r_band_freq = 4.8e14 # hz = c/620nm
-    r_band_flux = 6. #uJy, at carma time
+    r_band_flux = 5. #uJy, at carma time
                                                   
     xray_break_time_ul = 86400. #s                           
     xray_freq = 2.4e17 #Hz  (1kev)
@@ -642,7 +642,10 @@ def _CARMA_output():
     eb = 0.01*xx
     n = 1/(xray_freq/yost_nu_c_backstuff) * xx**(-3/2.)
     
-    print "With epsilon_B = %.3f and n = %.3f cm^-3:" % (eb,n)
+    n=0.1
+    eb=5e-4
+    
+    print "With epsilon_B = %.4f and n = %.3f cm^-3:" % (eb,n)
      
     III_check = (eb/0.01)**-1.5 * (n)**-1   
     II_check = (eb/0.01)**0.5 * (n)**0.5
@@ -730,14 +733,14 @@ def _make_SED_table(rerun=True):
 
     footer= '''
 \\enddata
-\\tablecomments{Results of standard dust model fits to the interpolated SED of GRB~110119A (\ref{sec:latesed}.}
+\\tablecomments{Results of standard dust model fits to the interpolated SED of GRB~110119A (\\ref{sec:latesed}.}
 \\label{tab:extfits}
 \\end{deluxetable}
     '''
     
     tabletext = header + content + footer
-    tabletext = tabletext.replace("DPgrb120119Axrt","FMX")
-    tabletext = tabletext.replace("DPgrb120119A","FM")
+    tabletext = tabletext.replace("DPgrb120119Axrt","dpFMX")
+    tabletext = tabletext.replace("DPgrb120119A","dpFM")
     try:
         filename = tablesdir + 'dusttable.tex'
         f = open(filename,'w')
