@@ -125,7 +125,7 @@ def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45,time_thresh=5):
 
 
 def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=None,
-    interp_type='dumb',plot=True,plotzoom=None):
+    interp_type='dumb',plot=True,plotzoom=None,samefig=True):
     '''Inputs:
     objblock: block of all relevant observations
     extraptime: list of desired times to extrapolate to
@@ -137,6 +137,8 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     interpolate_list = ['PAIRITEL_J','PAIRITEL_H','PAIRITEL_K']
     take_as_given_list = ['PROMPT_I','PROMPT_R', 'PROMPT_V', 'PROMPT_B',"Liverpool_z'","Liverpool_r'",
         'SMARTS_B','SMARTS_V','SMARTS_R','SMARTS_I','SMARTS_J','SMARTS_H','SMARTS_K']
+    
+    if samefig, plot all interpolations on the same figure
     
     '''
     
@@ -170,7 +172,7 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     
     newobjblock.sedtimelist = extraptime
     
-
+    fig = None
     for obs in interpolate_list:
         obsblock = objblock.obsdict[obs]
         if interp_type=='dumb':
@@ -180,11 +182,13 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
             #     extraptime2 = extraptime_r
             # else:
             #     extraptime2 = extraptime
-            newobsblock=PhotParse.SmartInterpolation(obsblock,extraptime,plot=plot,plotzoom=plotzoom)
+            if not samefig:
+                fig=None
+            newobsblock,fig=PhotParse.SmartInterpolation(obsblock,extraptime,plot=plot,plotzoom=plotzoom,fig=fig)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
-    return newobjblock 
+    return newobjblock
     
 def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedtimelist=None, 
     Av_0init=-0.57,

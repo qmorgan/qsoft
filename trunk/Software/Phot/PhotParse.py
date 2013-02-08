@@ -620,7 +620,7 @@ class ObsBlock:
     
 
 
-def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False,plotzoom=None):
+def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False,plotzoom=None,fig=None):
     '''Will take an obsblock (lightcurve) and desired array of times to 
     interpolate to. 
     
@@ -661,7 +661,8 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
     ylab = r"$m_%s$" % obsblock.filtstr
     newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals,plot=False)
     if plot:
-        fig=plt.figure(figsize=(8,8))
+        if not fig:
+            fig=plt.figure(figsize=(8,8))
         ax1=fig.add_axes([0.1,0.4,0.8,0.5])
         qSplinePlot(xvals,yvals,yerrvals,fig=fig,ax_index=0, inverse_y=True,
             xlabel=r'$t$(s)',ylabel=ylab,x_max=x_max) #repeat for plot
@@ -692,7 +693,7 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         ax2adjust = (max(ax2lim)-min(ax2lim))*0.05
         
         ax1.set_ylim(ax1.get_ylim()[0]+ax1adjust,ax1.get_ylim()[1]-ax1adjust) # backwards due to inverse mag scale
-        ax2.set_ylim(0,ax2.get_ylim()[1]+ax2adjust) # bottom axis is zero, cant have - error
+        ax2.set_ylim(0,ax2.get_ylim()[1]+ax2adjust) # bottom axis is zero, cant have negative error
         ax1.set_xticks(ax1.get_xticks()[1:-1]) # removing edge xticks for middle plot
         ax1.set_yticks(ax1.get_yticks()[:-1])
         ax2.set_yticks(ax2.get_yticks()[:-1])
@@ -726,7 +727,7 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
     obsblock.tmidlist=10**logtarray
     obsblock.maglist=newylist
     obsblock.magerrlist=spline_model_errlist
-    return obsblock
+    return obsblock, fig
     
 def DumbInterpolation(obsblock,desired_time_array,fake_error=0.0):
     '''
