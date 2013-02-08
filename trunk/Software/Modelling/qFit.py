@@ -223,7 +223,7 @@ def plot_marg_from_fitdict(fitdict,paramnames):
     ret = plot_marginalization(covmat=covmat,indices=indices,names=names,values=values)
     return ret
     
-def plot_marginalization(covmat=None,indices=None,names=None,values=None):
+def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_delta_values=False):
     
     if covmat == None: # default just for illustration
         covmat=np.matrix([[ 5.29626719,  0.57454987, -0.73125854],
@@ -295,10 +295,15 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
     ax=fig.add_axes([0.1,0.1,0.8,0.8])
     CS = ax.contour(dx,dy,delta_chi_sq,levels)
     ax.clabel(CS, inline=1, fontsize=10)
-    yname = '$\delta %s$' % names[0]
-    xname = '$\delta %s$' % names[1]
-    ax.set_ylabel(yname)
-    ax.set_xlabel(xname)
+    # label these axes only if desired; could add confusion
+    if plot_delta_values:
+        yname = '$\delta %s$' % names[0]
+        xname = '$\delta %s$' % names[1]
+        ax.set_ylabel(yname)
+        ax.set_xlabel(xname)
+    else: # get rid of the tickmarks
+        ax.set_xticks([])
+        ax.set_yticks([])
     
 
     # marginalize over two parameters and plot the corresponding lines; 
@@ -333,8 +338,14 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None):
         ax3=ax.twinx()
         ax2.set_xlim(xlim)
         ax3.set_ylim(ylim)
-        yname = '$%s$' % names[0]
-        xname = '$%s$' % names[1]
+        # HACK
+        if not "Av_1" and "beta_1" in names:
+            yname = '$%s$' % names[0]
+            xname = '$%s$' % names[1]
+        else:     ##HACK changing Av_1 to \Delta A_V
+            yname = '$\Delta A_V$'
+            xname = '$\Delta \\beta$'
+        # END HACK
         ax3.set_ylabel(yname)
         ax2.set_xlabel(xname)
     
