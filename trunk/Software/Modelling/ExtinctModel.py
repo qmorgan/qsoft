@@ -1132,6 +1132,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     faillist=[]
     chi2list=[]
     doflist=[]
+    reducedchi2list=[]
     
     # loop through each time, building up an SED for each
     for timestr, val in aligndict.iteritems():
@@ -1164,7 +1165,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
                 betaerrlist.append(param.uncertainty)
         chi2list.append(outdict['chi2'])
         doflist.append(outdict['dof'])
-   
+        reducedchi2list.append(float(outdict['chi2'])/int(outdict['dof']))
+    
     if faillist:
         print "SED Fit failed for times:"
         print faillist
@@ -1273,7 +1275,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             # ax1.set_ylim([np.floor(min(betalist))-1,np.ceil(max(betalist))+1])
             
     if plotchi2:
-        ax_chi2.scatter(resttimearr,chi2list,color=color)
+        ax_chi2.scatter(resttimearr,reducedchi2list,color=color)
         ylim = ax_chi2.get_ylim()
         ax_chi2.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
     
@@ -1283,7 +1285,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             ax2.set_xticks(ax2.get_xticks()[1:-1])
         ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
     
-        ax_chi2.set_ylabel(r'$\chi^2$')
+        ax_chi2.set_ylabel(r'$\chi^2$ / dof')
         ax_chi2.set_xlabel(r'$t$ (s, rest frame)')
             
     if fig != None:
@@ -1294,7 +1296,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         fig.savefig(filepath)
     
     if retchi2:
-        return sum(chi2list)
+        return sum(chi2list), sum(doflist)
 
 
 def SEDtimeSimulFit(objblock,sedtimelist,fitdict,initial_param='smc',

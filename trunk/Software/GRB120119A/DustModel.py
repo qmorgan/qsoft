@@ -380,6 +380,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     #####
     # recalculate chi2 as a function of time based on the model and each time point
     chi2list=[]
+    doflist=[]
+    reducedchi2list=[] 
     for time in sedtimelist:
         corrtime = time/(1.+objblock.redshift)
         # grab the Av and beta values for each time point
@@ -389,12 +391,19 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
         beta_snap = DecayingExponentialbeta(corrtime,beta0,beta1,beta2)
         
         #hack!
-        chi2=SEDvsTime(objblock,initial_param=initial_param,plotsed=False, fitlist=[],
+        chi2,dof=SEDvsTime(objblock,initial_param=initial_param,plotsed=False, fitlist=[],
         sedtimelist=[time],retfig=False,fig=None,plotchi2=False, retchi2=True,
         Av_init=Av_snap,beta_init=beta_snap)
         chi2list.append(chi2)
+        doflist.append(dof)
+        reducedchi2list.append(float(chi2)/int(dof))
+    print "chi2 list:"
     print chi2list
     print sum(chi2list)
+    print "Dof list:"
+    print doflist
+    print sum(doflist)
+    
     corrtimelist = np.array(sedtimelist)/(1.+objblock.redshift)    
     # raise Exception
     ####
@@ -574,11 +583,11 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             
             
             if plotchi2:
-                ax3.scatter(corrtimelist,chi2list)
+                ax3.scatter(corrtimelist,reducedchi2list)
 
                 ax2.set_xlabel('')
                 ax3.set_xlabel(r'$t$ (s, rest frame)')
-                ax3.set_ylabel(r'$\chi^2$')
+                ax3.set_ylabel(r'$\chi^2$ / dof')
                 
                 ylim = ax3.get_ylim()
                 ax3.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0

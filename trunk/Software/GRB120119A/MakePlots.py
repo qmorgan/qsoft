@@ -213,12 +213,11 @@ def _build_extraptime(objblock):
         # # 16818.624
         ]
     return extraptime
-     
-    
+
 #### INTERPOLATION PLOTS
-def _interpplot(initial_param = 'DPgrb120119A',
-    late_time_av = -0.963, 
-    late_time_beta=-1.0,
+def _interpplot(initial_param = 'FMfit_xrt',
+    late_time_av = -1.09, 
+    late_time_beta=-0.92,
     Av_1init = -1.7,
     beta_1init= 2.0,
     Av_2init = 70,
@@ -396,10 +395,10 @@ def _lightcurves():
 
 def _make_proposal_figure():
     modeldict={
-        'DPgrb120119Axrt':{
-            'dust_model':'DPgrb120119Axrt',
+        'FMfit_xrt':{
+            'dust_model':'FMfit_xrt',
             'xrt_incl':True,
-            'late_time_av':-1.00, #NEED TO RECHECK THESE VALUES
+            'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
             'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
             'Av_1init':-1.7,
             'beta_1init':2.0,
@@ -567,8 +566,8 @@ def _make_colorchange_table():
 ''' % contentline
     
     tabletext = header + content + footer
-    tabletext = tabletext.replace("DPGRB120119AXRT","FMX")
-    tabletext = tabletext.replace("DPGRB120119A","FM")
+    tabletext = tabletext.replace("FMfit_xrt","FMX")
+    tabletext = tabletext.replace("FMfit","FM")
     try:
         filename = tablesdir + 'colorchangetable.tex'
         f = open(filename,'w')
@@ -739,8 +738,8 @@ def _make_SED_table(rerun=True):
     '''
     
     tabletext = header + content + footer
-    tabletext = tabletext.replace("DPgrb120119Axrt","dpFMX")
-    tabletext = tabletext.replace("DPgrb120119A","dpFM")
+    tabletext = tabletext.replace("FMfit_xrt","FMX")
+    tabletext = tabletext.replace("FMfit","FM")
     try:
         filename = tablesdir + 'dusttable.tex'
         f = open(filename,'w')
@@ -762,7 +761,7 @@ def _make_SED_table_old():
     directory = '/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119A_SED.dat'
     
     
-    paramlist=['mw','lmc','lmc2','smc','DPgrb120119Axrt','DPgrb120119A']
+    paramlist=['mw','lmc','lmc2','smc','FMfit_xrt','FMfit']
     inclxrt=[True,True,True,True,True,False]
     
     contentlist = []
@@ -821,8 +820,8 @@ def _make_SED_table_old():
     '''
     
     tabletext = header + content + footer
-    tabletext = tabletext.replace("DPgrb120119Axrt","FMX")
-    tabletext = tabletext.replace("DPgrb120119A","FM")
+    tabletext = tabletext.replace("FMfit_xrt","FMX")
+    tabletext = tabletext.replace("FMfit","FM")
     try:
         filename = tablesdir + 'dusttable.tex'
         f = open(filename,'w')
