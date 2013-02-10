@@ -172,12 +172,12 @@ class ObjBlock:
         ax2.set_ylim(ylimmag)
         
         # Label the axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)')
+        ax.set_ylabel(r'$F_\nu$ (uJy)',size=20)
         zsubscript=str(self.redshift)
         topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
         ax.set_xlabel(r'$t$ (s)')
-        ax2.set_ylabel('AB Mag')
-        ax3.set_xlabel(topxlabel)
+        ax2.set_ylabel('AB Mag',size=20)
+        ax3.set_xlabel(topxlabel,size=20)
         
         ax.legend(loc=3,numpoints=1,frameon=False)
         if save:
@@ -363,12 +363,12 @@ class ObjBlock:
         ax2.set_ylim(ylimmag)
         
         # Label the axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)')
+        ax.set_ylabel(r'$F_\nu$ (uJy)',size=20)
         zsubscript=str(self.redshift)
         topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
-        ax.set_xlabel(r'$t$ (s)')
-        ax2.set_ylabel('AB Mag')
-        ax3.set_xlabel(topxlabel)
+        ax.set_xlabel(r'$t$ (s)',size=20)
+        ax2.set_ylabel('AB Mag',size=20)
+        ax3.set_xlabel(topxlabel,size=20)
         
         acceptlabels=['K','H','J',"z'","I","i'","R","r'","V","g'","B"]
         
@@ -456,8 +456,8 @@ class ObjBlock:
                     ax.plot(tmid,alpha, color=ob.color, marker=ob.marker)
                     ind += 1
         
-        ax.set_ylabel(r'$\alpha$')
-        ax.set_xlabel(r'$t_{mid}$ (s)')                
+        ax.set_ylabel(r'$\alpha$',size=20)
+        ax.set_xlabel(r'$t_{mid}$ (s)',size=20)                
         fig.show()
         
 class ObsBlock:
@@ -620,7 +620,8 @@ class ObsBlock:
     
 
 
-def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False,plotzoom=None,fig=None):
+def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=False,
+    plotzoom=None,fig=None,value_lims=None,error_lims=None):
     '''Will take an obsblock (lightcurve) and desired array of times to 
     interpolate to. 
     
@@ -658,14 +659,25 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         x_max = None
     
     xvals = np.log10(timevals)
-    ylab = r"$m_%s$" % obsblock.filtstr
+    
+    if fig != None: # if fig given, assume we're doing overplots of multiple magnitudes
+        multiplot = True
+    else:
+        multiplot = False
+        
+    if multiplot:
+        ylab = r"$m$" 
+    else: 
+        ylab = r"$m_%s$" % obsblock.filtstr
     newyarr, spline_model_errarr = qSpline(xvals,yvals,yerrvals,xoutvals,plot=False)
     if plot:
         if not fig:
             fig=plt.figure(figsize=(8,8))
         ax1=fig.add_axes([0.1,0.4,0.8,0.5])
         qSplinePlot(xvals,yvals,yerrvals,fig=fig,ax_index=0, inverse_y=True,
-            xlabel=r'$t$(s)',ylabel=ylab,x_max=x_max) #repeat for plot
+            xlabel=r'$t$(s)',ylabel=ylab,x_max=x_max,color=obsblock.color) #repeat for plot
+        ax1.set_ylabel(ylab,size=20)
+
     newylist = list(newyarr)
     
     # NOW, ESTIMATE THE AVERAGE OBSERVATIONAL ERROR AS A FUNCTION OF TIME
@@ -677,12 +689,16 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         
     if errestimate == 'spline':
         yerr_errvals = yerrvals*0.1 # Assume 10% error on the errors??
-        ylab = r"$m_%s$ err" % obsblock.filtstr
+        if multiplot:
+            ylab = r"$m$ err"
+        else:
+            ylab = r"$m_%s$ err" % obsblock.filtstr
         insterrestimate, error_on_error = qSpline(xvals,yerrvals,yerr_errvals,xoutvals,plot=False)
         if plot:
             ax2=fig.add_axes([0.1,0.1,0.8,0.3])
-            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,
-            xlabel=r'$t_{obs}$ (s)',ylabel=ylab,x_max=x_max)
+            qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,x_max=x_max,color=obsblock.color)
+            ax2.set_ylabel(ylab,size=20)
+            ax2.set_xlabel(r'$t_{obs}$ (s)',size=20)
     
     if plot:
         #touching up the labels. May just adjust to make margins slightly larger rather than removing ticks.
@@ -692,11 +708,20 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         ax2lim = ax2.get_ylim()
         ax2adjust = (max(ax2lim)-min(ax2lim))*0.05
         
-        ax1.set_ylim(ax1.get_ylim()[0]+ax1adjust,ax1.get_ylim()[1]-ax1adjust) # backwards due to inverse mag scale
-        ax2.set_ylim(0,ax2.get_ylim()[1]+ax2adjust) # bottom axis is zero, cant have negative error
+        if not value_lims: # if value limits not explicitly defined, grab them. Might be awkward with multiple plots
+            ax1.set_ylim(ax1.get_ylim()[0]+ax1adjust,ax1.get_ylim()[1]-ax1adjust) # backwards due to inverse mag scale
+        else:
+            ax1.set_ylim(value_lims[0],value_lims[1])
+        if not error_lims:
+            ax2.set_ylim(0,ax2.get_ylim()[1]+ax2adjust) # bottom axis is zero, cant have negative error
+        else:
+            ax2.set_ylim(error_lims[0],error_lims[1])
+        # ax1.set_yticks(ax1.get_yticks()[:-1])
         ax1.set_xticks(ax1.get_xticks()[1:-1]) # removing edge xticks for middle plot
-        ax1.set_yticks(ax1.get_yticks()[:-1])
-        ax2.set_yticks(ax2.get_yticks()[:-1])
+        # ax2.set_yticks(ax2.get_yticks()[:-1])
+        
+        # making sure the x limits are same for top and bottom plot, not sure why i have to do this
+        ax1.set_xlim(ax2.get_xlim()[0],ax2.get_xlim()[1]) 
         
         xticks=ax2.get_xticks()
         newxticks = 10**xticks
