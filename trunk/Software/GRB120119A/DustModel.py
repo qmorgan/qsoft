@@ -574,9 +574,9 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             ax1.set_ylim(old_ax1lim)
             ax2.set_ylim(old_ax2lim)
             
-            ax1.set_ylabel(r'$A_V$',size=20)
-            ax2.set_ylabel(r'$\beta$',size=20)
-            ax1.set_xlabel(r'$t$ (s, rest frame)',size=20)
+            ax1.set_ylabel(r'$A_V$',size=16)
+            ax2.set_ylabel(r'$\beta$',size=16)
+            ax1.set_xlabel(r'$t$ (s, rest frame)',size=16)
             
             # if not fixylimAv:
             #     pass
@@ -592,8 +592,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 ax3.scatter(corrtimelist,reducedchi2list)
 
                 ax2.set_xlabel('')
-                ax3.set_xlabel(r'$t$ (s, rest frame)',size=20)
-                ax3.set_ylabel(r'$\chi^2$ / dof',size=20)
+                ax3.set_xlabel(r'$t$ (s, rest frame)',size=16)
+                ax3.set_ylabel(r'$\chi^2$ / dof',size=16)
                 
                 ylim = ax3.get_ylim()
                 ax3.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0

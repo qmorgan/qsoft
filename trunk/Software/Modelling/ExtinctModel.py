@@ -60,8 +60,8 @@ class Extinction:
             ax=fig.get_axes()[0]
         ax.plot(self.wave,self.funred,linewidth=2,color=color)
         ax.plot(self.wave,self.flux,linewidth=1,color=color,linestyle='dashed')
-        ax.set_xlabel('Wavelength',size=20)
-        ax.set_ylabel('Flux Density',size=20)
+        ax.set_xlabel('Wavelength',size=16)
+        ax.set_ylabel('Flux Density',size=16)
         if loglog:
             ax.loglog()
         if xlim:
@@ -1018,10 +1018,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax2.set_ylim(ylimmag)
     
         # Label the 4 axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)',size=20)
-        ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)',size=20)
-        ax2.set_ylabel('AB Mag',size=20)
-        ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)',size=20)
+        ax.set_ylabel(r'$F_\nu$ (uJy)',size=16)
+        ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)',size=16)
+        ax2.set_ylabel('AB Mag',size=16)
+        ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)',size=16)
 
         # Explicitly define which ticks to label on the x axes
         ax.set_xticks([10000,6000,4000,2000,1000])
@@ -1085,8 +1085,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             ax5.set_xlim(1.0e4,3.0) #reverse
             
             # Label the 4 axes
-            ax5.set_ylabel(r'$F_\nu$ (uJy)',size=20)
-            ax5.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)',size=20)
+            ax5.set_ylabel(r'$F_\nu$ (uJy)',size=16)
+            ax5.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)',size=16)
             ax5.legend()
             fig3.savefig(filepath2)
 
@@ -1201,11 +1201,11 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             axindex += 1
         plotAvlist=-1*np.array(Avlist)
         ax2.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
-        ax2.set_ylabel(r'$A_V $',size=20)
-        ax2.set_xlabel(r'$t$ (s, rest frame)',size=20)
+        ax2.set_ylabel(r'$A_V $',size=16)
+        ax2.set_xlabel(r'$t$ (s, rest frame)',size=16)
         ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-        ax1.set_ylabel(r'$\beta$',size=20)
-        ax1.set_xlabel(r'$t$ (s, rest frame)',size=20)
+        ax1.set_ylabel(r'$\beta$',size=16)
+        ax1.set_xlabel(r'$t$ (s, rest frame)',size=16)
         
         string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
         fig.text(0.55,0.3,string)
@@ -1245,8 +1245,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         if Avlist:
             plotAvlist=-1*np.array(Avlist)
             ax1.errorbar(resttimearr,plotAvlist,yerr=Averrlist,fmt='o',color=color)
-            ax1.set_ylabel(r'$A_V$',size=20)
-            ax1.set_xlabel(r'$t$ (s, rest frame)',size=20)
+            ax1.set_ylabel(r'$A_V$',size=16)
+            ax1.set_xlabel(r'$t$ (s, rest frame)',size=16)
             
             string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
             fig.text(0.55,0.3,string)
@@ -1260,8 +1260,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             
         elif betalist:
             ax1.errorbar(resttimearr,betalist,yerr=betaerrlist,fmt='o',color=color)
-            ax1.set_ylabel(r'$\beta$',size=20)
-            ax1.set_xlabel(r'$t$ (s, rest frame)',size=20)
+            ax1.set_ylabel(r'$\beta$',size=16)
+            ax1.set_xlabel(r'$t$ (s, rest frame)',size=16)
             
             string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
             fig.text(0.55,0.3,string)
@@ -1285,8 +1285,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             ax2.set_xticks(ax2.get_xticks()[1:-1])
         ax_chi2.set_yticks(ax_chi2.get_yticks()[:-1])
     
-        ax_chi2.set_ylabel(r'$\chi^2$ / dof',size=20)
-        ax_chi2.set_xlabel(r'$t$ (s, rest frame)',size=20)
+        ax_chi2.set_ylabel(r'$\chi^2$ / dof',size=16)
+        ax_chi2.set_xlabel(r'$t$ (s, rest frame)',size=16)
             
     if fig != None:
         if retfig:

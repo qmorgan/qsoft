@@ -172,12 +172,12 @@ class ObjBlock:
         ax2.set_ylim(ylimmag)
         
         # Label the axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)',size=20)
+        ax.set_ylabel(r'$F_\nu$ (uJy)',size=16)
         zsubscript=str(self.redshift)
         topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
         ax.set_xlabel(r'$t$ (s)')
-        ax2.set_ylabel('AB Mag',size=20)
-        ax3.set_xlabel(topxlabel,size=20)
+        ax2.set_ylabel('AB Mag',size=16)
+        ax3.set_xlabel(topxlabel,size=16)
         
         ax.legend(loc=3,numpoints=1,frameon=False)
         if save:
@@ -363,12 +363,12 @@ class ObjBlock:
         ax2.set_ylim(ylimmag)
         
         # Label the axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)',size=20)
+        ax.set_ylabel(r'$F_\nu$ (uJy)',size=16)
         zsubscript=str(self.redshift)
         topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
-        ax.set_xlabel(r'$t$ (s)',size=20)
-        ax2.set_ylabel('AB Mag',size=20)
-        ax3.set_xlabel(topxlabel,size=20)
+        ax.set_xlabel(r'$t$ (s)',size=16)
+        ax2.set_ylabel('AB Mag',size=16)
+        ax3.set_xlabel(topxlabel,size=16)
         
         acceptlabels=['K','H','J',"z'","I","i'","R","r'","V","g'","B"]
         
@@ -456,8 +456,8 @@ class ObjBlock:
                     ax.plot(tmid,alpha, color=ob.color, marker=ob.marker)
                     ind += 1
         
-        ax.set_ylabel(r'$\alpha$',size=20)
-        ax.set_xlabel(r'$t_{mid}$ (s)',size=20)                
+        ax.set_ylabel(r'$\alpha$',size=16)
+        ax.set_xlabel(r'$t_{mid}$ (s)',size=16)                
         fig.show()
         
 class ObsBlock:
@@ -676,7 +676,7 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         ax1=fig.add_axes([0.1,0.4,0.8,0.5])
         qSplinePlot(xvals,yvals,yerrvals,fig=fig,ax_index=0, inverse_y=True,
             xlabel=r'$t$(s)',ylabel=ylab,x_max=x_max,color=obsblock.color) #repeat for plot
-        ax1.set_ylabel(ylab,size=20)
+        ax1.set_ylabel(ylab,size=16)
 
     newylist = list(newyarr)
     
@@ -697,8 +697,8 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         if plot:
             ax2=fig.add_axes([0.1,0.1,0.8,0.3])
             qSplinePlot(xvals,yerrvals,yerr_errvals,fig=fig,ax_index=1,x_max=x_max,color=obsblock.color)
-            ax2.set_ylabel(ylab,size=20)
-            ax2.set_xlabel(r'$t_{obs}$ (s)',size=20)
+            ax2.set_ylabel(ylab,size=16)
+            ax2.set_xlabel(r'$t_{obs}$ (s)',size=16)
     
     if plot:
         #touching up the labels. May just adjust to make margins slightly larger rather than removing ticks.
