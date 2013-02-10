@@ -246,7 +246,7 @@ def _interpplot(initial_param = 'FMfit_xrt',
     # extraptime_r=ptelj.tmidlist[1:20] # special hack for when extrapolating prompt R band
     extraptime=_build_extraptime(objblock_original)
     objblock_interpolated=DustModel.BuildInterpolation(objblock_original,extraptime,interpolate_list,
-        take_as_given_list=None,interp_type='smart',plot=True)
+        take_as_given_list=None,interp_type='smart',plot=True,value_lims=(18.5,10.5),error_lims=(0.00,0.30))
     cmd = "mv " + storepath + 'splinePAIRITEL* '+ figuresdir
     os.system(cmd)
     print 'New interpolation plots moved to paper directory.'
@@ -254,7 +254,7 @@ def _interpplot(initial_param = 'FMfit_xrt',
     # do a zoomed in interpolation plot
     if zoomtime:
         zoomobjblock=DustModel.BuildInterpolation(objblock_original_2,extraptime,interpolate_list,
-            take_as_given_list=None,interp_type='smart',plot=True,plotzoom=zoomtime)
+            take_as_given_list=None,interp_type='smart',plot=True,plotzoom=zoomtime,value_lims=(15.5,10.5),error_lims=(0.00,0.10))
         cmd = "mv " + storepath + 'splinePAIRITEL* '+ figuresdir
         os.system(cmd)
         print 'New interpolation plots moved to paper directory.'
