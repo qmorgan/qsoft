@@ -1018,10 +1018,10 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         ax2.set_ylim(ylimmag)
     
         # Label the 4 axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)')
-        ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
-        ax2.set_ylabel('AB Mag')
-        ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)')
+        ax.set_ylabel(r'$F_\nu$ (uJy)',size=20)
+        ax.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)',size=20)
+        ax2.set_ylabel('AB Mag'size=20)
+        ax3.set_xlabel(r'$\lambda_{\mathrm{eff}}$ ($\AA$)',size=20)
 
         # Explicitly define which ticks to label on the x axes
         ax.set_xticks([10000,6000,4000,2000,1000])
@@ -1085,8 +1085,8 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             ax5.set_xlim(1.0e4,3.0) #reverse
             
             # Label the 4 axes
-            ax5.set_ylabel(r'$F_\nu$ (uJy)')
-            ax5.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)')
+            ax5.set_ylabel(r'$F_\nu$ (uJy)',size=20)
+            ax5.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)'size=20)
             ax5.legend()
             fig3.savefig(filepath2)
 
