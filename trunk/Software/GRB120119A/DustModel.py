@@ -125,7 +125,7 @@ def ChiSqMap(initial_param='smc',Av_init=-0.62,beta_init=-1.45,time_thresh=5):
 
 
 def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=None,
-    interp_type='dumb',plot=True,plotzoom=None,samefig=True):
+    interp_type='dumb',plot=True,plotzoom=None,samefig=True,value_lims=None,error_lims=None):
     '''Inputs:
     objblock: block of all relevant observations
     extraptime: list of desired times to extrapolate to
@@ -140,6 +140,7 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     
     if samefig, plot all interpolations on the same figure
     
+    if value_lims or error_lims set, use these for the y-axis limits on the interpolation plots
     '''
     
     
@@ -184,7 +185,8 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
             #     extraptime2 = extraptime
             if not samefig:
                 fig=None
-            newobsblock,fig=PhotParse.SmartInterpolation(obsblock,extraptime,plot=plot,plotzoom=plotzoom,fig=fig)
+            newobsblock,fig=PhotParse.SmartInterpolation(obsblock,extraptime,plot=plot,
+                    value_lims=value_lims,error_lims=error_lims,plotzoom=plotzoom,fig=fig)
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
@@ -572,9 +574,9 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             ax1.set_ylim(old_ax1lim)
             ax2.set_ylim(old_ax2lim)
             
-            ax1.set_ylabel(r'$A_V$')
-            ax2.set_ylabel(r'$\beta$')
-            ax1.set_xlabel(r'$t$ (s, rest frame)')
+            ax1.set_ylabel(r'$A_V$',size=20)
+            ax2.set_ylabel(r'$\beta$',size=20)
+            ax1.set_xlabel(r'$t$ (s, rest frame)',size=20)
             
             # if not fixylimAv:
             #     pass
@@ -590,8 +592,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
                 ax3.scatter(corrtimelist,reducedchi2list)
 
                 ax2.set_xlabel('')
-                ax3.set_xlabel(r'$t$ (s, rest frame)')
-                ax3.set_ylabel(r'$\chi^2$ / dof')
+                ax3.set_xlabel(r'$t$ (s, rest frame)',size=20)
+                ax3.set_ylabel(r'$\chi^2$ / dof',size=20)
                 
                 ylim = ax3.get_ylim()
                 ax3.set_ylim([0,ylim[1]]) # ensure bottom is 0; cant have chi2 < 0
