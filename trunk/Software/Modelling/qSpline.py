@@ -28,11 +28,14 @@ def qSpline(xvals,yvals,yerrvals,xgrid,allow_out_of_bounds=False,plot=False):
     return newyarr, spline_model_errarr
 
 def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,
-    inverse_x=False,xlabel='',ylabel='',x_max=None):
+    inverse_x=False,xlabel='',ylabel='',x_max=None,color='black',fmt='o'):
     '''Use the min and max xvals to generate a plot showing what the continuous 
     plot would be
     
     x_max: only plot up to a particular x value
+    
+    color: color of the model line and data points
+    fmt: shape of the data points
     '''
     plotindices = None
     rc('font', family='Times New Roman')
@@ -61,9 +64,9 @@ def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,
     
 
     # plot model
-    ax.plot(model_xgrid,modelyarr,lw=2,color='black')
-    ax.plot(model_xgrid,modelyarr-modelyerrarr,lw=1,color='grey')
-    ax.plot(model_xgrid,modelyarr+modelyerrarr,lw=1,color='grey')
+    ax.plot(model_xgrid,modelyarr,lw=2,color=color)
+    ax.plot(model_xgrid,modelyarr-modelyerrarr,lw=1,color=color,alpha=0.5)
+    ax.plot(model_xgrid,modelyarr+modelyerrarr,lw=1,color=color,alpha=0.5)
     # plot data
     
     # if we redifined what we want to plot, grab the relevant data values
@@ -76,10 +79,10 @@ def qSplinePlot(xvals,yvals,yerrvals,fig=None,ax_index=None,inverse_y=False,
         yvalsplot = yvals
         yerrvalsplot = yerrvals
         
-    ax.errorbar(xvalsplot,yvalsplot,yerr=yerrvalsplot,color='black',fmt='o')
+    ax.errorbar(xvalsplot,yvalsplot,yerr=yerrvalsplot,color=color,fmt=fmt)
     
-    ax.set_ylabel(ylabel)
-    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel, size=20)
+    ax.set_xlabel(xlabel, size=20)
     
     if inverse_y:
         ax.set_ylim(ax.get_ylim()[1],ax.get_ylim()[0])
