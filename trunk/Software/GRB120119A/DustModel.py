@@ -657,13 +657,11 @@ def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',
         print 'Now doing Count %i of %i' % (count, N)
         try:
             outdict= SEDtimeSimulFit120119A(objblock=objblock,sedtimelist=sedtimelist,
-            intial_param=initial_param,fixparam=fixparam,randomize_inits=True,
+            initial_param=initial_param,fixparam=fixparam,randomize_inits=True,
             plot=False,time_thresh=time_thresh,retfig=False,
             Av_0init=Av_0init,beta_0init=beta_0init,
             Av_1init=Av_1init,beta_1init=beta_1init,
             Av_2init=Av_2init,beta_2init=beta_2init)
-
-            
             outlist.append(outdict)
         except:
             faillist.append(count)
