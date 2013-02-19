@@ -1097,7 +1097,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
 
 def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta'], 
     sedtimelist=None, retfig = False, retchi2=False, fig=None, color='grey',plotchi2=False,
-    Av_init=-0.62,beta_init=-1.45,time_thresh=5,fixylimAv=None,fixylimbeta=None):
+    Av_init=-0.62,beta_init=-1.45,time_thresh=5,fixylimAv=None,fixylimbeta=None,fixxlim=None):
     '''A function which will take a phot objBlock object from the revamping of
     PhotParse, loop through each time in a given time list and search through 
     each set of observations to find those times that overlap within a given 
@@ -1208,7 +1208,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
         ax1.set_xlabel(r'$t$ (s, rest frame)',size=16)
         
         string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
-        fig.text(0.55,0.3,string)
+        fig.text(0.55,0.25,string)
         
         # Adjust tickmarks
         ax1.set_xticks(ax1.get_xticks()[1:-1])
@@ -1251,7 +1251,7 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             string = 'Total chi2 / dof = %.2f / %i' % (sum(chi2list),sum(doflist))
             fig.text(0.55,0.3,string)
             string = 'beta = %s (fixed)' % (beta_init)
-            fig.text(0.55,0.5,string)
+            fig.text(0.55,0.7,string)
             # ax1.set_ylim([0,np.ceil(max(plotAvlist))+1]) # ensure bottom is 0; cant have Av < 0
             if not fixylimAv:
                 pass
@@ -1287,7 +1287,21 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
     
         ax_chi2.set_ylabel(r'$\chi^2$ / dof',size=16)
         ax_chi2.set_xlabel(r'$t$ (s, rest frame)',size=16)
-            
+    
+    if fixxlim:
+        try:
+            ax1.set_xlim(fixxlim)
+        except:
+            pass
+        try:
+            ax2.set_xlim(fixxlim)
+        except:
+            pass
+        try:
+            ax_chi2.set_xlim(fixxlim)
+        except:
+            pass
+        
     if fig != None:
         if retfig:
             return(fig)
@@ -1694,9 +1708,9 @@ def SEDFitTest3(export_dustmodel=False):
     fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
     fluxerrlist=[2.40588,25.6298,12.7137,12.7718,55.7066,55.3687,137.555,89.5435,167.118,355.945]
     # no weighting by chi2
-    # fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
-    # fluxerrlist=[2.40588,5.72097,10.7207,11.3507,21.4268,29.5704,41.5807,73.1677,150.643,262.519]
-    # 
+    fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
+    fluxerrlist=[2.40588,5.72097,10.7207,11.3507,21.4268,29.5704,41.5807,73.1677,150.643,262.519]
+    
     # fluxarr, fluxerrarr = maglist2fluxarr(maglist,magerrlist,filtlist)
     #weighting by chi2 after oct26 fix
     fluxlist=[40.0020,89.0490,160.464,190.104,343.749,444.696,704.046,1302.11,2486.50,4263.41]
@@ -1708,7 +1722,21 @@ def SEDFitTest3(export_dustmodel=False):
     
     # with added kait photometry 
     fluxlist=[44.9600,109.732,160.529,193.570,341.548,455.652,706.789,1357.65,2522.23,4308.75]
+    # fluxlist=[37.9600,89.732,160.529,193.570,341.548,455.652,706.789,1357.65,2522.23,4308.75]
     fluxerrlist=[2.53424,4.95319,6.67211,8.20993,17.9301,19.2250,37.8012,33.3349,57.8048,107.991]
+    # fluxerrlist=[2.53424,4.95319,6.67211,8.20993,17.9301,19.2250,90,90,150,350]
+    #why are the uncertainties, especially in the IR, so damn low??
+    
+    # fixed bug in error calculation  - multiplication by sqrt reducedchi2 was happening before addition of systematic uncertainty
+    fluxlist=[40.6374,91.1217,158.970,190.914,339.227,443.997,703.512,1305.11,2482.68,4237.75]
+    fluxerrlist=[2.02984,23.5588,8.67902,10.3434,44.7887,33.1361,91.4319,47.5878,83.3885,166.428]
+    
+    # ok apparently that was not a bug. Reverting.. slight raise in ir calibration uncertainty to 0.03 mag
+    filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
+    
+    fluxlist=[44.9600,109.732,160.529,193.570,341.548,455.652,1357.65,2522.23,4308.75]
+    fluxerrlist=[4.53424,4.95319,6.67211,8.20993,17.9301,19.2250,45.0868,80.7603,144.723]
+
     
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
@@ -1755,8 +1783,15 @@ def SEDFitTest3(export_dustmodel=False):
         outfile = dustfitpath+"120119Adustfit_mw"+xrttext+".txt"
         _write_results_to_file(outfile,fitdict)
 
+        # fitdict=_getfitdict('DPgrb120119Axrt',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta'])
+        # paramstr='(%s)' % 'DPGRB120119AXRT'
+        # fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+        #     xraydict=xrd,TieReichart=TieReichart)
+        # outfile = dustfitpath+"120119Adustfit_dpxrt"+xrttext+".txt"
+        # _write_results_to_file(outfile,fitdict)
 
-        fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+
+        fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
         paramstr='(%s)' % 'FM'
         fitdict['c4']['fixed']=True
         fitdict['c4']['init']= 0.43
