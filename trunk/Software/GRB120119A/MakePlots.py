@@ -30,7 +30,8 @@ tablesdir = paperdir + 'Tables/'
 
 def _build_extraptime(objblock):
     fullextraptime=False
-    justIRextraptime=True
+    justIRextraptime=False
+    newextraptime=True
     
     ### BUILD UP A REASONABLE EXTRAPOLTION TIME CODE
     ### BUILD UP AN SED AT EACH POINT IN TIME
@@ -42,23 +43,24 @@ def _build_extraptime(objblock):
     livr=objblock.obsdict["Liverpool_r'"]
     promptB=objblock.obsdict['PROMPT_B']
     smarts=objblock.obsdict['SMARTS_J']
-    print livi.tmidlist
-    # raise Exception
+    kaitI=objblock.obsdict['KAIT_I']
+    print kaitI.tmidlist
     extraptime=promptI.tmidlist[1:]### SORT THIS
     for time in promptR.tmidlist:
         extraptime.append(time)
     # for time in promptV.tmidlist[0:8]:
     #     extraptime.append(time)
-    # for time in promptB.tmidlist:
-    #     extraptime.append(time)
-    # for time in livz.tmidlist:
-    #     extraptime.append(time)
-    # for time in livr.tmidlist:
-    #     extraptime.append(time)
+    for time in kaitI.tmidlist:
+        extraptime.append(time)
+    for time in smarts.tmidlist:
+        extraptime.append(time)
+    for time in livr.tmidlist:
+        extraptime.append(time)
     extraptime.sort()
     print extraptime
+    # raise Exception
     # fullextraptime has promptI, R, V, B, liverpool z, and liverpool r 
-    if justIRextraptime: #also smarts maybe
+    if justIRextraptime: #also smarts maybe: Just locations that either prompt I or R
         extraptime = [62.208000000000006,
         # 78.624,
         78.624,
@@ -104,17 +106,17 @@ def _build_extraptime(objblock):
         # 4877.28,
         4879.872,
         5640.192,
-        # # 5641.0560000000005,
-        # 6163.776#, #SMARTS
-        # # 6494.688,
-        # # 6498.144,
-        # # 7383.744,
-        # # 7437.312,
-        # # 8589.024,
-        # # 8616.672,
-        # # 9838.368,
-        # # 9908.352,
-        # # 10678.788, #SMARTS
+        # 5641.0560000000005,
+        6163.776, #SMARTS
+        6494.688,
+        # 6498.144,
+        7383.744,
+        # 7437.312,
+        8589.024,
+        # 8616.672,
+        # 9838.368,
+        # 9908.352,
+        10678.788#, #SMARTS
         # # 11163.743999999999,
         # # 11219.039999999999,
         # # 12500.352,
@@ -165,11 +167,11 @@ def _build_extraptime(objblock):
         1373.4599999999998,
         1391.04,
         # 1391.04,
-        1463.616,
+        # 1463.616,
         1541.1,
-        1570.7520000000002,
+        # 1570.7520000000002,
         # 1571.6160000000002,
-        1658.0159999999998,
+        # 1658.0159999999998,
         1673.8799999999999,
         1753.0559999999998,
         # 1753.0559999999998,
@@ -179,7 +181,7 @@ def _build_extraptime(objblock):
         1977.6960000000001,
         # 1977.6960000000001,
         2128.2599999999998,
-        2196.288,
+        # 2196.288,
         2260.2000000000003,
         2276.64,
         2320.776,  #SMARTS
@@ -212,6 +214,8 @@ def _build_extraptime(objblock):
         # # 14552.351999999999,
         # # 16818.624
         ]
+    if newextraptime:# PROMPT R, I. KAIT I, SMARTS, LIVERPOOL r'
+        extraptime = [62.208000000000006, 78.624, 95.04, 118.368, 146.88, 177.12, 193.98000000000002, 204.768, 234.144, 239.328, 265.99997900016, 276.84, 288.576,  338.688, 364.999978999872, 388.79999999999995, 444.12, 458.784,  464.999979000096, 527.76, 550.3679999999999,  564.99997900032, 611.4, 664.99997899968, 694.8, 764.999978999904, 861.99997900032, 872.76, 894.6, 916.5,  961.99997899968, 984.1200000000001, 1005.9599999999999, 1058.1599999999999, 1071.99997900416, 1209.6000000000001, 1270.99997900064, 1391.04, 1468.9999790035201, 1541.1,  1571.6160000000002, 1632.99997899936, 1673.8799999999999, 1752.192,  1796.99997900384, 1977.6960000000001, 2133.9999789984, 2291.328, 2320.776, 2337.984, 2455.56, 2464.9999789967997, 2587.44, 2719.6800000000003, 3190.9999789987205, 3523.392, 3549.3123, 3853.9999789977596, 4173.9839999999995, 4521.99997899936, 4879.872, 5640.192, 6163.776]#, 6494.688, 6498.144, 7383.744, 7437.312, 8589.024, 8616.672, 9838.368, 9908.352, 10678.788, 11163.743999999999, 11219.039999999999, 12500.352, 12553.920000000002, 14442.624, 14552.351999999999, 16687.296000000002, 16818.624, 80477.784, 88782.912]    
     return extraptime
 
 #### INTERPOLATION PLOTS
@@ -223,7 +227,9 @@ def _interpplot(initial_param = 'FMfit_xrt',
     Av_2init = 70,
     beta_2init = 70,
     sedvstimeylimdict={"betaonly":None,"Avonly":None,"bothAv":None,"bothbeta":None},
-    retfigfortesting=False
+    retfigfortesting=False,
+    testrandom=False,
+    xlim=None
     ):
     # sedvstimeylimdict dictionary of ylimits for sedvstime
     # late_time_av=-0.86
@@ -232,7 +238,6 @@ def _interpplot(initial_param = 'FMfit_xrt',
 
     zoomtime = 2000 #seconds
     addl_sed_times=None
-    testrandom=False
     
     
     objblock_original=PhotParse.PhotParse('/Users/amorgan/Data/PAIRITEL/120119A/Combined/120119Afinal.dat')
@@ -268,7 +273,11 @@ def _interpplot(initial_param = 'FMfit_xrt',
     
     if testrandom:
         outlist_rand = DustModel.LoopThroughRandomInits(objblock=objblock_interpolated,
-            sedtimelist=sedtimelist,fixparam='both',N=100)
+            sedtimelist=sedtimelist,fixparam='both',N=20,
+            initial_param=initial_param,
+            Av_0init=late_time_av,beta_0init=late_time_beta,
+            Av_1init=Av_1init,beta_1init=beta_1init,
+            Av_2init=Av_2init,beta_2init=beta_2init)
         return outlist_rand
     
     fig = None
@@ -279,7 +288,7 @@ def _interpplot(initial_param = 'FMfit_xrt',
         fitlist=['beta'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
         retfig = False, retchi2=False, color='grey',
-        time_thresh=5,fixylimbeta=sedvstimeylimdict['betaonly'])
+        time_thresh=5,fixylimbeta=sedvstimeylimdict['betaonly'], fixxlim=xlim)
      
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv_' + initial_param + '.png'
     os.system(cmd)
@@ -290,7 +299,7 @@ def _interpplot(initial_param = 'FMfit_xrt',
         fitlist=['Av'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,fig=fig,initial_param=initial_param,
         retfig = False, retchi2=False, color='grey',
-        time_thresh=5,fixylimAv=sedvstimeylimdict['Avonly'])
+        time_thresh=5,fixylimAv=sedvstimeylimdict['Avonly'], fixxlim=xlim)
      
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedbeta_' + initial_param + '.png'
     os.system(cmd)
@@ -302,7 +311,7 @@ def _interpplot(initial_param = 'FMfit_xrt',
         fitlist=['Av','beta'],plotchi2=True,
         Av_init=late_time_av,beta_init=late_time_beta,initial_param=initial_param,
         retfig = False, retchi2=False, fig=None, color='grey',
-        time_thresh=5,fixylimbeta=sedvstimeylimdict['bothbeta'],fixylimAv=sedvstimeylimdict['bothAv'])
+        time_thresh=5,fixylimbeta=sedvstimeylimdict['bothbeta'],fixylimAv=sedvstimeylimdict['bothAv'], fixxlim=xlim)
         
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_freeAv_' + initial_param + '.png'
     os.system(cmd)
@@ -326,7 +335,8 @@ def _interpplot(initial_param = 'FMfit_xrt',
         Av_2init=Av_2init,beta_2init=beta_2init,
         randomize_inits=False,
         unred_latetime=False,
-        plot_every_model=True)
+        plot_every_model=True,
+        fixxlim=xlim)
         
     if retfigfortesting:
         fig=DustModel.SEDtimeSimulFit120119A(objblock=objblock_interpolated,
@@ -338,7 +348,8 @@ def _interpplot(initial_param = 'FMfit_xrt',
             Av_1init=Av_1init,beta_1init=beta_1init,
             Av_2init=Av_2init,beta_2init=beta_2init,
             randomize_inits=False,
-            unred_latetime=False)
+            unred_latetime=False,
+            fixxlim=xlim)
         return fig
         
     cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '.png'
@@ -398,16 +409,42 @@ def _make_proposal_figure():
         'FMfit_xrt':{
             'dust_model':'FMfit_xrt',
             'xrt_incl':True,
-            'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
-            'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
-            'Av_1init':-1.7,
-            'beta_1init':2.0,
+            'late_time_av':-0.83, #NEED TO RECHECK THESE VALUES
+            'late_time_beta':-0.88, #NEED TO RECHECK THESE VALUES
+            'Av_1init':-1.5,
+            'beta_1init':1.0,
             'Av_2init':70,
             'beta_2init':70,
             'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.95,1.79),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
             }
         }
-
+    
+    # modeldict={
+    #     'FMfit_Reichart_xrt':{
+    #         'dust_model':'FMfit_Reichart_xrt',
+    #         'xrt_incl':True,
+    #         'late_time_av':-0.88, #NEED TO RECHECK THESE VALUES
+    #         'late_time_beta':-0.89, #NEED TO RECHECK THESE VALUES
+    #         'Av_1init':-1.7,
+    #         'beta_1init':2.0,
+    #         'Av_2init':70,
+    #         'beta_2init':70,
+    #         'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.95,1.79),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
+    #         }
+    #     }
+    # modeldict={
+    # 'smcx':{
+    #     'dust_model':'smc',
+    #     'xrt_incl':True,
+    #     'late_time_av':-0.86, 
+    #     'late_time_beta':-0.88,
+    #     'Av_1init':-1.7,
+    #     'beta_1init':2.0,
+    #     'Av_2init':70,
+    #     'beta_2init':70,
+    #     'sedvstimeylimdict':{"betaonly":(-1.8,-0.8),"Avonly":(0.7,1.5),"bothAv":(0,2.5),"bothbeta":(-2.0,0.9)}
+    #     },
+    # }
     for paramlist in modeldict.itervalues():
         myfig = _interpplot(initial_param = paramlist['dust_model'],
             late_time_av = paramlist['late_time_av'], 
@@ -443,64 +480,90 @@ def _make_proposal_figure():
         
         return myfig
 
-def _make_colorchange_table():
+def _make_colorchange_table(testrandom=False):
     contentlist=[]
-    
+    xlim = (1E1,4E3)
     modeldict={
         # 'smc':{
-            # 'dust_model':'smc',
-            # 'xrt_incl':False,
-            # 'late_time_av':-0.70, 
-            # 'late_time_beta':-1.21,
-            # 'Av_1init':-1.7,
-            # 'beta_1init':2.0,
-            # 'Av_2init':70,
-            # 'beta_2init':70
-            # },
+        #     'dust_model':'smc',
+        #     'xrt_incl':False,
+        #     'late_time_av':-0.66, 
+        #     'late_time_beta':-1.31,
+        #     'Av_1init':-1.7,
+        #     'beta_1init':2.0,
+        #     'Av_2init':70,
+        #     'beta_2init':70, 
+        #     # Fix the below for the actuall plotting neccesities
+        #     'sedvstimeylimdict':{"betaonly":(-1.8,-0.8),"Avonly":(0.7,1.5),"bothAv":(0,2.5),"bothbeta":(-2.0,0.9)}
+        #     }#,
         'smcx':{
             'dust_model':'smc',
             'xrt_incl':True,
-            'late_time_av':-0.85, 
-            'late_time_beta':-0.90,
-            'Av_1init':-1.7,
-            'beta_1init':2.0,
+            'late_time_av':-0.88, 
+            'late_time_beta':-0.89,
+            'Av_1init':-1.0,
+            'beta_1init':0.0,
             'Av_2init':70,
-            'beta_2init':70,
+            'beta_2init':200,
             'sedvstimeylimdict':{"betaonly":(-1.8,-0.8),"Avonly":(0.7,1.5),"bothAv":(0,2.5),"bothbeta":(-2.0,0.9)}
             },
+            
+        # 'dpgrbx':{
+        #      'dust_model':'DPgrb120119Axrt',
+        #      'xrt_incl':True,
+        #      'late_time_av':-1.0, 
+        #      'late_time_beta':-0.9,
+        #      'Av_1init':-1.5,
+        #      'beta_1init':1.0,
+        #      'Av_2init':70,
+        #      'beta_2init':70,
+        #      'sedvstimeylimdict':{"betaonly":(-1.8,-0.8),"Avonly":(0.7,1.5),"bothAv":(0,2.5),"bothbeta":(-2.0,0.9)}
+        #      }#,
         'lmc2':{
             'dust_model':'lmc2',
             'xrt_incl':True,
-            'late_time_av':-1.15, 
-            'late_time_beta':-0.94,
-            'Av_1init':-1.7,
-            'beta_1init':2.0,
+            'late_time_av':-1.17, 
+            'late_time_beta':-0.93,
+            'Av_1init':-0.7,
+            'beta_1init':0.0,
             'Av_2init':70,
-            'beta_2init':70,
+            'beta_2init':50,
             'sedvstimeylimdict':{"betaonly":(-1.7,-0.7),"Avonly":(0.9,1.8),"bothAv":(0,3),"bothbeta":(-3,0.9)}
             },
-        'FMfit':{
-            'dust_model':'FMfit',
-            'xrt_incl':False,
-            'late_time_av':-5.52, # NEED TO RECHECK THESE VALUES 
-            'late_time_beta':3.51, # NEED TO RECHECK THESE VALUES
-            'Av_1init':-1.7,
-            'beta_1init':2.0,
-            'Av_2init':70,
-            'beta_2init':70,
-            'sedvstimeylimdict':{"betaonly":(-2.0,-1.0),"Avonly":(0.8,1.5),"bothAv":(0,6.0),"bothbeta":(-2.5,4.5)}
-            },
+        # 'FMfit':{
+        #     'dust_model':'FMfit',
+        #     'xrt_incl':False,
+        #     'late_time_av':-0.12, # NEED TO RECHECK THESE VALUES 
+        #     'late_time_beta':-1.77, # NEED TO RECHECK THESE VALUES
+        #     'Av_1init':-1.7,
+        #     'beta_1init':2.0,
+        #     'Av_2init':70,
+        #     'beta_2init':70,
+        #     'sedvstimeylimdict':{"betaonly":(-2.0,-1.0),"Avonly":(0.8,1.5),"bothAv":(0,6.0),"bothbeta":(-2.5,4.5)}
+        #     },
+        #
+        # 'FMfit_Reichart_xrt':{
+        #     'dust_model':'FMfit_Reichart_xrt',
+        #     'xrt_incl':True,
+        #     'late_time_av':-0.94, #NEED TO RECHECK THESE VALUES
+        #     'late_time_beta':-0.90, #NEED TO RECHECK THESE VALUES
+        #     'Av_1init':-1.0,
+        #     'beta_1init':0.0,
+        #     'Av_2init':70,
+        #     'beta_2init':300,
+        #     'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.95,1.79),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
+        #     },
         'FMfit_xrt':{
-            'dust_model':'FMfit_xrt',
-            'xrt_incl':True,
-            'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
-            'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
-            'Av_1init':-1.7,
-            'beta_1init':2.0,
-            'Av_2init':70,
-            'beta_2init':70,
-            'sedvstimeylimdict':{"betaonly":(-1.9,-0.8),"Avonly":(0.9,2.0),"bothAv":(0,6),"bothbeta":(-2.5,4.5)}
-            }
+              'dust_model':'FMfit_xrt',
+              'xrt_incl':True,
+              'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
+              'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
+              'Av_1init':-1.0,
+              'beta_1init':0.0,
+              'Av_2init':70,
+              'beta_2init':300,
+              'sedvstimeylimdict':{"betaonly":(-1.9,-0.7),"Avonly":(0.9,2.0),"bothAv":(0,3),"bothbeta":(-3.0,0.5)}
+              }
         }
             
     for paramlist in modeldict.itervalues():
@@ -512,7 +575,11 @@ def _make_colorchange_table():
             Av_2init = paramlist['Av_2init'],
             beta_2init = paramlist['beta_2init'],
             sedvstimeylimdict=paramlist['sedvstimeylimdict'],
+            testrandom=testrandom,
+            xlim=xlim
             ) 
+        
+        if testrandom: return fitdict # cancel here if doing testing
         
         beta_1str = 'error'
         Av_1str = 'error'
@@ -546,7 +613,7 @@ def _make_colorchange_table():
 \\tabletypesize{\scriptsize}
 \\tablewidth{0pt}
 \\tablehead{
-\\colhead{Dust} & \\colhead{$A_{V,0}$} & \\colhead{$A_{V,1}$} & \\colhead{$\\tau_{A_V}$} & \\colhead{$\\beta_{0}$} & \\colhead{$\\beta_{1}$} & \\colhead{$\\tau_{\\beta}$} & \\colhead{$\chi^2$ $/$ dof} \\\\
+\\colhead{Dust} & \\colhead{$A_{V,0}$} & \\colhead{$\\Delta A_{V}$} & \\colhead{$\\tau_{A_V}$} & \\colhead{$\\beta_{0}$} & \\colhead{$\\Delta \\beta$} & \\colhead{$\\tau_{\\beta}$} & \\colhead{$\chi^2$ $/$ dof} \\\\
 \\colhead{Model}           & \\colhead{(mag)}    & \\colhead{(mag)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{} & \\colhead{(s)} & \\colhead{}}
 \\startdata
 
