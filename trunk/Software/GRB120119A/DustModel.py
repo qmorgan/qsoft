@@ -205,7 +205,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
     plotchi2=True,    
     retfig=True,
     time_thresh=5,
-    plot_every_model=False
+    plot_every_model=False,
+    fixxlim=None
     ):
     '''
     time_thresh: Number of seconds we can be off in time from the reference 
@@ -630,6 +631,24 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             c = DecayingExponentialbeta(t,beta0,beta1,beta2)
             ax.plot(t,c)
         
+        if fixxlim:
+            try:
+                ax1.set_xlim(fixxlim)
+            except:
+                pass
+            try:
+                ax2.set_xlim(fixxlim)
+            except:
+                pass
+            try:
+                ax3.set_xlim(fixxlim)
+            except:
+                pass
+            try:
+                ax.set_xlim(fixxlim)
+            except:
+                pass
+        
         fig.show()
         filepath = storepath + 'SEDtimesimulfit.png'
         fig.savefig(filepath)
@@ -644,7 +663,7 @@ def LoopThroughRandomInits(objblock=None,sedtimelist=None,fixparam='both',
     initial_param='smc',time_thresh=5,N=1000,
     Av_0init=0,beta_0init=0,
     Av_1init=-0.7,beta_1init=0.5,
-    Av_2init=50,beta_2init=70,):
+    Av_2init=50,beta_2init=70):
     '''Testing whether the initial conditions change the final fit value
     as found by leastsq, or whether it is robust against the choices. Loop 
     through N iterations and return the outdict for each.  The acceptable 
