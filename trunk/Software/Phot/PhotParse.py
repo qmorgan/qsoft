@@ -216,7 +216,7 @@ class ObjBlock:
 
         header='''
     \\begin{deluxetable}{llllllll}
-    \\tablecaption{Results of Color Change Fits}
+    \\tablecaption{Photometry}
     \\tabletypesize{\scriptsize}
     \\tablewidth{0pt}
     \\tablehead{
@@ -252,7 +252,7 @@ class ObjBlock:
             print "FAILED TO WRITE COLOR CHANGE TABLE"    
             
     def PlotLC(self,show=True,save=True,legend=True,residualscale=False,
-        xlimits=None,ylimits=None,figsize=(11.5,8)):
+        xlimits=None,ylimits=None,figsize=(13,8)):
         '''
         show: Plot to screen
         save: Save to disk
@@ -415,9 +415,12 @@ class ObjBlock:
                 newlabels.append(labels[indd])
                 newhandles.append(handles[indd])
             print newlabels
-            
+            leg = ax.legend()
+            from pylab import setp
+            setp(leg.get_texts(),fontsize=2)
+            setp(leg.get_title(),fontsize=2)
             ax.legend(newhandles,newlabels,loc=3,numpoints=1,frameon=False,ncol=len(sources))
-        
+
         if save:
             filepath = storepath + 'LC_' + self.name + '.png' 
             fig.savefig(filepath)
