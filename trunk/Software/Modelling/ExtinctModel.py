@@ -257,7 +257,8 @@ def avgmw(R_V = 3.1,c3 = 3.23,c4 = 0.41):
 ##############################################################################
 
         
-def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None,TieReichart=False):
+def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None,TieReichart=False,
+    forcenegbeta=False):
     
     '''
     spectral power law + extinction - return flux
@@ -312,8 +313,14 @@ def powerlawExtRetFlux(wave,paramlist,xrayflux=None,xraywave=None,TieReichart=Fa
     c4 = abs(c4)
     for param in paramlist:
         if param.name == 'c4': 
-            param.value= c4
-
+            param.value = c4
+    
+    if forcenegbeta:
+        beta = -1*abs(beta)
+        for param in paramlist:
+            if param.name == 'beta':
+                param.value = beta
+            
     
     extmodel=FM(Rv,c1,c2,c3,c4,gamma,x0)
     extmodel.EvalCurve(wave,Av/Rv)
@@ -761,7 +768,7 @@ def DefaultSEDFit(directory,initial_param='smc',Av_init=-0.62,beta_init=-1.45,
    
 def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             timestr='', paramstr='', plot=True,showfig=False,
-            xraydict={},TieReichart=False):
+            xraydict={},TieReichart=False,forcenegbeta=False):
     '''Fit an SED to a list of fluxes with a FM paramaterization.
     
     Required Inputs:
@@ -885,7 +892,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         xraywavez = None
     
     
-    def f(x): return powerlawExtRetFlux(x,fullparamlist,xrayflux,xraywavez,TieReichart=TieReichart)
+    def f(x): return powerlawExtRetFlux(x,fullparamlist,xrayflux,xraywavez,TieReichart=TieReichart,forcenegbeta=forcenegbeta)
     print str(len(galcorrectedfluxarr)) + ' len(galcorrectedfluxarr)'
     print str(len(galcorrectedfluxerrarr)) + ' len(galcorrectedfluxerrarr)'
     print str(len(waverestarr)) + ' len(waverestarr)'
@@ -1791,13 +1798,14 @@ def SEDFitTest3(export_dustmodel=False):
         # _write_results_to_file(outfile,fitdict)
 
 
-        fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+        fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-2.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
         paramstr='(%s)' % 'FM'
         fitdict['c4']['fixed']=True
         fitdict['c4']['init']= 0.43
         print 'FIXING C4 to Schady Values'
+        # Could attempt to force a negative beta with forcenegbeta
         fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
-            xraydict=xrd,TieReichart=TieReichart)
+            xraydict=xrd,TieReichart=TieReichart,forcenegbeta=False)
         outfile = dustfitpath+"120119Adustfit_FM"+xrttext+".txt"
         _write_results_to_file(outfile,fitdict)
     
