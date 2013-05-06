@@ -500,7 +500,7 @@ def _make_colorchange_table(testrandom=False):
         'smcx':{
             'dust_model':'smc',
             'xrt_incl':True,
-            'late_time_av':-0.87, 
+            'late_time_av':-0.88, 
             'late_time_beta':-0.89,
             'Av_1init':-1.0,
             'beta_1init':0.0,
@@ -523,7 +523,7 @@ def _make_colorchange_table(testrandom=False):
         'lmc2':{
             'dust_model':'lmc2',
             'xrt_incl':True,
-            'late_time_av':-1.14, 
+            'late_time_av':-1.16, 
             'late_time_beta':-0.92,
             'Av_1init':-0.8,
             'beta_1init':0.0,
@@ -557,7 +557,7 @@ def _make_colorchange_table(testrandom=False):
         'FMfit_xrt':{
               'dust_model':'FMfit_xrt',
               'xrt_incl':True,
-              'late_time_av':-1.08, #NEED TO RECHECK THESE VALUES
+              'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
               'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
               'Av_1init':-2.0,
               'beta_1init':-0.3,
