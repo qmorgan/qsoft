@@ -394,6 +394,7 @@ def _lightcurves():
     objblock_original.PlotLC(show=True,save=True,legend=True,residualscale=False,
         xlimits=(3e1,1e5),ylimits=(1e0,3e4))
     cmd = "mv " + storepath + 'LC_GRB120119A.png '+ figuresdir
+    objblock_original.WriteTable()
     os.system(cmd)
     
     objblock_xrt.PlotXRTlc(show=True,save=True,legend=True,
@@ -499,7 +500,7 @@ def _make_colorchange_table(testrandom=False):
         'smcx':{
             'dust_model':'smc',
             'xrt_incl':True,
-            'late_time_av':-0.88, 
+            'late_time_av':-0.87, 
             'late_time_beta':-0.89,
             'Av_1init':-1.0,
             'beta_1init':0.0,
@@ -522,12 +523,12 @@ def _make_colorchange_table(testrandom=False):
         'lmc2':{
             'dust_model':'lmc2',
             'xrt_incl':True,
-            'late_time_av':-1.17, 
-            'late_time_beta':-0.93,
-            'Av_1init':-0.7,
+            'late_time_av':-1.14, 
+            'late_time_beta':-0.92,
+            'Av_1init':-0.8,
             'beta_1init':0.0,
             'Av_2init':70,
-            'beta_2init':50,
+            'beta_2init':100,
             'sedvstimeylimdict':{"betaonly":(-1.7,-0.7),"Avonly":(0.9,1.8),"bothAv":(0,3),"bothbeta":(-3,0.9)}
             },
         # 'FMfit':{
@@ -556,12 +557,12 @@ def _make_colorchange_table(testrandom=False):
         'FMfit_xrt':{
               'dust_model':'FMfit_xrt',
               'xrt_incl':True,
-              'late_time_av':-1.09, #NEED TO RECHECK THESE VALUES
+              'late_time_av':-1.08, #NEED TO RECHECK THESE VALUES
               'late_time_beta':-0.92, #NEED TO RECHECK THESE VALUES
-              'Av_1init':-1.0,
-              'beta_1init':0.0,
+              'Av_1init':-2.0,
+              'beta_1init':-0.3,
               'Av_2init':70,
-              'beta_2init':300,
+              'beta_2init':500,
               'sedvstimeylimdict':{"betaonly":(-1.9,-0.7),"Avonly":(0.9,2.0),"bothAv":(0,3),"bothbeta":(-3.0,0.5)}
               }
         }
@@ -603,7 +604,7 @@ def _make_colorchange_table(testrandom=False):
         Av_0str = str(paramlist['late_time_av']) + ' (fixed)'
         beta_0str = str(paramlist['late_time_beta']) + ' (fixed)'
         
-        newstring = '%s & %s & $%s$ & $%s$ & %s & $%s$ & $%s$ & %.1f / %i \\\\' % (paramlist['dust_model'],Av_0str,Av_1str.replace("+/-","\pm"),tauAvstr.replace("+/-","\pm"),beta_0str,beta_1str.replace("+/-","\pm"),taubetastr.replace("+/-","\pm"),fitdict['chi2'],fitdict['dof'])
+        newstring = '%s & %s & $%s$ & $%s$ & %s & $%s$ & $%s$ & %.1f / %i \\\\' % (paramlist['dust_model'].upper(),Av_0str,Av_1str.replace("+/-","\pm"),tauAvstr.replace("+/-","\pm"),beta_0str,beta_1str.replace("+/-","\pm"),taubetastr.replace("+/-","\pm"),fitdict['chi2'],fitdict['dof'])
         contentlist.append(newstring)
     
 
@@ -621,7 +622,7 @@ def _make_colorchange_table(testrandom=False):
 
     footer= '''
 \\enddata
-\\tablecomments{Results of color change model fits to the interpolated early-time SEDs of GRB~110119A.}
+\\tablecomments{Results of color-change model fits to the interpolated early-time SEDs of GRB~110119A.}
 \\label{tab:ccfits}
 \\end{deluxetable}
     '''
@@ -766,7 +767,7 @@ def _make_SED_table(rerun=True):
                     outstr=outstr.replace('Av: ','Av: -') #replacing in case the fit actually shows the best fit Av IS negative                    
                 Avstr = outstr.lstrip('Av:')    
             if "chi2 / dof" in outstr:
-                chi2str = outstr.replace("# chi2 / dof = ","")
+                chi2str = outstr.replace("chi2 / dof = ","")
         
         fitname=fitfile.split('.txt')[0].split('_')
         # search for the string _xrt in the filename
@@ -799,7 +800,7 @@ def _make_SED_table(rerun=True):
 
     footer= '''
 \\enddata
-\\tablecomments{Results of standard dust model fits to the interpolated SED of GRB~110119A (\\ref{sec:latesed}.}
+\\tablecomments{Results of standard dust-model fits to the interpolated SED of GRB~110119A (\\S\\ref{sec:latesed}).}
 \\label{tab:extfits}
 \\end{deluxetable}
     '''
