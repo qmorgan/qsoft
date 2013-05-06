@@ -228,7 +228,7 @@ class ObjBlock:
 
         footer= '''
     \\enddata
-    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Corrected for extinction? %f }
+    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the Expected Galactic extinction of $E(B-V) = $%f }
     \\label{tab:%sphot}
     \\end{deluxetable}
         ''' % (self.name, self.galebv, self.name)
@@ -247,9 +247,9 @@ class ObjBlock:
             f.close()
 
             print ''
-            print "Wrote colorchange table to tables directory"
+            print "Wrote photometry table to storepath"
         except:
-            print "FAILED TO WRITE COLOR CHANGE TABLE"    
+            print "FAILED TO WRITE PHOTOMETRY TABLE"    
             
     def PlotLC(self,show=True,save=True,legend=True,residualscale=False,
         xlimits=None,ylimits=None,figsize=(13,8)):
@@ -363,12 +363,34 @@ class ObjBlock:
         ax2.set_ylim(ylimmag)
         
         # Label the axes
-        ax.set_ylabel(r'$F_\nu$ (uJy)',size=16)
+        ax.set_ylabel(r'$F_\nu$ (uJy)', size=20)
         zsubscript=str(self.redshift)
         topxlabel = r'$t_{z=%s}$ (s)'  % zsubscript
-        ax.set_xlabel(r'$t$ (s)',size=16)
-        ax2.set_ylabel('AB Mag',size=16)
-        ax3.set_xlabel(topxlabel,size=16)
+        ax.set_xlabel(r'$t$ (s)', size=20)
+        ax2.set_ylabel('AB Mag',size=20)
+        ax3.set_xlabel(topxlabel,size=20)
+        
+        
+        for label in ax.xaxis.get_ticklabels():
+            # label is a Text instance
+            # label.set_color('red')
+            # label.set_rotation(45)
+            label.set_fontsize(20)
+        for label in ax.yaxis.get_ticklabels():
+            # label is a Text instance
+            # label.set_color('red')
+            # label.set_rotation(45)
+            label.set_fontsize(20)
+        for label in ax2.yaxis.get_ticklabels():
+            # label is a Text instance
+            # label.set_color('red')
+            # label.set_rotation(45)
+            label.set_fontsize(20)        
+        for label in ax3.xaxis.get_ticklabels():
+            # label is a Text instance
+            # label.set_color('red')
+            # label.set_rotation(45)
+            label.set_fontsize(20)
         
         acceptlabels=['K','H','J',"z'","I","i'","R","r'","V","g'","B"]
         
