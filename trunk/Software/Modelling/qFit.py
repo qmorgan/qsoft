@@ -329,7 +329,10 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_de
     ax.axhline(y=3*unc_1,linestyle='dashed',color='orange')
     ax.axhline(y=-3*unc_1,linestyle='dashed',color='orange')
     
-    
+    if not plot_delta_values: # get rid of the tickmarks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
     # 
     if values != None:
         xlim = ax.get_xlim() + values[1]
@@ -355,6 +358,9 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_de
         yticks=ax3.get_yticks()
         ax3.set_yticklabels(yticks*-1)
     ### END HACK ###
+    if not plot_delta_values: # get rid of the tickmarks
+        ax.set_xticks([])
+        ax.set_yticks([])
     
     path = storepath + 'marginalization.png'
     fig.savefig(path)
