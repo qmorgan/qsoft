@@ -652,6 +652,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
         fig.show()
         filepath = storepath + 'SEDtimesimulfit.png'
         fig.savefig(filepath)
+        filepath = storepath + 'SEDtimesimulfit.pdf'
+        fig.savefig(filepath)
     if retfig and fig != None:
         return fig
     else:

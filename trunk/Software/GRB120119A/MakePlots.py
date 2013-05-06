@@ -292,6 +292,8 @@ def _interpplot(initial_param = 'FMfit_xrt',
      
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedAv_' + initial_param + '.png'
     os.system(cmd)
+    cmd = "mv " + storepath + 'SEDvsTime.pdf '+ figuresdir + 'SEDvsTime_fixedAv_' + initial_param + '.pdf'
+    os.system(cmd)
     print 'New SEDvstime fixed Av plots moved to paper directory.'
     
     # Make g for fixed beta
@@ -302,6 +304,8 @@ def _interpplot(initial_param = 'FMfit_xrt',
         time_thresh=5,fixylimAv=sedvstimeylimdict['Avonly'], fixxlim=xlim)
      
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_fixedbeta_' + initial_param + '.png'
+    os.system(cmd)
+    cmd = "mv " + storepath + 'SEDvsTime.pdf '+ figuresdir + 'SEDvsTime_fixedbeta_' + initial_param + '.pdf'
     os.system(cmd)
     print 'New SEDvstime fixed Av plots moved to paper directory.'
     
@@ -314,6 +318,8 @@ def _interpplot(initial_param = 'FMfit_xrt',
         time_thresh=5,fixylimbeta=sedvstimeylimdict['bothbeta'],fixylimAv=sedvstimeylimdict['bothAv'], fixxlim=xlim)
         
     cmd = "mv " + storepath + 'SEDvsTime.png '+ figuresdir + 'SEDvsTime_freeAv_' + initial_param + '.png'
+    os.system(cmd)
+    cmd = "mv " + storepath + 'SEDvsTime.pdf '+ figuresdir + 'SEDvsTime_freeAv_' + initial_param + '.pdf'
     os.system(cmd)
     print 'New SEDvstime plots moved to paper directory.'
     
@@ -354,11 +360,15 @@ def _interpplot(initial_param = 'FMfit_xrt',
         
     cmd = "mv " + storepath + 'SEDtimesimulfit.png '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '.png'
     os.system(cmd)
+    cmd = "mv " + storepath + 'SEDtimesimulfit.pdf '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '.pdf'
+    os.system(cmd)
     
     
     # Marginialization plot 
     qFit.plot_marg_from_fitdict(fitdict,('Av_1','beta_1'))
     cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '_marg.png'
+    os.system(cmd)
+    cmd = "mv " + storepath + 'marginalization.pdf '+ figuresdir + 'SEDtimesimulfit_' + initial_param + '_marg.pdf'
     os.system(cmd)
     print 'New SEDsimulfit plots moved to paper directory.'
     return fitdict
@@ -378,7 +388,12 @@ def _lateSED(initial_param = 'smc',incl_xray=False):
     
     cmd = "mv " + storepath + 'SED' + addl + '.png '+ figuresdir + 'lateSED_' + initial_param + addl_str +  '.png'
     os.system(cmd)
+    cmd = "mv " + storepath + 'SED' + addl + '.pdf '+ figuresdir + 'lateSED_' + initial_param + addl_str +  '.pdf'
+    os.system(cmd)
+    
     cmd = "mv " + storepath + 'marginalization.png '+ figuresdir + 'SEDmarg_' + initial_param + addl_str + '.png'
+    os.system(cmd)
+    cmd = "mv " + storepath + 'marginalization.pdf '+ figuresdir + 'SEDmarg_' + initial_param + addl_str + '.pdf'
     os.system(cmd)
     print 'New SED plots moved to paper directory.'
 
@@ -394,14 +409,18 @@ def _lightcurves():
     objblock_original.PlotLC(show=True,save=True,legend=True,residualscale=False,
         xlimits=(3e1,1e5),ylimits=(1e0,3e4))
     cmd = "mv " + storepath + 'LC_GRB120119A.png '+ figuresdir
-    objblock_original.WriteTable()
     os.system(cmd)
+    cmd = "mv " + storepath + 'LC_GRB120119A.pdf '+ figuresdir
+    os.system(cmd)
+    objblock_original.WriteTable()
     
     objblock_xrt.PlotXRTlc(show=True,save=True,legend=True,
         obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K'],
         xlimits=(1e0,1e6),ylimits=None)
 
     cmd = "mv " + storepath + 'LCxrt_GRB120119A.png '+ figuresdir
+    os.system(cmd)
+    cmd = "mv " + storepath + 'LCxrt_GRB120119A.pdf '+ figuresdir
     os.system(cmd)
     print 'New lightcurve plots moved to paper directory.'
 

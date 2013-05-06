@@ -181,7 +181,9 @@ class ObjBlock:
         
         ax.legend(loc=3,numpoints=1,frameon=False)
         if save:
-            filepath = storepath + 'LCxrt_' + self.name + '.png' 
+            filepath = storepath + 'LCxrt_' + self.name.replace('\,','') + '.png' 
+            fig.savefig(filepath)
+            filepath = storepath + 'LCxrt_' + self.name.replace('\,','') + '.pdf' 
             fig.savefig(filepath)
         if show:        
             fig.show()
@@ -222,7 +224,7 @@ class ObjBlock:
     \\tabletypesize{\scriptsize}
     \\tablewidth{0pt}
     \\tablehead{
-    \\colhead{Instrument} & \\colhead{Filter} & \\colhead{$t_{\\rm mid}$} & \\colhead{$exp$} & \\colhead{Mag} & \\colhead{MagErr}  \\\\
+    \\colhead{Instrument} & \\colhead{Filter} & \\colhead{$t_{\\rm mid}$} & \\colhead{Exp} & \\colhead{Mag} & \\colhead{MagErr}  \\\\
     \\colhead{}           & \\colhead{}    & \\colhead{(s)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{$1\\sigma$ }}
     \\startdata
 
@@ -230,7 +232,7 @@ class ObjBlock:
 
         footer= '''
     \\enddata
-    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the Expected Galactic extinction of $E(B-V) = %.3f$ }
+    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the expected Galactic extinction of $E(B-V) = %.3f$ }
     \\label{tab:%sphot}
     \\end{deluxetable}
         ''' % (self.name, self.galebv, self.name)
@@ -448,7 +450,9 @@ class ObjBlock:
             ax.legend(newhandles,newlabels,loc=3,numpoints=1,frameon=False,ncol=len(sources))
 
         if save:
-            filepath = storepath + 'LC_' + self.name + '.png' 
+            filepath = storepath + 'LC_' + self.name.replace('\,','') + '.png' 
+            fig.savefig(filepath)
+            filepath = storepath + 'LC_' + self.name.replace('\,','') + '.pdf' 
             fig.savefig(filepath)
         if show:        
             fig.show()
@@ -765,6 +769,8 @@ def SmartInterpolation(obsblock,desired_time_array,errestimate='spline',plot=Fal
         else:
             zoomstr = ''
         filepath = storepath + 'spline' + obsblock.source + '_' + obsblock.filtstr + zoomstr + '.png'
+        fig.savefig(filepath)
+        filepath = storepath + 'spline' + obsblock.source + '_' + obsblock.filtstr + zoomstr + '.pdf'
         fig.savefig(filepath)
         
     print insterrestimate       #add uncertainties in quadrature

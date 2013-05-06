@@ -1049,8 +1049,11 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
 
         
         filepath = storepath + 'SED' + timestr + '.png'
+        filepath_pdf = storepath + 'SED' + timestr + '.pdf'
         filepath2 = storepath + 'SEDxray' + timestr + '.png'
+        filepath2_pdf = storepath + 'SEDxray' + timestr + '.png'
         fig2.savefig(filepath)
+        fig2.savefig(filepath_pdf)
         
         # if we have xray flux value, make a second plot incuding this 
         if xrayflux:
@@ -1102,7 +1105,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             ax5.set_xlabel(r'$\lambda_{\mathrm{eff,rest}}$ ($\AA$)',size=16)
             ax5.legend()
             fig3.savefig(filepath2)
-
+            fig3.savefig(filepath2_pdf)
             
     return outdict
     
@@ -1320,6 +1323,8 @@ def SEDvsTime(objblock, initial_param='smc', plotsed=True, fitlist=['Av','beta']
             return(fig)
         fig.show()
         filepath = storepath + 'SEDvsTime.png'
+        fig.savefig(filepath)
+        filepath = storepath + 'SEDvsTime.pdf'
         fig.savefig(filepath)
     
     if retchi2:

@@ -364,6 +364,8 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_de
     
     path = storepath + 'marginalization.png'
     fig.savefig(path)
+    path = storepath + 'marginalization.pdf'
+    fig.savefig(path)
     
     return (dx,dy,delta_chi_sq,levels)
     
