@@ -194,6 +194,8 @@ class ObjBlock:
     def WriteTable(self):
         contentlist = []
         
+        
+        
         for ob in self.obsdict.itervalues():
             assert len(ob.tmidlist) == len(ob.explist)
             assert len(ob.tmidlist) == len(ob.maglist)
@@ -228,12 +230,14 @@ class ObjBlock:
 
         footer= '''
     \\enddata
-    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the Expected Galactic extinction of $E(B-V) = $%f }
+    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the Expected Galactic extinction of $E(B-V) = %.3f$ }
     \\label{tab:%sphot}
     \\end{deluxetable}
         ''' % (self.name, self.galebv, self.name)
 
-
+        # do really naiive sorting of the list
+        contentlist.sort()
+    
         content = ''
         for contentline in contentlist:
             content += ''' %s
