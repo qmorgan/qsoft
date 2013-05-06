@@ -867,10 +867,13 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
     # extract values from the filter list
     wavearr=[]
     wavenamearr=[]
+    fwhmarr=[]
     for filt in filtlist:
         wavearr.append(filt.wave_A)
         wavenamearr.append(filt.name)
+        fwhmarr.append(filt.fwhm)
     wavearr=np.array(wavearr)
+    fwhmarr=np.array(fwhmarr)*1e7
     
     # correct for galactic extinction
     if galebv == 0.0:
@@ -973,7 +976,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
         
         
         #underplot the model
-        ax.plot(w,c) 
+        ax.plot(w,c,linestyle='solid',linewidth=1,color='#999999') 
 
     
         # i cant seem to get a scatter plot to appear above a line plot. HMM. 
@@ -989,7 +992,9 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             galcorrectedfluxarr=galcorrectedfluxarr[:-1] # get rid of the xray point
             galcorrectedfluxerrarr=galcorrectedfluxerrarr[:-1]
             
-        ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.')
+        ax.errorbar(waverestarr,galcorrectedfluxarr,yerr=galcorrectedfluxerrarr,fmt='.',color='black')
+        ax.errorbar(waverestarr,galcorrectedfluxarr,xerr=fwhmarr,fmt=None,ecolor='black',capsize=0)
+
         # annotate data with the filter names
         for name in wavenamearr:
             ind = wavenamearr.index(name)
@@ -1052,7 +1057,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             fig3=plt.figure()
             ax5=fig3.add_axes([0.1,0.1,0.8,0.8])
             
-            ax5.plot(w,c,label='Best Fit XRT+OIR')
+            ax5.plot(w,c,label='Best Fit XRT+OIR',color='#999999')
             constant = 'unknown'
             for param in newparamlist:
                 if param.name == 'Av': param.value=0.0
@@ -1063,7 +1068,7 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
             w2 = 10**(logwaves)
             
             uncorrectedbeta = powerlawExtRetFlux(w2,newparamlist)
-            ax5.plot(w2,uncorrectedbeta,linestyle='--',label=betastring)
+            ax5.plot(w2,uncorrectedbeta,linestyle=':',label=betastring,color='black')
             
             # create array of waves
             logwaves = np.linspace(0,5,100)
@@ -1080,12 +1085,13 @@ def SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=0.0,galebv=0.0,
                 xbetaposarr = retBeta(waves,xraywavez,xrayflux,xraydict['xbetapos'])
                 
                 # plot the grey cone for the uncertainties
-                ax5.fill_between(waves,xbetanegarr,xbetaposarr,color='#CCCCCC')
+                ax5.fill_between(waves,xbetanegarr,xbetaposarr,color='#EEEEEE')
                 # plot the median value of the xrt alone beta
                 ax5.plot(waves,xbetaarr,color='black',ls='--',label='Best Fit XRT only')
 
-            
-            ax5.errorbar(newwavearr,newfluxarr,yerr=newfluxerrarr,fmt='.')
+            fwhmarr = np.append(fwhmarr,0) # add a zero for the fwhm of the xrt point... FIX
+            ax5.errorbar(newwavearr,newfluxarr,yerr=newfluxerrarr,fmt='.',color='black')
+            ax5.errorbar(newwavearr,newfluxarr,xerr=fwhmarr,fmt=None,ecolor='black',capsize=0)
             
             ax5.loglog()
             ax5.set_ylim(4.0,1.0e4)
@@ -1690,7 +1696,7 @@ def _write_results_to_file(outfile,outdict):
 def SEDFitTest3(export_dustmodel=False):
     '''another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
-    galebv=0.108
+    galebv=0.093
     
     # xrayflux=8.34
     xrayflux = 8.713 # as of fixing the xrt fit in november to broken powerlaw?
@@ -1738,12 +1744,17 @@ def SEDFitTest3(export_dustmodel=False):
     fluxlist=[40.6374,91.1217,158.970,190.914,339.227,443.997,703.512,1305.11,2482.68,4237.75]
     fluxerrlist=[2.02984,23.5588,8.67902,10.3434,44.7887,33.1361,91.4319,47.5878,83.3885,166.428]
     
-    # ok apparently that was not a bug. Reverting.. slight raise in ir calibration uncertainty to 0.03 mag
+    # ok apparently that was not a bug. Reverting.. slight raise in ir calibration uncertainty to 0.03 mag, getting rid of z band for now
     filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.J,qObs.H,qObs.Ks]
     
     fluxlist=[44.9600,109.732,160.529,193.570,341.548,455.652,1357.65,2522.23,4308.75]
     fluxerrlist=[4.53424,4.95319,6.67211,8.20993,17.9301,19.2250,45.0868,80.7603,144.723]
 
+    # After changing z and i band liverpool magnitudes to my photometry- 2/23/2013
+    filtlist=[qObs.B,qObs.V,qObs.r,qObs.Rc,qObs.i,qObs.Ic,qObs.z,qObs.J,qObs.H,qObs.Ks]
+    fluxlist= [44.9780, 109.867, 160.601, 193.687, 340.564, 456.075, 653.959, 1358.63, 2522.66, 4312.07]
+    fluxerrlist=[2.53525, 5.09852, 6.68382, 8.20500, 15.9500, 19.2026, 26.2525, 44.9697, 80.8918, 144.546]
+    
     
     fluxarr=np.array(fluxlist)
     fluxerrarr=np.array(fluxerrlist)
@@ -1758,7 +1769,6 @@ def SEDFitTest3(export_dustmodel=False):
             xrttext = ''
         else:
             raise Exception("should only have two items in xraydictlist")
-        count +=1
         
         TieReichart = False    
     
@@ -1798,8 +1808,10 @@ def SEDFitTest3(export_dustmodel=False):
         # _write_results_to_file(outfile,fitdict)
 
 
-        fitdict=_getfitdict('mw',Av_init=-0.8,beta_init=-2.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+        fitdict=_getfitdict('smc',Av_init=-1.0,beta_init=-2.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
         paramstr='(%s)' % 'FM'
+        if count == 0:
+            paramstr = paramstr.rstrip(')') + 'X)' 
         fitdict['c4']['fixed']=True
         fitdict['c4']['init']= 0.43
         print 'FIXING C4 to Schady Values'
@@ -1816,7 +1828,9 @@ def SEDFitTest3(export_dustmodel=False):
     
         TieReichart = True
         fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','c2','c3','c4'])
-        paramstr='(%s)' % 'FM - Reichart'
+        paramstr='(%s)' % 'FMR'
+        if count == 0:
+            paramstr = paramstr.rstrip(')') + 'X)' 
         fitdict['c4']['fixed']=True
         fitdict['c4']['init']= 0.43
         print 'FIXING C4 to Schady Values'
@@ -1829,7 +1843,8 @@ def SEDFitTest3(export_dustmodel=False):
             dmoutpath=loadpath+"DustModels/FMfit_Reichart"+xrttext+".dust"
             dminpath=storepath+"SEDFit.dust" # this is output by SEDfit every time. Here we just transfer.
             shutil.copy(dminpath,dmoutpath)
-
+        
+        count +=1
 
 
     # if TieReichart == True:
