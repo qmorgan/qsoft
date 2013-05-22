@@ -582,7 +582,7 @@ def _make_colorchange_table(testrandom=False):
               'beta_1init':-0.3,
               'Av_2init':70,
               'beta_2init':500,
-              'sedvstimeylimdict':{"betaonly":(-1.9,-0.7),"Avonly":(0.9,2.0),"bothAv":(0,3),"bothbeta":(-3.0,0.5)}
+              'sedvstimeylimdict':{"betaonly":(-1.9,-0.7),"Avonly":(0.9,2.0),"bothAv":(-0.5,3),"bothbeta":(-3.0,0.5)}
               }
         }
             

@@ -574,6 +574,8 @@ def SEDtimeSimulFit120119A(objblock=None,initial_param='smc',fixparam='Av', sedt
             
             ax1.set_ylim(old_ax1lim)
             ax2.set_ylim(old_ax2lim)
+            ax1.set_ylim((1.0,1.65))
+            ax2.set_ylim((-1.28,-0.90))
             
             ax1.set_ylabel(r'$A_V$',size=16)
             ax2.set_ylabel(r'$\beta$',size=16)

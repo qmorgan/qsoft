@@ -2421,6 +2421,7 @@ def textoutput(photdict,utburst,filt=None, day=False):
             valu = float(mosaics['targ_mag'][0])
             verr = float(mosaics['targ_mag'][1])
             
+            # IS IT NECESSARY TO REPEAT THESE EACH TIME? JUST GRAB FILT DIRECTLY
             if mosaics['filter'] == 'h':                
                 mag = valu
                 magerr = verr
