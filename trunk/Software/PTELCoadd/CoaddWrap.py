@@ -44,6 +44,7 @@ import numpy as np
 
 pypath = "python"
 mosaic_maker_path = '$Q_DIR/trunk/Software/PTELCoadd/mosaic_maker.py'
+anet_path = '$Q_DIR/trunk/Software/PTELCoadd/anet.py'
 swarp_bin = "swarp"
 sethead_bin = "sethead"
 
@@ -1019,14 +1020,23 @@ def prep(obsid, date='', path=None, exclude=False, single=False):
     (eg:['06h10m32s', '06h11m08s', '06h11m44s']).  
     '''
     makername = '/mosaic_maker.py'
+    anetname = '/anet.py'
     
-    # find path:
+    # find path and copy mosaic maker:
     if not path:
         path = './'
+    # now copy anet
+    outputdir = os.path.abspath(path) + anetname
+    if not os.path.exists(outputdir):
+        copyit = "cp %s %s" % (anet_path, outputdir)
+        os.system(copyit)
+    # now copy mosaic_maker
     outputdir = os.path.abspath(path) + makername
     if not os.path.exists(outputdir):
         copyit = "cp %s %s" % (mosaic_maker_path, outputdir)
         os.system(copyit)
+
+    
     # first, remove old text files
     rmstr = 'rm ?_long_triplestacks_full.txt'
     os.system(rmstr)
@@ -1153,6 +1163,11 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
         numiter = i_stop - i_start
         if not isinstance(i_start,int) or not isinstance(i_stop,int):
             sys.exist('coadd_range values need to be of type integer')
+        if i_stop > len(j_list_full):
+            print "Warning! the coadd range end is larger than the number of things to coadd!"
+            print "Perhaps some files have been excluded (due to bad alignment?)"
+        if i_start > len(j_list_full):
+            print "WARNING: the coadd range START is larger than the number of things to coadd!"
         j_list = j_list_full[i_start:i_stop]
         h_list = h_list_full[i_start:i_stop]
         k_list = k_list_full[i_start:i_stop]
@@ -1167,7 +1182,14 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
     j_file_new = file(j_filename_new,"w")
     h_file_new = file(h_filename_new,"w")
     k_file_new = file(k_filename_new,"w")
-
+    
+    if not j_list:
+        print "NOTHING TO COADD! Wrong directory? coadd_range out of range?"
+        print i_start
+        print i_stop
+        print len(j_list_full)
+        print j_list_full[i_start:i_stop]
+        
     for item in j_list:
         print item
         if kk == 0:
@@ -1241,7 +1263,13 @@ def WCS_Transplant(original_image, target_image):
 
     hdulist = pyfits.open(original_image)
     header = hdulist[0].header
-    wcs_info = {"RADECSYS":header["RADECSYS"],"CRVAL1":header["CRVAL1"], "CRPIX1":header["CRPIX1"], "CD1_1":header["CD1_1"], "CD1_2":header["CD1_2"], "CYTPE1":header["CTYPE1"],"CTYPE2":header["CTYPE2"], "CUNIT2":header["CUNIT2"], "CRVAL2":header["CRVAL2"], "CRPIX2":header["CRPIX2"], "CD2_1":header["CD2_1"], "CD2_2":header["CD2_2"]} 
+    wcs_info = {"CRVAL1":header["CRVAL1"], "CRPIX1":header["CRPIX1"], "CD1_1":header["CD1_1"], "CD1_2":header["CD1_2"], "CTYPE1":header["CTYPE1"],"CTYPE2":header["CTYPE2"], "CUNIT2":header["CUNIT2"], "CRVAL2":header["CRVAL2"], "CRPIX2":header["CRPIX2"], "CD2_1":header["CD2_1"], "CD2_2":header["CD2_2"]} 
+    try:
+        key={"RADECSYS":header["RADECSYS"]}
+        wcs_info.update(key)
+    except:
+        key={"RADECSYS":'ICRS'}
+        wcs_info.update(key)
     try:
         key={"WAT1_001":header["WAT1_001"]}
         wcs_info.update(key)
@@ -1294,7 +1322,7 @@ def WCS_Transplant(original_image, target_image):
         pass
     hdulist.close()    
 
-    print 'Transfering WCS info:'
+    print 'Transfering WCS info from %s to %s: ' % (original_image, target_image)
     pprint.pprint(wcs_info)
    
     hdulist_target = pyfits.open(target_image,mode='update')
@@ -1309,9 +1337,9 @@ def WCS_Transplant_All(ref_band='j', no_h=False):
     # globbing, on nom nom
     import glob
     if not no_h:
-        h_glob = glob.glob('h_long_triplestack*.fits')
-    j_glob = glob.glob('j_long_triplestack*.fits')
-    k_glob = glob.glob('k_long_triplestack*.fits')
+        h_glob = glob.glob('h_long_*.fits')
+    j_glob = glob.glob('j_long_*.fits')
+    k_glob = glob.glob('k_long_*.fits')
 
     if ref_band == 'j':
         index_list = xrange(len(j_glob))
