@@ -1254,13 +1254,14 @@ def coadd(obsid, path=None, max_sum=None,dowcs=False,coadd_range=None, single=Fa
     # Return an array of the new files created
     return mosaic_list
 
-def WCS_Transplant(original_image, target_image):
+def WCS_Transplant(original_image, target_image, input_img_type=None, target_img_type=None):
     """Transplant the WCS information from one image onto another.
     Useful for when one filter has the correct WCS info but the others do not.
     """
-
+    
     import pprint
-
+    
+    
     hdulist = pyfits.open(original_image)
     header = hdulist[0].header
     wcs_info = {"CRVAL1":header["CRVAL1"], "CRPIX1":header["CRPIX1"], "CD1_1":header["CD1_1"], "CD1_2":header["CD1_2"], "CTYPE1":header["CTYPE1"],"CTYPE2":header["CTYPE2"], "CUNIT2":header["CUNIT2"], "CRVAL2":header["CRVAL2"], "CRPIX2":header["CRPIX2"], "CD2_1":header["CD2_1"], "CD2_2":header["CD2_2"]} 
@@ -1324,6 +1325,21 @@ def WCS_Transplant(original_image, target_image):
 
     print 'Transfering WCS info from %s to %s: ' % (original_image, target_image)
     pprint.pprint(wcs_info)
+    
+    if input_img_type != target_img_type:
+        if input_img_type != 'j':
+            print "We only support transferring from PAIRITEL j to other PAIRITEL images."
+            print "Doing a straight-up transfer of the WCS with no tweaking."
+        else:
+            if target_img_type == 'h':
+                wcs_info['CRPIX1'] -= 2.492148
+                wcs_info['CRPIX2'] -= 0.0969426
+            elif target_img_type == 'k':
+                wcs_info['CRPIX1'] -= 0.5982118
+                wcs_info['CRPIX2'] += 6.07977
+                wcs_info['CD1_2'] = 3.87797365654E-06
+                wcs_info['CD2_1'] = 4.22330716354E-06
+   
    
     hdulist_target = pyfits.open(target_image,mode='update')
     header_target = hdulist_target[0].header
@@ -1345,18 +1361,18 @@ def WCS_Transplant_All(ref_band='j', no_h=False):
         index_list = xrange(len(j_glob))
         for image_number in index_list:
             if not no_h:
-                WCS_Transplant(j_glob[image_number], h_glob[image_number])
-            WCS_Transplant(j_glob[image_number], k_glob[image_number])
+                WCS_Transplant(j_glob[image_number], h_glob[image_number],input_img_type='j', target_img_type='h')
+            WCS_Transplant(j_glob[image_number], k_glob[image_number],input_img_type='j', target_img_type='k')
     elif ref_band == 'h':
         index_list = xrange(len(h_glob))
         for image_number in index_list:
-            WCS_Transplant(h_glob[image_number], j_glob[image_number])
-            WCS_Transplant(h_glob[image_number], k_glob[image_number])
+            WCS_Transplant(h_glob[image_number], j_glob[image_number],input_img_type='h', target_img_type='j')
+            WCS_Transplant(h_glob[image_number], k_glob[image_number],input_img_type='h', target_img_type='k')
     elif ref_band == 'k':
         index_list = xrange(len(k_glob))
         for image_number in index_list:
-            WCS_Transplant(k_glob[image_number], j_glob[image_number])
+            WCS_Transplant(k_glob[image_number], j_glob[image_number],input_img_type='k', target_img_type='j')
             if not no_h:
-                WCS_Transplant(k_glob[image_number], h_glob[image_number])
+                WCS_Transplant(k_glob[image_number], h_glob[image_number],input_img_type='k', target_img_type='h')
     else:    
         raise ValueError('ref_band needs to be either h, j, or k')
