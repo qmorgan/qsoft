@@ -180,12 +180,26 @@ def grab_nat_web_data(grbdict, filename='/bat/zprob.txt', clobber=False):
                 response = f = open(fullout,'r')
                 html = f.readlines()            
             except:
-                  print 'Cannot load %s ' % (fullout)
+                  print 'Cannot load %s. File does not exist. ' % (fullout)
                   continue
+            #error checking to see if the file is formatted correctly
+            if len(html) < 103:
+                print "%s malformed. Too few lines."
+                continue
+            elif len(html) < 10:
+                print "%s malformed. Empty?"
+                continue
+            elif len(html) > 103:
+                print "%s malformed. Too many lines."
+                continue  
             z_pred_arr = []
             prob_arr = []
             ind = 0 # Grab the index to mark where redshifts are for summing probs
             for line in html:
+                try:
+                    int(line[0])
+                except:
+                    continue #checking if line is malformed
                 if line[0] == '#':
                     continue
                 z_prob = line.rstrip('\n').split(' ')

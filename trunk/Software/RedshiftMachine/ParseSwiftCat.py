@@ -405,6 +405,10 @@ def parseswiftcat(swiftcat=loadpath+'grb_table_current.txt'):
                 if not grbdict[entry].has_key('z'):
                     z_split_split = z_ent.split(' ')
                     for z_ent_ent in z_split_split:
+                        if z_ent_ent == '':
+                            # entry has no length; continue
+                            print 'z_ent_ent has no length; continuing'
+                            continue
                         iii = 0
                         if z_ent_ent[0] == 'Z' or z_ent_ent[0] == 'z':
                             iii = 1
