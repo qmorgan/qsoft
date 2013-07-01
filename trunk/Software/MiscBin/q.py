@@ -566,3 +566,23 @@ def AllSame(items,printlist=False):
     if printlist:
         print items
     return all(x == items[0] for x in items)
+
+def Chauvenet(sigma,N,cutoff=0.5):
+    '''
+    Chauvenets Criterion states that you should discard a data point if you 
+    expect less than half an event to be farther from the mean than the 
+    suspect point.  
+    
+    This function requires that the data follow the Gaussian distribution.
+    
+    For example, a measurement 4 sigma away from the mean of all datapoints,
+    there is a 0.006 percent probability of obtaining a single measurement a value
+    that is that far from the mean. For a sample of 500 measurements, there 
+    should be about 500*0.00006 = 0.03 such events. Since 0.03 is less than 
+    the cutoff value of half an event (0.5), we can discard this event
+    and recalculate the mean and standard deviation.
+    
+    Returns a boolean array of the indices you should keep (if sigma is a list
+    or array). True if you should keep it, False if you should kill it.
+    '''
+    return N*scipy.special.erfc(sigma/np.sqrt(2)) > cutoff
