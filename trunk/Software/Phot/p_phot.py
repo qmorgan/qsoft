@@ -64,7 +64,14 @@ class Image():
             
         # self.objectname = objectname # could potentially look in header for this name
         if autocal and not calfile:
+            # grab the 2mass calibration just for kicks; dont automatically use it though
+            twomasscalpath = storepath + imagefilename + 'twomass.txt'
+            self.get_2mass_calibration(twomasscalpath)
+            if self.twomassfield:
+                print "2mass Calibration file created"
+            
             print "No calibration file specified; attempting to grab SDSS Calibration"
+            
             calpath = storepath + imagefilename + 'sdss.txt'
             self.get_sdss_calibration(calpath) 
             if self.sdssfield:
@@ -74,6 +81,8 @@ class Image():
                 self.calfile=None
                 print "Warning: No SDSS calibration; Please provide your own calibration field and run again."
                 return
+
+            
         elif not calfile:
             print "No calibration file specified and autocal = False; Please provide calibration file and run again"
             return
@@ -274,6 +283,23 @@ class Image():
         return photdict
 
 
+    def get_2mass_calibration(self,twomasscal):
+        '''Print 2mass calibration text file (if available) to the current 
+        directory with filename twomasscal
+        '''
+        #IDL> printtwomass, 'OBS1_R.fits', outfile="calib.txt"
+
+        #Performing Photometry
+        IDL_command = "printcatalog, '" + str(self.imagefilename) + "', '2mass', outfile='" + str(twomasscal) +  "', unc=1"  
+        idl(IDL_command)
+        self.twomasscal = twomasscal
+        if os.path.exists(self.twomasscal):
+            self.twomassfield=True
+            print "Successfully wrote twomass calibration file to %s" % (self.twomasscal) 
+        else:
+            self.twomassfield=False
+            print "Failed to write twomass calibration file."
+            
     def get_sdss_calibration(self,sdsscal):
         '''Print sdss calibration text file (if available) to the current 
         directory with filename sdsscal
