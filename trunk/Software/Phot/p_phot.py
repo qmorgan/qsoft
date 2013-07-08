@@ -54,9 +54,10 @@ class Image():
             
         if not filt and autofilter == True:
             self.filt=self._get_filter()
+            print 'Setting filter as %s, determined from image' % (self.filt)
         elif filt:
             self.filt=filt
-            print 'Setting filter as %s, determined from image' % (filt)
+            print 'Forcing to be %s' % (filt)
         else:
             print "could not determine filter; remaining as None"
             self.filt=None
