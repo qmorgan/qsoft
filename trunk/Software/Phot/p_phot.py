@@ -146,7 +146,7 @@ class Image():
     #             linesplit = line.split()
     #         
         
-    def do_phot(self,ap,limsigma=3.0,plotcalib=True):
+    def do_phot(self,ap,limsigma=3.0,plotcalib=True,offset_calc_type='weighted_mean'):
         '''
         q_phot.do_phot subkeys:
         ['calib_stars',
@@ -229,7 +229,7 @@ class Image():
             
         IDL_command = "autophot, '" + str(self.imagefilename) + "', '" + str(self.calfile) +\
             "', '"  + str(self.objectfile) + "', rad=" + str(ap)+", filter='"+str(self.filt)+"', limsigma='"+\
-            str(limsigma)+"', plotcalib="+plotcalibidl+""
+            str(limsigma)+"', plotcalib="+plotcalibidl+", offset_calc_type='"+offset_calc_type+"'"
         print IDL_command
         idl(IDL_command)
         # 
@@ -249,13 +249,16 @@ class Image():
                     mag = float(photlist[5])
                     magerr = float(photlist[7])
                     syserr = float(photlist[9].strip(')'))
-
                     # to match qphot targ mag format of tuple of mag and mag err
                     # here add the stat error and sys error in quadrature
                     # not 100% correct since there is some covariance, but roughly right
                     targ_mag = (mag, np.sqrt(magerr**2+syserr**2))
                     magdict.update({objstr:targ_mag})
                     photdict.update({'filter':filtstr})
+                    #saving the individual values and errors seperately
+                    photdict.update({'mag_value':mag})
+                    photdict.update({'mag_err_stat':magerr})
+                    photdict.update({'mag_err_sys':syserr})
                     
                 elif equals.strip() == '>':
                     print "No detection; grabbing upper limit"
@@ -268,7 +271,12 @@ class Image():
                     print limsig
                     targ_ul = (magul,limsig)
                     magdict.update({objstr:targ_ul})
-                    photdict.update({'filter':filtstr}) #why again? 
+                    photdict.update({'filter':filtstr}) 
+                    #saving the individual values and errors seperately
+                    photdict.update({'mag_value':999})
+                    photdict.update({'mag_err_stat':999})
+                    photdict.update({'mag_err_sys':syserr})
+                    
             elif line[0:4] == "Expt":
                 explist = line.split()
                 exptime = float(explist[1])
@@ -278,8 +286,32 @@ class Image():
                 zplist = line.split()
                 zp = (float(zplist[-3]),float(zplist[-1]))
                 photdict.update({'zp':zp})
+            elif line[0:18] == 'Aperture dependant':
+                zp_ap_dep_list = line.split()
+                zp_ap_dep = float(zp_ap_dep_list[-1])
+                photdict.update({'zp_ap_dep':zp_ap_dep})
+            elif line[0:20] == 'observed-catalog RMS':
+                rmslist= line.split()
+                rms_measured = float(rmslist[-4])
+                rms_expected = float(rmslist[-2])
+                photdict.update({'offset_rms_measured':rms_measured})
+                photdict.update({'offset_rms_expected':rms_expected})
+            elif line[0:13] == 'Color scatter':
+                color_scatter = float(line.split()[-1])
+                photdict.update({'color_scatter':color_scatter})
+            elif line[0:13] == 'Median offset':
+                offset_median = float(line.split()[-1])
+                photdict.update({'offset_median':offset_median})
+            elif line[0:20] == 'Weighted mean offset':
+                offset_weighted_mean = float(line.split()[-1])
+                photdict.update({'offset_weighted_mean':offset_weighted_mean})
+            elif line[0:20] == 'Error in weighted me':
+                offset_weighted_mean_err = float(line.split()[-1])
+                photdict.update({'offset_weighted_mean_err':offset_weighted_mean_err})
+                
         photdict.update({'magdict':magdict})
-
+        photdict.update({'offset_calc_type':offset_calc_type})
+        
         self.imagedict = photdict
         return photdict
 
