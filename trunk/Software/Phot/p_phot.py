@@ -169,12 +169,13 @@ class Image():
          'zp',x
          'EXPTIME']x
          '''
+         
         if not hasattr(self,'objectfile'):
             print "Need to specify object file first, can't do photometry without positions!"
             return
 
         photdict = {'FileName':self.imagefilename}
-
+        offset_calc_type=offset_calc_type.lower()
 
         # error checking of individual telescopes
         if self.scope == 'kait':
@@ -351,7 +352,7 @@ class Image():
             print "Failed to write sdss calibration file."
     
     
-    def p_photreturn(self,outname,ap,limsigma=3.0,plotcalib=True,clobber=False):
+    def p_photreturn(self,outname,ap,limsigma=3.0,plotcalib=True,offset_calc_type='weighted_mean',clobber=False):
         '''
         attempt to build up same structure as the photdict from q_phot
     
@@ -359,6 +360,7 @@ class Image():
     
     
         '''
+        offset_calc_type=offset_calc_type.lower()
         photdict={}
         newname =  self.imagefilename + '_ap' + str(ap) 
         filepath = storepath + 'phot_'+ outname #outname is the filepath
@@ -388,7 +390,7 @@ class Image():
                 photdict = qPickle.load(filepath) # This line loads the pickle file, enabling photLoop to work                
     
             # create dictionary for file
-            data = self.do_phot(ap=ap,limsigma=limsigma,plotcalib=plotcalib)
+            data = self.do_phot(ap=ap,limsigma=limsigma,plotcalib=plotcalib,offset_calc_type=offset_calc_type)
             if not data:
                 print "Photometry failed. No data returned."
                 return
@@ -411,7 +413,7 @@ class Image():
         return photdict
 
 
-def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False):
+def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False,offset_calc_type='weighted_mean'):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''   
@@ -434,9 +436,11 @@ def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False):
         raise ValueError('No files to perform photometry on. In right directory?')
     if forcefilter:
         filt=forcefilter
+    else:
+        filt=None
     for filename in GRBlist:
-        img=Image(filename,objectfile=objectfile,calfile=calfile,filt=filt)
-        photdict=img.p_photreturn(outname,ap=ap,plotcalib=False,clobber=clobber) #dont plot for this
+        img=Image(filename,objectfile=objectfile,calfile=calfile,filt=filt,autofilter=True)
+        photdict=img.p_photreturn(outname,ap=ap,plotcalib=False,offset_calc_type=offset_calc_type,clobber=clobber) #dont plot for this
     return photdict
 
 def kait_data_check(directory):
