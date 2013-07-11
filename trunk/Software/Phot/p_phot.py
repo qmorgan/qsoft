@@ -398,10 +398,19 @@ class Image():
             
             label = newname
             # somehow update time here?
-            # time = float(t_mid.t_mid(filename, trigger = trigger_id))
-            # terr = float(t_mid.t_mid(filename, delta = True, trigger = trigger_id))/2.
-            # timetuple = (time, terr)
-            # data.update({'t_mid':timetuple})
+            if self.scope == 'pairitel':
+                time = float(t_mid.t_mid(self.imagefilename, trigger = trigger_id))
+                terr = float(t_mid.t_mid(self.imagefilename, delta = True, trigger = trigger_id))/2.
+                timetuple = (time, terr)
+                data.update({'t_mid':timetuple})
+            elif:
+                # untested
+                self.scope == 'kait'
+                tmid = startexp2tmid(utburst,data['STRT_CPU'],data['EXPTIME']) 
+                terr = data['EXPTIME']
+                timetuple = (time, terr)
+                data.update({'t_mid':timetuple})
+                
             photdict.update({label:data})
             qPickle.save(photdict, filepath, clobber = True)
             return photdict
@@ -485,8 +494,9 @@ def textoutput(photdict,objname,utburst=None,filt=None, source=None, day=False):
     text.write('\n')
     text.write('@expunit=sec')
     text.write('\n')
-    utburst_text = '@utburst=' + str(utburst)
-    text.write(utburst_text)
+    if utburst !=  None:
+        utburst_text = '@utburst=' + str(utburst)
+        text.write(utburst_text)
     text.write('\n')
     scopetext = '@source=%s' % (source)
     text.write(scopetext)
@@ -520,9 +530,14 @@ def textoutput(photdict,objname,utburst=None,filt=None, source=None, day=False):
         exp = mosaics['EXPTIME']
         
         strt_cpu = mosaics['STRT_CPU']
+        # kind of a hack; i tried to fix this for kait and auto-assign tmid in photreturn
         if 't_mid' not in mosaics:
-            print "ATTEMPTING TO AUTO-EXTRACT T-MID FROM EXPOSURE TIME AND TSTART"
-            tmid = startexp2tmid(utburst,strt_cpu,exp)
+            if utburst != None:
+                print "ATTEMPTING TO AUTO-EXTRACT T-MID FROM EXPOSURE TIME AND TSTART"
+                tmid = startexp2tmid(utburst,strt_cpu,exp)
+            else:
+                print 't_mid not in mosaics and utburst not specified; cannot get t_mid'
+                raise Exception
         # stop_cpu = mosaics['STOP_CPU']
         t_mid_days = tmid/86400.
         
@@ -575,6 +590,9 @@ def startexp2tmid(utburst,uttstart,exp):
     exposure time in seconds
     %Y-%m-%d %H:%M:%S
     '''
+    if utburst == None:
+        utburst = datetime.datetime(1858, 11, 17) #just use mjd
+    
     start = datetime.datetime.strptime(uttstart.split('.')[0], "%Y-%m-%d %H:%M:%S")
     #handle the fractions of a second, if there are any
     if len(uttstart.split('.')) == 2:

@@ -2,18 +2,32 @@ import datetime
 import pyfits
 from RedshiftMachine import LoadGCN
 
-def t_mid(filepath, GRBid=None, delta=None, trigger=None, forcenongrb=False):
+def t_mid(filepath=None, GRBid=None, delta=None, trigger=None, forcenongrb=False, time_dict=None):
     '''
     Given a fits file and the GRBid or trigger of a GRB, 
     this program returns the t-mid for PAIRITEL as a float in seconds. 
     
     If delta = True, t_mid will find the difference of StartCPU 
     and StopCPU in seconds
-    '''
-    header = pyfits.open(filepath)
-    starttime = header[0].header['STRT_CPU']
-    stoptime = header[0].header['STOP_CPU']
     
+    time_dict will override the need for filepath
+    {'utburst':'2012-01-19 04:04:30.21',
+     'STOP_CPU':'2013-01-19 08:07:24.094335',
+     'STRT_CPU':'2013-01-19 08:05:05.498592'}
+     
+     if 'utburst' is not in the time dict, then it will not be a known_grb
+    
+    '''
+    if filepath != None and time_dict != None:
+        raise ValueError('Please specify either filepath OR time_dict, not both')
+    if filepath != None:
+        header = pyfits.open(filepath)
+        starttime = header[0].header['STRT_CPU']
+        stoptime = header[0].header['STOP_CPU']
+    elif time_dict != None:
+        starttime = time_dict['STRT_CPU']
+        stoptime = time_dict['STOP_CPU']
+        
     start = datetime.datetime.strptime(starttime.split('.')[0], "%Y-%m-%d %H:%M:%S")
     stop = datetime.datetime.strptime(stoptime.split('.')[0], "%Y-%m-%d %H:%M:%S")
     
@@ -42,38 +56,49 @@ def t_mid(filepath, GRBid=None, delta=None, trigger=None, forcenongrb=False):
         
         known_grb = False
         
-        trg = None
+        if filepath != None:
+            trg = None
         
-        if not GRBid:
-            if trigger == None:
-                targetname = header[0].header['TRGTNAME']
-                if targetname[0:5] == 'swift':
-                    try:
-                        trg = int(targetname[6:])
-                        print "GRB Trigger ID determined to be %i" % trg
-                        known_grb = True                        
-                    except:
-                        print 'Cannot Parse target id from swift target name %s' % targetname
-            else:
-                trg = trigger
+            # if triggerid given, attempt to grab burst time from GCN notices
+            if not GRBid:
+                if not trigger:
+                    print 'Trigger ID not specified; attempting to parse from file header'
+                    targetname = header[0].header['TRGTNAME']
+                    if targetname[0:5] == 'swift':
+                        try:
+                            trg = int(targetname[6:])
+                            print "GRB Trigger ID determined to be %i" % trg
+                            known_grb = True                        
+                        except:
+                            print 'Cannot Parse target id from swift target name %s' % targetname
+                else:
+                    trg = trigger
             
-            if trg:
-                gcndict = LoadGCN.LoadGCN(trg)
-                known_grb = gcndict.successful_load                    
-        else:
-            gcndict = LoadGCN.LoadGCN(GRBid)
-            known_grb = gcndict.successful_load
+                if trg:
+                    gcndict = LoadGCN.LoadGCN(trg)
+                    known_grb = gcndict.successful_load                    
+            else:
+                gcndict = LoadGCN.LoadGCN(GRBid)
+                known_grb = gcndict.successful_load
+        elif time_dict != None:
+            if 'utburst' in time_dict:
+                known_grb = True        
+            else:
+                known_grb = False
         
         if forcenongrb:
             known_grb=False
         print "It is %s that this event is a known GRB." % str(known_grb)
         
+        
         if known_grb:
-            GRBtime = gcndict.pdict['grb_time_str']
-            GRBdate = gcndict.pdict['grb_date_str']
-
-            GRBcomb = GRBdate + ' ' + GRBtime
-
+            if filepath != None:
+                GRBtime = gcndict.pdict['grb_time_str']
+                GRBdate = gcndict.pdict['grb_date_str']
+                
+                GRBcomb = GRBdate + ' ' + GRBtime
+            elif time_dict != None:
+                GRBcomb = time_dict['utburst']
             GRB = datetime.datetime.strptime(GRBcomb.split('.')[0], "%y/%m/%d %H:%M:%S")
 
             t_mid = durdiv2 - GRB  
