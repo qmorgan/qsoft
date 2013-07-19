@@ -69,15 +69,15 @@ def getAttachment(path, filename):
 			filename=filename)
      return attach
 
-def domail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=False ,fromaddr = from_address):
+def domail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=False ,fromaddr = from_address, html=False):
 
     ## here we want to thread so that we dont block
     t = threading.Timer(0.01,intdomail,args=[mailto,mailsub,mailbody],\
-                    kwargs={'attach_files':attach_files,'undisclosed':undisclosed,'fromaddr':fromaddr})
+                    kwargs={'attach_files':attach_files,'undisclosed':undisclosed,'fromaddr':fromaddr,'html':html})
     t.start()
     return
 
-def intdomail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=False, fromaddr = from_address):
+def intdomail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=False, fromaddr = from_address, html=False):
 
     mailto = mailto.split()
     # print mailto
@@ -111,7 +111,13 @@ def intdomail(mailto, mailsub, mailbody, attach_files=[], sig=True, undisclosed=
     msg['Subject'] = mailsub
     if sig:
         mailbody += '\n\n----\nThis message was sent automatically.  If you feel you received this message in error, please contact Adam Morgan at qmorgan@gmail.com'
-    msg.attach( MIMEText(mailbody) )
+    
+    # attach the text; as either plain or html
+    if html == False:
+        msg.attach( MIMEText(mailbody,'plain') )
+    else:
+        msg.attach( MIMEText(mailbody,'html') )
+        
     for attachpath in attach_files:
         # Re-write if you want to attach the files with a different file name
         # Right now, just take the actual name of the file.
