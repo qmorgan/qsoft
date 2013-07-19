@@ -20,6 +20,8 @@ def t_mid(filepath=None, GRBid=None, delta=None, trigger=None, forcenongrb=False
     '''
     if filepath != None and time_dict != None:
         raise ValueError('Please specify either filepath OR time_dict, not both')
+    if filepath == None and time_dict == None:
+        raise ValueError('Must specify either filepath OR time_dict')
     if filepath != None:
         header = pyfits.open(filepath)
         starttime = header[0].header['STRT_CPU']
@@ -99,8 +101,14 @@ def t_mid(filepath=None, GRBid=None, delta=None, trigger=None, forcenongrb=False
                 GRBcomb = GRBdate + ' ' + GRBtime
             elif time_dict != None:
                 GRBcomb = time_dict['utburst']
-            GRB = datetime.datetime.strptime(GRBcomb.split('.')[0], "%y/%m/%d %H:%M:%S")
-
+            try:
+                GRB = datetime.datetime.strptime(GRBcomb.split('.')[0], "%y/%m/%d %H:%M:%S")
+            except:
+                try:
+                    GRB = datetime.datetime.strptime(GRBcomb.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                except:
+                    raise Exception("Can't parse utburst..")
+                    
             t_mid = durdiv2 - GRB  
             print durdiv2
             

@@ -255,6 +255,7 @@ class Image():
                     # not 100% correct since there is some covariance, but roughly right
                     targ_mag = (mag, np.sqrt(magerr**2+syserr**2))
                     magdict.update({objstr:targ_mag})
+                    photdict.update({'targ_mag':targ_mag}) # the last item having photometry done will appear here
                     photdict.update({'filter':filtstr})
                     #saving the individual values and errors seperately
                     photdict.update({'mag_value':mag})
@@ -352,7 +353,9 @@ class Image():
             print "Failed to write sdss calibration file."
     
     
-    def p_photreturn(self,outname,ap,limsigma=3.0,plotcalib=True,offset_calc_type='weighted_mean',clobber=False):
+    def p_photreturn(self,outname,ap,limsigma=3.0,plotcalib=True,\
+            offset_calc_type='weighted_mean',clobber=False, \
+            utburst=None):
         '''
         attempt to build up same structure as the photdict from q_phot
     
@@ -360,6 +363,9 @@ class Image():
     
     
         '''
+        if utburst == None:
+            utburst = datetime.datetime(1858, 11, 17) #just use mjd
+        
         offset_calc_type=offset_calc_type.lower()
         photdict={}
         newname =  self.imagefilename + '_ap' + str(ap) 
@@ -399,13 +405,13 @@ class Image():
             label = newname
             # somehow update time here?
             if self.scope == 'pairitel':
-                time = float(t_mid.t_mid(self.imagefilename, trigger = trigger_id))
-                terr = float(t_mid.t_mid(self.imagefilename, delta = True, trigger = trigger_id))/2.
+                tdict = {'utburst':utburst,'STOP_CPU':data['STOP_CPU'],'STRT_CPU':data['STRT_CPU']}
+                time = float(t_mid.t_mid(time_dict=tdict))
+                terr = float(t_mid.t_mid(delta = True, time_dict=tdict))/2.
                 timetuple = (time, terr)
                 data.update({'t_mid':timetuple})
-            elif:
+            elif self.scope == 'kait':
                 # untested
-                self.scope == 'kait'
                 tmid = startexp2tmid(utburst,data['STRT_CPU'],data['EXPTIME']) 
                 terr = data['EXPTIME']
                 timetuple = (time, terr)
@@ -422,7 +428,8 @@ class Image():
         return photdict
 
 
-def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False,offset_calc_type='weighted_mean'):
+def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False,\
+    offset_calc_type='weighted_mean', utburst=None):
     '''Run photreturn on every file in a directory; return a dictionary
     with the keywords as each filename that was observed with photreturn
     '''   
@@ -449,7 +456,7 @@ def p_photLoop(outname,ap,objectfile,calfile,clobber=False,forcefilter=False,off
         filt=None
     for filename in GRBlist:
         img=Image(filename,objectfile=objectfile,calfile=calfile,filt=filt,autofilter=True)
-        photdict=img.p_photreturn(outname,ap=ap,plotcalib=False,offset_calc_type=offset_calc_type,clobber=clobber) #dont plot for this
+        photdict=img.p_photreturn(outname,ap=ap,plotcalib=False,offset_calc_type=offset_calc_type,clobber=clobber,utburst=utburst) #dont plot for this
     return photdict
 
 def kait_data_check(directory):
