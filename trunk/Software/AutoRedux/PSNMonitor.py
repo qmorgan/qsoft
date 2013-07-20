@@ -15,6 +15,8 @@ from MiscBin import qErr
 from MiscBin.q import sex2dec
 from AutoRedux import send_gmail
 import datetime
+from BeautifulSoup import BeautifulSoup
+import urllib2
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -284,13 +286,36 @@ def _parse_psn_format(psn_string):
     'locale':locale,
     'discoverer':discoverer_string,
     'arc':arc_string,
-    'psn_string',psn_string
+    'psn_string':psn_string
     }    
     
     return psn_dict
 
 def _download_and_obtain_psn_string(followup_url):
-    pass
+    try:
+        sock = urllib2.urlopen(followup_url)
+    except:
+        errmsg = '%s does not exist. Returning None.' % (followup_url)
+        qErr.qErr(errmsg)
+        return None
+    html = sock.read()
+    sock.close()
+    soup=BeautifulSoup(html)
+    psn = soup.find('pre')
+    if psn == None:
+        errmsg = 'Cannot find PSN string in %s. Returning None.' % (followup_url)
+        qErr.qErr(errmsg)
+        return None
+    elif len(psn.contents) > 1:
+        errmsg = '%s has more than one PSN String. Look into this.' % (followup_url)
+        qErr.qErr(errmsg)
+    psn_string = psn.contents[0]
+    if len(psn_string) != 99:
+        errmsg = 'PSN string is of the wrong length. Expected 99, got %i' % len(psn_string)
+        errmsg += ' %s\n%s\n' % (followup_url,psn_string)
+        qErr.qErr(errmsg)
+        return None
+    return str(psn_string)
     
 def PSNFlow():
     while(True):
