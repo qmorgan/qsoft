@@ -126,7 +126,17 @@ def _do_new_entry_actions(new_entry):
     # check if it's in the pickle file
     # if so, update it - add to summary list
     
-    html_body = '<html><body><a href="http://cbat.eps.harvard.edu/unconf/followups/%s">%s</a><br><br>' % (psn_id,psn_id)
+    psn_url="http://cbat.eps.harvard.edu/unconf/followups/%s" % (psn_id)
+    psn_string = _download_and_obtain_psn_string(psn_url)
+    if psn_string != None:
+        psn_dict = _parse_psn_format(psn_string)
+    else:
+        psn_dict = None
+    
+    html_body = '<html><body><a href="%s">%s</a><br><br>' % (psn_url,psn_id)
+    if psn_dict:
+        html_body += psn_dict['dss_html']
+        html_body += psn_dict['sdss_html']
     html_body+= new_entry.summary
     html_body+= '<br><br><br></body></html>'
     
@@ -136,7 +146,7 @@ def _do_new_entry_actions(new_entry):
     subject = "New Transient %s" % (psn_id_full)
     
     print "Sending email: '%s'" % (subject)
-    send_gmail.domail('qmorgan@gmail.com',subject,html_body,html=True)
+    send_gmail.domail('psnmonitor@googlegroups.com',subject,html_body,html=True)
     
     # do separate email if updated
 
@@ -225,10 +235,16 @@ def _parse_psn_format(psn_string):
     if filt == 'U': filt = 'unfiltered'
     
     ra_offset_string = psn_string[74:79].strip()
-    ra_offset_value = int(psn_string[74:78])
+    try:
+        ra_offset_value = int(psn_string[74:78])
+    except:
+        ra_offset_value = 'Unknown'
     ra_offset_direction = psn_string[78]
     dec_offset_string = psn_string[79:84].strip()
-    dec_offset_value = int(psn_string[79:83])
+    try:
+        dec_offset_value = int(psn_string[79:83])
+    except:
+        dec_offset_value = 'Unknown'
     dec_offset_direction = psn_string[83]
     
     locale = psn_string[86:95]
@@ -270,8 +286,15 @@ def _parse_psn_format(psn_string):
         arc_string = 'A %s day arc' % (arc_key)
     else:
         arc_string = 'Unknown arc; cannot parse arc_key'
-        
+    
+    dss_url = "http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=2&err_shape=combo&incl_scale=yes&size=4&src_name=%s&pos_label=Pos&cont_str=&survey=dss2red" % (ra_deg,dec_deg,designation)
+    dss_html = "<a href='%s'>DSS Finding Chart</a><br>" % (dss_url)
+    sdss_url = "http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=2&err_shape=combo&incl_scale=yes&size=4&src_name=%s&pos_label=Pos&cont_str=&survey=sdss" % (ra_deg,dec_deg,designation)
+    sdss_html = "<a href='%s'>SDSS Finding Chart</a> (May not be available)<br>" % (sdss_url)
+    
     psn_dict = {
+    'dss_html':dss_html,
+    'sdss_html':sdss_html,
     'ra':ra,
     'dec':dec,
     'ra_deg':ra_deg,
@@ -329,7 +352,7 @@ def PSNFlow():
                 _do_new_entry_actions(entry)
         
         print time.ctime()
-        time.sleep(720)
+        time.sleep(1800)
     
     
 def MonitorFile(filename=None,maxsleep=100,check_interval=1):
