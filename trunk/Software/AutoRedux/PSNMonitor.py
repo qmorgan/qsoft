@@ -85,9 +85,9 @@ def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
     last_entry = rssinst['entries'][0] # saving this for testing purposes
     last_entry_outpath = storepath + 'psn_last_entry.pkl'
     qPickle.save(last_entry,last_entry_outpath,clobber=True)
-    count = 0
+    duplicate_count = 0
     for entry in rssinst['entries']:
-        if True:
+        if duplicate_count < 3:
             # check for duplicates
             c.execute('select * from RSSContent where updated=?', (entry.updated,)) #should be unique
             if not c.fetchall():
@@ -124,8 +124,15 @@ def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
                     except:
                         qErr.qErr()
                         print "Could not update RSS database for entry %s" % (entry.updated)
+            else:
+                duplicate_count += 1
             conn.commit()
-        
+        else:
+            # break the loop if more than 3 duplicates; really only need to 
+            # see one duplicate to break the loop, but adding this just in case
+            # (since newer feed entries are at the top, no need to loop through
+            # every single one. if there are no new ones, you should know immediately)
+            break 
     return new_rss_entry_list
     
 def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
