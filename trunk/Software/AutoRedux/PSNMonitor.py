@@ -177,6 +177,9 @@ def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
     else:
         pretty_output = 'Cannot parse PSN Message.'
     
+    print pretty_output
+    raise Exception
+    
     html_body = '<html><body><a href="%s">%s</a><br><br>' % (psn_url,psn_id)
     if psn_dict:
         html_body += psn_dict['dss_html']
@@ -365,7 +368,7 @@ def _download_and_obtain_psn_string(followup_url):
         sock = urllib2.urlopen(followup_url)
     except:
         errmsg = '%s does not exist. Returning None.' % (followup_url)
-        qErr.qErr(errmsg)
+        qErr.qErr(errtext=errmsg)
         return None
     html = sock.read()
     sock.close()
@@ -373,16 +376,17 @@ def _download_and_obtain_psn_string(followup_url):
     psn = soup.find('pre')
     if psn == None:
         errmsg = 'Cannot find PSN string in %s. Returning None.' % (followup_url)
-        qErr.qErr(errmsg)
+        qErr.qErr(errtext=errmsg)
         return None
     elif len(psn.contents) > 1:
         errmsg = '%s has more than one PSN String. Look into this.' % (followup_url)
-        qErr.qErr(errmsg)
+        qErr.qErr(errtext=errmsg)
     psn_string = psn.contents[0]
+    psn_string = psn_string.strip()
     if len(psn_string) != 99:
         errmsg = 'PSN string is of the wrong length. Expected 99, got %i' % len(psn_string)
         errmsg += ' %s\n%s\n' % (followup_url,psn_string)
-        qErr.qErr(errmsg)
+        qErr.qErr(errtext=errmsg)
         return None
     return str(psn_string)
     
