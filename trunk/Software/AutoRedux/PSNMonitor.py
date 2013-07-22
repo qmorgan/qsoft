@@ -17,6 +17,7 @@ from AutoRedux import send_gmail
 import datetime
 from BeautifulSoup import BeautifulSoup
 import urllib2
+from MiscBin import qPickle
 
 if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
@@ -38,7 +39,16 @@ def _parse_psn_page(url):
 def _parse_psn_rss(rrsurl):
     #parse the 
     pass
-    
+
+def _get_last_entry():
+    '''For testing purposes, get last entry of of the psn feed'''
+    last_entry_outpath = storepath + 'psn_last_entry.pkl'
+    last_entry = qPickle.load(last_entry_outpath)
+    if last_entry == None:
+        Monitor_PSN_RSS()
+        last_entry = qPickle.load(last_entry_outpath)
+    return last_entry
+
 def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
     '''
     This function checks to see if a particular RSS entry has already been loaded by
@@ -72,6 +82,10 @@ def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
     new_rss_entry_list=[]
     
     rssinst = feedparser.parse(feed_url)
+    last_entry = rssinst['entries'][0] # saving this for testing purposes
+    last_entry_outpath = storepath + 'psn_last_entry.pkl'
+    qPickle.save(last_entry,last_entry_outpath,clobber=True)
+    count = 0
     for entry in rssinst['entries']:
         if True:
             # check for duplicates
@@ -114,7 +128,7 @@ def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
         
     return new_rss_entry_list
     
-def _do_new_entry_actions(new_entry):
+def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
     # being fed a parsed rss entry
     psn_id_full=new_entry.id.split('/followups/')[1].strip('"')
     # for some reason, the URL has a space when PSN label gets added
@@ -133,6 +147,29 @@ def _do_new_entry_actions(new_entry):
     else:
         psn_dict = None
     
+    if psn_dict:
+        pretty_output='''
+        %s
+
+        Object: 		%s
+        Designation:	%s
+        Discovery date:	%s
+        Mag at date:	%s
+        Filter:			%s
+        RA:				%s (= %f)
+        Dec:			%s (= %f)
+        Presumed host:	%s
+        Host offset:	%s, %s
+        Discoverer:		%s
+        Obs. arc:		%s
+        ''' %  (psn_dict['psn_string'],psn_dict['obj_type'],psn_dict['designation'],
+        psn_dict['date_string'],psn_dict['mag'],psn_dict['filter'],psn_dict['ra'],
+        psn_dict['ra_deg'],psn_dict['dec'],psn_dict['dec_deg'],psn_dict['locale'],
+        psn_dict['ra_offset'],psn_dict['dec_offset'],psn_dict['discoverer'],
+        psn_dict['arc'])
+    else:
+        pretty_output = 'Cannot parse PSN Message.'
+    
     html_body = '<html><body><a href="%s">%s</a><br><br>' % (psn_url,psn_id)
     if psn_dict:
         html_body += psn_dict['dss_html']
@@ -146,7 +183,7 @@ def _do_new_entry_actions(new_entry):
     subject = "New Transient %s" % (psn_id_full)
     
     print "Sending email: '%s'" % (subject)
-    send_gmail.domail('psnmonitor@googlegroups.com',subject,html_body,html=True)
+    send_gmail.domail(email,subject,html_body,html=True)
     
     # do separate email if updated
 
@@ -309,7 +346,9 @@ def _parse_psn_format(psn_string):
     'locale':locale,
     'discoverer':discoverer_string,
     'arc':arc_string,
-    'psn_string':psn_string
+    'psn_string':psn_string,
+    'dec_offset':dec_offset_string,
+    'ra_offset':ra_offset_string
     }    
     
     return psn_dict
