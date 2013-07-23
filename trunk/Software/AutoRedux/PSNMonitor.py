@@ -156,34 +156,37 @@ def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
     
     if psn_dict:
         pretty_output='''
-        %s
-
-        Object: 		%s
-        Designation:	%s
-        Discovery date:	%s
-        Mag at date:	%s
-        Filter:			%s
-        RA:				%s (= %f)
-        Dec:			%s (= %f)
-        Presumed host:	%s
-        Host offset:	%s, %s
-        Discoverer:		%s
-        Obs. arc:		%s
-        ''' %  (psn_dict['psn_string'],psn_dict['obj_type'],psn_dict['designation'],
-        psn_dict['date_string'],psn_dict['mag'],psn_dict['filter'],psn_dict['ra'],
-        psn_dict['ra_deg'],psn_dict['dec'],psn_dict['dec_deg'],psn_dict['locale'],
-        psn_dict['ra_offset'],psn_dict['dec_offset'],psn_dict['discoverer'],
-        psn_dict['arc'])
+<br><br>
+<table border="0">
+<tr><td>Object:</td><td>%s</td></tr>
+<tr><td>Designation:</td><td>%s</td></tr>
+<tr><td>Discovery date:</td><td>%s</td></tr>
+<tr><td>Mag at date:</td><td>%s</td></tr>
+<tr><td>Filter:</td><td>%s</td></tr>
+<tr><td>RA:</td><td>%s (= %f)</td></tr>
+<tr><td>Dec:</td><td>%s (= %f)</td></tr>
+<tr><td>Presumed host:</td><td>%s</td></tr>
+<tr><td>Offset from host:</td><td>%s, %s (arcsec)</td></tr>
+<tr><td>Discoverer:</td><td>%s</td></tr>
+<tr><td>Obs. arc:</td><td>%s</td></tr>
+</table>
+        ''' %  (psn_dict['obj_type'],psn_dict['designation'],
+        psn_dict['date_string'].replace(' ','-').replace('2013','UT2013'),
+        psn_dict['mag'],psn_dict['filter'],
+        psn_dict['ra'],psn_dict['ra_deg'],psn_dict['dec'],psn_dict['dec_deg'],
+        psn_dict['locale'],psn_dict['ra_offset'],psn_dict['dec_offset'],
+        psn_dict['discoverer'],psn_dict['arc'])
     else:
         pretty_output = 'Cannot parse PSN Message.'
     
     print pretty_output
-    raise Exception
     
-    html_body = '<html><body><a href="%s">%s</a><br><br>' % (psn_url,psn_id)
+    html_body = '''<html><body>
+    <a href="%s">%s</a><br><br>''' % (psn_url,psn_id)
     if psn_dict:
         html_body += psn_dict['dss_html']
         html_body += psn_dict['sdss_html']
+        html_body += pretty_output
     html_body+= new_entry.summary
     html_body+= '<br><br><br></body></html>'
     
