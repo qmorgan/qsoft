@@ -49,7 +49,7 @@ def _get_last_entry():
         last_entry = qPickle.load(last_entry_outpath)
     return last_entry
 
-def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
+def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml",save_latest=True):
     '''
     This function checks to see if a particular RSS entry has already been loaded by
     entering it in a sqlite database.  
@@ -82,9 +82,13 @@ def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
     new_rss_entry_list=[]
     
     rssinst = feedparser.parse(feed_url)
-    last_entry = rssinst['entries'][0] # saving this for testing purposes
-    last_entry_outpath = storepath + 'psn_last_entry.pkl'
-    qPickle.save(last_entry,last_entry_outpath,clobber=True)
+    if save_latest:
+        try:
+            last_entry = rssinst['entries'][0] # saving this for testing purposes
+            last_entry_outpath = storepath + 'psn_last_entry.pkl'
+            qPickle.save(last_entry,last_entry_outpath,clobber=True)
+        except:
+            qErr.qErr("Could not save last_entry")
     duplicate_count = 0
     for entry in rssinst['entries']:
         if duplicate_count < 3:
@@ -135,18 +139,33 @@ def Monitor_PSN_RSS(feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"):
             break 
     return new_rss_entry_list
     
-def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
+def _do_new_entry_actions(new_entry,email=True,email_to='psnmonitor@googlegroups.com'):
     # being fed a parsed rss entry
-    psn_id_full=new_entry.id.split('/followups/')[1].strip('"')
-    # for some reason, the URL has a space when PSN label gets added
-    # http://cbat.eps.harvard.edu/unconf/followups/PSN J15111485+4609115
-    #u'PSN J15111485+4609115'
-    psn_id = psn_id_full.split()[-1]
-    #u'J15111485+4609115'
-    
+    try:
+        psn_id_full=new_entry.id.split('/followups/')[1].strip('"').split('.html')[0]
+        # for some reason, the URL has a space when PSN label gets added
+        # http://cbat.eps.harvard.edu/unconf/followups/PSN J15111485+4609115
+        #u'PSN J15111485+4609115'
+        psn_id = str(psn_id_full.split()[-1])
+        #u'J15111485+4609115'
+    except:
+        qErr.qErr(errtitle="PSN ID URL malformed", errtext=new_entry.id)
+        psn_id = "Unknown"
+        psn_id_full = "Unknown"
     # check if it's in the pickle file
     # if so, update it - add to summary list
     
+    all_pkl_path = storepath + 'psn_parsed_entries.pkl'
+    
+    all_entries = qPickle.load(all_pkl_path)
+    if all_entries == None:
+        all_entries = {}
+    is_new_id = False
+    if not psn_id in all_entries.keys():
+        is_new_id = True
+        all_entries.update({psn_id:{}}) #update with a new empty dict with proper id
+    
+    # load and parse the PSN string    
     psn_url="http://cbat.eps.harvard.edu/unconf/followups/%s" % (psn_id)
     psn_string = _download_and_obtain_psn_string(psn_url)
     if psn_string != None:
@@ -154,7 +173,15 @@ def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
     else:
         psn_dict = None
     
+    ## Make html 
     if psn_dict:
+        all_entries[psn_id].update(psn_dict) #add/update the dictionary values; though should they change?
+        
+        dss_url = "http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=2&err_shape=combo&incl_scale=yes&size=4&src_name=%s&pos_label=Pos&cont_str=&survey=dss2red" % (psn_dict['ra_deg'],psn_dict['dec_deg'],psn_dict['designation'])
+        dss_html = "<a href='%s'>DSS Finding Chart</a><br>" % (dss_url)
+        sdss_url = "http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=2&err_shape=combo&incl_scale=yes&size=4&src_name=%s&pos_label=Pos&cont_str=&survey=sdss" % (psn_dict['ra_deg'],psn_dict['dec_deg'],psn_dict['designation'])
+        sdss_html = "<a href='%s'>SDSS Finding Chart</a> (May not be available)<br>" % (sdss_url)
+        
         pretty_output='''
 <br><br>
 <table border="0">
@@ -170,6 +197,7 @@ def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
 <tr><td>Discoverer:</td><td>%s</td></tr>
 <tr><td>Obs. arc:</td><td>%s</td></tr>
 </table>
+<br>
         ''' %  (psn_dict['obj_type'],psn_dict['designation'],
         psn_dict['date_string'].replace(' ','-').replace('2013','UT2013'),
         psn_dict['mag'],psn_dict['filter'],
@@ -182,23 +210,41 @@ def _do_new_entry_actions(new_entry,email='psnmonitor@googlegroups.com'):
     print pretty_output
     
     html_body = '''<html><body>
-    <a href="%s">%s</a><br><br>''' % (psn_url,psn_id)
+    <a href="%s">%s</a>''' % (psn_url,psn_id)
+    if is_new_id:
+        html_body += ' (First report of this transient)'
+    else:
+        html_body += ' (Update)'
+    html_body += '<br><br>'
     if psn_dict:
-        html_body += psn_dict['dss_html']
-        html_body += psn_dict['sdss_html']
+        html_body += dss_html
+        html_body += sdss_html
         html_body += pretty_output
     html_body+= new_entry.summary
     html_body+= '<br><br><br></body></html>'
     
-    print html_body
+    if 'summary_list' in all_entries[psn_id]:
+        summary_list = all_entries[psn_id]['summary_list']
+        summary_list.append(new_entry.summary)
+    else:
+        summary_list = [new_entry.summary]
+    all_entries[psn_id].update({'summary_list':summary_list})
+    
     # do email if new
+        
+    if email == True:
+        if is_new_id:
+            subject = "New Transient %s" % (psn_id_full)
+        else:
+            subject = "Update to Transient %s" % (psn_id_full)
+        print "Sending email: '%s'" % (subject)
+        send_gmail.domail(email_to,subject,html_body,html=True)
     
-    subject = "New Transient %s" % (psn_id_full)
+    # do separate/no email if updated?
     
-    print "Sending email: '%s'" % (subject)
-    send_gmail.domail(email,subject,html_body,html=True)
-    
-    # do separate email if updated
+    # save the updated pickle file
+    qPickle.save(all_entries,all_pkl_path,clobber=True)
+    return is_new_id
 
 def _parse_psn_format(psn_string):
     '''
@@ -273,9 +319,16 @@ def _parse_psn_format(psn_string):
     
     designation = psn_string[4:21]
     date_string = psn_string[24:39]
-    date_ymd = date_string[0:10]
-    fraction_of_day = int(date_string.split('.')[-1].strip())/100.
-    date_parsed = datetime.datetime.strptime(date_ymd,'%Y %m %d') + datetime.timedelta(fraction_of_day)
+    date_split = date_string.split('.')
+    date_ymd = date_split[0]
+    if len(date_split) == 2:
+        fraction_of_day = int(date_string.split('.')[-1].strip())/100.
+    elif len(date_split) == 1:
+        fraction_of_day = 0
+    try:
+        date_parsed = datetime.datetime.strptime(date_ymd,'%Y %m %d') + datetime.timedelta(fraction_of_day)
+    except:
+        date_parsed = 'ParseERROR'
     ra = psn_string[42:54]
     dec = psn_string[54:65]
     ra_deg, dec_deg = sex2dec((ra,dec))
@@ -337,14 +390,7 @@ def _parse_psn_format(psn_string):
     else:
         arc_string = 'Unknown arc; cannot parse arc_key'
     
-    dss_url = "http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=2&err_shape=combo&incl_scale=yes&size=4&src_name=%s&pos_label=Pos&cont_str=&survey=dss2red" % (ra_deg,dec_deg,designation)
-    dss_html = "<a href='%s'>DSS Finding Chart</a><br>" % (dss_url)
-    sdss_url = "http://fc.qmorgan.com/fcserver.py?ra=%f&dec=%f&uncertainty=2&err_shape=combo&incl_scale=yes&size=4&src_name=%s&pos_label=Pos&cont_str=&survey=sdss" % (ra_deg,dec_deg,designation)
-    sdss_html = "<a href='%s'>SDSS Finding Chart</a> (May not be available)<br>" % (sdss_url)
-    
     psn_dict = {
-    'dss_html':dss_html,
-    'sdss_html':sdss_html,
     'ra':ra,
     'dec':dec,
     'ra_deg':ra_deg,
@@ -399,14 +445,35 @@ def PSNFlow():
         new_rss_list = Monitor_PSN_RSS(feed_url)
         if len(new_rss_list) > 10:
             errmsg = 'new_rss_list is huge; not doing trigger actions'
-            qErr.qErr(errmsg)
+            qErr.qErr(errtext=errmsg)
         elif new_rss_list != []:
             for entry in new_rss_list:
                 _do_new_entry_actions(entry)
         
         print time.ctime()
         time.sleep(1800)
-    
+
+def _regenerate_psn_db_from_scratch():
+    '''Use this to regenerate the sql database and dictionary pickle file from
+    scratch without sending out any emails.'''
+    old_pkl_rm = 'mv ' + storepath + 'psn_parsed_entries.pkl ' + storepath + 'psn_parsed_entries_old.pkl'
+    old_db_rm = 'mv ' + storepath + 'psn_rss_feed.sqlite ' + storepath + 'psn_rss_feed_old.sqlite'
+    print 'Removing old files'
+    os.system(old_pkl_rm)
+    os.system(old_db_rm)
+    feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"
+    full_rss_list = Monitor_PSN_RSS(feed_url,save_latest=False)
+    newcount = 0
+    updatecount = 0
+    for entry in full_rss_list:
+        is_new = _do_new_entry_actions(entry,email=False)
+        # keep track of total number of entries
+        if is_new:
+            newcount += 1
+        else:
+            updatecount += 1
+    print 'Parsed %i entries, of which %i were unique and %i were updates' % (len(full_rss_list),newcount,updatecount)
+    #Parsed 3293 entries, of which 999 were unique and 2294 were updates
     
 def MonitorFile(filename=None,maxsleep=100,check_interval=1):
     if not filename:
