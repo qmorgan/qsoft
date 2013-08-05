@@ -7,6 +7,10 @@ Created: July 24 2013
 import os
 import glob
 import numpy as np
+from os import system
+
+sextractor_bin = "sex"
+loadpath = './'
 
 def read_xml_configuration(configfile):
     import xml.etree.ElementTree as ET
@@ -80,5 +84,41 @@ def tiff2fits(filelist,truncate_filename=True):
             
     return outlist
 
-def sexloop():
-    pass
+
+def make_sex_cat(image_name, checkimages=False):
+    '''Create the Source EXtraction CATalog'''
+    basename = image_name.split('.')[0]
+    sexcat_file = 'cat'+basename+'.txt'
+    sex_command = sextractor_bin + " " + image_name + " -c " + loadpath + "cell.sex " + \
+        " -CATALOG_NAME " + sexcat_file
+    if checkimages:
+        sex_command += ' -CHECKIMAGE_TYPE APERTURES,SEGMENTATION,BACKGROUND '
+        sex_command += ' -CHECKIMAGE_NAME ap_%s.fits,seg_%s.fits,back_%s.fits ' % (basename,basename,basename)
+    print sex_command
+    system(sex_command)
+    return sexcat_file
+
+def make_ass_cat(image_name, assoc_image_name):
+    '''Create the ASSociation CATalaog'''
+    basename = image_name.split('.')[0]
+    assoc_basename = assoc_image_name.split('.')[0]
+    assoc_catname = assoc_basename + '.txt'
+    if not os.path.exists(assoc_catname):
+        # errmsg = 'SEx catalog for %s does not exist; cannot run ASSOC on it' % (assoc_catname)
+        # raise ValueError(errmsg)
+        make_sex_cat(assoc_image_name)
+    sexcat_file = basename+'_'+assoc_basename+'_assoc.txt'
+    sex_command = sextractor_bin + " " + image_name + " -c " + loadpath + "cell_assoc.sex " + \
+        " -CATALOG_NAME " + sexcat_file + " ASSOC_NAME " + assoc_catname 
+    system(sex_command)
+    return sexcat_file
+
+
+def sex_loop(checkimages=False):
+
+    # give previous_image as None if first in the list; give following_image as None if last
+    fits_list = glob.glob('0*.fits')
+    for image in fits_list:
+        make_sex_cat(image,checkimages=checkimages)
+    
+        
