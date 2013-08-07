@@ -149,27 +149,39 @@ def sex_loop(checkimages=False):
 def test_pandas():
     import pandas as pd
     # df=pd.read_csv('cat000010.txt',delim_whitespace=True)
-    config = read_xml_configuration('ZSeries-07192013-1148-028.xml')
+    configfile = 'ZSeries-07192013-1148-028.xml'
+    print 'Reading config File %s' % configfile
+    config = read_xml_configuration()
     image_table = pd.DataFrame(config['data_dict'])
+    
+    detection_names = ['z_index','x','y','A','B','ellipticity','theta','r_kron',
+        'r_flux','mu_max','mag_auto','magerr_auto','mag_iso','magerr_iso',
+        'fwhm','flags']
     
     count = 0
     cat_list = glob.glob('cat0*.txt')
     for cat_text_file in cat_list:
         catid = int(cat_text_file[3:].lstrip('0').rstrip('.txt'))
-        tmp_table=pd.read_csv(cat_text_file,header=None,delim_whitespace=True,
-            names=['z_index','x','y','A','B','ellipticity','theta','r_kron',
-                'r_flux','mu_max','mag_auto','magerr_auto','mag_iso','magerr_iso',
-                'fwhm','flags'])
+        tmp_table=pd.read_csv(cat_text_file,header=None,delim_whitespace=True,names=detection_names)
         tmp_table.z_index = catid
         if count == 0:
             detection_table = tmp_table # do this for the first item, then append on to it
         else:
             detection_table = detection_table.append(tmp_table,ignore_index=True)
         count += 1
-    print count
+    print str(count) + ' tables read in'
     return detection_table
         
+    ass_rad = 3.0 # association radius in number of pixels
+    slice_rad = 10 # association radius in slices 
     
-    
+    current_x = 111.0
+    current_y = 369.0
+    current_z = 70
+    det[np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) < ass_rad]
+    # Another common operation is the use of boolean vectors to filter the data. 
+    # The operators are: | for or, & for and, and ~ for not. These must be 
+    # grouped by using parentheses.
+    det[(np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) < ass_rad) & (np.abs(current_z - det.z_index) < slice_rad)]
     
     
