@@ -146,6 +146,82 @@ def sex_loop(checkimages=False):
 
     # print catnumlist
 
+def find_all_objects():
+    import pandas as pd
+    # df=pd.read_csv('cat000010.txt',delim_whitespace=True)
+    configfile = 'ZSeries-07192013-1148-028.xml'
+    print 'Reading config File %s' % configfile
+    config = read_xml_configuration(configfile)
+    image_table = pd.DataFrame(config['data_dict'])
+    
+    detection_names = ['z_index','x','y','A','B','ellipticity','theta','r_kron',
+        'r_flux','mu_max','mag_auto','magerr_auto','mag_iso','magerr_iso',
+        'fwhm','flags']
+    
+    count = 0
+    cat_list = glob.glob('cat0*.txt')
+    for cat_text_file in cat_list:
+        catid = int(cat_text_file[3:].lstrip('0').rstrip('.txt'))
+        tmp_table=pd.read_csv(cat_text_file,header=None,delim_whitespace=True,names=detection_names)
+        tmp_table.z_index = catid
+        if count == 0:
+            detection_table = tmp_table # do this for the first item, then append on to it
+        else:
+            detection_table = detection_table.append(tmp_table,ignore_index=True)
+        count += 1
+    print str(count) + ' tables read in'
+    return detection_table
+
+def get_dat_ass(det,rad=3.0,slice_rad=10.0):
+    import pandas as pd
+    
+    ass_rad = rad # association radius in number of pixels
+    # slice_rad = 10 # association radius in slices
+    
+    detections_accounted_for_set = set()
+    pot_obj_list = []
+    
+    # get database of associations
+    for index,row in det.iterrows():
+        current_x = row['x']
+        current_y = row['y']
+        current_z = row['z_index']
+
+        # det[np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) < ass_rad]
+        # Another common operation is the use of boolean vectors to filter the data. 
+        # The operators are: | for or, & for and, and ~ for not. These must be 
+        # grouped by using parentheses.
+        boolean_array = (np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) \
+            < ass_rad) & (np.abs(current_z - det.z_index) < slice_rad) \
+            & (np.abs(current_z - det.z_index) != 0) # added this to avoid double-counting of nearby cells in same frame 
+        
+        # get integer index of label index [just in case the lengths are different]
+        current_int_index = np.where(det.index == index)[0][0]
+        
+        # set boolean value to True for current index position so it is included
+        boolean_array[current_int_index] = True
+        
+        potential_object_frame = det[boolean_array]  
+        
+        # check if all associated items have already been accoutned for:
+        if not len(potential_object_frame.index) >= 3: # only include if there are at least 3 frames within the search radius at this position
+            print "too few detections for index %s" % (str(index))
+            print potential_object_frame.index
+        if not set(potential_object_frame.index).issubset(detections_accounted_for_set):
+            detections_accounted_for_set.update(set(potential_object_frame.index))
+            pot_obj_list.append(potential_object_frame)
+            
+        
+        # get data frame at specific location (using labels)
+        #.loc is strictly label based, will raise KeyError when the items are not found
+        # det.loc[[1091,1092,1093]] # returns values based on this index
+        # det data frame at specific location (using integer position)
+        # .iloc is strictly integer position based (from 0 to length-1 of the axis), 
+        # will raise IndexError when the requested indicies are out of bounds.
+        # det.loc[[1091,1092,1093]] # returns values based on this index
+  
+    return pot_obj_list
+        
 def test_pandas():
     import pandas as pd
     # df=pd.read_csv('cat000010.txt',delim_whitespace=True)
@@ -178,10 +254,18 @@ def test_pandas():
     current_x = 111.0
     current_y = 369.0
     current_z = 70
+    
     det[np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) < ass_rad]
     # Another common operation is the use of boolean vectors to filter the data. 
     # The operators are: | for or, & for and, and ~ for not. These must be 
     # grouped by using parentheses.
     det[(np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) < ass_rad) & (np.abs(current_z - det.z_index) < slice_rad)]
     
+    # get data frame at specific location (using labels)
+    #.loc is strictly label based, will raise KeyError when the items are not found
+    det.loc[[1091,1092,1093]] # returns values based on this index
+    # det data frame at specific location (using integer position)
+    # .iloc is strictly integer position based (from 0 to length-1 of the axis), 
+    # will raise IndexError when the requested indicies are out of bounds.
+    # det.loc[[1091,1092,1093]] # returns values based on this index
     
