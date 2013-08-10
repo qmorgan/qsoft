@@ -345,10 +345,9 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         are no gaps of few+ slices between any two detections
     
     '''
-        
-    # slice_rad = 10 # association radius in slices
-    
+            
     detections_accounted_for_set = set()
+    
     pot_obj_list = []
     
     z_mean_list = []
@@ -387,14 +386,20 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         # extract the subset of the full detections 
         nearby_detections_table = full_det_table[nearby_detections_boolean]  
         
-        
+        # Don't add as an object or continue down the algorithm if there are
+        # fewer than 3 detections. Probably not a real object.  
         if not len(nearby_detections_table.index) >= 3: # only include if there are at least 3 frames within the search radius at this position
-            print "too few detections for index %s" % (str(index))
+            print "Too few detections for index %s" % (str(index))
             print nearby_detections_table.index
+            continue
+        
+        
         # check if all associated items have already been accounted for by seeing if all detections
         # in the object frame are already in the detections_accounted_for_set
         if not set(nearby_detections_table.index).issubset(detections_accounted_for_set):
             detections_accounted_for_set.update(set(nearby_detections_table.index))
+            
+            # build up list of potential objects. CHANGE THIS.
             pot_obj_list.append(nearby_detections_table)
         
         # IMPLEMENT THIS    
