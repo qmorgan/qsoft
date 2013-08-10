@@ -8,6 +8,8 @@ import os
 import glob
 import numpy as np
 from os import system
+import pandas as pd
+
 
 sextractor_bin = "sex"
 loadpath = './'
@@ -130,10 +132,14 @@ def _overlay_verification_text(obj_str,xx,yy,theta,double_size=True):
     else:
         ysign="+"
     
-    im_cmd_append = ' -fill red -annotate %fx%fXSIGN%fYSIGN%f "%s" ' % (ang,ang,abs(xpos),abs(ypos),obj_str)
+    im_cmd_append = ' -fill red -pointsize 20 -annotate %fx%fXSIGN%fYSIGN%f "%s" ' % (ang,ang,abs(xpos),abs(ypos),obj_str)
     im_cmd_append = im_cmd_append.replace('XSIGN',xsign)
     im_cmd_append = im_cmd_append.replace('YSIGN',ysign)
     return im_cmd_append
+    
+    # get all the detections associated with object 60
+    # det.loc[link.loc[link.obj_id==60].det_id]
+    
     
     #convert testlog.png -fill red -annotate %fx%f%s%f%s%f "%i" testannotate.png
     # % (ang,ang,xsign,xpos,ysign,ypos,det_index)
@@ -141,27 +147,32 @@ def _overlay_verification_text(obj_str,xx,yy,theta,double_size=True):
 def _create_verification_images(detection_table,object_table,link_table):
      
     #convert ap_000017.fits -fx "log(abs((u.r+u.g+u.b)*80))" testlog.png
+    ap_list = glob.glob('ap_0*.png')
     
-    # get the detection table from the 5th image slice
-    current_img_detections = detection_table[detection_table.z_index==5]
-    # join it with the detection_object link table
-    current_link = link_table.join(current_img_detections.z_index,on='det_id',how='right')
+    for ap_img in ap_list:
+        num = int(ap_img.replace('ap_','').lstrip('0').replace('.png',''))
+        out_img = ap_img.replace('ap_','detections_')
         
-    # join it with the object stats table
-    current_objects=current_link.join(object_table,on='obj_id',how='left')
-    # loop through the objects and make a label for each
-    im_cmd = 'convert ap_000005.png -scale 200% -gravity Center'
-    ### here we're centering on each DETECTION and printing a list of each OBJECT that detection is associated with
-    for index,row in current_img_detections.iterrows():
-        matching_objects = current_objects[current_objects['det_id'] == index]
-        obj_list_str = str(list(matching_objects.obj_id)).rstrip(']').lstrip('[')
-        im_cmd+=_overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'])
-    ### here we're centering on the average position of each OBJECT and printing it at this average position
-    # for index, row in current_objects.iterrows():
-    #     im_cmd+=_overlay_verification_text(str(row['obj_id']),row['x_mean'],row['y_mean'],0)
-    im_cmd += 'detections_000005.png'
-    os.system(im_cmd)
-    
+        # get the detection table from the 5th image slice
+        current_img_detections = detection_table[detection_table.z_index==num]
+        # join it with the detection_object link table
+        current_link = link_table.join(current_img_detections.z_index,on='det_id',how='right')
+        
+        # join it with the object stats table
+        current_objects=current_link.join(object_table,on='obj_id',how='left')
+        # loop through the objects and make a label for each
+        im_cmd = 'convert ' + ap_img + ' -scale 200% -gravity Center ' 
+        ### here we're centering on each DETECTION and printing a list of each OBJECT that detection is associated with
+        for index,row in current_img_detections.iterrows():
+            matching_objects = current_objects[current_objects['det_id'] == index]
+            obj_list_str = str(list(matching_objects.obj_id)).rstrip(']').lstrip('[')
+            im_cmd+=_overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'])
+        ### here we're centering on the average position of each OBJECT and printing it at this average position
+        # for index, row in current_objects.iterrows():
+        #     im_cmd+=_overlay_verification_text(str(row['obj_id']),row['x_mean'],row['y_mean'],0)
+        im_cmd += out_img 
+        os.system(im_cmd)
+    print im_cmd
     #convert testlog.png -fill red -annotate %fx%f%s%f%s%f "10" testannotate.png
     # % (ang,ang,xsign,xpos,ysign,ypos)
 def make_sex_cat(image_name, checkimages=False):
@@ -216,14 +227,27 @@ def sex_loop(checkimages=False):
 
     # print catnumlist
 
-def find_all_objects():
-    import pandas as pd
+def build_image_table(configfile):
+    '''
+    Build up the image table from the configuration file.
+    '''
     # df=pd.read_csv('cat000010.txt',delim_whitespace=True)
     configfile = 'ZSeries-07192013-1148-028.xml'
     print 'Reading config File %s' % configfile
     config = read_xml_configuration(configfile)
     image_table = pd.DataFrame(config['data_dict'])
+    return image_table
+
+def find_all_objects():
+    '''    
+    Build up the full detection table by reading in all the ascii outputs from 
+    source extractor.  
     
+    currently must run within the directory containing the cat0*.txt files output 
+    by sextractor
+    
+    '''
+
     detection_names = ['z_index','x','y','A','B','ellipticity','theta','r_kron',
         'r_flux','mu_max','mag_auto','magerr_auto','mag_iso','magerr_iso',
         'fwhm','flags']
@@ -242,9 +266,72 @@ def find_all_objects():
     print str(count) + ' tables read in'
     return detection_table
 
-def get_dat_ass(det,rad=3.0,slice_rad=10.0):
-    import pandas as pd
+def ignore_this_code():
+        pass 
+        #### ALGORITHM 2
+        ## Create a database of unique objects
+        # Is there an object at detected position in the potential object database ?
+        #   NO: Create one
+        #   YES: is there a detection for this object in the same frame as this one?
+        #       YES: Create a new object for this detection
+        #       NO: is the detection more than 20(?) frames away from the object already in the database?
+        #           YES: Create a new object for this detection
+        #           NO: it is probably associated with an object in the database already
+        
+        # loop through the unique objects and find possible associations of detections
+        
+        # if there are multiple associations with a detection in another slice, choose the nearest one?
     
+        # ## ALGORITHM 1
+        # testtab =det.loc[link.loc[link.obj_id==107].det_id]
+        # qq = testtab
+        # tt = testtab
+        # qq['self_index']=qq.index # assigning as a new column
+        # tt['self_index']=tt.index
+        # qq2=qq.loc[:,['self_index','z_index','x','y']]
+        # tt2=tt.loc[:,['self_index','z_index','x','y']]
+        # new=pd.merge(tt2,qq2,on='z_index',suffixes=('_1','_2'))
+        # duplicates = new[new.self_index_1 < new.self_index_2]
+        # dup_ind = duplicates.z_index
+        # 
+        # # list of the ones where there were only SINGLE detections - use a logical not
+        # no_neighbors = qq[np.logical_not(qq.z_index.isin(list(dup_ind)))]
+        # # list of only the ones where there were multiple detections in the same frame:
+        # neighbors = qq[qq.z_index.isin(list(dup_ind))]
+        # # so far i can only deal with double neighbors, so im going to put this here: [could possibly loop thru this process until no neighbors left]
+        # assert len(list(neighbors.z_index))==len(set(neighbors.z_index))
+        # # the following however, should ALWAYS be true, unless i screwed up
+        # assert len(list(no_neighbors.z_index))==len(set(no_neighbors.z_index))
+        # 
+        # # for all the doubles found, find the pairs that have the *nearest* positions
+        # # 
+        # # In [667]: duplicates
+        # # Out[667]:
+        # #     self_index_1  z_index  self_index_2
+        # # 4            896       46           897
+        # # 8            917       47           918
+        # # 12           940       48           941
+        # # 16           959       49           960
+        # # 20           976       50           977
+        # # 24           994       51           995
+        # # 28          1010       52          1011
+        # # 32          1024       53          1025
+        # # 36          1037       54          1038
+        # # take the two lists of duplicates self_index 1 and self_index 2
+        # # take the first detection and compare it slice by slice to see which
+        # # of the two possible sources it is nearest.  take the nearest one and store
+        # # it in object 1, and the other should go to object 2. Repeat for the second duplicate
+        # # and verify you get the opposite answer. 
+        
+        
+        # IMPLEMENT THIS    
+        #must have three unique NONBLENDED detections.. but still count the blended ones as once
+        
+def get_dat_ass(det,rad=3.0,slice_rad=10.0):
+    '''
+    Get database of associations
+    '''
+        
     ass_rad = rad # association radius in number of pixels
     # slice_rad = 10 # association radius in slices
     
@@ -264,33 +351,49 @@ def get_dat_ass(det,rad=3.0,slice_rad=10.0):
         current_x = row['x']
         current_y = row['y']
         current_z = row['z_index']
-
+        
+        
+        #######
+        # STEP 1: Gather table of nearby detections within distance and slice threshold
         # det[np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) < ass_rad]
         # Another common operation is the use of boolean vectors to filter the data. 
         # The operators are: | for or, & for and, and ~ for not. These must be 
         # grouped by using parentheses.
-        boolean_array = (np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) \
+        
+        # Here is the logic for determining table of nearby detections
+        nearby_detections_boolean = (np.sqrt((current_x-det.x)**2+(current_y-det.y)**2) \
             < ass_rad) & (np.abs(current_z - det.z_index) < slice_rad) \
-            & (np.abs(current_z - det.z_index) != 0) # added this to avoid double-counting of nearby cells in same frame 
+            & (current_z != det.z_index) # added this to avoid double-counting of nearby cells in same frame 
         
         # get integer index of label index [just in case the lengths are different]
         current_int_index = np.where(det.index == index)[0][0]
         
         # set boolean value to True for current index position so it is included
-        boolean_array[current_int_index] = True
+        nearby_detections_boolean[current_int_index] = True
         
-        potential_object_frame = det[boolean_array]  
+        # extract the subset of the full detections 
+        nearby_detections_table = det[nearby_detections_boolean]  
         
         
-        if not len(potential_object_frame.index) >= 3: # only include if there are at least 3 frames within the search radius at this position
+        if not len(nearby_detections_table.index) >= 3: # only include if there are at least 3 frames within the search radius at this position
             print "too few detections for index %s" % (str(index))
-            print potential_object_frame.index
-        # check if all associated items have already been accoutned for by seeing if all detections
+            print nearby_detections_table.index
+        # check if all associated items have already been accounted for by seeing if all detections
         # in the object frame are already in the detections_accounted_for_set
-        if not set(potential_object_frame.index).issubset(detections_accounted_for_set):
-            detections_accounted_for_set.update(set(potential_object_frame.index))
-            pot_obj_list.append(potential_object_frame)
-            
+        if not set(nearby_detections_table.index).issubset(detections_accounted_for_set):
+            detections_accounted_for_set.update(set(nearby_detections_table.index))
+            pot_obj_list.append(nearby_detections_table)
+        
+        # IMPLEMENT THIS    
+        #must have three unique NONBLENDED detections.. but still count the blended ones as once
+        
+        
+        ## ALGORITHM 3
+        from collections import Counter
+        from itertools import groupby
+        
+        # create a list of the modes of slices (if there are multiple) by counting the frequency of each slice in the detection list
+        slice_freq = groupby(Counter())
         
 
         # get data frame at specific location (using labels)
@@ -320,6 +423,13 @@ def get_dat_ass(det,rad=3.0,slice_rad=10.0):
         else:
             object_table = object_table.append(tmp_table,ignore_index=True)
             detection_object_link_table = detection_object_link_table.append(tmp_table2,ignore_index=True)
+        
+        # attempting to make a multiindex table
+        # obj_id_arr = np.zeros(len(obj_df.index))
+        # det_id_arr = np.array(obj_df.index)
+        # arrays = []
+        # nevermind for now
+        
         count += 1
     
     #     catid = int(cat_text_file[3:].lstrip('0').rstrip('.txt'))
@@ -332,6 +442,7 @@ def get_dat_ass(det,rad=3.0,slice_rad=10.0):
     #     count += 1
     # print str(count) + ' tables read in'
     
+    print str(len(object_table)) + ' potential objects found'
     
     return object_table,detection_object_link_table 
         
