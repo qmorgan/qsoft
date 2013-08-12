@@ -9,6 +9,7 @@ import glob
 import numpy as np
 from os import system
 import pandas as pd
+import copy
 
 
 sextractor_bin = "sex"
@@ -119,9 +120,11 @@ def _overlay_verification_text(obj_str,xx,yy,theta,color='red',double_size=True)
         # refers to the position on the background image, but also the position 
         # in the overlay image that is to be drawn.
         ypos = 512.- yy -256.
+        ptsize = 10
     else:
         xpos = xx*2 - 512.
         ypos = 1024. - yy*2 - 512
+        ptsize = 20
     
     if xpos < 0:
         xsign="-"
@@ -132,7 +135,8 @@ def _overlay_verification_text(obj_str,xx,yy,theta,color='red',double_size=True)
     else:
         ysign="+"
     
-    im_cmd_append = ' -fill %s -pointsize 20 -annotate %fx%fXSIGN%fYSIGN%f "%s" ' % (color,ang,ang,abs(xpos),abs(ypos),obj_str)
+    
+    im_cmd_append = ' -fill %s -stroke black -pointsize 30 -annotate %fx%fXSIGN%fYSIGN%f "%s" ' % (color,ang,ang,abs(xpos),abs(ypos),obj_str)
     im_cmd_append = im_cmd_append.replace('XSIGN',xsign)
     im_cmd_append = im_cmd_append.replace('YSIGN',ysign)
     return im_cmd_append
@@ -143,15 +147,26 @@ def _overlay_verification_text(obj_str,xx,yy,theta,color='red',double_size=True)
     
     #convert testlog.png -fill red -annotate %fx%f%s%f%s%f "%i" testannotate.png
     # % (ang,ang,xsign,xpos,ysign,ypos,det_index)
+
+def verification_images(detection_table,object_table,object_link_table,association_link_table):
+    _create_verification_images(detection_table,object_table,association_link_table,textcolor='gold')
+    _create_verification_images(detection_table,object_table,object_link_table,textcolor='cyan',overlay=True)
     
-def _create_verification_images(detection_table,object_table,link_table):
+def _create_verification_images(detection_table,object_table,link_table,textcolor='gold',overlay=False):
      
     #convert ap_000017.fits -fx "log(abs((u.r+u.g+u.b)*80))" testlog.png
-    ap_list = glob.glob('ap_0*.png')
+    if not overlay:
+        ap_list = glob.glob('ap_0*.png')
+    else:
+        ap_list = glob.glob('detections_0*.png')
     
     for ap_img in ap_list:
-        num = int(ap_img.replace('ap_','').lstrip('0').replace('.png',''))
-        out_img = ap_img.replace('ap_','detections_')
+        if not overlay:
+            num = int(ap_img.replace('ap_','').lstrip('0').replace('.png',''))
+            out_img = ap_img.replace('ap_','detections_')
+        else:
+            num = int(ap_img.replace('detections_','').lstrip('0').replace('.png',''))
+            out_img = ap_img
         
         # get the detection table from the 5th image slice
         current_img_detections = detection_table[detection_table.z_index==num]
@@ -162,14 +177,19 @@ def _create_verification_images(detection_table,object_table,link_table):
         current_objects=current_link.join(object_table,on='obj_id',how='left')
         # loop through the objects and make a label for each
         im_cmd = 'convert ' + ap_img + ' -scale 200% -gravity Center ' 
+        if overlay:
+            im_cmd = 'convert ' + ap_img + ' -gravity Center ' #dont double the size
+        
         ### here we're centering on each DETECTION and printing a list of each OBJECT that detection is associated with
         for index,row in current_img_detections.iterrows():
             matching_objects = current_objects[current_objects['det_id'] == index]
             obj_list_str = str(list(matching_objects.obj_id)).rstrip(']').lstrip('[').replace('.0','')
             if obj_list_str == 'nan': 
                 color = 'red'
+                if overlay:
+                    continue
             else:
-                color = 'green'
+                color = textcolor
             im_cmd+=_overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'],color=color)
         ### here we're centering on the average position of each OBJECT and printing it at this average position
         # for index, row in current_objects.iterrows():
@@ -533,9 +553,10 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         from itertools import groupby
         
         
-        ## STEP 3: Iterate until we find a number of slices with a common
-        # number of detections. This fights against single outliers that 
-        # only appear in a single image
+        ## STEP 2A: Iterate until we find a set number of slices with a common
+        # number of nearby detections. This fights against single outliers that 
+        # only appear in a single image. Stop the iteration if we're at a 
+        # single detection across slices.  
         real_detection_threshold = 2
         most_common_slices = []
         while len(most_common_slices) < real_detection_threshold:
@@ -558,13 +579,14 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
                 nearby_detections_table = nearby_detections_table[np.logical_not(nearby_detections_table.z_index.isin(most_common_slices))]
 
    
-            
+        
+        ## STEP 2B: Only continue with the object assignment process if the object
+        # is not assigned already.   
         # if all the detections in each of these slices is accounted for already, 
         # then the associated object with them should exist
         # if SOME detections are accounted for already but not all, 
         # this is an indication that something is wrong and the threshold is too
-        # low. 
-        
+        # low.  
         # need both of these?
         cont = False
         for inddd in most_det_in_ind_slice_table.index:
@@ -581,17 +603,16 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             continue
         
     
-
-        
+        ## STEP 3: Take one slice as a reference slice and compare each of the
+        # detections in the other slices with the same number of nearby 
+        # detections and assign the grouping of them to a single potential object.
         # take the middle slice from this list as the reference point for 
         # object assignment. The middle slice is most likely to have the 
         # clearest detections of the objects and best positions
         slice_ref_index = len(most_common_slices)/2
         reference_slice = most_common_slices[slice_ref_index]
-        
         reference_table = most_det_in_ind_slice_table[most_det_in_ind_slice_table.z_index == reference_slice]
-        
-        
+              
         # gather the close by (in xy) detections by looping through the most_det_in_ind_slice_table 
         # and adding the closest detections to each object in the reference table
         for ref_ind, ref_row in reference_table.iterrows():
@@ -628,16 +649,18 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             
             # if there's only one instance of this many objects in a slice, it's 
             # probably a spurious detection. skip and move down to the next most 
-            # common detection level.
+            # common detection level. EDIT this is now taken care of higher up
             if len(check_table.det_id) < 3:
                 print "only %i instance(s) of %s object detections in slice %s at x=%f y=%f" % (len(check_table.det_id),str(len(reference_table)),str(int(ref_row['z_index'])),ref_row['x'],ref_row['y'])
                 # could instead flag it as a spurious detection
                 # or have a column in the object table of how many slices went into it
                 
-            
             # now that the detection ids of the closest objects have been found,
-            # add these all to a table  
-            
+            # add these all to a table. The object table will have the means
+            # and standard deviations of the z, x, and y positions of the 
+            # DETECTIONS, which is the slices in which the objects were separated
+            # from each other. Not to be confused with the ASSOCIATIONS, which 
+            # is ones that overlap with a detection.
             obj_df = most_det_in_ind_slice_table.loc[check_table.det_id]
             means = obj_df.mean()
             stds = obj_df.std()
@@ -659,24 +682,18 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             
             # if index > 1051: raise Exception
         
-        # assign each detection in the reference table as a potential object
 
-        
-        # detection id, distance, slice
-        
-        
-        
-        # check if all associated items have already been accounted for by seeing if all detections
-        # in the object frame are already in the detections_accounted_for_set
-        if not set(nearby_detections_table.index).issubset(detections_accounted_for_set): 
-            detections_accounted_for_set.update(set(nearby_detections_table.index))
-            
-            # build up list of potential objects. CHANGE THIS.
-            pot_obj_list.append(nearby_detections_table)
-        
-        # IMPLEMENT THIS    
-        #must have three unique NONBLENDED detections.. but still count the blended ones as once
-        
+        # # check if all associated items have already been accounted for by seeing if all detections
+        # # in the object frame are already in the detections_accounted_for_set
+        # if not set(nearby_detections_table.index).issubset(detections_accounted_for_set): 
+        #     detections_accounted_for_set.update(set(nearby_detections_table.index))
+        #     
+        #     # build up list of potential objects. CHANGE THIS.
+        #     pot_obj_list.append(nearby_detections_table)
+        # 
+        # # IMPLEMENT THIS    
+        # #must have three unique NONBLENDED detections.. but still count the blended ones as once
+        # 
             
     # # loop again through object list and populate the object_table and detection_object_link_table?
     # # may be a more efficient way to do this.. 
@@ -716,9 +733,111 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
     #     count += 1
     # print str(count) + ' tables read in'
     
-    print str(len(object_table)) + ' potential objects found'
+    ## Consistency checks!
+    # if all the detections of an object are in adjacent slices to each other, 
+    # the standard deviation of the z_index 
+    # should be equal to std(np.arange(N)) where N is the number of slices that 
+    # the object appears.  
     
-    return object_table,detection_object_link_table 
+    print str(len(object_table)) + ' potential objects found'
+    print str(len(set_of_detections_accounted_for))+ '/' + str(len(full_det_table)) + ' detections accounted for'
+    print 'Attempting to assign associations to the remaining detections'
+    
+    ## STEP 5: iterate through the remaining detections and associate each
+    # object within its elliptical area to it. This covers the large detections
+    # that may be a blurred combination of several objects.
+    # copy the list of detections accounted for
+    set_of_associations_accounted_for = set(copy.copy(list(set_of_detections_accounted_for)))
+    for index,row in full_det_table.iterrows():
+        if index in set_of_associations_accounted_for:
+            # only do these association calculations for unassigned detections
+            continue
+        else:
+            set_of_associations_accounted_for.update([index])
+        current_x = row['x']
+        current_y = row['y']
+        current_z = full_det_table.z_index[index]
+        current_A = row['A'] # semimajor axis
+        current_kron = row['r_kron'] 
+        
+        # A*r_kron is the semimajor axis shown on the verification images.  
+        
+        # initial truncation of possible assotiations; to be within an ellipse,
+        # the object must be within the box centered at the origin of the 
+        # ellipse with sides = 2*semimajor axis
+        # [actually more constraining is that it is within the circle of 
+        # radius r=semimajor_axis, but this requires an additional calculation]
+        possible_associations_table = object_table.loc[(abs(object_table.x_mean-current_x) < current_A) & \
+            (abs(object_table.y_mean-current_y) < current_A)]
+        
+        verified_indices = []
+        for poss_association_ind, poss_association_row in possible_associations_table.iterrows():
+            if current_z in list(full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == poss_association_ind].det_id].z_index):
+                print "In slice %i, not associating detection %i with object %i as it exists already in that slice." % (current_z,index,poss_association_ind)
+                continue # don't make an association with an object that already exists in the current slice
+            verified_indices.append(poss_association_ind)
+            
+        verified_associations_table = possible_associations_table.loc[verified_indices]
+        #print possible_associations_table
+        ass_det_link_dict = {'obj_id':verified_associations_table.index,'det_id':index}
+        tmp_table3 = pd.DataFrame(ass_det_link_dict)
+        association_object_link_table = association_object_link_table.append(tmp_table3,ignore_index=True)
+
+    print str(len(association_object_link_table)) + '/' + str(len(full_det_table)) + ' detections associated'
+  
+    return object_table,detection_object_link_table,association_object_link_table
+
+from math import copysign, cos, sin, sqrt
+class Ellipse:
+
+    def __init__(self, mx, my, rh, rv):
+        self.mx = mx # x center
+        self.my = my # y center
+        self.rh = rh # semimajor axis
+        self.rv = rv # semiminor axis
+       
+    def pointFromAngle(self, xyangle, theta=0):
+        '''
+        Determine the point on the ellipse that intersects the ray from the
+        origin of the ellipse to another point.  
+        
+        xyangle is the angle between the x axis and the point of interest
+            = arctan((y-y_0)/(x-x_0))
+            where (x_0,y_0) is the origin of the ellipse and (x,y) is the 
+            point of interest
+        
+        theta is the rotation angle of the ellipse from the x axis.  
+        
+        see http://i.imgur.com/2m7ymjC.png for a graphical explination 
+        '''
+        psi = xyangle - theta
+        c = np.cos(psi)
+        s = np.sin(psi)
+        ta = s / c  ## tan(psi)
+        tt = ta * self.rh / self.rv  ## tan(t)
+        d = 1. / np.sqrt(1. + tt * tt)
+        x = self.mx + np.copysign(self.rh * d, c)
+        y = self.my + np.copysign(self.rv * tt * d, s)
+        try:
+            len(x)
+        except:
+            x=np.array([x])
+            y=np.array([y])
+        
+        if theta != 0:
+            #rotate
+            xlist=[]
+            ylist=[]
+            xyarr = np.array(zip(x,y))
+        
+            for xy in xyarr:
+                rot_matrix = np.array([[np.cos(theta),-1*np.sin(theta)],[np.sin(theta),np.cos(theta)]])
+                xy_prime = rot_matrix.dot(xy.T)
+                xlist.append(xy_prime[0])
+                ylist.append(xy_prime[1])
+            x=np.array(xlist)
+            y=np.array(ylist)
+        return x, y
         
 def test_pandas():
     import pandas as pd
