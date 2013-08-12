@@ -107,7 +107,7 @@ def _convert_verification_pngs():
         os.system(im_cmd)
         # cp_cmd = 'cp %s %s' % (png_name,png_name.replace('ap_','detections_'))
         # os.system(cp_cmd)
-def _overlay_verification_text(obj_str,xx,yy,theta,double_size=True):    
+def _overlay_verification_text(obj_str,xx,yy,theta,color='red',double_size=True):    
     
     if theta <= 0: 
         ang = abs(theta)
@@ -132,7 +132,7 @@ def _overlay_verification_text(obj_str,xx,yy,theta,double_size=True):
     else:
         ysign="+"
     
-    im_cmd_append = ' -fill red -pointsize 20 -annotate %fx%fXSIGN%fYSIGN%f "%s" ' % (ang,ang,abs(xpos),abs(ypos),obj_str)
+    im_cmd_append = ' -fill %s -pointsize 20 -annotate %fx%fXSIGN%fYSIGN%f "%s" ' % (color,ang,ang,abs(xpos),abs(ypos),obj_str)
     im_cmd_append = im_cmd_append.replace('XSIGN',xsign)
     im_cmd_append = im_cmd_append.replace('YSIGN',ysign)
     return im_cmd_append
@@ -166,7 +166,11 @@ def _create_verification_images(detection_table,object_table,link_table):
         for index,row in current_img_detections.iterrows():
             matching_objects = current_objects[current_objects['det_id'] == index]
             obj_list_str = str(list(matching_objects.obj_id)).rstrip(']').lstrip('[').replace('.0','')
-            im_cmd+=_overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'])
+            if obj_list_str == 'nan': 
+                color = 'red'
+            else:
+                color = 'green'
+            im_cmd+=_overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'],color=color)
         ### here we're centering on the average position of each OBJECT and printing it at this average position
         # for index, row in current_objects.iterrows():
         #     im_cmd+=_overlay_verification_text(str(row['obj_id']),row['x_mean'],row['y_mean'],0)
@@ -528,21 +532,40 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         from collections import Counter
         from itertools import groupby
         
-        # create a list of the modes of slices (if there are multiple) by 
-        # counting the frequency of each slice in the detection list
-        slice_counter = Counter(list(nearby_detections_table.z_index))
-        slice_freq_iterator = groupby(slice_counter.most_common(), lambda x:x[1])
-        most_common_slices = [freqval for freqval,freqcount in slice_freq_iterator.next()[1]]
         
-        # get the subset table of detections have the most number of nearby 
-        # detections in a single slice 
-        most_det_in_ind_slice_table = nearby_detections_table[nearby_detections_table.z_index.isin(most_common_slices)]
-        
+        ## STEP 3: Iterate until we find a number of slices with a common
+        # number of detections. This fights against single outliers that 
+        # only appear in a single image
+        real_detection_threshold = 2
+        most_common_slices = []
+        while len(most_common_slices) < real_detection_threshold:
+            
+            # create a list of the modes of slices (if there are multiple) by 
+            # counting the frequency of each slice in the detection list
+            slice_counter = Counter(list(nearby_detections_table.z_index))
+            slice_freq_iterator = groupby(slice_counter.most_common(), lambda x:x[1])
+            most_common_slices = [freqval for freqval,freqcount in slice_freq_iterator.next()[1]]
+
+            # get the subset table of detections have the most number of nearby 
+            # detections in a single slice 
+            most_det_in_ind_slice_table = nearby_detections_table[nearby_detections_table.z_index.isin(most_common_slices)]
+            
+            if len(most_det_in_ind_slice_table) == 1: 
+                print "Down to the lowest level."
+                break
+            if len(most_common_slices) == 1:
+                print "Just one instance of %s object detections in slice %s; moving to next level" % (str(len(most_det_in_ind_slice_table)),str(most_common_slices))
+                nearby_detections_table = nearby_detections_table[np.logical_not(nearby_detections_table.z_index.isin(most_common_slices))]
+
+   
+            
         # if all the detections in each of these slices is accounted for already, 
         # then the associated object with them should exist
         # if SOME detections are accounted for already but not all, 
         # this is an indication that something is wrong and the threshold is too
         # low. 
+        
+        # need both of these?
         cont = False
         for inddd in most_det_in_ind_slice_table.index:
             if inddd in set_of_detections_accounted_for:
@@ -557,6 +580,9 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
                 assert inddd not in set_of_detections_accounted_for
             continue
         
+    
+
+        
         # take the middle slice from this list as the reference point for 
         # object assignment. The middle slice is most likely to have the 
         # clearest detections of the objects and best positions
@@ -566,7 +592,7 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         reference_table = most_det_in_ind_slice_table[most_det_in_ind_slice_table.z_index == reference_slice]
         
         
-        # gather the close by detections by looping through the most_det_in_ind_slice_table 
+        # gather the close by (in xy) detections by looping through the most_det_in_ind_slice_table 
         # and adding the closest detections to each object in the reference table
         for ref_ind, ref_row in reference_table.iterrows():
             # each reference detection will get assigned to an object.
@@ -603,9 +629,8 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             # if there's only one instance of this many objects in a slice, it's 
             # probably a spurious detection. skip and move down to the next most 
             # common detection level.
-            if len(check_table.det_id) == 1:
-                print "only one instance of %s object detections in slice %s at x=%f y=%f" % (str(len(reference_table)),str(int(ref_row['z_index'])),ref_row['x'],ref_row['y'])
-                continue
+            if len(check_table.det_id) < 3:
+                print "only %i instance(s) of %s object detections in slice %s at x=%f y=%f" % (len(check_table.det_id),str(len(reference_table)),str(int(ref_row['z_index'])),ref_row['x'],ref_row['y'])
                 # could instead flag it as a spurious detection
                 # or have a column in the object table of how many slices went into it
                 
@@ -616,18 +641,19 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             obj_df = most_det_in_ind_slice_table.loc[check_table.det_id]
             means = obj_df.mean()
             stds = obj_df.std()
-            object_names = ['z_mean','z_std','x_mean','x_std','y_mean','y_std']     
-            ind_obj_list = [means['z_index'],stds['z_index'],means['x'],stds['x'],means['y'],stds['y']]
+            object_names = ['z_mean','z_std','x_mean','x_std','y_mean','y_std','detections','associations']     
+            ind_obj_list = [means['z_index'],stds['z_index'],means['x'],stds['x'],means['y'],stds['y'],len(check_table.det_id),len(check_table.det_id)]
             tmp_table = pd.DataFrame([ind_obj_list],columns=object_names)
             obj_det_link_dict = {'obj_id':object_count,'det_id':obj_df.index}
             tmp_table2 = pd.DataFrame(obj_det_link_dict)
             if object_count == 0:
                 object_table = tmp_table
                 detection_object_link_table = tmp_table2
+                association_object_link_table = tmp_table2
             else:
                 object_table = object_table.append(tmp_table,ignore_index=True)
                 detection_object_link_table = detection_object_link_table.append(tmp_table2,ignore_index=True)
-            
+                association_object_link_table = association_object_link_table.append(tmp_table2,ignore_index=True)
             object_count += 1
             
             
