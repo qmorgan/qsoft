@@ -577,8 +577,6 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             if len(most_common_slices) == 1:
                 print "Just one instance of %s object detections in slice %s; moving to next level" % (str(len(most_det_in_ind_slice_table)),str(most_common_slices))
                 nearby_detections_table = nearby_detections_table[np.logical_not(nearby_detections_table.z_index.isin(most_common_slices))]
-
-   
         
         ## STEP 2B: Only continue with the object assignment process if the object
         # is not assigned already.   
@@ -587,20 +585,20 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         # if SOME detections are accounted for already but not all, 
         # this is an indication that something is wrong and the threshold is too
         # low.  
-        # need both of these?
-        cont = False
+        
+        unaccounted_objects = []
         for inddd in most_det_in_ind_slice_table.index:
-            if inddd in set_of_detections_accounted_for:
-                cont = True
-        if cont == True:
-            continue 
+            if inddd not in set_of_detections_accounted_for:
+                unaccounted_objects.append(inddd)
+        
+        most_det_in_ind_slice_table = most_det_in_ind_slice_table.loc[unaccounted_objects]
             
-        if not set(most_det_in_ind_slice_table.index).issubset(set_of_detections_accounted_for): 
-            set_of_detections_accounted_for.update(set(most_det_in_ind_slice_table.index))
-        else:
-            for inddd in most_det_in_ind_slice_table.index:
-                assert inddd not in set_of_detections_accounted_for
-            continue
+        # if not set(most_det_in_ind_slice_table.index).issubset(set_of_detections_accounted_for): 
+        
+        # else:
+        #     for inddd in most_det_in_ind_slice_table.index:
+        #         assert inddd not in set_of_detections_accounted_for
+        #     continue
         
     
         ## STEP 3: Take one slice as a reference slice and compare each of the
@@ -678,8 +676,8 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
                 detection_object_link_table = detection_object_link_table.append(tmp_table2,ignore_index=True)
                 association_object_link_table = association_object_link_table.append(tmp_table2,ignore_index=True)
             object_count += 1
-            
-            
+            set_of_detections_accounted_for.update(set(obj_df.index))
+            # if index == 1091: raise Exception
             # if index > 1051: raise Exception
         
 
@@ -753,28 +751,53 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             # only do these association calculations for unassigned detections
             continue
         else:
-            set_of_associations_accounted_for.update([index])
+            pass
         current_x = row['x']
         current_y = row['y']
         current_z = full_det_table.z_index[index]
         current_A = row['A'] # semimajor axis
+        current_B = row['B']
         current_kron = row['r_kron'] 
+        current_theta = row['theta']
         
-        # A*r_kron is the semimajor axis shown on the verification images.  
+        # A*r_kron is the semimajor axis shown on the verification images.
+        # 25% of this radius should be more than enough for an association
+        # could make this user-specifyable for more tweaking ability. 
+        # making it too big will lead to an overload of associations.
+        association_radius_thresh = 1
+        kron_A = current_kron*current_A*association_radius_thresh
+        kron_B = current_kron*current_B*association_radius_thresh
         
         # initial truncation of possible assotiations; to be within an ellipse,
         # the object must be within the box centered at the origin of the 
         # ellipse with sides = 2*semimajor axis
         # [actually more constraining is that it is within the circle of 
         # radius r=semimajor_axis, but this requires an additional calculation]
-        possible_associations_table = object_table.loc[(abs(object_table.x_mean-current_x) < current_A) & \
-            (abs(object_table.y_mean-current_y) < current_A)]
+        possible_associations_table = object_table.loc[(abs(object_table.x_mean-current_x) < kron_A) & \
+            (abs(object_table.y_mean-current_y) < kron_A)]
         
         verified_indices = []
         for poss_association_ind, poss_association_row in possible_associations_table.iterrows():
-            if current_z in list(full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == poss_association_ind].det_id].z_index):
+            potential_association_z_list = list(full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == poss_association_ind].det_id].z_index)
+            if current_z in potential_association_z_list:
                 print "In slice %i, not associating detection %i with object %i as it exists already in that slice." % (current_z,index,poss_association_ind)
                 continue # don't make an association with an object that already exists in the current slice
+            ellipse_of_detection = Ellipse(0,0,kron_A,kron_B)
+            xyang=np.arctan((poss_association_row['y_mean']-current_y)/(poss_association_row['x_mean']-current_x))
+            px,py = ellipse_of_detection.pointFromAngle(xyang,theta=current_theta)
+            # if the distance from the center of the ellipse to px,py is 
+            # further than the distance to x_mean,y_mean of the object, this
+            # means that the object is within the elliptical threshhold.
+            px = px[0]
+            py = py[0]
+            dist_to_ellipse_edge = np.sqrt((px)**2 + (py)**2)
+            dist_to_potential_object = np.sqrt((poss_association_row['x_mean']-current_x)**2 + (poss_association_row['y_mean']-current_y)**2)
+
+            if dist_to_ellipse_edge < dist_to_potential_object:
+                print "In slice %i, object %i is nearby detection %i but is outside its elliptical threshold" % (current_z,poss_association_ind,index)
+                continue
+            object_table.associations.loc[poss_association_ind] += 1 # add that we have an association
+            
             verified_indices.append(poss_association_ind)
             
         verified_associations_table = possible_associations_table.loc[verified_indices]
@@ -782,8 +805,11 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
         ass_det_link_dict = {'obj_id':verified_associations_table.index,'det_id':index}
         tmp_table3 = pd.DataFrame(ass_det_link_dict)
         association_object_link_table = association_object_link_table.append(tmp_table3,ignore_index=True)
-
-    print str(len(association_object_link_table)) + '/' + str(len(full_det_table)) + ' detections associated'
+        if len(verified_associations_table.index) > 0:
+            set_of_associations_accounted_for.add(index)
+        else:
+            print 'Could not find an association for detection %i in slice %i' % (index, current_z)
+    print str(len(set_of_associations_accounted_for)) + '/' + str(len(full_det_table)) + ' detections associated'
   
     return object_table,detection_object_link_table,association_object_link_table
 
