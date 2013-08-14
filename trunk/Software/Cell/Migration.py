@@ -19,13 +19,20 @@ loadpath = './'
 
 class ImageStack:
     def __init__(self, directory='./'):
-        configpath = directory + 'ZSeries*.xml'
+        os.chdir(directory)
+        self.cwd = os.getcwd() + '/'
+        self.configpath = self.cwd #path for configuration files cell.sex, cell.param, gauss_3.0_7x7.conv
+        config_directory = self.cwd
+        configpath = config_directory + 'ZSeries*.xml'
         configfile = glob.glob(configpath)
-        if len(configfile > 1):
-            raise IOError("Too many configuration files!")
-        elif len(configfile == 0):
-            raise IOError("Cannot find configfile in path " + directory)
-        
+        if len(configfile) > 1:
+            raise IOError("Too many configuration files in " + config_directory)
+        elif len(configfile) == 0:
+            raise IOError("Cannot find configfile in path " + config_directory)
+        else:
+            self.configfile = configfile[0]
+        self.read_xml_configuration()
+        self.tiflist = glob.glob('ZSeries*.tif')
 
     def read_xml_configuration(self):
         import xml.etree.ElementTree as ET
@@ -82,38 +89,64 @@ class ImageStack:
         self.config = config
         self.image_table = pd.DataFrame(config['data_dict'])
         
+    def grab_fits_list(self,make_new=False):
+        self.fitslist=glob.glob(self.cwd+'0*.fits')
+        if len(self.fitslist) == 0 and make_new == True:
+            self.tiff2fits()
         
+        
+    def tiff2fits(self,truncate_filename=True):
+        '''Convert all tiff files in the current directory to a fits file
+        truncate_filename renames the file as the last characters after the last 
+        '_' in the input filename.
+        '''
+        print 'Converting tiff files to fits files'
+        working_directory = self.cwd
+        outlist = []
+        for filepath in self.tiflist:
+            assert os.path.exists(filepath)
+            filedir = os.path.dirname(filepath)
+            filebase = os.path.basename(filepath)
+            basename, baseextension = filebase.split('.')
+            if truncate_filename:
+                basename = basename.split('_')[-1]
+            if baseextension[0:3] != 'tif':
+                raise ValueError('Expected tiff file; got ' + baseextension)
+            outpath = working_directory + '/' + basename + '.fits'
     
-def tiff2fits(filelist,truncate_filename=True):
-    '''Convert all tiff files in the current directory to a fits file
-    truncate_filename renames the file as the last characters after the last 
-    '_' in the input filename.
-    '''
-    print 'Converting tiff files to fits files'
-    working_directory = os.getcwd()
-    outlist = []
-    for filepath in filelist:
-        assert os.path.exists(filepath)
-        filedir = os.path.dirname(filepath)
-        filebase = os.path.basename(filepath)
-        basename, baseextension = filebase.split('.')
-        if truncate_filename:
-            basename = basename.split('_')[-1]
-        if baseextension[0:3] != 'tif':
-            raise ValueError('Expected tiff file; got ' + baseextension)
-        outpath = working_directory + '/' + basename + '.fits'
-        
-        magickcommand = "convert %s %s" % (filepath, outpath)
-        try:
-            os.system(magickcommand)
-            outlist += outpath
-        except:
-            print "Do not have Imagemagick, cannot convert tif to fits"
-            
-    return outlist
-
-
-def _convert_verification_pngs():
+            magickcommand = "convert %s %s" % (filepath, outpath)
+            try:
+                os.system(magickcommand)
+                outlist += outpath
+            except:
+                print "Do not have Imagemagick, cannot convert tif to fits"
+    
+        self.fitslist = outlist
+    
+    def make_sex_cat(self,image_name, checkimages=False):
+        '''Create the Source EXtraction CATalog'''
+        basename = os.path.basename(image_name)
+        sexcat_file = self.cwd+'cat'+basename+'.txt'
+        sex_command = sextractor_bin + " " + image_name + " -c " + self.configpath + "cell.sex " + \
+            " -CATALOG_NAME " + sexcat_file
+        sex_command += ' -PARAMETERS_NAME  %scell.param ' % (self.configpath)
+        sex_command += ' -FILTER_NAME %sgauss_3.0_7x7.conv ' % (self.configpath)
+        if checkimages:
+            sex_command += ' -CHECKIMAGE_TYPE APERTURES,SEGMENTATION,BACKGROUND '
+            sex_command += ' -CHECKIMAGE_NAME ap_%s.fits,seg_%s.fits,back_%s.fits ' % (basename,basename,basename)
+        else:
+            sex_command += ' -CHECKIMAGE_TYPE NONE '
+        print sex_command
+        system(sex_command)
+        return sexcat_file
+    
+    def sex_loop(self,checkimages=False):
+        # give previous_image as None if first in the list; give following_image as None if last
+        fits_list = self.fitslist
+        for image in fits_list:
+            self.make_sex_cat(image,checkimages=checkimages)
+    
+def vert_verification_pngs():
     '''This takes several minutes, recommended only if you need to verify that
     your detections are being populated correctly 
     '''
@@ -216,18 +249,7 @@ def _create_verification_images(detection_table,object_table,link_table,textcolo
     print im_cmd
     #convert testlog.png -fill red -annotate %fx%f%s%f%s%f "10" testannotate.png
     # % (ang,ang,xsign,xpos,ysign,ypos)
-def make_sex_cat(image_name, checkimages=False):
-    '''Create the Source EXtraction CATalog'''
-    basename = image_name.split('.')[0]
-    sexcat_file = 'cat'+basename+'.txt'
-    sex_command = sextractor_bin + " " + image_name + " -c " + loadpath + "cell.sex " + \
-        " -CATALOG_NAME " + sexcat_file
-    if checkimages:
-        sex_command += ' -CHECKIMAGE_TYPE APERTURES,SEGMENTATION,BACKGROUND '
-        sex_command += ' -CHECKIMAGE_NAME ap_%s.fits,seg_%s.fits,back_%s.fits ' % (basename,basename,basename)
-    print sex_command
-    system(sex_command)
-    return sexcat_file
+
 
 def make_ass_cat(image_name, assoc_image_name):
     '''Create the ASSociation CATalaog. Depreciated??'''
@@ -248,25 +270,25 @@ def make_ass_cat(image_name, assoc_image_name):
     return sexcat_file
 
 
-def sex_loop(checkimages=False):
-    # give previous_image as None if first in the list; give following_image as None if last
-    fits_list = glob.glob('0*.fits')
-    for image in fits_list:
-        make_sex_cat(image,checkimages=checkimages)
-    # assoc_list = [None] + fits_list + [None]
-    # for index in np.arange(len(fits_list))+1:
-    #     make_ass_cat(assoc_list[index], assoc_list[index-1])
-    #     make_ass_cat(assoc_list[index], assoc_list[index+1])
-    # 
-    # assuming file format of cat000119.txt
-    # catlist = glob.glob('cat0*.txt')
-    # if len(catlist) == 0:
-    #     raise IOError("List of catalogs is empty. Check path and verify presence of cat0xxxxx.txt files")
-    # for cat in catlist:
-    #     catid = int(item[3:].lstrip('0').rstrip('.txt'))
-    #     
-
-    # print catnumlist
+# def sex_loop(checkimages=False):
+#     # give previous_image as None if first in the list; give following_image as None if last
+#     fits_list = glob.glob('0*.fits')
+#     for image in fits_list:
+#         make_sex_cat(image,checkimages=checkimages)
+#     # assoc_list = [None] + fits_list + [None]
+#     # for index in np.arange(len(fits_list))+1:
+#     #     make_ass_cat(assoc_list[index], assoc_list[index-1])
+#     #     make_ass_cat(assoc_list[index], assoc_list[index+1])
+#     # 
+#     # assuming file format of cat000119.txt
+#     # catlist = glob.glob('cat0*.txt')
+#     # if len(catlist) == 0:
+#     #     raise IOError("List of catalogs is empty. Check path and verify presence of cat0xxxxx.txt files")
+#     # for cat in catlist:
+#     #     catid = int(item[3:].lstrip('0').rstrip('.txt'))
+#     #     
+# 
+#     # print catnumlist
 
 
 
