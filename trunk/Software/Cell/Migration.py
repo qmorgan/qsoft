@@ -10,70 +10,86 @@ import numpy as np
 from os import system
 import pandas as pd
 import copy
-
+import matplotlib.pyplot as plt
+from matplotlib import rc
+rc('font', family='Times New Roman', size=14)
 
 sextractor_bin = "sex"
 loadpath = './'
 
-def read_xml_configuration(configfile):
-    import xml.etree.ElementTree as ET
-    tree = ET.parse(configfile)
-    root = tree.getroot()
-    
-    for item in root.iter('PVScan'):
-        scan_date = item.attrib['date']
-    
-    #format is:
-    # <Key key="positionCurrent_ZAxis" permissions="WriteSave" value="-518.6" />
-    z_values = []
-    x_values = []
-    microns_per_pixel_list = []
-    y_values = []
-    z_diff_values = []
-    rel_time_values = []
-    abs_time_values = []
-    indices = []
-    # parse xml file and build list of values
-    for frame in root.iter('Frame'):
-        rel_time_values.append(float(frame.attrib['relativeTime']))
-        abs_time_values.append(float(frame.attrib['absoluteTime']))
-        indices.append(int(frame.attrib['index']))
-    for key in root.iter('Key'):
-        if key.attrib['key'] == "positionCurrent_ZAxis":
-            z_values.append(float(key.attrib['value']))
-        elif key.attrib['key'] == "positionCurrent_XAxis":
-            x_values.append(float(key.attrib['value']))
-        elif key.attrib['key'] == "positionCurrent_YAxis":
-            y_values.append(float(key.attrib['value']))
-        elif key.attrib['key'] == "micronsPerPixel_XAxis":
-            microns_per_pixel_list.append(float(key.attrib['value']))
-        elif key.attrib['key'] == "micronsPerPixel_YAxis":
-            microns_per_pixel_list.append(float(key.attrib['value']))
-    # determine difference between each z position
-    for i in np.arange(len(z_values)-1):
-        z_diff_values.append(z_values[i]-z_values[i+1])
-    z_diff_mean = np.mean(z_diff_values)
-    microns_per_pixel = np.mean(microns_per_pixel_list)
-    # Error checking
-    if np.std(z_diff_values) > 1E-9:
-        raise ValueError("Something is wrong; Variance in z_diff detected")
-    if np.std(x_values) > 1E-9:
-        raise ValueError("Something is wrong; Variance in x_values detected")
-    if np.std(y_values) > 1E-9:
-        raise ValueError("Something is wrong; Variance in y_values detected")    
-    if np.std(microns_per_pixel_list) > 1E-9:
-        raise ValueError("Something is wrong; Variance in microns per pixel detected")
+class ImageStack:
+    def __init__(self, directory='./'):
+        configpath = directory + 'ZSeries*.xml'
+        configfile = glob.glob(configpath)
+        if len(configfile > 1):
+            raise IOError("Too many configuration files!")
+        elif len(configfile == 0):
+            raise IOError("Cannot find configfile in path " + directory)
         
-    data_dict = {'z_index':indices,'z_pos':z_values,'x_pos':x_values,'y_pos':y_values,'t_rel':rel_time_values,'t_abs':abs_time_values}
-    config = {'date':scan_date,'z_diff':z_diff_mean,'pixel_scale':microns_per_pixel,'data_dict':data_dict}
 
-    return config
+    def read_xml_configuration(self):
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(self.configfile)
+        root = tree.getroot()
+    
+        for item in root.iter('PVScan'):
+            scan_date = item.attrib['date']
+    
+        #format is:
+        # <Key key="positionCurrent_ZAxis" permissions="WriteSave" value="-518.6" />
+        z_values = []
+        x_values = []
+        microns_per_pixel_list = []
+        y_values = []
+        z_diff_values = []
+        rel_time_values = []
+        abs_time_values = []
+        indices = []
+        # parse xml file and build list of values
+        for frame in root.iter('Frame'):
+            rel_time_values.append(float(frame.attrib['relativeTime']))
+            abs_time_values.append(float(frame.attrib['absoluteTime']))
+            indices.append(int(frame.attrib['index']))
+        for key in root.iter('Key'):
+            if key.attrib['key'] == "positionCurrent_ZAxis":
+                z_values.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "positionCurrent_XAxis":
+                x_values.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "positionCurrent_YAxis":
+                y_values.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "micronsPerPixel_XAxis":
+                microns_per_pixel_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "micronsPerPixel_YAxis":
+                microns_per_pixel_list.append(float(key.attrib['value']))
+        # determine difference between each z position
+        for i in np.arange(len(z_values)-1):
+            z_diff_values.append(z_values[i]-z_values[i+1])
+        z_diff_mean = np.mean(z_diff_values)
+        microns_per_pixel = np.mean(microns_per_pixel_list)
+        # Error checking
+        if np.std(z_diff_values) > 1E-9:
+            raise ValueError("Something is wrong; Variance in z_diff detected")
+        if np.std(x_values) > 1E-9:
+            raise ValueError("Something is wrong; Variance in x_values detected")
+        if np.std(y_values) > 1E-9:
+            raise ValueError("Something is wrong; Variance in y_values detected")    
+        if np.std(microns_per_pixel_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in microns per pixel detected")
+        
+        data_dict = {'z_index':indices,'z_pos':z_values,'x_pos':x_values,'y_pos':y_values,'t_rel':rel_time_values,'t_abs':abs_time_values}
+        config = {'filename':self.configfile,'date':scan_date,'z_diff':z_diff_mean,'pixel_scale':microns_per_pixel,'data_dict':data_dict}
+        
+        self.config = config
+        self.image_table = pd.DataFrame(config['data_dict'])
+        
+        
     
 def tiff2fits(filelist,truncate_filename=True):
     '''Convert all tiff files in the current directory to a fits file
     truncate_filename renames the file as the last characters after the last 
     '_' in the input filename.
     '''
+    print 'Converting tiff files to fits files'
     working_directory = os.getcwd()
     outlist = []
     for filepath in filelist:
@@ -101,6 +117,7 @@ def _convert_verification_pngs():
     '''This takes several minutes, recommended only if you need to verify that
     your detections are being populated correctly 
     '''
+    print "Converting aperture images to scaled pngs. This will take a long time."
     ap_list = glob.glob('ap_0*.fits')
     for ap_img in ap_list:
         png_name = ap_img.replace('fits','png')
@@ -213,7 +230,7 @@ def make_sex_cat(image_name, checkimages=False):
     return sexcat_file
 
 def make_ass_cat(image_name, assoc_image_name):
-    '''Create the ASSociation CATalaog'''
+    '''Create the ASSociation CATalaog. Depreciated??'''
     if assoc_image_name == None:
         return None
     basename = image_name.split('.')[0]
@@ -236,7 +253,7 @@ def sex_loop(checkimages=False):
     fits_list = glob.glob('0*.fits')
     for image in fits_list:
         make_sex_cat(image,checkimages=checkimages)
-    assoc_list = [None] + fits_list + [None]
+    # assoc_list = [None] + fits_list + [None]
     # for index in np.arange(len(fits_list))+1:
     #     make_ass_cat(assoc_list[index], assoc_list[index-1])
     #     make_ass_cat(assoc_list[index], assoc_list[index+1])
@@ -251,16 +268,7 @@ def sex_loop(checkimages=False):
 
     # print catnumlist
 
-def build_image_table(configfile):
-    '''
-    Build up the image table from the configuration file.
-    '''
-    # df=pd.read_csv('cat000010.txt',delim_whitespace=True)
-    configfile = 'ZSeries-07192013-1148-028.xml'
-    print 'Reading config File %s' % configfile
-    config = read_xml_configuration(configfile)
-    image_table = pd.DataFrame(config['data_dict'])
-    return image_table
+
 
 def find_all_objects():
     '''    
@@ -662,8 +670,12 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             obj_df = most_det_in_ind_slice_table.loc[check_table.det_id]
             means = obj_df.mean()
             stds = obj_df.std()
-            object_names = ['z_mean','z_std','x_mean','x_std','y_mean','y_std','detections','associations']     
-            ind_obj_list = [means['z_index'],stds['z_index'],means['x'],stds['x'],means['y'],stds['y'],len(check_table.det_id),len(check_table.det_id)]
+            # the slice at which mu_max [indicator of max surface brightness] 
+            # appears to be a good indicator of when the cell is most in focus
+            # and thus near the center of the current slice
+            z_min_mu_max = obj_df.z_index.loc[obj_df.mu_max.idxmin()]
+            object_names = ['z_mean','z_std','x_mean','x_std','y_mean','y_std','z_min_mu_max','detections','associations']     
+            ind_obj_list = [means['z_index'],stds['z_index'],means['x'],stds['x'],means['y'],stds['y'],z_min_mu_max,len(check_table.det_id),len(check_table.det_id)]
             tmp_table = pd.DataFrame([ind_obj_list],columns=object_names)
             obj_det_link_dict = {'obj_id':object_count,'det_id':obj_df.index}
             tmp_table2 = pd.DataFrame(obj_det_link_dict)
@@ -777,11 +789,16 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
             (abs(object_table.y_mean-current_y) < kron_A)]
         
         verified_indices = []
+        maximum_association_distance = 7
         for poss_association_ind, poss_association_row in possible_associations_table.iterrows():
             potential_association_z_list = list(full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == poss_association_ind].det_id].z_index)
             if current_z in potential_association_z_list:
                 print "In slice %i, not associating detection %i with object %i as it exists already in that slice." % (current_z,index,poss_association_ind)
                 continue # don't make an association with an object that already exists in the current slice
+            z_distances = abs(np.array(potential_association_z_list) - current_z)
+            if min(z_distances) > maximum_association_distance:
+                print "In slice %i, detection %i is close to object %i in x,y space but is %i slices away." % (current_z,index,poss_association_ind,min(z_distances))
+                continue
             ellipse_of_detection = Ellipse(0,0,kron_A,kron_B)
             xyang=np.arctan((poss_association_row['y_mean']-current_y)/(poss_association_row['x_mean']-current_x))
             px,py = ellipse_of_detection.pointFromAngle(xyang,theta=current_theta)
@@ -813,6 +830,38 @@ def get_dat_ass(full_det_table,xy_rad=5.0,slice_rad=30.0):
   
     return object_table,detection_object_link_table,association_object_link_table
 
+def ret_detections_from_obj_id(full_det_table,detection_object_link_table,obj_id):
+    return full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == obj_id].det_id]
+
+def plot_count_hist(object_table,configfile=None):
+    file_base=config['filename'].replace('.xml','')
+    savename=file_base+'.png'
+    plt.bar(np.round(object_table.z_mean).value_counts().index,np.round(object_table.z_mean).value_counts(),color='blue',alpha=0.5)
+    plt.bar(object_table.z_min_mu_max.value_counts().index,object_table.z_min_mu_max.value_counts(),color='red',alpha=0.5)
+    plt.legend(['mean slice #','minimum $\mu_{max}$ slice #'],'upper right')
+    plt.ylabel('Counts')
+    plt.xlabel('Slice #')
+    if configfile:
+        config = read_xml_configuration(configfile)
+        plt.title(config['filename'].replace('.xml',''))
+    plt.savefig(savename)
+
+def do_everything(really_everything=False):
+    configfile = 'ZSeries-08012013-0901-009.xml'
+    image_table=read_xml_configuration(configfile)
+    if really_everything:
+        filelist = glob.glob('ZSeries*.tif')
+        fitslist = tiff2fits(filelist,truncate_filename=True)
+        sex_loop(checkimages=True)
+    det=find_all_objects()
+    objs,link,asslink=get_dat_ass(det,xy_rad=20.0,slice_rad=20.0)
+    
+    # if really_everything:
+    if really_everything:
+        _convert_verification_pngs() #fits to pngs
+    verification_images(det,objs,link,asslink)
+    plot_count_hist(objs,configfile=configfile)
+    
 from math import copysign, cos, sin, sqrt
 class Ellipse:
 
