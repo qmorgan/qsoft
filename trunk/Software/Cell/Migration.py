@@ -17,24 +17,6 @@ import cPickle as pickle
 rc('font', family='Times New Roman', size=14)
 
 sextractor_bin = "sex"
-loadpath = './'
-
-def do_everything(really_everything=False):
-    configfile = 'ZSeries-08012013-0901-009.xml'
-    image_table=read_xml_configuration(configfile)
-    if really_everything:
-        filelist = glob.glob('ZSeries*.tif')
-        fitslist = tiff2fits(filelist,truncate_filename=True)
-        FindDetections(checkimages=True)
-    det=ReadCatalogs()
-    objs,link,asslink=FindObjects(det,xy_rad=20.0,slice_rad=20.0)
-    
-    # if really_everything:
-    if really_everything:
-        PrepareVerificationImages() #fits to pngs
-    MakeVerificationImages(det,objs,link,asslink)
-    PlotCountHist(objs,configfile=configfile)
-
 
 
 class ImageStack:
@@ -71,7 +53,14 @@ class ImageStack:
         if len(xml_list) > 1:
             raise IOError("Too many .xml configuration files in " + xml_path)
         elif len(xml_list) == 0:
-            raise IOError("Cannot find .xml configuration in path " + xml_path)
+            try:
+                print "Couldn't find .xml configuration file; checking in parent directory"
+                xml_path = os.path.dirname(self.image_directory.rstrip('/'))+'/ZSeries*.xml'
+                xml_list = glob.glob(xml_path)
+                assert len(xml_list) == 1
+                self.xml_config = xml_list[0]
+            except:
+                raise IOError("Cannot find .xml configuration in path " + xml_path)
         else:
             self.xml_config = xml_list[0]
         self.name = os.path.basename(self.xml_config).replace('.xml','')
@@ -82,7 +71,7 @@ class ImageStack:
         if len(self.tiflist) == 0:
             print "Cannot find any ZSeries*.tif images to convert in " + self.image_directory
         print "Converting tiff files to fits files..."
-        self.fitslist = self.tiff2fits(self.tiflist,truncate_filename=True)
+        self.tiff2fits(truncate_filename=True)
         if len(self.fitslist) == 0:
             raise IOError("Couldn't convert tif files to fits files...")
         print "Done. Ready to FindDetections()"
@@ -90,19 +79,27 @@ class ImageStack:
     
     def FindDetections(self,checkimages=False):
         # give previous_image as None if first in the list; give following_image as None if last
-        fits_list = self.fitslist
+        
+        if not hasattr(self,"fitslist"):
+            print "ImageStack instance does not have fitslist attribute."
+            print "Either convert .tif data to fits using PrepareImages(), "
+            print " or grab list of already generated .fits files in the "
+            print " output_directory using grab_fits_list()."
+            return
         self.catlist = []
+        fits_list = self.fitslist
+        
         for image in fits_list:
             self.catlist.append(self.make_sex_cat(image,checkimages=checkimages))
         print "Source Extraction complete. Wrote " + str(len(self.catlist)) + " catalogs."
         print "Ready to ReadCatalogs()"
         
-    def save(self,clobber=False):
-        savePickle(self,self.output_directory+self.name+'.pkl')
+    def Save(self,clobber=False):
+        savePickle(self,self.output_directory+self.name+'.pkl',clobber=clobber)
     
-    def export_to_excel(self):
+    def ExportToExcel(self):
         excelpath = self.output_directory+self.name+'.xlsx'
-        writer = ExcelWriter(excelpath)
+        writer = pd.ExcelWriter(excelpath)
         self.object_table.to_excel(writer,sheet_name="Objects")
         self.detection_table.to_excel(writer,sheet_name="Detections")
         self.detection_object_link_table.to_excel(writer,sheet_name="ObjectLinks")
@@ -192,7 +189,7 @@ class ImageStack:
             magickcommand = "convert %s %s" % (filepath, outpath)
             try:
                 os.system(magickcommand)
-                outlist += outpath
+                outlist.append(outpath)
             except:
                 print "Do not have Imagemagick, cannot convert tif to fits"
     
@@ -200,7 +197,7 @@ class ImageStack:
     
     def make_sex_cat(self,image_name, checkimages=False):
         '''Create the Source EXtraction CATalog'''
-        basename = os.path.basename(image_name)
+        basename = os.path.basename(image_name).replace('.fits','')
         sexcat_file = self.output_directory+'cat'+basename+'.txt'
         sex_command = sextractor_bin + " " + image_name + " -c " + self.config_directory + "cell.sex " + \
             " -CATALOG_NAME " + sexcat_file
@@ -208,7 +205,7 @@ class ImageStack:
         sex_command += ' -FILTER_NAME %sgauss_3.0_7x7.conv ' % (self.config_directory)
         if checkimages:
             sex_command += ' -CHECKIMAGE_TYPE APERTURES,SEGMENTATION,BACKGROUND '
-            sex_command += ' -CHECKIMAGE_NAME ap_%s.fits,seg_%s.fits,back_%s.fits ' % (basename,basename,basename)
+            sex_command += ' -CHECKIMAGE_NAME %sap_%s.fits,%sseg_%s.fits,%sback_%s.fits ' % (self.output_directory,basename,self.output_directory,basename,self.output_directory,basename)
         else:
             sex_command += ' -CHECKIMAGE_TYPE NONE '
         print sex_command
@@ -233,14 +230,16 @@ class ImageStack:
 
         count = 0
         if not hasattr(self,"catlist"):
-            print 'No list of *.cat files! Run source extractor first.'
+            print "catlist attribute doesn't exist; looking for already generated"
+            print " catalogs in the output_directory."
+            self.catlist = glob.glob(self.output_directory+'cat??????.txt')
+        if len(self.catlist) == 0:
+            print 'No *.cat files found in %s! Run FindDetections() first.' % (self.output_directory)
             return
-        elif len(self.catlist) == 0:
-            print 'No *.cat files found in %s! Are the paths set up correctly?' % (self.output_directory)
-            return
-        for cat_text_file in cat_list:
+        for cat_text_path in self.catlist:
+            cat_text_file = os.path.basename(cat_text_path)
             catid = int(cat_text_file[3:].lstrip('0').rstrip('.txt'))
-            tmp_table=pd.read_csv(cat_text_file,header=None,delim_whitespace=True,names=detection_names)
+            tmp_table=pd.read_csv(cat_text_path,header=None,delim_whitespace=True,names=detection_names)
             tmp_table.z_index = catid
             if count == 0:
                 detection_table = tmp_table # do this for the first item, then append on to it
@@ -625,10 +624,10 @@ class ImageStack:
             # os.system(cp_cmd)
         print "Images converted. Ready for MakeVerificationImages()"
     
-    def _create_verification_images(self,textcolor='gold',overlay=False):
+    def _create_verification_images(self,link_table,textcolor='gold',overlay=False):
         detection_table = self.detection_table
         object_table = self.object_table
-        link_table = self.link_table
+        
         
         #convert ap_000017.fits -fx "log(abs((u.r+u.g+u.b)*80))" testlog.png
         if not overlay:
@@ -642,10 +641,12 @@ class ImageStack:
             
         for ap_img in ap_list:
             if not overlay:
-                num = int(ap_img.replace('ap_','').lstrip('0').replace('.png',''))
+                base = os.path.basename(ap_img)
+                num = int(base.replace('ap_','').lstrip('0').replace('.png',''))
                 out_img = ap_img.replace('ap_','detections_')
             else:
-                num = int(ap_img.replace('detections_','').lstrip('0').replace('.png',''))
+                base = os.path.basename(ap_img)
+                num = int(base.replace('detections_','').lstrip('0').replace('.png',''))
                 out_img = ap_img
 
             # get the detection table from the 5th image slice
@@ -723,30 +724,29 @@ class ImageStack:
     
     
     def MakeVerificationImages(self):
-        if not hasattr(self,object_table):
+        if not hasattr(self,"object_table"):
             print "Need to generate object/association tables with FindObjects() first."
             return
-        _create_verification_images(self.detection_table,self.object_table,self.association_object_link_table,textcolor='gold')
-        _create_verification_images(self.detection_table,self.object_table,self.detection_object_link_table,textcolor='cyan',overlay=True)
+        self._create_verification_images(self.association_object_link_table,textcolor='gold')
+        self._create_verification_images(self.detection_object_link_table,textcolor='cyan',overlay=True)
     
     
     def PlotCountHist(self):
-        if not hasattr(self,object_table):
+        if not hasattr(self,"object_table"):
             print "Need to generate object/association tables with FindObjects first."
             return
         object_table = self.object_table
-        file_base=config['filename'].replace('.xml','')
-        savename=file_base+'.png'
+        savename=self.name+'_hist.png'
         plt.bar(np.round(object_table.z_mean).value_counts().index,np.round(object_table.z_mean).value_counts(),color='blue',alpha=0.5)
         plt.bar(object_table.z_min_mu_max.value_counts().index,object_table.z_min_mu_max.value_counts(),color='red',alpha=0.5)
         plt.legend(['mean slice #','minimum $\mu_{max}$ slice #'],'upper right')
         plt.ylabel('Counts')
         plt.xlabel('Slice #')
         plt.title(self.name)
-        plt.savefig(savename)
+        plt.savefig(self.output_directory+savename)
     
     def ret_detections_from_obj_id(self, obj_id):
-        if not hasattr(self,detection_object_link_table):
+        if not hasattr(self,"detection_object_link_table"):
             print "Need to generate object/association tables with FindObjects first."
             return
         full_det_table = self.detection_table
@@ -858,6 +858,7 @@ def ignore_this_code():
         
         # IMPLEMENT THIS    
         #must have three unique NONBLENDED detections.. but still count the blended ones as once
+
         
 def get_dat_ass_old(full_det_table,xy_rad=5.0,slice_rad=30.0):
     '''
