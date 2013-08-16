@@ -36,6 +36,13 @@ class ImageStack:
             # assume the user is trying to run in current working directory
             os.chdir(config_directory)
             config_directory = os.getcwd() + '/'
+        
+        if not image_directory[-1] == '/': # need to have trailing slash
+            image_directory += '/'
+        if not output_directory[-1] == '/':
+            output_directory += '/'
+        if not config_directory[-1] == '/':
+            config_directory += '/'
             
         if ' ' in image_directory:
             raise ValueError("Spaces not allowed in image_directory: " + image_directory)
@@ -123,6 +130,9 @@ class ImageStack:
         z_diff_values = []
         rel_time_values = []
         abs_time_values = []
+        exposure_time_list = []
+        gain_list = []
+        gain_mult_list = []
         indices = []
         # parse xml file and build list of values
         for frame in root.iter('Frame'):
@@ -140,11 +150,18 @@ class ImageStack:
                 microns_per_pixel_list.append(float(key.attrib['value']))
             elif key.attrib['key'] == "micronsPerPixel_YAxis":
                 microns_per_pixel_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "sfc_exposureTime":
+                exposure_time_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "sfc_gainMultFactor":
+                gain_mult_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "sfc_gain":
+                gain_list.append(float(key.attrib['value']))
         # determine difference between each z position
         for i in np.arange(len(z_values)-1):
             z_diff_values.append(z_values[i]-z_values[i+1])
         z_diff_mean = np.mean(z_diff_values)
         microns_per_pixel = np.mean(microns_per_pixel_list)
+        exposure_time = np.mean(exposure_time_list)
         # Error checking
         if np.std(z_diff_values) > 1E-9:
             raise ValueError("Something is wrong; Variance in z_diff detected")
@@ -154,9 +171,16 @@ class ImageStack:
             raise ValueError("Something is wrong; Variance in y_values detected")    
         if np.std(microns_per_pixel_list) > 1E-9:
             raise ValueError("Something is wrong; Variance in microns per pixel detected")
-        
+        if np.std(exposure_time_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in individual exposure times detected")
+        if np.std(gain_mult_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in gain mult factor detected")
+        if np.std(gain_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in gain detected")
+            
         data_dict = {'z_index':indices,'z_pos':z_values,'x_pos':x_values,'y_pos':y_values,'t_rel':rel_time_values,'t_abs':abs_time_values}
-        config = {'filename':self.xml_config,'date':scan_date,'z_diff':z_diff_mean,'pixel_scale':microns_per_pixel,'data_dict':data_dict}
+        config = {'filename':self.xml_config,'date':scan_date,'z_diff':z_diff_mean,'exposure_time':exposure_time,'gain':np.mean(gain_list),\
+            'gain_mult_factor':np.mean(gain_mult_list),'pixel_scale':microns_per_pixel,'data_dict':data_dict}
         
         self.config = config
         self.image_table = pd.DataFrame(config['data_dict'])
@@ -425,7 +449,8 @@ class ImageStack:
                 # probably a spurious detection. skip and move down to the next most 
                 # common detection level. EDIT this is now taken care of higher up
                 if len(check_table.det_id) < 3:
-                    print "only %i instance(s) of %s object detections in slice %s at x=%f y=%f" % (len(check_table.det_id),str(len(reference_table)),str(int(ref_row['z_index'])),ref_row['x'],ref_row['y'])
+                    print "only %i instance(s) of %s object detections in slice %s at x=%f y=%f" % \
+                        (len(check_table.det_id),str(len(reference_table)),str(int(ref_row['z_index'])),ref_row['x'],ref_row['y'])
                     # could instead flag it as a spurious detection
                     # or have a column in the object table of how many slices went into it
 
@@ -753,7 +778,116 @@ class ImageStack:
         detection_object_link_table = self.detection_object_link_table
         return full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == obj_id].det_id]
     
+
+def histTest(objectlist,outname,title):
+    colorlist = [
+        "#870606", "#a51d20", "#bf3f41", "#dd6668",
+        "#af7c0c", "#c9921c", "#daa836", "#edbd55",
+        "#27308e", "#464eb0", "#5e66c4", "#7b83d8",
+        "#70027c", "#bb3ac9", "#d558e2", "#df79ea"]
+    # reds: "870606", "a51d20", "bf3f41", "dd6668"
+    # yellows: "af7c0c", "c9921c", "daa836", "edbd55"
+    # blues: "27308e", "464eb0", "5e66c4","7b83d8"
+    # violets: "70027c", "bb3ac9", "d558e2", "df79ea"
     
+    
+    
+    indices = np.arange(300)
+    count = 0
+    # obj = objectlist[0]
+    # plt.bar(indices,values,color=colorlist[count],alpha=0.5)
+    # 
+    # plt.bar(indices,values,bottom=values+values,color=colorlist[2],alpha=0.5)
+    plt.ioff()
+    fig=plt.figure()
+    ax1=fig.add_axes([0.1,0.1,0.8,0.8])
+    sumvalues = np.zeros(300)
+    extras = 0 # keeping track of tail end of distribution
+    max_index = 80 # where to stop the plot
+    for obj in objectlist:
+        values = np.zeros(300)
+        first_det_idx = min(obj.object_table.z_min_mu_max.value_counts().index) # for shifting the alignment
+        # normalize the value indices by shifting the index values such that
+        # the first position is the first detected object
+        normalized_indices = np.array(obj.object_table.z_min_mu_max.value_counts().index)-first_det_idx
+        
+        values[normalized_indices] = obj.object_table.z_min_mu_max.value_counts()
+        extras += len(obj.object_table[obj.object_table.z_min_mu_max - first_det_idx > max_index])
+        
+        
+        ax1.bar(indices,values,bottom=sumvalues,color=colorlist[count],alpha=1,linewidth=0)
+        sumvalues += values
+        count += 1
+        if count == 16:
+            count = 0
+    
+    if extras > 0:
+        ax1.text(0.8,0.2,"+"+ str(extras) + " More",transform=ax1.transAxes)
+        ax1.arrow(0.8,0.15,0.1,0.0,head_width=0.025,head_length=0.017,color='black',lw=2,transform=ax1.transAxes)
+    ax1.set_xlim(right=max_index)
+    
+    ax1.set_ylabel('Counts')
+    ax1.set_xlabel('Slice #')
+    ax1.set_title(title)
+    
+    fig.savefig(outname)    
+    fig.clf()
+
+
+def make_combined_gel_histograms():
+    basedir = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
+    day_list = ["day_1","day_2","day_3","day_4"]
+    type_list = ["no_tgfb","0.055ngml_tgfb","0.55ngml_tgfb","5.5ngml_tgfb"]
+    gel_list = ["gel_1","gel_2","gel_3","gel_4"]
+    trial_list = ["trial_1","trial_2","trial_3","trial_4"]
+    for day in day_list:
+        for typ in type_list:
+            obj_list = []
+            subbase = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
+            
+            for gel in gel_list:
+                base = subbase + day + '/' + typ + '/' + gel + '/'
+                pkl_list = glob.glob(base+"trial_?/*.pkl")
+                for pkl in pkl_list:
+                    obj_list.append(loadPickle(pkl))
+            
+            outname = subbase + 'combined-' + day + '-' + typ + '.png'
+            title = day.capitalize() + ', ' + typ.capitalize() 
+            title=title.replace('_',' ')
+            histTest(obj_list,outname,title)
+    
+    
+def make_individual_gel_histograms():
+    basedir = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
+    day_list = ["day_1","day_2","day_3","day_4"]
+    type_list = ["no_tgfb","0.055ngml_tgfb","0.55ngml_tgfb","5.5ngml_tgfb"]
+    gel_list = ["gel_1","gel_2","gel_3","gel_4"]
+    trial_list = ["trial_1","trial_2","trial_3","trial_4"]
+    
+    for day in day_list:
+        for typ in type_list:
+            for gel in gel_list:
+                obj_list = []
+                subbase = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
+                base = subbase + day + '/' + typ + '/' + gel + '/'
+                pkl_list = glob.glob(base+"trial_?/*.pkl")
+                outname = subbase + day + '-' + typ + '-' + gel + '.png'
+                for pkl in pkl_list:
+                    obj_list.append(loadPickle(pkl))
+                title = day.capitalize() + ', ' + typ.capitalize() + ', ' + gel.capitalize() 
+                title=title.replace('_',' ')
+                histTest(obj_list,outname,title)
+
+def test_histTest():
+    base = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/day_4/0.55ngml_tgfb/gel_1/'
+    filelist=glob.glob(base+"trial_?/*.pkl")
+    obj_list = []
+    for filename in filelist:
+        obj_list.append(loadPickle(filename))
+    # what is the z-axis shift for all these???
+    histTest(obj_list)
+    
+
 
 def make_ass_cat(image_name, assoc_image_name):
     '''Create the ASSociation CATalaog. Depreciated??'''
@@ -1099,6 +1233,8 @@ def loadPickle(pklpath):
     else:
         print "Pickle file %s does not exist" % pklpath
         return None
+
+
 
 def savePickle(input,outpath,clobber=False):
     path_existed = os.path.exists(outpath)
