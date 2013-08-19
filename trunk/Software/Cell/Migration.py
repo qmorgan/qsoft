@@ -824,16 +824,63 @@ def histTest(objectlist,outname,title):
     if extras > 0:
         ax1.text(0.8,0.2,"+"+ str(extras) + " More",transform=ax1.transAxes)
         ax1.arrow(0.8,0.15,0.1,0.0,head_width=0.025,head_length=0.017,color='black',lw=2,transform=ax1.transAxes)
+    
+    
+    
+    
     ax1.set_xlim(right=max_index)
     
     ax1.set_ylabel('Counts')
     ax1.set_xlabel('Slice #')
     ax1.set_title(title)
     
+    ax2 = ax1.twinx()
+    
+    cumsum = [sum(sumvalues[0:ind]) for ind in indices]
+    cumsum = np.array(cumsum)
+    normal_cumsum = cumsum/(np.max(cumsum))
+    # argg = list(np.ones(len(sumvalues)).cumsum().repeat(2))
+    # zz = copy.copy(sumvalues)
+    # zz.sort()
+    # tmp = list(zz.repeat(2))
+    # 
+    # tmp.append(1)
+    # yy = [0]
+    # yy.extend(argg)
+    # ax2.plot(tmp,yy,aa=True,linewidth = 2,color='black')
+    # 
+    ax2.plot(indices,normal_cumsum,linewidth=2,color='black')
+    ax2.set_ylabel('Percent of total cells')
+    
+    ax2.set_xlim(right=max_index)
+    
     fig.savefig(outname)    
     fig.clf()
 
 
+
+def get_average_object_number():
+    basedir = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
+    day_list = ["day_1","day_2","day_3","day_4"]
+    type_list = ["0.055ngml_tgfb","0.55ngml_tgfb","5.5ngml_tgfb"]
+    gel_list = ["gel_1","gel_2","gel_3","gel_4"]
+    trial_list = ["trial_1","trial_2","trial_3","trial_4"]
+    len_list = []
+    for day in day_list:
+        for typ in type_list:
+            for gel in gel_list:
+                
+                subbase = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
+                base = subbase + day + '/' + typ + '/' + gel + '/'
+                pkl_list = glob.glob(base+"trial_?/*.pkl")
+                outname = subbase + day + '-' + typ + '-' + gel + '.png'
+                for pkl in pkl_list:
+                    len_list.append(len(loadPickle(pkl).detection_table))
+                # title = day.capitalize() + ', ' + typ.capitalize() + ', ' + gel.capitalize() 
+                # title=title.replace('_',' ')
+                # histTest(obj_list,outname,title)
+    return len_list
+                
 def make_combined_gel_histograms():
     basedir = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
     day_list = ["day_1","day_2","day_3","day_4"]
@@ -885,7 +932,7 @@ def test_histTest():
     for filename in filelist:
         obj_list.append(loadPickle(filename))
     # what is the z-axis shift for all these???
-    histTest(obj_list)
+    histTest(obj_list,'/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/histtest.png','Cumsum test')
     
 
 
