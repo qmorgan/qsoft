@@ -9,6 +9,14 @@ Added ability to send attachments
 
 send_gmail.domail('qmorgan@gmail.com','Subject String','Body String\n\nYay',\
          attach_files=['/full/file/path1.jpg','/full/file/path2.txt'],undisclosed=True)
+         
+Set up your environment variables permanently in e.g. your ~/.bashrc file:
+export Q_GMAIL_ACCOUNT='yourUsernameHere'
+export Q_GMAIL_PASS='yourPasswordHere'
+
+Note this is NOT a secure way to store username and passwords. Use with 
+caution. Best to create a new gmail account that you don't mind security 
+issues with.
 """
 
 import os, sys, string, stat, socket,smtplib
@@ -18,8 +26,22 @@ import threading, time, traceback
 os.umask(0)
 userpath = os.environ.get("HOME")
 
-gmail_username = "q.mailbot"
-gmail_password = "RoboB00gie"
+# Check to make sure the environment variables are set up correctly
+if not os.environ.has_key("Q_GMAIL_ACCOUNT"):
+    print "You need to set the environment variable Q_GMAIL_ACCOUNT to"
+    print "point to your gmail account name"
+    sys.exit(1)
+else:
+    gmail_username = os.environ.get("Q_GMAIL_ACCOUNT")
+    
+
+if not os.environ.has_key("Q_GMAIL_PASS"):
+    print "You need to set the environment variable Q_GMAIL_PASS to"
+    print "point to your gmail password"
+    sys.exit(1)
+else: 
+    gmail_password = os.environ.get("Q_GMAIL_PASS")
+
 undisclosed = False # Suppress recipient list?
 from_address = gmail_username+'@gmail.com'
 
