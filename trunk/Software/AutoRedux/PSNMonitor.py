@@ -439,16 +439,16 @@ def _download_and_obtain_psn_string(followup_url):
         return None
     return str(psn_string)
     
-def PSNFlow():
+def PSNFlow(email=True,email_to='psnmonitor@googlegroups.com'):
     while(True):
         feed_url="http://www.cbat.eps.harvard.edu/unconf/tocp.xml"
         new_rss_list = Monitor_PSN_RSS(feed_url)
-        if len(new_rss_list) > 10:
+        if len(new_rss_list) > 10 and email==True:
             errmsg = 'new_rss_list is huge; not doing trigger actions'
             qErr.qErr(errtext=errmsg)
         elif new_rss_list != []:
             for entry in new_rss_list:
-                _do_new_entry_actions(entry)
+                _do_new_entry_actions(entry,email=email,email_to=email_to)
         
         print time.ctime()
         time.sleep(1800)
