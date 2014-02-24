@@ -780,6 +780,111 @@ class ImageStack:
     
 
 def histTest(objectlist,outname,title):
+    # colorlist = [
+    #     "#870606", "#a51d20", "#bf3f41", "#dd6668",
+    #     "#af7c0c", "#c9921c", "#daa836", "#edbd55",
+    #     "#27308e", "#464eb0", "#5e66c4", "#7b83d8",
+    #     "#70027c", "#bb3ac9", "#d558e2", "#df79ea"]
+    # # reds: "870606", "a51d20", "bf3f41", "dd6668"
+    # # yellows: "af7c0c", "c9921c", "daa836", "edbd55"
+    # # blues: "27308e", "464eb0", "5e66c4","7b83d8"
+    # # violets: "70027c", "bb3ac9", "d558e2", "df79ea"
+    # 
+    # 
+    
+    # generate colorlist:
+    colorlist = []
+    
+    count = 3
+    for sublist in objectlist:
+        
+        rgb = [0.2,0.2,0.2]
+        numitems = len(sublist)
+        ind = count % 3
+        
+        colorvals = np.linspace(0.3,1,numitems)
+        for val in colorvals:
+            rgb[ind] = val
+            print rgb
+            colorlist.append(tuple(rgb))
+        
+        
+        count += 1
+        
+    print colorlist
+    # make flat list from list of lists 
+    # In [6]: a=[[1,2,3],[4,5],[6,7,8,9]]
+    # In [7]: [item for sublist in a for item in sublist]
+
+    objectlist = [item for sublist in objectlist for item in sublist]
+    
+    indices = np.arange(300)
+    count = 0
+    # obj = objectlist[0]
+    # plt.bar(indices,values,color=colorlist[count],alpha=0.5)
+    # 
+    # plt.bar(indices,values,bottom=values+values,color=colorlist[2],alpha=0.5)
+    plt.ioff()
+    fig=plt.figure()
+    ax1=fig.add_axes([0.1,0.1,0.8,0.8])
+    sumvalues = np.zeros(300)
+    extras = 0 # keeping track of tail end of distribution
+    max_index = 80 # where to stop the plot
+    for obj in objectlist:
+        values = np.zeros(300)
+        first_det_idx = min(obj.object_table.z_min_mu_max.value_counts().index) # for shifting the alignment
+        # normalize the value indices by shifting the index values such that
+        # the first position is the first detected object
+        normalized_indices = np.array(obj.object_table.z_min_mu_max.value_counts().index)-first_det_idx
+        
+        values[normalized_indices] = obj.object_table.z_min_mu_max.value_counts()
+        extras += len(obj.object_table[obj.object_table.z_min_mu_max - first_det_idx > max_index])
+        
+        
+        ax1.bar(indices,values,bottom=sumvalues,color=colorlist[count],alpha=1,linewidth=0)
+        sumvalues += values
+        count += 1
+        # if count == 16:
+        #             count = 0
+    
+    if extras > 0:
+        ax1.text(0.8,0.2,"+"+ str(extras) + " More",transform=ax1.transAxes)
+        ax1.arrow(0.8,0.15,0.1,0.0,head_width=0.025,head_length=0.017,color='black',lw=2,transform=ax1.transAxes)
+    
+    
+    
+    
+    ax1.set_xlim(right=max_index)
+    
+    ax1.set_ylabel('Counts')
+    ax1.set_xlabel('Slice #')
+    ax1.set_title(title)
+    
+    ax2 = ax1.twinx()
+    
+    cumsum = [sum(sumvalues[0:ind]) for ind in indices]
+    cumsum = np.array(cumsum)
+    normal_cumsum = cumsum/(np.max(cumsum))
+    # argg = list(np.ones(len(sumvalues)).cumsum().repeat(2))
+    # zz = copy.copy(sumvalues)
+    # zz.sort()
+    # tmp = list(zz.repeat(2))
+    # 
+    # tmp.append(1)
+    # yy = [0]
+    # yy.extend(argg)
+    # ax2.plot(tmp,yy,aa=True,linewidth = 2,color='black')
+    # 
+    ax2.plot(indices,normal_cumsum,linewidth=2,color='black')
+    ax2.set_ylabel('Percent of total cells')
+    
+    ax2.set_xlim(right=max_index)
+    
+    fig.savefig(outname)    
+    fig.clf()
+
+
+def old_histTest(objectlist,outname,title):
     colorlist = [
         "#870606", "#a51d20", "#bf3f41", "#dd6668",
         "#af7c0c", "#c9921c", "#daa836", "#edbd55",
@@ -858,6 +963,37 @@ def histTest(objectlist,outname,title):
     fig.clf()
 
 
+def combined_histograms_140119():
+    dirpath="/Volumes/TimeMachineBackups/Mariana_all_confocal/20140119_coverslip_markers_adam_copy/"
+    outdir="/Volumes/TimeMachineBackups/Mariana_all_confocal/20140119output/"
+    daypaths = glob.glob(outdir+'/d*')
+    subbase = outdir
+
+
+    for daypath in daypaths:
+        obj_list = []
+        daybase = os.path.basename(daypath)
+        gelpaths = glob.glob(daypath+'/*')
+        for gelpath in gelpaths:
+            subobjlist=[]
+            gelbase = os.path.basename(gelpath)
+            pkl_list = glob.glob(gelpath+'/Z*/*.pkl')
+            for pkl in pkl_list:
+                obj = loadPickle(pkl)
+                subobjlist.append(obj)
+                outname3 = subbase + daybase + gelbase + os.path.basename(pkl)[0:-4] + '.png'
+                title3 = daybase +' '+ gelbase + ' '+ os.path.basename(pkl)[0:-4]
+                histTest([[obj]],outname3,title3)
+            obj_list.append(subobjlist)
+            title2 = daybase.capitalize() +' '+ gelbase.capitalize()
+            outname2 = subbase + daybase + gelbase + '.png'
+            histTest([subobjlist],outname2,title2)
+        outname = subbase + 'full-' + daybase + '.png'
+        title = daybase.capitalize()
+        title=title.replace('_',' ')
+        # raise Exception
+        print len(obj_list)
+        histTest(obj_list,outname,title)
 
 def get_average_object_number():
     basedir = '/Volumes/TimeMachineBackups/Mariana_all_confocal/Mariana_migration_output/'
