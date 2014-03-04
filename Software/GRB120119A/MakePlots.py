@@ -414,9 +414,12 @@ def _lightcurves():
     os.system(cmd)
     objblock_original.WriteTable()
     
-    objblock_xrt.PlotXRTlc(show=True,save=True,legend=True,
-        obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K'],
-        xlimits=(1e0,1e6),ylimits=None)
+    # objblock_xrt.PlotXRTlc(show=True,save=True,legend=True,
+    #     obslist=['BAT_unknown','XRT_unknown','PAIRITEL_K'],
+    #     xlimits=(1e0,1e6),ylimits=None)
+    objblock_xrt.PlotLC(show=True,save=True,legend=False,
+        xlimits=(1e0,3e4),ylimits=(6e-1,3e4),incl_xrt=True,residualscale=True,
+        figsize=(11,8))
 
     cmd = "mv " + storepath + 'LCxrt_GRB120119A.png '+ figuresdir
     os.system(cmd)
