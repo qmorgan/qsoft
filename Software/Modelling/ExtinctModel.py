@@ -1699,7 +1699,7 @@ def _write_results_to_file(outfile,outdict):
     f.close
 
 def SEDFitTest3(export_dustmodel=False):
-    '''another SED fit test, this time using the SED generated from a lightcurve fit'''
+    '''Another SED fit test, this time using the SED generated from a lightcurve fit'''
     z=1.728
     galebv=0.093
     
@@ -1830,6 +1830,42 @@ def SEDFitTest3(export_dustmodel=False):
             dmoutpath=loadpath+"DustModels/FMfit"+xrttext+".dust"
             dminpath=storepath+"SEDFit.dust" # this is output by SEDfit every time. Here we just transfer.
             shutil.copy(dminpath,dmoutpath)
+    
+        
+        # redoing fit with fixed RV per referee suggestion
+        fitdict=_getfitdict('smc',Av_init=-1.0,beta_init=-2.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+        paramstr='(%s)' % 'FMrv'
+        if count == 0:
+            paramstr = paramstr.rstrip(')') + 'X)' 
+        fitdict['c4']['fixed']=True
+        fitdict['c4']['init']= 0.43
+        print 'FIXING C4 to Schady Values'
+        # Could attempt to force a negative beta with forcenegbeta
+        fitdict['Rv']['fixed']=True
+        fitdict['Rv']['init']= 3.1
+        print 'FIXING Rv to referee values'
+        fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+            xraydict=xrd,TieReichart=TieReichart,forcenegbeta=False)
+        outfile = dustfitpath+"120119Adustfit_FM_fixedrv"+xrttext+".txt"
+        _write_results_to_file(outfile,fitdict)
+        
+        
+        # redoing fit with fixed RV per referee suggestion
+        fitdict=_getfitdict('smc',Av_init=-1.0,beta_init=-2.00,fitlist=['Av','beta','Rv','c1','c2','c3','c4'])
+        paramstr='(%s)' % 'FMc30'
+        if count == 0:
+            paramstr = paramstr.rstrip(')') + 'X)' 
+        fitdict['c4']['fixed']=True
+        fitdict['c4']['init']= 0.43
+        print 'FIXING C4 to Schady Values'
+        # Could attempt to force a negative beta with forcenegbeta
+        fitdict['c3']['fixed']=True
+        fitdict['c3']['init']= 0
+        print 'FIXING c3 to 0'
+        fitdict = SEDFit(filtlist,fluxarr,fluxerrarr,fitdict,z=z,galebv=galebv,paramstr=paramstr,
+            xraydict=xrd,TieReichart=TieReichart,forcenegbeta=False)
+        outfile = dustfitpath+"120119Adustfit_FM_fixedrv"+xrttext+".txt"
+        _write_results_to_file(outfile,fitdict)
     
         TieReichart = True
         fitdict=_getfitdict('smc',Av_init=-0.8,beta_init=-1.00,fitlist=['Av','beta','c2','c3','c4'])
