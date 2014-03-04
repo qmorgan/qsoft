@@ -258,7 +258,7 @@ class ObjBlock:
             print "FAILED TO WRITE PHOTOMETRY TABLE"    
             
     def PlotLC(self,show=True,save=True,legend=True,residualscale=False,
-        xlimits=None,ylimits=None,figsize=(13,8)):
+        xlimits=None,ylimits=None,figsize=(13,8),incl_xrt=False):
         '''
         show: Plot to screen
         save: Save to disk
@@ -276,11 +276,49 @@ class ObjBlock:
         ax=fig.add_axes([0.1,0.1,0.8,0.8])
         ax.loglog()
         
+        # Plot the XRT data if desired
+        if incl_xrt:
+            obslist = ['BAT_unknown','XRT_unknown']
+            for obstr in obslist:
+                ob = self.obsdict[obstr]
+                label= obstr.replace('_',' ')
+                label= label.replace(' unknown','')
+                detectinds = np.array([not a for a in ob.isupperlist])     
+                ax.errorbar(np.array(ob.tmidlist)[detectinds],ob.fluxarr[detectinds],yerr=ob.fluxerrarr[detectinds], color=ob.color, fmt=ob.marker, label=label)
+            
+            leg=ax.legend(loc=3,borderaxespad=1.2,numpoints=1,frameon=False)
+            from pylab import setp
+            setp(leg.get_texts(),fontsize=20)
+            setp(leg.get_title(),fontsize=20)
+        
         ## HACK THiS IS AWFUL AND REMOVES DATA. for use ONLY for one time plots
         if residualscale:
+            # first remove the xrt and bat data if it exists
+            removelist = ['BAT_unknown','XRT_unknown']
+            for key in removelist:
+                if key in self.obsdict:
+                    del(self.obsdict[key])
+            
+            
+            from Modelling.ExtinctModel import CorrectFluxForGalExt
+            
             filtlist=['K','H','J',"z'",'I',"i'",'R',"r'",'V','B'] # liverpool are just estimates!
+            
+            wave_Alist = []
+            # loop through and grab the wavlengths for each filter
+            for filttt in filtlist:
+                for key, ob in self.obsdict.iteritems():
+                    if ob.filtstr == filttt:
+                        if ob.filt.wave_A not in wave_Alist:
+                            wave_Alist.append(ob.filt.wave_A)
+            
+            wave_Alist = np.array(wave_Alist)
             removelist=[]
-            fluxconv = [4602.3669,2656.0123,1519.099,850,473.2668,400,242.7565,240,136.0467,57.6771]
+            fluxconv_uncorr = np.array([4312.1,2522.7,1358.6,654.0,456.1,340.6,193.6,160.6,109.9,45])
+            fluxconv_uncorrerr=np.array([145.,80.,45.,26.,19,16.,8.2,6.7,5.1,2.5])
+            fluxconv,fluxconverr = CorrectFluxForGalExt(self.galebv,wave_Alist,fluxconv_uncorr,fluxconv_uncorrerr)
+            fluxconv = list(fluxconv)
+            
             sed=zip(filtlist,fluxconv)
             for key, ob in self.obsdict.iteritems():
                 if ob.filtstr not in filtlist:
@@ -292,6 +330,7 @@ class ObjBlock:
             for key in removelist:
                 del(self.obsdict[key])
         ##HACK
+        
         
         # get list of all sources of observations for use in legend-making
         sources = {}
@@ -450,9 +489,12 @@ class ObjBlock:
             ax.legend(newhandles,newlabels,loc=3,numpoints=1,frameon=False,ncol=len(sources))
 
         if save:
-            filepath = storepath + 'LC_' + self.name.replace('\,','') + '.png' 
+            xrtstr=''
+            if incl_xrt:
+                xrtstr = '_xrt'
+            filepath = storepath + 'LC_' + self.name.replace('\,','') + xrtstr + '.png' 
             fig.savefig(filepath)
-            filepath = storepath + 'LC_' + self.name.replace('\,','') + '.pdf' 
+            filepath = storepath + 'LC_' + self.name.replace('\,','') + xrtstr + '.pdf' 
             fig.savefig(filepath)
         if show:        
             fig.show()
