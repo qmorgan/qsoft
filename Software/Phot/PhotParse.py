@@ -64,7 +64,8 @@ class ObjBlock:
         else:
             if 'redshift' in indict:
                 if self.redshift != float(indict['redshift']):
-                    raise ValueError('redshift values do not match!')
+                    if str(self.redshift) != str(indict['redshift']):
+                        raise ValueError('redshift values do not match!')
         
         if not self.xraydict:
             if 'xraydict' in indict:
@@ -220,7 +221,7 @@ class ObjBlock:
 
         header='''
     \\begin{deluxetable}{llllllll}
-    \\tablecaption{Photometry}
+    \\tablecaption{Photometry of %s}
     \\tabletypesize{\scriptsize}
     \\tablewidth{0pt}
     \\tablehead{
@@ -235,7 +236,7 @@ class ObjBlock:
     \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the expected Galactic extinction of $E(B-V) = %.3f$ }
     \\label{tab:%sphot}
     \\end{deluxetable}
-        ''' % (self.name, self.galebv, self.name)
+        ''' % (self.name, self.name, self.galebv, self.name)
 
         # do really naiive sorting of the list
         contentlist.sort()
@@ -247,7 +248,11 @@ class ObjBlock:
 
         tabletext = header + content + footer
         try:
-            filename = storepath + 'photometry.tex'
+            if not self.name:
+                outname = ''
+            else:
+                outname = str(self.name)    
+            filename = storepath + outname.replace("\\,","") + '_photometry.tex'
             f = open(filename,'w')
             f.write(tabletext)
             f.close()
@@ -930,6 +935,8 @@ def PhotParse(filename,verbose=False):
     # these default values will be used unless otherwise specified in
     # further text blocks.
     for head in headblock.split('\n'):
+        if head == '':
+            continue #blank lines
         if head[0] == '@': #special delimiter denoting default param
             key, val = head[1:].split('=')
             if key not in default_keydict:
