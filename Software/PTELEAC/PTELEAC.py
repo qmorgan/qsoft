@@ -8,8 +8,9 @@ from numpy import array as arr
 import cosmocalc
 import pandas as pd
 from Phot import q_phot
+from Phot import PhotParse
 from MiscBin import qPickle
-from glob import glob
+import glob
 
 meta_dict = {'061126':{
                         'z':None,
@@ -81,11 +82,28 @@ def makedict(df_grb, outputtext=False,
     
     for index, GRB in enumerate(GRB_list):
         globstr = very_good_pickle_path + GRB + '*'
-        pathstr = glob(globstr)[0]
+        pathstr = glob.glob(globstr)[0]
         print pathstr
         result = qPickle.load(pathstr)
+        galebv=df_grb.loc[GRB]['galebv']
+        redshift=df_grb.loc[GRB]['z']
         if outputtext:
-            q_phot.textoutput(result,name=GRB)
+            q_phot.textoutput(result,name=GRB,galebv=galebv,redshift=redshift)
         GRB_dict = {GRB:result}
         all_GRB_dict.update(GRB_dict)
     return all_GRB_dict
+    
+# MAKE PARSEABLE PHOTOMETRY FILES
+outdict = makedict(df_grb, outputtext=True)
+
+# TRANSPORT TABLES 
+#todo
+
+# load tables
+catdir = "/Users/amorgan/qsoft/store/ptelcat/"
+phottables=glob.glob(catdir+"*data.txt")
+for table in phottables:
+    phot_obj=PhotParse.PhotParse(table)
+    phot_obj.PlotLC(show=False,legend=False)
+    phot_obj.WriteTable()
+    
