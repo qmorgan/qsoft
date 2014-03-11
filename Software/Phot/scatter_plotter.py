@@ -4,6 +4,7 @@ import numpy
 from pylab import *
 from numpy import array as arr
 import cosmocalc
+import q_phot
 
 #from RedshiftMachine import CollectGRBInfo
 #grbdb = CollectGRBInfo.LoadDB('GRB_full') # load the database pickle file. if it doesn't exist yet, it will be created
@@ -60,7 +61,7 @@ def get_flux(burst_data,t,ftopt,band):
 
     return flux
 
-def update_z_all_GRBs(GRB_list, z_list, very_good_pickle_path='/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/'):
+def update_z_all_GRBs(GRB_list, z_list, very_good_pickle_path='/Volumes/MyPassport/PTELBACKUP2/picklefiles/very_good_pickles/'):
     '''Updates the z values of all GRBs with known z'''
     from Phot import q_phot
     from MiscBin import qPickle
@@ -88,6 +89,15 @@ def correct_time_all(all_GRB_dict):
             # Ask Adam: How do you deal with time uncertainty/exposure time/etc
             rest_time_dict = {'t_rest':(corr_time,all_GRB_dict[GRB][epoch]['t_mid'][1])}
             all_GRB_dict[GRB][epoch].update(rest_time_dict)
+
+def get_extinctions():
+    '''loop through and get extinction curve values'''
+    all_GRB_dict=makedict(GRB_list)
+    for GRB in all_GRB_dict:
+        ra = all_GRB_dict[GRB].values()[0]['calib_stars'].values()[0]['ra']
+        dec = all_GRB_dict[GRB].values()[0]['calib_stars'].values()[0]['dec']
+        print "{}\t{}\t{}".format(GRB,ra,dec)
+    # then load the result catalog into NED
 
 def plotall(all_GRB_dict, time_correct=True):
     '''Plots all the lightcurves in the same plot (1 for each band)'''
@@ -170,19 +180,22 @@ def Time_corrected_plot():
     plotall(Burstlist)
 #    return Burstlist
 
-def makedict(GRB_list, very_good_pickle_path='/Users/pierrechristian/qrepo/store/picklefiles/very_good_pickles/'):
+def makedict(GRB_list, outputtext=False,
+    very_good_pickle_path='/Volumes/MyPassport/PTELBACKUP2/picklefiles/very_good_pickles/'):
     ''' make dict for all_bursts() '''
     from Phot import q_phot
     from MiscBin import qPickle
     from glob import glob
 
     all_GRB_dict = {}
-
+    
     for index, GRB in enumerate(GRB_list):
         globstr = very_good_pickle_path + GRB + '*'
         pathstr = glob(globstr)[0]
         print pathstr
         result = qPickle.load(pathstr)
+        if outputtext:
+            q_phot.textoutput(result,name=GRB)
         GRB_dict = {GRB:result}
         all_GRB_dict.update(GRB_dict)
     return all_GRB_dict
@@ -194,6 +207,13 @@ def all_bursts():
     Burstlist = makedict(GRB_list)
     plotall(Burstlist, time_correct=False)
     return GRB_list
+    
+def get_burstdict():
+    #Burstlist = update_z_all_GRBs(GRB_list)
+    GRB_list =  ['061126', '080310', '080330', '090618', '080319C', '090530', '080607', '051109A', '070208', '071025']
+    z_list_bad = [1.1588, 2.4274, 1.51, 0.54, 1.95, 1.6, 3.036, 2.346, 3.5, 1.165, 4.8, 0, 0]
+    Burstlist = makedict(GRB_list,outputtext=True)
+    return Burstlist
 
 def redshift_corrections(GRBlist, z_list, spectral_index, photometry_result):
     import k_correct
