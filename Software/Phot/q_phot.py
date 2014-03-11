@@ -2367,6 +2367,9 @@ def textoutput(photdict,utburst='00:00:00',name=None,galebv=None,redshift=None,f
     savepath = storepath + uniquename + '_data.txt'
     text = file(savepath, "w")
 
+    if name:
+        text.write('@name=GRB\\,'+name)
+        text.write('\n')
     text.write('@inunit=days')
     text.write('\n')
     text.write('@expunit=sec')
@@ -2382,6 +2385,11 @@ def textoutput(photdict,utburst='00:00:00',name=None,galebv=None,redshift=None,f
         redshift_text = '@redshift=' + str(redshift)
         text.write(redshift_text)
         text.write('\n')
+    text.write('\n')
+    text.write('@inunit=days')
+    text.write('\n')
+    text.write('@expunit=sec')
+    text.write('\n')
     text.write('@source=PAIRITEL')
     text.write('\n')
     namelist = ['%', 't_mid', 'ut_start_date', 'ut_start_time', 'ut_end_date', 'ut_end_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
