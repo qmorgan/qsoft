@@ -2343,7 +2343,7 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     matplotlib.pyplot.close()
 
 
-def textoutput(photdict,utburst='00:00:00',name=None,filt=None, day=False):
+def textoutput(photdict,utburst='00:00:00',name=None,galebv=None,redshift=None,filt=None, day=False):
     '''outputs a text file from photdict.  If filt specified, only output that
     particular filter. Requires a utburst string in the form of hh:mm:ss. 
     Days are integers (e.g. second day observation => day=2. WARNING: If the 
@@ -2364,7 +2364,7 @@ def textoutput(photdict,utburst='00:00:00',name=None,filt=None, day=False):
         uniquename = photdict.keys()[0].split('_')[2]
     if filt:
         uniquename = uniquename + '_' + filt
-    savepath = storepath + uniquename + '_data.dat'
+    savepath = storepath + uniquename + '_data.txt'
     text = file(savepath, "w")
 
     text.write('@inunit=days')
@@ -2374,6 +2374,14 @@ def textoutput(photdict,utburst='00:00:00',name=None,filt=None, day=False):
     utburst_text = '@utburst=' + str(utburst)
     text.write(utburst_text)
     text.write('\n')
+    if galebv:
+        galebv_text = '@galebv=' + str(galebv)
+        text.write(galebv_text)
+        text.write('\n')
+    if redshift:
+        redshift_text = '@redshift=' + str(redshift)
+        text.write(redshift_text)
+        text.write('\n')
     text.write('@source=PAIRITEL')
     text.write('\n')
     namelist = ['%', 't_mid', 'ut_start_date', 'ut_start_time', 'ut_end_date', 'ut_end_time', 'exp', 'filt', '=', 'mag', 'emag', 'lim']
