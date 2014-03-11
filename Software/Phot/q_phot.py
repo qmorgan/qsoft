@@ -2343,7 +2343,7 @@ def colorevo(photdict, photdict_lcurve, JorK, ylim=None,xlim=None, big=False):
     matplotlib.pyplot.close()
 
 
-def textoutput(photdict,utburst,name=None,filt=None, day=False):
+def textoutput(photdict,utburst='00:00:00',name=None,filt=None, day=False):
     '''outputs a text file from photdict.  If filt specified, only output that
     particular filter. Requires a utburst string in the form of hh:mm:ss. 
     Days are integers (e.g. second day observation => day=2. WARNING: If the 
