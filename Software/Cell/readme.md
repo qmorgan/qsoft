@@ -1,8 +1,8 @@
 Quantifying 3D cell migration from intact monolayers into hydrogels
 ====================
 
-Scientific lead: *Mariana B. Garcia* (UC Berkeley Vision Science)
-Software development: *Adam N. Morgan* (UC Berkeley Astrophysics)
+* Scientific lead: *Mariana B. Garcia* (UC Berkeley Vision Science)
+* Software development: *Adam N. Morgan* (UC Berkeley Astrophysics)
 
 ### Background
 
@@ -14,7 +14,8 @@ Our pilot study consisted of four replicates of each condition, resulting in 256
 
 ![Image Processing Steps](http://i.imgur.com/CydObU5.png)
 
-Every image [A] in each stack was processed with our custom Python code wrapped around Source Extractor (*http://www.astromatic.net/software/sextractor), a source detection algorithm developed to identify and analyze galaxies in astronomical images. The processing steps include:
+Every image [A] in each stack was processed with our custom Python code wrapped around [Source Extractor][1], a source detection algorithm developed to identify and analyze galaxies in astronomical images. The processing steps include:
+
 1. Background measurement and subtraction [B]
 2. Smoothing the image with a gaussian filter
 3. Object identification through thresholding 
@@ -27,3 +28,6 @@ The resultant output database for each image stack was analyzed with a custom ce
 ![Cell Count Identification](http://i.imgur.com/T66iJ4U.png)
 
 ![Cell Count Animation](http://i.imgur.com/85MQl0o.gif)
+
+
+[1]: http://www.astromatic.net/software/sextractor     "Source Extractor"
