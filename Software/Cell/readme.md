@@ -27,13 +27,13 @@ Every image [A] in each stack was processed with our custom Python code wrapped 
 
 The resultant output database for each image stack was analyzed with a custom cell association algorithm written for this study.  The code iteratively searches through the hundreds to thousands of source detections to determine which comprise the same cell, and then measures the image location and migration depth of each identified cell (shown in blue numbers in the figure to the right).  The algorithm accounts for **crowded sources**, **possible associations** (one or more cells that likely become better resolved further down the stack; shown in yellow), and **spurious detections** (shown in red).
 
-![Cell Count Identification](http://i.imgur.com/OwIq8sC.png)
+![Cell Count Identification](http://i.imgur.com/nBSwbbk.png)
 
 This allows for the rapid and automated analysis of cell count as a function of depth in the hydrogel, allowing for quick measurement of cell migration.  In addition to eliminating the speed bottleneck, this also improves the quality and consistency of the image analysis, freeing it from potential human error.
 
 For example, the animation below illustrates how this method was used to show how a coverslip covered with many cells isn't perfectly level in the x-y plane, manifesting itself as a line of object detections passing through a number of z-stacks. 
 
-![Cell Count Animation](http://i.imgur.com/nBSwbbk.png)
+![Cell Count Animation](http://i.imgur.com/85MQl0o.gif)
 
 
 Running the Code
