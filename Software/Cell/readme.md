@@ -27,13 +27,13 @@ Every image [A] in each stack was processed with our custom Python code wrapped 
 
 The resultant output database for each image stack was analyzed with a custom cell association algorithm written for this study.  The code iteratively searches through the hundreds to thousands of source detections to determine which comprise the same cell, and then measures the image location and migration depth of each identified cell (shown in blue numbers in the figure to the right).  The algorithm accounts for **crowded sources**, **possible associations** (one or more cells that likely become better resolved further down the stack; shown in yellow), and **spurious detections** (shown in red).
 
-![Cell Count Identification](http://i.imgur.com/chjZ7Sx.png)
+![Cell Count Identification](http://i.imgur.com/OwIq8sC.png)
 
 This allows for the rapid and automated analysis of cell count as a function of depth in the hydrogel, allowing for quick measurement of cell migration.  In addition to eliminating the speed bottleneck, this also improves the quality and consistency of the image analysis, freeing it from potential human error.
 
 For example, the animation below illustrates how this method was used to show how a coverslip covered with many cells isn't perfectly level in the x-y plane, manifesting itself as a line of object detections passing through a number of z-stacks. 
 
-![Cell Count Animation](http://i.imgur.com/85MQl0o.gif)
+![Cell Count Animation](http://i.imgur.com/nBSwbbk.png)
 
 
 Running the Code
@@ -143,7 +143,7 @@ consistent values, but we recommend using the `mu_max` definition to further
 defend against outliers that may lead to skewed values of the mean slice
 number.
     
-    ![Single Stack Histogram](http://i.imgur.com/CP6LeYX.png)
+![Single Stack Histogram](http://i.imgur.com/CP6LeYX.png)
     
 * Plot combined count histograms for many stacks: 
     
@@ -157,7 +157,7 @@ that base color. If the number of gels and imaged areas for each gel is large
 enough, this will give an approximation of the true distribution of cell
 migration for a given set of conditions.
 
-    ![Multi-Stack Histogram](http://i.imgur.com/0O3YjUg.png)
+![Multi-Stack Histogram](http://i.imgur.com/0O3YjUg.png)
 
 ### Saving/Exporting 
    
