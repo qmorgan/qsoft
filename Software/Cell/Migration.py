@@ -74,6 +74,11 @@ class ImageStack:
         self.read_xml_configuration()
     
     def PrepareImages(self):
+        '''The images for a z-stack are originally .tif files located in a
+        single directory. This function loads all ZSeries*.tif files within
+        self.image_directory and converts them to .fits files using 
+        ImageMagick 
+        '''
         self.tiflist = glob.glob(self.image_directory+'ZSeries*.tif')
         if len(self.tiflist) == 0:
             print "Cannot find any ZSeries*.tif images to convert in " + self.image_directory
@@ -85,6 +90,20 @@ class ImageStack:
     
     
     def FindDetections(self,checkimages=False):
+        '''Loop through each image in the stack and and run SExtractor on 
+        each one. 
+        
+        The following SExtractor configuration files are loaded:
+            cell.sex - SExtractor configuration
+            cell.param - parameters to include in SExtractor output catalog 
+            gauss_3.0_7x7.conv - image background filter
+        
+        Set checkimages=True for additional calibration output images: 
+            back_%s.fits - measured background, subtracted from final images
+            seg_%s.fits - segmentation image, showing detection separation
+            ap_%s.fits - shows elliptical aperatures calculated for each object
+
+        '''
         # give previous_image as None if first in the list; give following_image as None if last
         
         if not hasattr(self,"fitslist"):
@@ -102,6 +121,11 @@ class ImageStack:
         print "Ready to ReadCatalogs()"
         
     def Save(self,clobber=False):
+        '''Save the ImageStack object as a pickle file for later analysis.
+        
+        Can load this with the loadPickle function within the Migration 
+        module.
+        '''
         savePickle(self,self.output_directory+self.name+'.pkl',clobber=clobber)
     
     def ExportToExcel(self):
@@ -220,7 +244,8 @@ class ImageStack:
         self.fitslist = outlist
     
     def make_sex_cat(self,image_name, checkimages=False):
-        '''Create the Source EXtraction CATalog'''
+        '''Create the Source EXtraction CATalog for an individual image in
+        a stack.'''
         basename = os.path.basename(image_name).replace('.fits','')
         sexcat_file = self.output_directory+'cat'+basename+'.txt'
         sex_command = sextractor_bin + " " + image_name + " -c " + self.config_directory + "cell.sex " + \
@@ -235,16 +260,15 @@ class ImageStack:
         print sex_command
         system(sex_command)
         return sexcat_file
-    
-
             
     def ReadCatalogs(self):
         '''    
-        Build up the full detection table by reading in all the ascii outputs from 
-        source extractor.  
-
-        currently must run within the directory containing the cat0*.txt files output 
-        by sextractor
+        Build up the full detection table by reading in all the ascii outputs
+        from Source Extractor.
+        
+        Currently must run within the directory containing the cat??????.txt
+        files output by sextractor 
+          FIXME [is this still true?]
 
         '''
 
@@ -277,7 +301,8 @@ class ImageStack:
     
     def FindObjects(self,xy_rad=20.0,slice_rad=20.0):
         '''
-        Get database of associations
+        Run the object/association assignment algorithm and create the tables 
+        of objects and associations
 
         Parameters
         ----------
@@ -465,7 +490,7 @@ class ImageStack:
                 stds = obj_df.std()
                 # the slice at which mu_max [indicator of max surface brightness] 
                 # appears to be a good indicator of when the cell is most in focus
-                # and thus near the center of the current slice
+                # and thus near the center of the current object
                 z_min_mu_max = obj_df.z_index.loc[obj_df.mu_max.idxmin()]
                 object_names = ['z_mean','z_std','x_mean','x_std','y_mean','y_std','z_min_mu_max','detections','associations']     
                 ind_obj_list = [means['z_index'],stds['z_index'],means['x'],stds['x'],means['y'],stds['y'],z_min_mu_max,len(check_table.det_id),len(check_table.det_id)]
@@ -633,8 +658,21 @@ class ImageStack:
         print "Or generate histograms [PlotCountHist()]"
 
     def PrepareVerificationImages(self):
-        '''This takes several minutes, recommended only if you need to verify that
-        your detections are being populated correctly 
+        '''
+        The source detection, object assignment, and association parameters
+        have been optimized for this specific study, and may need to be
+        changed for different experiments. To check that the algorithm is
+        performing as expected, verification images can be made for each image
+        slice within a stack. In the verification image shown
+        [above](http://i.imgur.com/chjZ7Sx.png), ellipses are drawn over each
+        detection in that slice (dotted lines indicate a nearby source). If
+        this detection corresponds to a single object, its object ID is
+        overplotted in blue text. If multiple objects may be associated with
+        this detection, their object IDs are plotted in yellow. If no object
+        is associated with a detection, "nan" is plotted in red (likely
+        outliers).
+        This process takes several minutes, recommended only if you need to
+        verify that your detections are being populated correctly
         '''
         print "Converting aperture images to scaled pngs. This will take a long time."
         ap_list = glob.glob(self.output_directory+'ap_0*.fits')
@@ -674,7 +712,7 @@ class ImageStack:
                 num = int(base.replace('detections_','').lstrip('0').replace('.png',''))
                 out_img = ap_img
 
-            # get the detection table from the 5th image slice
+            # get the detection table from the Nth image slice
             current_img_detections = detection_table[detection_table.z_index==num]
             # join it with the detection_object link table
             current_link = link_table.join(current_img_detections.z_index,on='det_id',how='right')
@@ -757,6 +795,15 @@ class ImageStack:
     
     
     def PlotCountHist(self):
+        '''
+        Plots the number of objects as a function of depth for an image stack.
+        Plots for two definitions for the "center" z-position for a given
+        object (the mean slice number for a given object, and the slice number
+        containing the minimum value of `mu_max` [indicator of max surface
+        brightness]. Both give generally consistent values, but we recommend
+        using the `mu_max` definition to further defend against outliers that
+        may lead to skewed values of the mean slice number.
+        '''
         if not hasattr(self,"object_table"):
             print "Need to generate object/association tables with FindObjects first."
             return
@@ -780,6 +827,18 @@ class ImageStack:
     
 
 def histTest(objectlist,outname,title):
+    CombinedHist(objectlist,outname,title)
+
+def CombinedHist(objectlist,outname,title):
+    '''Allows for the plotting of the results from all images for each gel. In
+    the generated plot, each of the gels (which can be thought of as a "trial"
+    for a given set of conditions) is plotted with a different base color, and
+    each of the different imaged areas for that gel is plotted as a different
+    shade of that base color. If the number of gels and imaged areas for each
+    gel is large enough, this will give an approximation of the true
+    distribution of cell migration for a given set of conditions.
+    
+    '''
     # colorlist = [
     #     "#870606", "#a51d20", "#bf3f41", "#dd6668",
     #     "#af7c0c", "#c9921c", "#daa836", "#edbd55",
