@@ -131,19 +131,39 @@ Source Extractor.
 
 ### Analysis
 
-* Plot count histogram for the stack: Plots the number of objects as a function of depth for an image stack.  Plots for two definitions for the "center" z-position for a given object (the mean slice number for a given object, and the slice number containing the minimum value of `mu_max` [indicator of max surface brightness]. Both give generally consistent values, but we recommend using the `mu_max` definition to further defend against outliers that may lead to skewed values of the mean slice number.
+* Plot count histogram for the stack: 
 
     `imgstack.PlotCountHist()`
     
+Plots the number of objects as a function of depth for an image stack. Plots
+for two definitions for the "center" z-position for a given object (the mean
+slice number for a given object, and the slice number containing the minimum
+value of `mu_max` [indicator of max surface brightness]. Both give generally
+consistent values, but we recommend using the `mu_max` definition to further
+defend against outliers that may lead to skewed values of the mean slice
+number.
+    
     ![Single Stack Histogram](http://i.imgur.com/CP6LeYX.png)
     
-* Plot combined count histograms for many stacks: Allows for the plotting of the results from all images for each gel. In the plot below, each of the 4 gels (which can be thought of as a "trial" for a given set of conditions) is plotted with a different base color (red, yellow, blue, purple), and each of the 4 different imaged areas for that gel is plotted as a different shade of that base color.  If the number of gels and imaged areas for each gel is large enough, this will give an approximation of the true distribution of cell migration for a given set of conditions.
+* Plot combined count histograms for many stacks: 
+    
+    `Migration.CombinedHist(objectlist,outname,title)`
+    
+Plots the results from all images for each gel. In the plot below, each of the
+4 gels (which can be thought of as a "trial" for a given set of conditions) is
+plotted with a different base color (red, yellow, blue, purple), and each of
+the 4 different imaged areas for that gel is plotted as a different shade of
+that base color. If the number of gels and imaged areas for each gel is large
+enough, this will give an approximation of the true distribution of cell
+migration for a given set of conditions.
 
     ![Multi-Stack Histogram](http://i.imgur.com/0O3YjUg.png)
 
 ### Saving/Exporting 
    
-Options to save/load the Image Stack Object are provided for future analysis. In addition, you can export the object detection/association tables to an Excel file if desired. 
+Options to save/load the Image Stack Object are provided for future analysis.
+In addition, you can export the object detection/association tables to an
+Excel file if desired.
    
 * Save the ImageStack object
 

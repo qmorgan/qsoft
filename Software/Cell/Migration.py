@@ -830,13 +830,13 @@ def histTest(objectlist,outname,title):
     CombinedHist(objectlist,outname,title)
 
 def CombinedHist(objectlist,outname,title):
-    '''Allows for the plotting of the results from all images for each gel. In
-    the generated plot, each of the gels (which can be thought of as a "trial"
-    for a given set of conditions) is plotted with a different base color, and
-    each of the different imaged areas for that gel is plotted as a different
-    shade of that base color. If the number of gels and imaged areas for each
-    gel is large enough, this will give an approximation of the true
-    distribution of cell migration for a given set of conditions.
+    '''Plots the results from all images for each gel. In the generated plot,
+    each of the gels (which can be thought of as a "trial" for a given set of
+    conditions) is plotted with a different base color, and each of the
+    different imaged areas for that gel is plotted as a different shade of
+    that base color. If the number of gels and imaged areas for each gel is
+    large enough, this will give an approximation of the true distribution of
+    cell migration for a given set of conditions.
     
     '''
     # colorlist = [
