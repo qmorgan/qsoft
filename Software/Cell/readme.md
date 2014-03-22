@@ -1,10 +1,11 @@
-Quantifying 3D cell migration from intact monolayers into hydrogels
+Automated image analysis pipeline to quantify biological cell migration
 ====================
 
 * Scientific lead: *Mariana B. Garcia* (UC Berkeley Vision Science)
 * Software development: *Adam N. Morgan* (UC Berkeley Astrophysics)
 
-### Background
+Background
+-----------
 
 ![Assay Preparation](http://i.imgur.com/8Lq6iJr.png)
 
@@ -35,26 +36,59 @@ For example, the animation below illustrates how this method was used to show ho
 ![Cell Count Animation](http://i.imgur.com/85MQl0o.gif)
 
 
-Example Code
+Running the Code
 ------------
 
-### Image Preparation 
-* Initialize the stack
-    
-    `imgstack = Migration.ImageStack(image_directory=inpath,output_directory=outpath,config_directory=configpath)`
+### Dependencies
+* This code: [https://github.com/qmorgan/qsoft/tree/master/Software/Cell](https://github.com/qmorgan/qsoft/tree/master/Software/Cell)
+* ImageMagick: [http://www.imagemagick.org/](http://www.imagemagick.org/)
+* Source Extractor: [http://www.astromatic.net/software/SExtractor](http://www.astromatic.net/software/SExtractor)
 
-* Convert the images to .fits files
+### Image Preparation 
+* Initialize ImageStack object
+
+    `imgstack = Migration.ImageStack(image_directory=inpath,output_directory=outpath,config_directory=configpath)`
     
+A stack of images at a particular x-y location (a "z-stack") defines an ImageStack object upon which further operations are performed.  This is initialized by defining the paths of the original image locations, the desired output locations, and the location of the SExtractor configuration files. 
+
+The configuration file output by the microscope imaging program ZSeries*.xml is loaded and read with the `read_xml_configuration()` method.
+    
+
+* Convert the images to .fits files:
+
     `imgstack.PrepareImages()`
 
-### Source Detection
-* Run sextractor on the images (set checkimages=True for additional output images)
-
-    `imgstack.FindDetections(checkimages=True)`
+The images for a z-stack are originally .tif files located in a
+single directory. This function loads all ZSeries*.tif files within
+self.image_directory and converts them to .fits files using 
+[ImageMagick](http://www.imagemagick.org/)
     
-* Read in the sextractor output into a table
+
+### Source Detection
+* Run SExtractor on the images
+    `imgstack.FindDetections(checkimages=True)`
+
+Loops through each image in the stack and and run SExtractor on 
+each one. 
+
+The following SExtractor configuration files are loaded:
+
+ * `cell.sex` - SExtractor configuration
+ * `cell.param` - parameters to include in SExtractor output catalog 
+ * `gauss_3.0_7x7.conv` - image background filter
+
+Set `checkimages=True` for additional calibration output images: 
+
+ *  `back_%s.fits` - measured background, subtracted from final images
+ * `seg_%s.fits` - segmentation image, showing detection separation
+ * `ap_%s.fits` - shows elliptical aperatures calculated for each object
+    
+* Read in the SExtractor output into a table
 
     `imgstack.ReadCatalogs()`
+    
+Builds up the full detection table by reading in all the ascii outputs from 
+Source Extractor.  
 
 ### Object/Association Assignment 
 * Run the object/association assignment algorithm
@@ -71,7 +105,7 @@ Example Code
 
   2. Find the z-positions in the nearby detection table that have the most detections.
      * Iterate until we find a set number of slices with a common number of nearby detections. This fights against single outliers that only appear in a single image. Stop the iteration if we're at a single detection across slices. In each iteration, we create a list of the modes of slices (if there are multiple) by counting the frequency of each slice in the detection list. Then we get the subset table of detections have the most number of nearby detections in a single slice.
-     * Only continue with the object assignment process if the object is not assigned already. If all the detections in each of these slices is accounted for already, then the associated object with them should exist. If SOME detections are accounted for already but not all, this is an indication that something is wrong and the threshold is too low.  
+     * Only continue with the object assignment process if the object is not assigned already. If all the detections in each of these slices is accounted for already, then the associated object with them should exist. If *some* detections are accounted for already but not all, this is an indication that something is wrong and the threshold is too low.  
    
   3. Take one slice as a reference slice and compare each of the
   detections in the other slices with the same number of nearby 
@@ -84,15 +118,15 @@ Example Code
     * now that the detection ids of the closest objects have been found,
       add these all to a table. The object table will have the means
       and standard deviations of the z, x, and y positions of the 
-      DETECTIONS, which is the slices in which the objects were separated
-      from each other. Not to be confused with the ASSOCIATIONS, which 
+      **detections**, which is the slices in which the objects were separated
+      from each other. Not to be confused with the **associations**, which 
       is ones that overlap with a detection.
     * The z-location for a particular object can be defined by either the slice at which `mu_max` [indicator of max surface brightness] is a minimum, or the mean slice number of all slice locations for a particular object. Both appear to be a good indicator of when the cell is most in focus and thus the actual average z-position of the cell.
    
   4. Now that all objects have been assigned, we iterate through the remaining detections and assign *associations* for each
      object within its elliptical area to it. This covers the large detections
      that may be a blurred combination of several objects. 
-    * The semimajor/semiminor axes of the ellipses as measured from the sextractor output is multiplied by its Kron radius ([Kron 1980][2]) and an additional scaling factor to determine the association threshold.  The Kron radius is a brightness-weighted distance which defines the "first moment" of the object, defined by ![Kron](http://i.imgur.com/2cCJbaC.gif) 
+    * The semimajor/semiminor axes of the ellipses as measured from the SExtractor output is multiplied by its Kron radius ([Kron 1980][2]) and an additional scaling factor to determine the association threshold.  The Kron radius is a brightness-weighted distance which defines the "first moment" of the object, defined by ![Kron](http://i.imgur.com/2cCJbaC.gif) 
 
 
 ### Analysis
@@ -111,16 +145,24 @@ Example Code
    
 Options to save/load the Image Stack Object are provided for future analysis. In addition, you can export the object detection/association tables to an Excel file if desired. 
    
-* Save the database
+* Save the ImageStack object
 
     `imgstack.Save()`
 
-* Load the database
+* Load the ImageStack object
+
     `imgstack = Migration.loadPickle("PathToSavedFile.pkl")`
 
-* Optional: export the database to an Excel file, if desired.
+* Optional: export the ImageStack tables to an Excel file, if desired.
 
     `imgstack.ExportToExcel()`
+
+The exported tables include: 
+
+  * `self.object_table`
+  * `self.detection_table`
+  * `self.detection_object_link_table`
+  * `self.association_object_link_table`
 
 ### Image Verification
 
@@ -129,14 +171,14 @@ The source detection, object assignment, and association parameters have been op
 This process takes several minutes, and is recommended only if you need to verify that
 your detections are being populated correctly. The steps are as follows:
 
-* Prepare verification images
+* Prepare verification images (convert .fits files to scaled .png files)
 
     `imgstack.PrepareVerificationImages()`
 
-* Create verification images
+* Create verification images (overlay the object IDs)
 
     `imgstack.MakeVerificationImages()`
     
 
-[1]: http://www.astromatic.net/software/sextractor     "Source Extractor"
+[1]: http://www.astromatic.net/software/SExtractor     "Source Extractor"
 [2]: http://adsabs.harvard.edu/cgi-bin/bib_query?1980ApJS...43..305K "Kron (1980)"
