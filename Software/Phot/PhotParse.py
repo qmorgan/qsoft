@@ -194,6 +194,112 @@ class ObjBlock:
         ## HACK
         pass
     
+    def WriteCondensedTable(self):
+        contentlist = []
+        import pandas as pd
+        
+        
+        phot_table = pd.DataFrame([[0.0,0.0,99.0,99.0,99.0,99.0,99.0,99.0]],columns=['Tmid','exposure','Kmag','Kmagerr','Hmag','Hmagerr','Jmag','Jmagerr'])
+        
+        
+        table_list = []
+        # loop through each and build a pandas dataframe to then merge
+        for ob in self.obsdict.itervalues():
+            
+            assert ob.source == "PAIRITEL" # use this only for pairitel tables
+            
+            assert len(ob.tmidlist) == len(ob.explist)
+            assert len(ob.tmidlist) == len(ob.maglist)
+            assert len(ob.tmidlist) == len(ob.magerrlist)
+            assert len(ob.tmidlist) == len(ob.isupperlist)
+            strtmidlist = ["%.2f" % tmid for tmid in ob.tmidlist]
+            strexplist = ["%.1f" % exp for exp in ob.explist]
+            strmaglist = ["%.2f" % mag if not ob.isupperlist[ob.maglist.index(mag)] == True else '> %.2f' % mag for mag in ob.maglist]
+            strmagerrlist = ["%.2f" % magerr if not ob.isupperlist[ob.magerrlist.index(magerr)] == True else '...' for magerr in ob.magerrlist]            
+            assert len(strtmidlist) == len(strexplist)
+            assert len(strmaglist) == len(strexplist)
+            assert len(strmagerrlist) == len(strexplist)
+            
+            curr_magstr = ob.filtstr[0] + 'mag'
+            curr_errstr = ob.filtstr[0] + 'magerr'
+            
+            tmp_phot_table = pd.DataFrame({'Tmid':strtmidlist,'exposure':strexplist,curr_magstr:strmaglist,curr_errstr:strmagerrlist})
+            
+            table_list.append(tmp_phot_table)
+            # count = 0 
+            # while count < len(strexplist):
+            #     count += 1 
+        self.table_list = table_list
+        
+        assert len(self.table_list) <= 3 # Pairitel has only 3 filters. Could just be merging 2, though.
+        assert len(self.table_list) > 0 # at least one
+        
+        if len(self.table_list) == 1: 
+            print "Warning! Only one table found in WriteCondensedTable."
+            self.phot_table = self.table_list[0]
+        else:
+            phot_table = self.table_list[0]
+            for table in self.table_list[1:]:
+                phot_table = phot_table.merge(table,how='outer',on=["Tmid","exposure"])
+            self.phot_table=phot_table
+        
+        self.phot_table[['Tmid']] = self.phot_table[['Tmid']].astype(float) # convert column to float values before sorting
+        self.phot_table = self.phot_table.sort('Tmid') # sorting by time
+        
+        #define formatters to print
+        stringformatter  = lambda x: '$%s$ & ' % x
+        endformatter = lambda x: '$%s$ \\\\' % x
+        
+        out_str = self.phot_table.to_string(index=False,index_names=False,
+            header=False,columns=['Tmid','exposure','Jmag','Jmagerr','Hmag','Hmagerr','Kmag','Kmagerr'],
+            formatters={'Tmid':stringformatter,'exposure':stringformatter,
+                        'Jmag':stringformatter,'Jmagerr':stringformatter,
+                        'Hmag':stringformatter,'Hmagerr':stringformatter,
+                        'Kmag':stringformatter,'Kmagerr':endformatter})
+        
+        self.phot_table_tex = out_str
+        
+        # FIXME
+        # Tmid    exposure    Kmag    Kmagerr Hmag    Hmagerr Jmag    Jmagerr
+        
+        header='''
+    \\begin{deluxetable}{llllllll}
+    \\tablecaption{Photometry of %s}
+    \\tabletypesize{\scriptsize}
+    \\tablewidth{0pt}
+    \\tablehead{
+    \\colhead{$t_{\\rm mid}$} & \\colhead{Exp} & \\colhead{$J$ Mag} & \\colhead{$J$ Mag Err} & \\colhead{$H$ Mag} & \\colhead{$H$ Mag Err} & \\colhead{$K$ Mag} & \\colhead{$K$ Mag Err}  \\\\
+    \\colhead{(s)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{$1\\sigma$ } & \\colhead{} & \\colhead{$1\\sigma$ } & \\colhead{} & \\colhead{$1\\sigma$ }}
+    \\startdata
+
+    ''' % (self.name)
+    
+        footer= '''
+    \\enddata
+    \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the expected Galactic extinction of $E(B-V) = %.3f$ }
+    \\label{tab:%sphot}
+    \\end{deluxetable}
+        ''' % (self.name, self.galebv, self.name.replace("\,",""))
+    
+        content = self.phot_table_tex
+        
+        tabletext = header + content + footer
+        
+        try:
+            if not self.name:
+                outname = ''
+            else:
+                outname = str(self.name)    
+            filename = storepath + 'ptel' + outname.replace("\\,","") + '_photometry.tex'
+            f = open(filename,'w')
+            f.write(tabletext)
+            f.close()
+
+            print ''
+            print "Wrote Condensed Pairitel photometry table to storepath"
+        except:
+            print "FAILED TO WRITE PAIRITEL PHOTOMETRY TABLE"
+        
     def WriteTable(self):
         contentlist = []
         
@@ -229,14 +335,14 @@ class ObjBlock:
     \\colhead{}           & \\colhead{}    & \\colhead{(s)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{$1\\sigma$ }}
     \\startdata
 
-    '''
+    ''' % (self.name)
 
         footer= '''
     \\enddata
     \\tablecomments{Photometric observations of %s. Time is presented as the time since GRB trigger. Values in this table have not been corrected for the expected Galactic extinction of $E(B-V) = %.3f$ }
     \\label{tab:%sphot}
     \\end{deluxetable}
-        ''' % (self.name, self.name, self.galebv, self.name)
+        ''' % (self.name, self.galebv, self.name.replace("\,",""))
 
         # do really naiive sorting of the list
         contentlist.sort()
@@ -594,12 +700,15 @@ class ObsBlock:
         if self.filtstr == 'K' or self.filtstr == 'Ks': 
             self.filt=qObs.Ks
             self.color='#FF9E9E'
+            self.color='#CC6677' # override for ptel catalog
         if self.filtstr == 'H': 
             self.filt=qObs.H
             self.color='#FF6969'
+            self.color='#117733' # override for ptel catalog
         if self.filtstr == 'J': 
             self.filt=qObs.J
             self.color='#FF2929'
+            self.color='#88CCEE' # override for ptel catalog
         if self.filtstr == "z" or self.filtstr == "z'": 
             self.filt=qObs.z
             self.color='#FF0000'
