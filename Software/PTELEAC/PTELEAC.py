@@ -15,8 +15,6 @@ import glob
 meta_dict = {'061126':{
                         'z':None,
                         'zlim':1.1588,
-                        'z':2.346,
-                        'zlim':None,
                         'xmin':100,
                         'xmax':2e3,
                         'ymin':100,
@@ -24,8 +22,6 @@ meta_dict = {'061126':{
                         },
             '080310': {
                         'z':2.4266,
-                        'zlim':None,
-                        'z':2.346,
                         'zlim':None,
                         'xmin':1.5e3,
                         'xmax':3e3,
@@ -35,8 +31,6 @@ meta_dict = {'061126':{
             '080330':{
                        'z': 1.51,
                        'zlim':None,
-                       'z':2.346,
-                       'zlim':None,
                        'xmin':1000,
                        'xmax':2e4,
                        'ymin':40,
@@ -44,8 +38,6 @@ meta_dict = {'061126':{
                        },
             '090618':{
                        'z':0.54,
-                       'zlim':None,
-                       'z':2.346,
                        'zlim':None,
                        'xmin':100,
                        'xmax':3e3,
@@ -55,8 +47,6 @@ meta_dict = {'061126':{
             '080319C':{
                         'z':1.95,
                         'zlim':None,
-                        'z':2.346,
-                        'zlim':None,
                         'xmin':300,
                         'xmax':2e3,
                         'ymin':100,
@@ -65,8 +55,6 @@ meta_dict = {'061126':{
             '090530':{
                        'z':None,
                        'zlim':1.6,
-                       'z':2.346,
-                       'zlim':None,
                        'xmin':100,
                        'xmax':5e3,
                        'ymin':50,
@@ -74,8 +62,6 @@ meta_dict = {'061126':{
                        },
             '080607':{
                        'z':3.036,
-                       'zlim':None,
-                       'z':2.346,
                        'zlim':None,
                        'xmin':100,
                        'xmax':5e3,
@@ -93,23 +79,23 @@ meta_dict = {'061126':{
             '070208':{
                        'z':1.165,
                        'zlim':None,
-                       'z':2.346,
-                       'zlim':None,
                        'xmin':300,
                        'xmax':2e4,
-                       'ymin':50,
-                       'ymax':1e3
+                       'ymin':20,
+                       'ymax':4e2
                        },
             '071025':{
                        'z':4.8,
-                       'zlim':None,
-                       'z':2.346,
                        'zlim':None,
                        'xmin':100,
                        'xmax':5e3,
                        'ymin':40,
                        'ymax':2e4
-                       }
+                       },
+            '090709A':{
+                        'z':None, #TODO: CHECK
+                        'zlim':None,
+            }
         }
 
 extinction_grb_list = ['080330','071025','090618','070208','080310','080319C','090709A','051109A','090530','061126','080607']
@@ -175,8 +161,9 @@ def obj_loop():
         phot_obj=PhotParse.PhotParse(table)
         
         GRB_key = phot_obj.name.split(',')[-1] # eg 071025
-        GRB_df = df_grb.loc['GRB_key']
-        
-        phot_obj.PlotLC(show=False,legend=False,xlimits=(100,20000))
+        GRB_df = df_grb.loc[GRB_key]
+        xlims = (GRB_df['xmin'],GRB_df['xmax']) # grab plot imits from DF
+        ylims = (GRB_df['ymin'],GRB_df['ymax'])
+        phot_obj.PlotLC(show=False,legend=False,xlimits=xlims,ylimits=ylims,figsize=(9,7))
         phot_obj.WriteCondensedTable()
     
