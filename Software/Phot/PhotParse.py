@@ -244,35 +244,59 @@ class ObjBlock:
             self.phot_table=phot_table
         
         self.phot_table[['Tmid']] = self.phot_table[['Tmid']].astype(float) # convert column to float values before sorting
+        self.phot_table = self.phot_table.fillna('nan') # replacing numeric NaNs with string values
         self.phot_table = self.phot_table.sort('Tmid') # sorting by time
         
         #define formatters to print
         stringformatter  = lambda x: '$%s$ & ' % x
         endformatter = lambda x: '$%s$ \\\\' % x
         
+        # create a dictionary of formatters for output 
+        formatterdict = {'Tmid':stringformatter,'exposure':stringformatter}
+        columnlist = ['Tmid','exposure']  
+        colhead1 = "\\colhead{$t_{\\rm mid}$} & \\colhead{Exp} "
+        colhead2 = "\\colhead{(s)}        & \\colhead{(s)} "
+        if 'Jmag' in self.phot_table:
+            formatterdict.update({'Jmag':stringformatter,'Jmagerr':stringformatter})
+            columnlist.append('Jmag')
+            columnlist.append('Jmagerr')
+            colhead1+="& \\colhead{$J$ Mag} & \\colhead{$J$ Mag Err} "
+            if 'Hmag' not in self.phot_table and 'Kmag' not in self.phot_table:
+                formatterdict['Jmagerr'] = endformatter
+        if 'Hmag' in self.phot_table:
+            formatterdict.update({'Hmag':stringformatter,'Hmagerr':stringformatter})
+            columnlist.append('Hmag')
+            columnlist.append('Hmagerr')
+            colhead1+="& \\colhead{$H$ Mag} & \\colhead{$H$ Mag Err} "
+            if 'Kmag' not in self.phot_table:
+                formatterdict['Hmagerr'] = endformatter
+        if 'Kmag' in self.phot_table:
+            formatterdict.update({'Kmag':stringformatter,'Kmagerr':endformatter})
+            columnlist.append('Kmag')
+            columnlist.append('Kmagerr')
+            colhead1+="& \\colhead{$K$ Mag} & \\colhead{$K$ Mag Err} "
+        
         out_str = self.phot_table.to_string(index=False,index_names=False,
-            header=False,columns=['Tmid','exposure','Jmag','Jmagerr','Hmag','Hmagerr','Kmag','Kmagerr'],
-            formatters={'Tmid':stringformatter,'exposure':stringformatter,
-                        'Jmag':stringformatter,'Jmagerr':stringformatter,
-                        'Hmag':stringformatter,'Hmagerr':stringformatter,
-                        'Kmag':stringformatter,'Kmagerr':endformatter})
+            header=False,columns=columnlist,formatters=formatterdict)
         
         self.phot_table_tex = out_str
         
+        linestring = 'l'*len(self.phot_table.columns)
+        colhead2 += '& \\colhead{} & \\colhead{$1\\sigma$} '*((len(self.phot_table.columns)-2)/2)
         # FIXME
         # Tmid    exposure    Kmag    Kmagerr Hmag    Hmagerr Jmag    Jmagerr
         
         header='''
-    \\begin{deluxetable}{llllllll}
+    \\begin{deluxetable}{%s}
     \\tablecaption{Photometry of %s}
     \\tabletypesize{\scriptsize}
     \\tablewidth{0pt}
     \\tablehead{
-    \\colhead{$t_{\\rm mid}$} & \\colhead{Exp} & \\colhead{$J$ Mag} & \\colhead{$J$ Mag Err} & \\colhead{$H$ Mag} & \\colhead{$H$ Mag Err} & \\colhead{$K$ Mag} & \\colhead{$K$ Mag Err}  \\\\
-    \\colhead{(s)}        & \\colhead{(s)}    & \\colhead{} & \\colhead{$1\\sigma$ } & \\colhead{} & \\colhead{$1\\sigma$ } & \\colhead{} & \\colhead{$1\\sigma$ }}
+    %s  \\\\
+    %s   }
     \\startdata
 
-    ''' % (self.name)
+    ''' % (linestring,self.name,colhead1,colhead2)
     
         footer= '''
     \\enddata
