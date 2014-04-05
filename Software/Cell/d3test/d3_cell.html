@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Interactive Cell Identification</title>
+		<script type="text/javascript" src="d3.v3.js"></script>
+		<style type="text/css">
+			body {
+				background-color: gray;
+			}
+			svg {
+				background-color: white;
+			}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			//Define width and height
+			var w = 512;
+			var h = 512;
+			
+			//Define dataset
+			var dataset = [
+			    [{id:1,x:120,y:90,r:5},{id:2,x:300,y:46,r:15}],
+			    [{id:3,x:121,y:89,r:10},{id:4,x:300,y:46,r:32},{id:5,x:220,y:360,r:2}],
+			    [{id:6,x:123,y:95,r:30},{id:7,x:301,y:46,r:10},{id:8,x:222,y:363,r:15}],
+			    [{id:9,x:121,y:92,r:15},{id:10,x:222,y:363,r:20}],
+			    [{id:11,x:121,y:90,r:2},{id:12,x:220,y:361,r:5}],
+			    [],
+			    [{id:13,x:225,y:111,r:5}]
+			    ]
+		    
+		    //Make SVG element
+			var svg_plot = d3.select("body")
+						.append("svg")
+						.attr("width", w)
+						.attr("height", h);
+			
+			var circles = svg_plot.selectAll("circle")
+                .data(dataset[0])
+                .enter()
+                .append("circle")
+ 			   .attr("cx", w / 2)
+ 			   .attr("cy", h / 2)
+ 			   .attr("r", 1)
+ 			   .attr("cx", function(d, i) {
+ 					return d.x;
+ 			   })
+ 			   .attr("r", function(d) {
+ 				   return d.r;
+ 			   })
+ 			   .attr("cy", function(d) {
+ 				   return d.y;
+ 			   });
+        </script>
+	</body>
+</html>
