@@ -11,6 +11,37 @@
 			svg {
 				background-color: white;
 			}
+
+            .axis {
+              font: 10px sans-serif;
+              -webkit-user-select: none;
+              -moz-user-select: none;
+              user-select: none;
+            }
+
+            .axis .domain {
+              fill: none;
+              stroke: #000;
+              stroke-opacity: .3;
+              stroke-width: 10px;
+              stroke-linecap: round;
+            }
+
+            .axis .halo {
+              fill: none;
+              stroke: #ddd;
+              stroke-width: 8px;
+              stroke-linecap: round;
+            }
+
+            .slider .handle {
+              fill: #fff;
+              stroke: #000;
+              stroke-opacity: .5;
+              stroke-width: 1.25px;
+              pointer-events: none;
+            }
+						
 		</style>
 	</head>
 	<body>
@@ -20,7 +51,7 @@
 			var h = 512;
 			
 			//Define dataset
-			var dataset = [
+			var dataset_arr = [
 			    [{id:1,x:120,y:90,r:5},{id:2,x:300,y:46,r:15}],
 			    [{id:3,x:121,y:89,r:10},{id:4,x:300,y:46,r:32},{id:5,x:220,y:360,r:2}],
 			    [{id:6,x:123,y:95,r:30},{id:7,x:301,y:46,r:10},{id:8,x:222,y:363,r:15}],
@@ -36,22 +67,130 @@
 						.attr("width", w)
 						.attr("height", h);
 			
+			//Define data circles/ellipses
 			var circles = svg_plot.selectAll("circle")
-                .data(dataset[0])
+                .data(dataset_arr[0]) //Load the first dataset for now
                 .enter()
-                .append("circle")
- 			   .attr("cx", w / 2)
- 			   .attr("cy", h / 2)
- 			   .attr("r", 1)
- 			   .attr("cx", function(d, i) {
- 					return d.x;
- 			   })
- 			   .attr("r", function(d) {
- 				   return d.r;
- 			   })
- 			   .attr("cy", function(d) {
- 				   return d.y;
- 			   });
+                .append("circle")   //Define circle parameters
+ 			    .attr("r", 1)
+ 			    .attr("cx", function(d, i) {
+                    return d.x;
+ 			    })
+ 			    .attr("cy", function(d) {
+ 				    return d.y;
+ 			    })
+ 			    .transition()
+  			    .duration(1000)
+ 			    .attr("r", function(d) {
+ 				    return d.r;
+ 			    })
+ 			    ;
+ 			
+ 			//Define the size of the slider
+            var margin = {top: 20, right: 50, bottom: 20, left: 50},
+                width = 512 - margin.left - margin.right,
+                height = 60 - margin.bottom - margin.top;
+            
+            //Define the extent of the slider
+            var x = d3.scale.linear()
+                .domain([0, dataset_arr.length-1]) //from 0 to length of dataset
+                .range([0, width])
+                .clamp(true);
+
+            // Brushing
+            var brush = d3.svg.brush()
+                .x(x)
+                .extent([0, 0])
+                .on("brush", brushed);
+
+            // Define scale bar svg properties
+            var svg = d3.select("body").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            
+            svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height / 2 + ")")
+                .call(d3.svg.axis()
+                  .scale(x)
+                  .orient("bottom")
+                  .ticks(Math.round(Math.min(dataset_arr.length,10))) // Avoid fractional ticks
+                  .tickFormat(function(d) { return d + ""; }) // add to the tick text if desired
+                  .tickSize(0)
+                  .tickPadding(12)) // Height below scale bar
+              .select(".domain")
+              .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+                .attr("class", "halo");
+
+            var slider = svg.append("g")
+                .attr("class", "slider")
+                .call(brush);
+
+            slider.selectAll(".extent,.resize")
+                .remove();
+
+            slider.select(".background")
+                .attr("height", height);
+            
+            // Define the circle on the slider
+            var handle = slider.append("circle") 
+                .attr("class", "handle")
+                .attr("transform", "translate(0," + height / 2 + ")") //Shift location
+                .attr("r", 9); // Marker size
+
+            slider
+                .call(brush.event)
+                .call(brush.extent([0, 0])) // Define start point of slider
+                .call(brush.event);
+            
+            // Actions to take upon moving the slide bar
+            function brushed() {
+              var value = brush.extent()[0];
+
+              if (d3.event.sourceEvent) { 
+                value = x.invert(d3.mouse(this)[0]);
+                brush.extent([value, value]);
+              }
+
+              handle.attr("cx", x(value)); //Update slide marker location
+
+                // Grab the dataset corresponding to marker location
+                dataset=dataset_arr[Math.round(value)]
+                
+                // Define circles using the "General Update Pattern"
+                // Uses the "key function", the second argument to selection.data
+                var circles = svg_plot.selectAll("circle")
+                    .data(dataset,function(d) { return d.id; });
+                    
+                // Add new circle values
+                circles.enter()
+    			   .append("circle")
+    			   .attr("cx", function(d, i) {
+    					return d.x;
+    			   })
+    			   .attr("cy", function(d) {
+    				   return d.y;
+    			   })
+    			   .attr("r", function(d) {
+    				   return d.r;
+    			   })
+    			   ;
+
+    			// For some reason I can't get update to work. Would want this
+    			// if using IDs that remain the same between elements.
+    			// Would be nice to transition in here somewhere if possible..
+
+                // Clear the no-longer existing values
+    			 circles.exit()
+                    // .transition()
+                    // .duration(1000)
+                    // .attr("r", 1)
+    			    .remove();
+
+            }
+    		</script>
         </script>
 	</body>
 </html>
