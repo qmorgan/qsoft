@@ -5,7 +5,7 @@ import numpy as np
 
 df=pd.read_csv("/Users/amorgan/qsoft/Software/Cell/d3test/Detections.csv")
 
-columnlist = ['id','x','y','r_kron']  
+columnlist = ['id','x','y','r_kron','A','B','theta']  
 
 data_str = '['
 for ind in np.arange(int(df.describe().z_index.loc['max'])):
@@ -15,11 +15,15 @@ for ind in np.arange(int(df.describe().z_index.loc['max'])):
     else:
         #define formatters to print
         id_fmt  = lambda x: '\t{id:%i,' % x
+        a_fmt = lambda x: 'a:%.2f,' % x
+        b_fmt = lambda x: 'b:%.2f,' % x
+        th_fmt = lambda x: 'th:%.1f},' % x
         x_fmt = lambda x: 'x:%.2f,' % x
         y_fmt = lambda x: 'y:%.2f,' % x
-        r_fmt = lambda x: 'r:%.2f},' % x
+        r_fmt = lambda x: 'r:%.2f,' % x
     
-        formatterdict = {'id':id_fmt,'x':x_fmt,'y':y_fmt,'r_kron':r_fmt}
+        formatterdict = {'id':id_fmt,'x':x_fmt,'y':y_fmt,'r_kron':r_fmt,
+                'A':a_fmt,'B':b_fmt,'theta':th_fmt}
     
     
         out_str = subdf.to_string(index=False,index_names=False,
