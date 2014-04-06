@@ -36,14 +36,7 @@ For example, the animation below illustrates how this method was used to show ho
 ![Cell Count Animation](http://i.imgur.com/85MQl0o.gif)
 
 
-<style type="text/css">
-	body {
-		background-color: gray;
-	}
-	svg {
-		background-color: white;
-	}
-
+<style> 
     .axis {
       font: 10px sans-serif;
       -webkit-user-select: none;
@@ -76,6 +69,7 @@ For example, the animation below illustrates how this method was used to show ho
 				
 </style>
 
+<script src="http://d3js.org/d3.v3.min.js"></script>
 <script type="text/javascript">
 //Define width and height
 var scalefactor = 1.0
