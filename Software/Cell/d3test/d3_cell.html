@@ -47,7 +47,14 @@
               -webkit-user-select: none;
               -moz-user-select: none;
               user-select: none;
-	            
+	    
+			}
+			
+			.objectinfo {
+              font: 14px sans-serif;
+              -webkit-user-select: none;
+              -moz-user-select: none;
+              user-select: none;
 			}
 			.selection {
 				stroke: red;
@@ -1721,10 +1728,20 @@
 		// Assigns a new class, style of which defined in css
 		// When selected, an ellipse will be outlined in red, made opaque,
 		//  and moved to the front of other ellipses. 
+
+		var objectinfo = svg_plot.append("text")
+			.attr("class", "objectinfo")
+			.attr("x",20)
+			.attr("y",490)		    
+
 		var toggleOutline = (function(){
 		            d3.select(".selection").classed("selection", false);
 		            d3.select(this).classed("selection", true);
 					d3.select(this).moveToFront();
+					objectinfo.text("Selected Cell #"+
+						d3.select(this)[0][0].getAttribute("oid")+
+						' (x:'+d3.select(this)[0][0].getAttribute("cx")+", y:"+
+						d3.select(this)[0][0].getAttribute("cy")+")")
 		        });
 		
 		//Define data circles/ellipses
@@ -1754,6 +1771,7 @@
 		          return (-1*(d.u-20)/3)})
 		    .attr("fill",function(d,i){return color(d.oid);});
 		    ;
+
 
 		//Define the size of the slider
 		var margin = {top: 20, right: 50, bottom: 30, left: 50},
@@ -1848,6 +1866,9 @@
 		    // Add new circle values with their appropriate datapoints as entered
 		    circles.enter()
 			   .append("ellipse")
+				.attr("oid", function(d, i) {
+						return d.oid;
+				   })
 			   .attr("cx", function(d, i) {
 					return d.x*scalefactor;
 			   })
@@ -1876,8 +1897,11 @@
 				if (d.oid == -1){return "1px"}
 				else{return "2px"}
 				    })
-			.on("click", toggleOutline);
+			.on("click", toggleOutline)
+			.append("svg:title") //append a tooltip!
+			   .text(function(d) { return "Cell #"+d.oid; }); 
 			;
+
 
 			// For some reason I can't get update to work. Would want this
 			// if using IDs that remain the same between elements.
@@ -1889,6 +1913,23 @@
 		        // .duration(1000)
 		        // .attr("r", 1)
 			    .remove();
+			
+	//	d3.select(".objectinfo").remove() // get rid of any text currently showing
+				// 
+				// var text = svg_plot.selectAll("text")
+				// 			                      .data(dataset)
+				// 			                      .enter()
+				// 			                      .append("text");
+				// 			   
+				// //Add SVG Text Element Attributes. Have invisible for now.
+				// var textLabels = text
+				//                  .attr("x", function(d) { return d.x; })
+				//                  .attr("y", function(d) { return d.y; })
+				//                  .text(function (d) { return "("+d.oid+")"; })
+				//                  .attr("font-family", "sans-serif")
+				//                  .attr("font-size", "12px")
+				//                  .attr("fill", "red");
+
 
 		}
 		
