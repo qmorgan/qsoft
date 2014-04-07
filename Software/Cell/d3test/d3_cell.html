@@ -1732,7 +1732,10 @@
 		var objectinfo = svg_plot.append("text")
 			.attr("class", "objectinfo")
 			.attr("x",20)
-			.attr("y",490)		    
+			.attr("y",490)
+			.style("opacity",1)		    
+			
+			
 
 		var toggleOutline = (function(){
 		            d3.select(".selection").classed("selection", false);
@@ -1741,7 +1744,14 @@
 					objectinfo.text("Selected Cell #"+
 						d3.select(this)[0][0].getAttribute("oid")+
 						' (x:'+d3.select(this)[0][0].getAttribute("cx")+", y:"+
-						d3.select(this)[0][0].getAttribute("cy")+")")
+						d3.select(this)[0][0].getAttribute("cy")+")").transition().duration(1000)
+					objectinfo
+						.style("opacity",0)
+					objectinfo
+						.transition()
+						.style("opacity",1)
+						.duration(1000)
+					d3.select(".objectinfo").moveToFront();
 		        });
 		
 		//Define data circles/ellipses
@@ -1848,7 +1858,12 @@
 		    value = x.invert(d3.mouse(this)[0]);
 		    brush.extent([value, value]);
 		  }
-
+		
+		svg_plot.selectAll("text")
+			.transition()
+			.style("opacity",0)
+			.duration(500)
+		
 		  handle.attr("cx", x(value)); //Update slide marker location
 		  
 		  sliceid.text("Slice #"+Math.round(value))
