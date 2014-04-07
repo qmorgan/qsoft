@@ -42,7 +42,13 @@
               pointer-events: none;
             }
 						
-			
+			.slider .sliceid {
+              font: 12px sans-serif;
+              -webkit-user-select: none;
+              -moz-user-select: none;
+              user-select: none;
+	            
+			}
 			.selection {
 				stroke: red;
 			    stroke-width: 2px;
@@ -1750,9 +1756,9 @@
 		    ;
 
 		//Define the size of the slider
-		var margin = {top: 20, right: 50, bottom: 20, left: 50},
+		var margin = {top: 20, right: 50, bottom: 30, left: 50},
 		    width = 512*scalefactor - margin.left - margin.right,
-		    height = 60 - margin.bottom - margin.top;
+		    height = 100 - margin.bottom - margin.top;
 
 		//Define the extent of the slider
 		var x = d3.scale.linear()
@@ -1802,7 +1808,13 @@
 		    .attr("class", "handle")
 		    .attr("transform", "translate(0," + height / 2 + ")") //Shift location
 		    .attr("r", 9); // Marker size
-
+		
+		var sliceid = slider.append("text")
+			.attr("class", "sliceid")
+			.attr("x",0)
+			.attr("y",0)		    
+		    .attr("transform", "translate(" + x(margin.left)/2 + "," + x(margin.top)/2 + ")");
+		
 		slider
 		    .call(brush.event)
 		    .call(brush.extent([0, 0])) // Define start point of slider
@@ -1820,7 +1832,10 @@
 		  }
 
 		  handle.attr("cx", x(value)); //Update slide marker location
-
+		  
+		  sliceid.text("Slice #"+Math.round(value))
+		  // sliceid.attr("x",x(value)) // move along with the slider
+		
 		    // Grab the dataset corresponding to marker location
 		    dataset=dataset_arr[Math.round(value)]
 
@@ -1878,5 +1893,6 @@
 		}
 		
         </script>
+
 	</body>
 </html>
