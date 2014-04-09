@@ -1883,10 +1883,11 @@
 				
 
 			circles.attr('class','update') //label updated circles
+				// cant have the rotation in the transition because of the 360-0 gap making it wacky 
 			   .attr("transform",  function(d, i) {
 		              return "rotate ("+ d.th + "," + d.x*scalefactor + "," + d.y*scalefactor + ")"})
 				.transition()
-			    .duration(300)
+			    .duration(200)
 				   .attr("cx", function(d, i) {
 						return d.x*scalefactor;
 				   })
@@ -1916,17 +1917,7 @@
 			   .attr("cy", function(d) {
 				   return d.y*scalefactor;
 			   })
-			   .attr("rx", function(d) {
-				   return d.a*d.r*scalefactor;
-			   })
-			   .attr("ry", function(d) {
-				   return d.b*d.r*scalefactor;
-			   })
-			   .attr("transform",  function(d, i) {
-		              return "rotate ("+ d.th + "," + d.x*scalefactor + "," + d.y*scalefactor + ")"})
-		    .attr("opacity", function(d) {
-		          return (-1*(d.u-19.1)/1.8)}) // highest is 19.22, lowest 17.36
-		    .attr("fill",function(d,i){
+			.attr("fill",function(d,i){
 		        if (d.oid == -1){return "none"}
 		        else{return color(d.oid)}
 		            })
@@ -1937,24 +1928,38 @@
 		    .attr("stroke-width",function(d,i){
 				if (d.oid == -1){return "1px"}
 				else{return "2px"}
-				    })				
+				    })
+			   .attr("rx", 1)
+			   .attr("ry", 1)
+				.attr("opacity",0)
+				.transition()
+			    .duration(200)
+			   .attr("rx", function(d) {
+				   return d.a*d.r*scalefactor;
+			   })
+			   .attr("ry", function(d) {
+				   return d.b*d.r*scalefactor;
+			   })
+			   .attr("transform",  function(d, i) {
+		              return "rotate ("+ d.th + "," + d.x*scalefactor + "," + d.y*scalefactor + ")"})
+		    .attr("opacity", function(d) {
+		          return (-1*(d.u-19.1)/1.8)}) // highest is 19.22, lowest 17.36
+			
+			circles
 			.on("click", toggleOutline)
 			.append("svg:title") //append a tooltip!
 			   .text(function(d) { return "Cell #"+d.oid; }); 
 			;
 
 
-			// For some reason I can't get update to work. Would want this
-			// if using IDs that remain the same between elements.
-			// Would be nice to transition in here somewhere if possible..
-
 		    // Clear the no-longer existing values
 			 circles.exit()
-				// .transition()
-				// .duration(100)	
-				// .attr("opacity",0)
+				.transition()
+				.duration(200)	
+			   .attr("rx", 1)
+			   .attr("ry", 1)
+				.attr("opacity",0)
 			    .remove();
-
 		}
 		
         </script>
