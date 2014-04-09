@@ -1864,8 +1864,11 @@
 			.style("opacity",0)
 			.duration(500)
 		
+		
 		  handle.attr("cx", x(value)); //Update slide marker location
 		  
+		
+		
 		  sliceid.text("Slice #"+Math.round(value))
 		  // sliceid.attr("x",x(value)) // move along with the slider
 		
@@ -1876,11 +1879,34 @@
 		    // Uses the "key function", the second argument to selection.data
 		    // Description of reasoning here: http://bit.ly/1jNNqOH
 		    var circles = svg_plot.selectAll("ellipse")
-		        .data(dataset,function(d) { return d.id; });
+		        .data(dataset,function(d) { return d.oid; });
+				
 
+			circles.attr('class','update') //label updated circles
+			   .attr("transform",  function(d, i) {
+		              return "rotate ("+ d.th + "," + d.x*scalefactor + "," + d.y*scalefactor + ")"})
+				.transition()
+			    .duration(300)
+				   .attr("cx", function(d, i) {
+						return d.x*scalefactor;
+				   })
+				   .attr("cy", function(d) {
+					   return d.y*scalefactor;
+				   })
+				   .attr("rx", function(d) {
+					   return d.a*d.r*scalefactor;
+				   })
+				   .attr("ry", function(d) {
+					   return d.b*d.r*scalefactor;
+				   })
+				.attr("opacity", function(d) {
+		          return (-1*(d.u-19.1)/1.8)}) // highest is 19.22, lowest 17.36
+		    	
+				
 		    // Add new circle values with their appropriate datapoints as entered
 		    circles.enter()
 			   .append("ellipse")
+				.attr("class","enter")
 				.attr("oid", function(d, i) {
 						return d.oid;
 				   })
@@ -1911,7 +1937,7 @@
 		    .attr("stroke-width",function(d,i){
 				if (d.oid == -1){return "1px"}
 				else{return "2px"}
-				    })
+				    })				
 			.on("click", toggleOutline)
 			.append("svg:title") //append a tooltip!
 			   .text(function(d) { return "Cell #"+d.oid; }); 
@@ -1924,27 +1950,10 @@
 
 		    // Clear the no-longer existing values
 			 circles.exit()
-		        // .transition()
-		        // .duration(1000)
-		        // .attr("r", 1)
+				// .transition()
+				// .duration(100)	
+				// .attr("opacity",0)
 			    .remove();
-			
-	//	d3.select(".objectinfo").remove() // get rid of any text currently showing
-				// 
-				// var text = svg_plot.selectAll("text")
-				// 			                      .data(dataset)
-				// 			                      .enter()
-				// 			                      .append("text");
-				// 			   
-				// //Add SVG Text Element Attributes. Have invisible for now.
-				// var textLabels = text
-				//                  .attr("x", function(d) { return d.x; })
-				//                  .attr("y", function(d) { return d.y; })
-				//                  .text(function (d) { return "("+d.oid+")"; })
-				//                  .attr("font-family", "sans-serif")
-				//                  .attr("font-size", "12px")
-				//                  .attr("fill", "red");
-
 
 		}
 		
