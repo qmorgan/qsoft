@@ -8,7 +8,7 @@ if not os.environ.has_key("Q_DIR"):
     print "You need to set the environment variable Q_DIR to point to the"
     print "directory where you have WCSTOOLS installed"
     sys.exit(1)
-splinedir = os.environ.get("Q_DIR") + '/trunk/Software/Modelling/'
+splinedir = os.environ.get("Q_DIR") + '/Software/Modelling/'
 storepath = os.environ.get("Q_DIR") + '/store/'
 loadpath = os.environ.get("Q_DIR") + '/load/'
 
