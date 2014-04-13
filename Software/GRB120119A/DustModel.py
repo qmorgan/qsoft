@@ -148,6 +148,8 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
     newobjblock.utburst = objblock.utburst
     newobjblock.redshift = objblock.redshift
     newobjblock.galebv = objblock.galebv
+    newobjblock.name = objblock.name
+    print "Building interpolation for {}".format(objblock.name)
     
     # taking the times from pairitel and using them as the extrapolation times
     #FIXME - instead, loop through the take_as_given list and extrapolate to those times
@@ -186,7 +188,8 @@ def BuildInterpolation(objblock,extraptime,interpolate_list,take_as_given_list=N
             if not samefig:
                 fig=None
             newobsblock,fig=PhotParse.SmartInterpolation(obsblock,extraptime,plot=plot,
-                    value_lims=value_lims,error_lims=error_lims,plotzoom=plotzoom,fig=fig)
+                    value_lims=value_lims,error_lims=error_lims,plotzoom=plotzoom,fig=fig,
+                    name=newobjblock.name.replace('\,',''))
         newobjblock.obsdict.update({obs:newobsblock})
         assert newobsblock != None
     newobjblock.CalculateFlux()
