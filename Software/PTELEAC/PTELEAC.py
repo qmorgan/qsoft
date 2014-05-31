@@ -185,7 +185,7 @@ dustdict={"051109A":{"beta":-0.70 ,"Av":0.00 ,"type":"smc"}, #AV assumed
          "080320" :{"beta":np.nan,"Av":np.nan,"type":"smc"},
          "080604" :{"beta":np.nan,"Av":np.nan,"type":"smc"},
          "080607" :{"beta":-0.70 ,"Av":3.30 ,"type":"080607"},
-         "090530" :{"beta":-0.60 ,"Av":0.00 ,"type":"smc"}, #beta and AV assumed
+         "090530" :{"beta":-0.40 ,"Av":0.15 ,"type":"smc"}, 
          "090618" :{"beta":-0.64 ,"Av":0.24 ,"type":"smc"},
          "090709A":{"beta":-0.70 ,"Av":3.40 ,"type":"smc"}
          }
@@ -245,7 +245,7 @@ jz3corrhost=pd.Series(jz3corrhost,name='jz3corrhost',index=df_grb.index)
 # or fators of 2.67, 2.89, 2.48 if you prefur
 jz3corrhost.loc['071025']=jz3corrhost.loc['071025']*2.67
 
-offsetslist=[0.5,1.5,-1,0.5,2.5,-1,2.5,1.5,-1,-1,1.5,0.5,0.5,2.5]
+offsetslist=[0.5,0.5,-1,0.5,2.5,-1,2.5,1.5,-1,-1,1.5,0.5,1.5,2.5]
 offsets=pd.Series(offsetslist,name='offsets',index=df_grb.index)
 
 # correct H flux for galactic extinction

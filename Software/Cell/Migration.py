@@ -19,9 +19,10 @@ rc('font', family='Times New Roman', size=14)
 sextractor_bin = "sex"
 
 
+
 class ImageStack:
-    def __init__(self, image_directory='./',output_directory='./',config_directory='./'):
-        
+    def __init__(self, stack_type=None, image_directory='./',
+        output_directory='./',config_directory='./'):
         if image_directory[0:2]=='./' or image_directory[0:3]=='../':
             # assume the user is trying to run in current working directory
             os.chdir(image_directory)
@@ -36,13 +37,7 @@ class ImageStack:
             # assume the user is trying to run in current working directory
             os.chdir(config_directory)
             config_directory = os.getcwd() + '/'
-        
-        if not image_directory[-1] == '/': # need to have trailing slash
-            image_directory += '/'
-        if not output_directory[-1] == '/':
-            output_directory += '/'
-        if not config_directory[-1] == '/':
-            config_directory += '/'
+            
             
         if ' ' in image_directory:
             raise ValueError("Spaces not allowed in image_directory: " + image_directory)
@@ -54,43 +49,9 @@ class ImageStack:
         self.config_directory = config_directory #path for configuration files cell.sex, cell.param, gauss_3.0_7x7.conv
         self.image_directory = image_directory # where the .tif files are located
         self.output_directory = output_directory # where all the output files should go
-        
-        xml_path = self.image_directory + 'ZSeries*.xml'
-        xml_list = glob.glob(xml_path)
-        if len(xml_list) > 1:
-            raise IOError("Too many .xml configuration files in " + xml_path)
-        elif len(xml_list) == 0:
-            try:
-                print "Couldn't find .xml configuration file; checking in parent directory"
-                xml_path = os.path.dirname(self.image_directory.rstrip('/'))+'/ZSeries*.xml'
-                xml_list = glob.glob(xml_path)
-                assert len(xml_list) == 1
-                self.xml_config = xml_list[0]
-            except:
-                raise IOError("Cannot find .xml configuration in path " + xml_path)
-        else:
-            self.xml_config = xml_list[0]
-        self.name = os.path.basename(self.xml_config).replace('.xml','')
-        self.read_xml_configuration()
-    
-    def PrepareImages(self):
-        '''The images for a z-stack are originally .tif files located in a
-        single directory. This function loads all ZSeries*.tif files within
-        self.image_directory and converts them to .fits files using 
-        ImageMagick 
-        '''
-        self.tiflist = glob.glob(self.image_directory+'ZSeries*.tif')
-        if len(self.tiflist) == 0:
-            print "Cannot find any ZSeries*.tif images to convert in " + self.image_directory
-        print "Converting tiff files to fits files..."
-        self.tiff2fits(truncate_filename=True)
-        if len(self.fitslist) == 0:
-            raise IOError("Couldn't convert tif files to fits files...")
-        print "Done. Ready to FindDetections()"
-    
     
     def FindDetections(self,checkimages=False):
-        '''Loop through each image in the stack and and run SExtractor on 
+        '''Loop through each .FITS image in the stack and and run SExtractor on 
         each one. 
         
         The following SExtractor configuration files are loaded:
@@ -136,112 +97,7 @@ class ImageStack:
         self.detection_object_link_table.to_excel(writer,sheet_name="ObjectLinks")
         self.association_object_link_table.to_excel(writer,sheet_name="AssociationLinks")
         writer.save()
-        
-    def read_xml_configuration(self):
-        import xml.etree.ElementTree as ET
-        tree = ET.parse(self.xml_config)
-        root = tree.getroot()
     
-        for item in root.iter('PVScan'):
-            scan_date = item.attrib['date']
-    
-        #format is:
-        # <Key key="positionCurrent_ZAxis" permissions="WriteSave" value="-518.6" />
-        z_values = []
-        x_values = []
-        microns_per_pixel_list = []
-        y_values = []
-        z_diff_values = []
-        rel_time_values = []
-        abs_time_values = []
-        exposure_time_list = []
-        gain_list = []
-        gain_mult_list = []
-        indices = []
-        # parse xml file and build list of values
-        for frame in root.iter('Frame'):
-            rel_time_values.append(float(frame.attrib['relativeTime']))
-            abs_time_values.append(float(frame.attrib['absoluteTime']))
-            indices.append(int(frame.attrib['index']))
-        for key in root.iter('Key'):
-            if key.attrib['key'] == "positionCurrent_ZAxis":
-                z_values.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "positionCurrent_XAxis":
-                x_values.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "positionCurrent_YAxis":
-                y_values.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "micronsPerPixel_XAxis":
-                microns_per_pixel_list.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "micronsPerPixel_YAxis":
-                microns_per_pixel_list.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "sfc_exposureTime":
-                exposure_time_list.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "sfc_gainMultFactor":
-                gain_mult_list.append(float(key.attrib['value']))
-            elif key.attrib['key'] == "sfc_gain":
-                gain_list.append(float(key.attrib['value']))
-        # determine difference between each z position
-        for i in np.arange(len(z_values)-1):
-            z_diff_values.append(z_values[i]-z_values[i+1])
-        z_diff_mean = np.mean(z_diff_values)
-        microns_per_pixel = np.mean(microns_per_pixel_list)
-        exposure_time = np.mean(exposure_time_list)
-        # Error checking
-        if np.std(z_diff_values) > 1E-9:
-            raise ValueError("Something is wrong; Variance in z_diff detected")
-        if np.std(x_values) > 1E-9:
-            raise ValueError("Something is wrong; Variance in x_values detected")
-        if np.std(y_values) > 1E-9:
-            raise ValueError("Something is wrong; Variance in y_values detected")    
-        if np.std(microns_per_pixel_list) > 1E-9:
-            raise ValueError("Something is wrong; Variance in microns per pixel detected")
-        if np.std(exposure_time_list) > 1E-9:
-            raise ValueError("Something is wrong; Variance in individual exposure times detected")
-        if np.std(gain_mult_list) > 1E-9:
-            raise ValueError("Something is wrong; Variance in gain mult factor detected")
-        if np.std(gain_list) > 1E-9:
-            raise ValueError("Something is wrong; Variance in gain detected")
-            
-        data_dict = {'z_index':indices,'z_pos':z_values,'x_pos':x_values,'y_pos':y_values,'t_rel':rel_time_values,'t_abs':abs_time_values}
-        config = {'filename':self.xml_config,'date':scan_date,'z_diff':z_diff_mean,'exposure_time':exposure_time,'gain':np.mean(gain_list),\
-            'gain_mult_factor':np.mean(gain_mult_list),'pixel_scale':microns_per_pixel,'data_dict':data_dict}
-        
-        self.config = config
-        self.image_table = pd.DataFrame(config['data_dict'])
-        
-    def grab_fits_list(self,make_new=False):
-        self.fitslist=glob.glob(self.output_directory+'0*.fits')
-        if len(self.fitslist) == 0 and make_new == True:
-            self.tiff2fits()
-        
-        
-    def tiff2fits(self,truncate_filename=True):
-        '''Convert all tiff files in the current directory to a fits file
-        truncate_filename renames the file as the last characters after the last 
-        '_' in the input filename.
-        '''
-        print 'Converting tiff files to fits files'
-        working_directory = self.output_directory
-        outlist = []
-        for filepath in self.tiflist:
-            assert os.path.exists(filepath)
-            filedir = os.path.dirname(filepath)
-            filebase = os.path.basename(filepath)
-            basename, baseextension = filebase.split('.')
-            if truncate_filename:
-                basename = basename.split('_')[-1]
-            if baseextension[0:3] != 'tif':
-                raise ValueError('Expected tiff file; got ' + baseextension)
-            outpath = working_directory + '/' + basename + '.fits'
-    
-            magickcommand = "convert %s %s" % (filepath, outpath)
-            try:
-                os.system(magickcommand)
-                outlist.append(outpath)
-            except:
-                print "Do not have Imagemagick, cannot convert tif to fits"
-    
-        self.fitslist = outlist
     
     def make_sex_cat(self,image_name, checkimages=False):
         '''Create the Source EXtraction CATalog for an individual image in
@@ -656,7 +512,7 @@ class ImageStack:
         print "Object/association table generation complete."
         print "Can create verification images [MakeVerificationImages()]"
         print "Or generate histograms [PlotCountHist()]"
-
+    
     def PrepareVerificationImages(self):
         '''
         The source detection, object assignment, and association parameters
@@ -824,6 +680,161 @@ class ImageStack:
         full_det_table = self.detection_table
         detection_object_link_table = self.detection_object_link_table
         return full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == obj_id].det_id]
+    
+class TiffStack(ImageStack):
+    '''
+    Image stack where all the images are in .tiff files and the configuration 
+    parameters are in an XML file. TODO: Get exact specs/details from Mariana.
+    '''
+    def __init__(self, image_directory='./',output_directory='./',config_directory='./'):
+        # initialize the image stack
+        ImageStack.__init__(self,image_directory=image_directory,
+            output_directory=output_directory,config_directory=config_directory)
+        
+        xml_path = self.image_directory + 'ZSeries*.xml'
+        xml_list = glob.glob(xml_path)
+        if len(xml_list) > 1:
+            raise IOError("Too many .xml configuration files in " + xml_path)
+        elif len(xml_list) == 0:
+            try:
+                print "Couldn't find .xml configuration file; checking in parent directory"
+                xml_path = os.path.dirname(self.image_directory.rstrip('/'))+'/ZSeries*.xml'
+                xml_list = glob.glob(xml_path)
+                assert len(xml_list) == 1
+                self.xml_config = xml_list[0]
+            except:
+                raise IOError("Cannot find .xml configuration in path " + xml_path)
+        else:
+            self.xml_config = xml_list[0]
+        self.name = os.path.basename(self.xml_config).replace('.xml','')
+        self.read_xml_configuration()
+    
+    def PrepareImages(self):
+        '''The images for a z-stack are originally .tif files located in a
+        single directory. This function loads all ZSeries*.tif files within
+        self.image_directory and converts them to .fits files using 
+        ImageMagick 
+        '''
+        self.tiflist = glob.glob(self.image_directory+'ZSeries*.tif')
+        if len(self.tiflist) == 0:
+            print "Cannot find any ZSeries*.tif images to convert in " + self.image_directory
+        print "Converting tiff files to fits files..."
+        self.tiff2fits(truncate_filename=True)
+        if len(self.fitslist) == 0:
+            raise IOError("Couldn't convert tif files to fits files...")
+        print "Done. Ready to FindDetections()"
+    
+        
+    def read_xml_configuration(self):
+        '''Read the xml config output by the microscope  and configuration that
+        output a series of Tiff files. TODO: Get exact specs/details from Mariana.
+         '''
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(self.xml_config)
+        root = tree.getroot()
+    
+        for item in root.iter('PVScan'):
+            scan_date = item.attrib['date']
+    
+        #format is:
+        # <Key key="positionCurrent_ZAxis" permissions="WriteSave" value="-518.6" />
+        z_values = []
+        x_values = []
+        microns_per_pixel_list = []
+        y_values = []
+        z_diff_values = []
+        rel_time_values = []
+        abs_time_values = []
+        exposure_time_list = []
+        gain_list = []
+        gain_mult_list = []
+        indices = []
+        # parse xml file and build list of values
+        for frame in root.iter('Frame'):
+            rel_time_values.append(float(frame.attrib['relativeTime']))
+            abs_time_values.append(float(frame.attrib['absoluteTime']))
+            indices.append(int(frame.attrib['index']))
+        for key in root.iter('Key'):
+            if key.attrib['key'] == "positionCurrent_ZAxis":
+                z_values.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "positionCurrent_XAxis":
+                x_values.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "positionCurrent_YAxis":
+                y_values.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "micronsPerPixel_XAxis":
+                microns_per_pixel_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "micronsPerPixel_YAxis":
+                microns_per_pixel_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "sfc_exposureTime":
+                exposure_time_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "sfc_gainMultFactor":
+                gain_mult_list.append(float(key.attrib['value']))
+            elif key.attrib['key'] == "sfc_gain":
+                gain_list.append(float(key.attrib['value']))
+        # determine difference between each z position
+        for i in np.arange(len(z_values)-1):
+            z_diff_values.append(z_values[i]-z_values[i+1])
+        z_diff_mean = np.mean(z_diff_values)
+        microns_per_pixel = np.mean(microns_per_pixel_list)
+        exposure_time = np.mean(exposure_time_list)
+        # Error checking
+        if np.std(z_diff_values) > 1E-9:
+            raise ValueError("Something is wrong; Variance in z_diff detected")
+        if np.std(x_values) > 1E-9:
+            raise ValueError("Something is wrong; Variance in x_values detected")
+        if np.std(y_values) > 1E-9:
+            raise ValueError("Something is wrong; Variance in y_values detected")    
+        if np.std(microns_per_pixel_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in microns per pixel detected")
+        if np.std(exposure_time_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in individual exposure times detected")
+        if np.std(gain_mult_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in gain mult factor detected")
+        if np.std(gain_list) > 1E-9:
+            raise ValueError("Something is wrong; Variance in gain detected")
+            
+        data_dict = {'z_index':indices,'z_pos':z_values,'x_pos':x_values,'y_pos':y_values,'t_rel':rel_time_values,'t_abs':abs_time_values}
+        config = {'filename':self.xml_config,'date':scan_date,'z_diff':z_diff_mean,'exposure_time':exposure_time,'gain':np.mean(gain_list),\
+            'gain_mult_factor':np.mean(gain_mult_list),'pixel_scale':microns_per_pixel,'data_dict':data_dict}
+        
+        self.config = config
+        self.image_table = pd.DataFrame(config['data_dict'])
+        
+
+        
+    def tiff2fits(self,truncate_filename=True):
+        '''Convert all tiff files in the current directory to a fits file
+        truncate_filename renames the file as the last characters after the last 
+        '_' in the input filename.
+        '''
+        print 'Converting tiff files to fits files'
+        working_directory = self.output_directory
+        outlist = []
+        for filepath in self.tiflist:
+            assert os.path.exists(filepath)
+            filedir = os.path.dirname(filepath)
+            filebase = os.path.basename(filepath)
+            basename, baseextension = filebase.split('.')
+            if truncate_filename:
+                basename = basename.split('_')[-1]
+            if baseextension[0:3] != 'tif':
+                raise ValueError('Expected tiff file; got ' + baseextension)
+            outpath = working_directory + '/' + basename + '.fits'
+    
+            magickcommand = "convert %s %s" % (filepath, outpath)
+            try:
+                os.system(magickcommand)
+                outlist.append(outpath)
+            except:
+                print "Do not have Imagemagick, cannot convert tif to fits"
+    
+        self.fitslist = outlist
+    
+    
+    def grab_fits_list(self,make_new=False):
+        self.fitslist=glob.glob(self.output_directory+'0*.fits')
+        if len(self.fitslist) == 0 and make_new == True:
+            self.tiff2fits()
     
 
 def histTest(objectlist,outname,title):
