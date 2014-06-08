@@ -680,7 +680,138 @@ class ImageStack:
         full_det_table = self.detection_table
         detection_object_link_table = self.detection_object_link_table
         return full_det_table.loc[detection_object_link_table.loc[detection_object_link_table.obj_id == obj_id].det_id]
+
+class LSMStack(ImageStack):
+    '''
+    Reads an LSM image stack
+    '''
+    def __init__(self,image_directory='./',output_directory='./',config_directory='./'):
+        # initialize the image stack
+        from pylsm import lsmreader
+        assert (image_directory[-4:].lower() == '.lsm')
+        ImageStack.__init__(self,image_directory=image_directory,
+            output_directory=output_directory,config_directory=config_directory)
+        
+        imgobj = lsmreader.Lsmimage(image_directory)
+        imgobj.open()
+        shape = imgobj.image['data'][0].shape
+        n_imgs = len(imgobj.header['Image'])
+        assert (n_imgs == shape[-1])
+        self.N_stack = n_imgs
+        self.lsm_header = imgobj.header['CZ LSM info']
+        imgobj.close()
+        
+        self.name = os.path.basename(image_directory).replace('.lsm','')
+        self.read_lsm_configuration()
+        
+    def read_lsm_configuration(self):
+        pass
     
+    def PrepareImages(self,overwrite=False):
+        '''The images for a z-stack are originally an LSM file with many 
+        images within it. This function converts each image to a .fits file.
+        '''
+        from pylsm import lsmreader
+        import pyfits
+        
+        
+        # loop through each
+        
+        # w0 = 0.01
+        # w1 = (100-68.2)*2*.01
+        # w2 = (100-95.4)*2*.01
+        
+        w0=0.10
+        w1=0.1
+        w2=0.1
+        w3=0.1
+        
+        for stackid in np.arange(self.N_stack)[3:-3]:
+            # open the image
+            imgobj = lsmreader.Lsmimage(self.image_directory)
+            imgobj.open()
+            idata = imgobj.get_image(stack=stackid,channel=0)
+            idataN3 = imgobj.get_image(stack=stackid-3,channel=0)
+            idataN2 = imgobj.get_image(stack=stackid-2,channel=0)
+            idataN1 = imgobj.get_image(stack=stackid-1,channel=0)
+            idataP3 = imgobj.get_image(stack=stackid+3,channel=0)
+            idataP2 = imgobj.get_image(stack=stackid+2,channel=0)
+            idataP1 = imgobj.get_image(stack=stackid+1,channel=0)
+            imgobj.close()
+            
+
+            
+            #weighted mean
+            imageData = (idata*w0 + idataN3*w3 + idataN2*w2 + idataN1*w1 + idataP1*w1 + idataP2*w2 + idataP3*w3)/(w0+w1+w1+w2+w2+w3+w3)
+           
+            # todo - make this error check better
+            assert imageData.shape == (512,512)
+            # save as pngs
+            import matplotlib.cm as cm
+            imstring = "img{num:06d}.png".format(num=stackid+1)
+            plt.imsave(self.output_directory + imstring,imageData,cmap = cm.gray)
+
+            # # now smooth it
+            # from scipy import ndimage
+            # imageData = ndimage.gaussian_filter(imageData, sigma=1.5)
+            # 
+            # imzoom = ndimage.zoom(imageData,0.5,order=1)
+            # imzoom = ndimage.zoom(imzoom,2.0,order=1)
+            # imageData=imzoom
+            # 
+            # # # lots of 0s and 1s, lets get rid of the 1s to get rid of some noise
+            # # imageData = imageData - 1.0
+            # # imageData = imageData.clip(min=0)
+            # # 
+            # #sextractor seems to have problems with constant numbers. 
+            # # Let's try adding some noise to make it nicer.
+            # # and rescale to exponential
+            # scale=0.93
+            # noiselevel=10
+            # maxval=255.0
+            # expscale = 512.0
+            # imageData= expscale**((imageData*scale + maxval*(1-scale) - noiselevel + np.random.randn(512,512)*noiselevel)/expscale)
+            #             
+            # now smooth it again
+            # imageData = ndimage.gaussian_filter(imageData, sigma=2)
+
+            
+            # add background noise, then smooth, then scale
+            
+            scale=0.93
+            noiselevel=10
+            maxval=255.0
+            expscale = 512.0
+            
+            imageData = imageData*scale + maxval*(1-scale) - noiselevel + np.random.randn(512,512)*noiselevel
+            
+            # smooth
+            from scipy import ndimage
+            # imageData = ndimage.gaussian_filter(imageData, sigma=0.95)
+            
+            # scale
+            imageData= expscale**(imageData/maxval)
+            
+            outstring = "{num:06d}.fits".format(num=stackid+1)
+            # write as fits file
+            hdu = pyfits.PrimaryHDU(imageData)
+            hdulist = pyfits.HDUList([hdu])
+            try:
+                hdulist.writeto(self.output_directory + outstring)
+            except IOError:
+                if overwrite == True:
+                    print "{} already exists.. overwriting".format(outstring)
+                    os.remove(self.output_directory + outstring)
+                    hdulist.writeto(self.output_directory + outstring)
+                else:    
+                    print "{} already exists.. skipping".format(outstring)
+            hdulist.close()
+        
+        fitslist = glob.glob(self.output_directory+'0*.fits')
+        self.fitslist=fitslist
+        print "Done. Output {} FITS files. Ready to FindDetections()".format(self.N_stack)
+        
+        
 class TiffStack(ImageStack):
     '''
     Image stack where all the images are in .tiff files and the configuration 
