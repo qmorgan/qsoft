@@ -50,6 +50,9 @@ class ImageStack:
         self.image_directory = image_directory # where the .tif files are located
         self.output_directory = output_directory # where all the output files should go
     
+        self.coverslip_location = None
+        self.coverslip_measured = False
+        
     def FindDetections(self,checkimages=False):
         '''Loop through each .FITS image in the stack and and run SExtractor on 
         each one. 
@@ -143,7 +146,9 @@ class ImageStack:
         for cat_text_path in self.catlist:
             cat_text_file = os.path.basename(cat_text_path)
             catid = int(cat_text_file[3:].lstrip('0').rstrip('.txt'))
-            tmp_table=pd.read_csv(cat_text_path,header=None,delim_whitespace=True,names=detection_names)
+            tmp_table=pd.read_csv(cat_text_path,header=None,delim_whitespace=True,
+                names=detection_names)
+            tmp_table=tmp_table.astype(np.float64)
             tmp_table.z_index = catid
             if count == 0:
                 detection_table = tmp_table # do this for the first item, then append on to it
@@ -322,7 +327,9 @@ class ImageStack:
                         #grab the index of the detection for the current slice
                         prev_index = check_table[check_table.z_index==sub_row['z_index']].index
                         # if the current distance is shorter, replace that row
-                        if dist < check_table.loc[prev_index]['distance']:
+                        # adding the .iloc[-1] since pandas 1.3 seems to have changed 
+                        #  how it handles truthiness
+                        if dist < check_table.loc[prev_index]['distance'].iloc[-1]:
                             check_table.distance[prev_index] = dist
                             check_table.det_id[prev_index] = sub_ind
 
@@ -692,6 +699,7 @@ class LSMStack(ImageStack):
         ImageStack.__init__(self,image_directory=image_directory,
             output_directory=output_directory,config_directory=config_directory)
         
+        
         imgobj = lsmreader.Lsmimage(image_directory)
         imgobj.open()
         shape = imgobj.image['data'][0].shape
@@ -701,13 +709,77 @@ class LSMStack(ImageStack):
         self.lsm_header = imgobj.header['CZ LSM info']
         imgobj.close()
         
+        
         self.name = os.path.basename(image_directory).replace('.lsm','')
         self.read_lsm_configuration()
+    
+        self.find_coverslip_location()
+    
+    def find_coverslip_location(self,plot=True):
+        
+        from pylsm import lsmreader
+        N_stacks = self.N_stack
+        ### Find the slide where the cover slip is. It will be the slide with the highest background. 
+        ### Find this by fitting a gaussian over the median pixel value for all images
+        xvals = np.arange(N_stacks)
+        medlist=[]
+        
+        # get the median pixel values
+        imgobj = lsmreader.Lsmimage(self.image_directory)
+        imgobj.open()
+        for stack in xvals:
+            medlist.append(np.median(imgobj.get_image(stack=stack,channel=0)))
+        imgobj.close()
+        
+        #model it as a gaussian
+        medarr=np.array(medlist)
+        from Modelling import qFit
+        mu = qFit.Param(3,name='mu')
+        sigma = qFit.Param(4,name='sigma')
+        height = qFit.Param(50,name='height')
+        def f(x): 
+            return height() * np.exp(-((x-mu())/sigma())**2) 
+        retdict = qFit.fit(f, [mu, sigma, height], medarr+10, medarr*0+3, xvals)
+        
+        self.coverslip_location=mu.value
+        self.coverslip_measured=True
+        
+        # plot the fit and save the plot
+        if plot == True:
+            outname = self.name + ".png"
+        
+            xx = np.linspace(0,N_stacks,1000)
+        
+        
+            plt.ioff()
+            fig=plt.figure()
+            ax1=fig.add_axes([0.1,0.1,0.8,0.8])
+        
+        
+            ax1.plot(xx,f(xx)+10)
+            ax1.scatter(xvals,medarr+10)
+        
+        
+            ax1.set_xlim(-3,N_stacks+3)
+            ax1.set_ylim(0,medarr.max()+20)
+        
+            ax1.set_ylabel("Median pixel value (+10)")
+            ax1.set_xlabel('Slice #')
+            ax1.set_title("Coverslip Location Fit")
+        
+            ax1.text(0.2,0.9,self.name,transform=ax1.transAxes)
+            strings = "\n".join(retdict['strings']) + "\n\nchi^2/dof: {num:.01f}/{num2:.0f}".format(num=retdict['chi2'],num2=retdict['dof'])
+            ax1.text(0.4,0.5,strings,transform=ax1.transAxes)
+            fig.savefig(outname)    
+            fig.clf()
+        
+        
+
         
     def read_lsm_configuration(self):
         pass
     
-    def PrepareImages(self,overwrite=False):
+    def PrepareImages(self,overwrite=False,savepng=False):
         '''The images for a z-stack are originally an LSM file with many 
         images within it. This function converts each image to a .fits file.
         '''
@@ -721,13 +793,16 @@ class LSMStack(ImageStack):
         # w1 = (100-68.2)*2*.01
         # w2 = (100-95.4)*2*.01
         
-        w0=0.10
+        # Equal weights appears to work best. Makes sense as the cells go in
+        #  and out of focus as a function of depth..  
+        w0=0.1
         w1=0.1
         w2=0.1
         w3=0.1
         
         for stackid in np.arange(self.N_stack)[3:-3]:
             # open the image
+            # Why am I opening and closing this every dang time in the loop? Lazy.
             imgobj = lsmreader.Lsmimage(self.image_directory)
             imgobj.open()
             idata = imgobj.get_image(stack=stackid,channel=0)
@@ -746,10 +821,12 @@ class LSMStack(ImageStack):
            
             # todo - make this error check better
             assert imageData.shape == (512,512)
-            # save as pngs
-            import matplotlib.cm as cm
-            imstring = "img{num:06d}.png".format(num=stackid+1)
-            plt.imsave(self.output_directory + imstring,imageData,cmap = cm.gray)
+            
+            if savepng == True:
+                # save as pngs
+                import matplotlib.cm as cm
+                imstring = "img{num:06d}.png".format(num=stackid+1)
+                plt.imsave(self.output_directory + imstring,imageData,cmap = cm.gray)
 
             # # now smooth it
             # from scipy import ndimage
