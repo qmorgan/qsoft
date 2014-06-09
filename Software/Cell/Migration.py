@@ -566,43 +566,46 @@ class ImageStack:
             return
             
         for ap_img in ap_list:
-            if not overlay:
-                base = os.path.basename(ap_img)
-                num = int(base.replace('ap_','').lstrip('0').replace('.png',''))
-                out_img = ap_img.replace('ap_','detections_')
-            else:
-                base = os.path.basename(ap_img)
-                num = int(base.replace('detections_','').lstrip('0').replace('.png',''))
-                out_img = ap_img
-
-            # get the detection table from the Nth image slice
-            current_img_detections = detection_table[detection_table.z_index==num]
-            # join it with the detection_object link table
-            current_link = link_table.join(current_img_detections.z_index,on='det_id',how='right')
-
-            # join it with the object stats table
-            current_objects=current_link.join(object_table,on='obj_id',how='left')
-            # loop through the objects and make a label for each
-            im_cmd = 'convert ' + ap_img + ' -scale 200% -gravity Center ' 
-            if overlay:
-                im_cmd = 'convert ' + ap_img + ' -gravity Center ' #dont double the size
-
-            ### here we're centering on each DETECTION and printing a list of each OBJECT that detection is associated with
-            for index,row in current_img_detections.iterrows():
-                matching_objects = current_objects[current_objects['det_id'] == index]
-                obj_list_str = str(list(matching_objects.obj_id)).rstrip(']').lstrip('[').replace('.0','')
-                if obj_list_str == 'nan': 
-                    color = 'red'
-                    if overlay:
-                        continue
+            try:
+                if not overlay:
+                    base = os.path.basename(ap_img)
+                    num = int(base.replace('ap_','').lstrip('0').replace('.png',''))
+                    out_img = ap_img.replace('ap_','detections_')
                 else:
-                    color = textcolor
-                im_cmd+=self._overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'],color=color)
-            ### here we're centering on the average position of each OBJECT and printing it at this average position
-            # for index, row in current_objects.iterrows():
-            #     im_cmd+=_overlay_verification_text(str(row['obj_id']),row['x_mean'],row['y_mean'],0)
-            im_cmd += out_img 
-            os.system(im_cmd)
+                    base = os.path.basename(ap_img)
+                    num = int(base.replace('detections_','').lstrip('0').replace('.png',''))
+                    out_img = ap_img
+
+                # get the detection table from the Nth image slice
+                current_img_detections = detection_table[detection_table.z_index==num]
+                # join it with the detection_object link table
+                current_link = link_table.join(current_img_detections.z_index,on='det_id',how='right')
+
+                # join it with the object stats table
+                current_objects=current_link.join(object_table,on='obj_id',how='left')
+                # loop through the objects and make a label for each
+                im_cmd = 'convert ' + ap_img + ' -scale 200% -gravity Center ' 
+                if overlay:
+                    im_cmd = 'convert ' + ap_img + ' -gravity Center ' #dont double the size
+
+                ### here we're centering on each DETECTION and printing a list of each OBJECT that detection is associated with
+                for index,row in current_img_detections.iterrows():
+                    matching_objects = current_objects[current_objects['det_id'] == index]
+                    obj_list_str = str(list(matching_objects.obj_id)).rstrip(']').lstrip('[').replace('.0','')
+                    if obj_list_str == 'nan': 
+                        color = 'red'
+                        if overlay:
+                            continue
+                    else:
+                        color = textcolor
+                    im_cmd+=self._overlay_verification_text(obj_list_str,row['x'],row['y'],row['theta'],color=color)
+                ### here we're centering on the average position of each OBJECT and printing it at this average position
+                # for index, row in current_objects.iterrows():
+                #     im_cmd+=_overlay_verification_text(str(row['obj_id']),row['x_mean'],row['y_mean'],0)
+                im_cmd += out_img 
+                os.system(im_cmd)
+            except ValueError:
+                print "Cannot convert {}. Getting a ValueError.".format(base)
         print im_cmd
         #convert testlog.png -fill red -annotate %fx%f%s%f%s%f "10" testannotate.png
         # % (ang,ang,xsign,xpos,ysign,ypos)
@@ -772,13 +775,24 @@ class LSMStack(ImageStack):
             ax1.text(0.4,0.5,strings,transform=ax1.transAxes)
             fig.savefig(outname)    
             fig.clf()
-        
-        
 
         
     def read_lsm_configuration(self):
-        pass
+        from pylsm import lsmreader
     
+        imgobj = lsmreader.Lsmimage(self.image_directory)
+        imgobj.open()
+        self.header=imgobj.header
+        imgobj.close()
+        xsize=self.header['CZ LSM info']['Voxel Size X']
+        ysize=self.header['CZ LSM info']['Voxel Size Y']
+        self.z_diff = self.header['CZ LSM info']['Voxel Size Z'] * 1e6 # stack depth in microns
+        # make sure that x and y axis are on same scale
+        assert xsize-ysize < if 1E-9
+        self.pixel_scale=xsize*1e6 # microns per pixel
+        
+        
+        
     def PrepareImages(self,overwrite=False,savepng=False):
         '''The images for a z-stack are originally an LSM file with many 
         images within it. This function converts each image to a .fits file.
@@ -800,18 +814,18 @@ class LSMStack(ImageStack):
         w2=0.1
         w3=0.1
         
-        for stackid in np.arange(self.N_stack)[3:-3]:
+        for stackid in np.arange(self.N_stack):#[3:-3]:
             # open the image
             # Why am I opening and closing this every dang time in the loop? Lazy.
             imgobj = lsmreader.Lsmimage(self.image_directory)
             imgobj.open()
             idata = imgobj.get_image(stack=stackid,channel=0)
-            idataN3 = imgobj.get_image(stack=stackid-3,channel=0)
-            idataN2 = imgobj.get_image(stack=stackid-2,channel=0)
-            idataN1 = imgobj.get_image(stack=stackid-1,channel=0)
-            idataP3 = imgobj.get_image(stack=stackid+3,channel=0)
-            idataP2 = imgobj.get_image(stack=stackid+2,channel=0)
-            idataP1 = imgobj.get_image(stack=stackid+1,channel=0)
+            idataN3 = imgobj.get_image(stack=stackid-min(3,stackid),channel=0)
+            idataN2 = imgobj.get_image(stack=stackid-min(2,stackid),channel=0)
+            idataN1 = imgobj.get_image(stack=stackid-min(1,stackid),channel=0)
+            idataP3 = imgobj.get_image(stack=stackid+min(3,self.N_stack-stackid-1),channel=0)
+            idataP2 = imgobj.get_image(stack=stackid+min(2,self.N_stack-stackid-1),channel=0)
+            idataP1 = imgobj.get_image(stack=stackid+min(1,self.N_stack-stackid-1),channel=0)
             imgobj.close()
             
 
@@ -1005,6 +1019,8 @@ class TiffStack(ImageStack):
         config = {'filename':self.xml_config,'date':scan_date,'z_diff':z_diff_mean,'exposure_time':exposure_time,'gain':np.mean(gain_list),\
             'gain_mult_factor':np.mean(gain_mult_list),'pixel_scale':microns_per_pixel,'data_dict':data_dict}
         
+        self.pixel_scale = microns_per_pixel
+        self.z_diff = z_diff_mean #right units?? Check later
         self.config = config
         self.image_table = pd.DataFrame(config['data_dict'])
         
