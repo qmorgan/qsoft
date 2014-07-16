@@ -202,3 +202,5 @@ your detections are being populated correctly. The steps are as follows:
 
 [1]: http://www.astromatic.net/software/SExtractor     "Source Extractor"
 [2]: http://adsabs.harvard.edu/cgi-bin/bib_query?1980ApJS...43..305K "Kron (1980)"
+
+Financial support for this study was provided by National Institutes of Health Grant R01 EY012392
