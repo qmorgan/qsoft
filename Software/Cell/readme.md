@@ -43,6 +43,7 @@ Running the Code
 * This code: [https://github.com/qmorgan/qsoft/tree/master/Software/Cell](https://github.com/qmorgan/qsoft/tree/master/Software/Cell)
 * ImageMagick: [http://www.imagemagick.org/](http://www.imagemagick.org/)
 * Source Extractor: [http://www.astromatic.net/software/SExtractor](http://www.astromatic.net/software/SExtractor)
+* PyLSM: [https://pypi.python.org/pypi/pyLSM](https://pypi.python.org/pypi/pyLSM)
 
 ### Image Preparation 
 * Initialize ImageStack object
@@ -199,6 +200,9 @@ your detections are being populated correctly. The steps are as follows:
 
     `imgstack.MakeVerificationImages()`
     
+    
+Acknowledgements
+------------
 
 [1]: http://www.astromatic.net/software/SExtractor     "Source Extractor"
 [2]: http://adsabs.harvard.edu/cgi-bin/bib_query?1980ApJS...43..305K "Kron (1980)"
