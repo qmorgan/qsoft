@@ -716,10 +716,13 @@ class LSMStack(ImageStack):
         self.name = os.path.basename(image_directory).replace('.lsm','')
         self.read_lsm_configuration()
     
-        self.find_coverslip_location()
+        try:
+            self.find_coverslip_location()
+        except:
+            print "couldn't find coverslip location for {}".format(self.output_directory)
     
     def find_coverslip_location(self,plot=True):
-        
+        '''Fit a gaussian to the median pixel value to calculate where the coverslip is'''
         from pylsm import lsmreader
         N_stacks = self.N_stack
         ### Find the slide where the cover slip is. It will be the slide with the highest background. 
@@ -737,9 +740,9 @@ class LSMStack(ImageStack):
         #model it as a gaussian
         medarr=np.array(medlist)
         from Modelling import qFit
-        mu = qFit.Param(3,name='mu')
-        sigma = qFit.Param(4,name='sigma')
-        height = qFit.Param(50,name='height')
+        mu = qFit.Param(5,name='mu')
+        sigma = qFit.Param(3,name='sigma')
+        height = qFit.Param(150,name='height')
         def f(x): 
             return height() * np.exp(-((x-mu())/sigma())**2) 
         retdict = qFit.fit(f, [mu, sigma, height], medarr+10, medarr*0+3, xvals)
@@ -749,7 +752,7 @@ class LSMStack(ImageStack):
         
         # plot the fit and save the plot
         if plot == True:
-            outname = self.name + ".png"
+            outname = self.output_directory + self.name + "coverslipfit.png"
         
             xx = np.linspace(0,N_stacks,1000)
         
@@ -778,6 +781,7 @@ class LSMStack(ImageStack):
 
         
     def read_lsm_configuration(self):
+        '''Grab calibration info from the header'''
         from pylsm import lsmreader
     
         imgobj = lsmreader.Lsmimage(self.image_directory)
@@ -788,7 +792,7 @@ class LSMStack(ImageStack):
         ysize=self.header['CZ LSM info']['Voxel Size Y']
         self.z_diff = self.header['CZ LSM info']['Voxel Size Z'] * 1e6 # stack depth in microns
         # make sure that x and y axis are on same scale
-        assert xsize-ysize < if 1E-9
+        assert xsize-ysize < 1E-9
         self.pixel_scale=xsize*1e6 # microns per pixel
         
         
@@ -880,7 +884,7 @@ class LSMStack(ImageStack):
             from scipy import ndimage
             # imageData = ndimage.gaussian_filter(imageData, sigma=0.95)
             
-            # scale
+            # scale to exponential to make the fluxes like stars because stars are awesome
             imageData= expscale**(imageData/maxval)
             
             outstring = "{num:06d}.fits".format(num=stackid+1)
@@ -891,11 +895,11 @@ class LSMStack(ImageStack):
                 hdulist.writeto(self.output_directory + outstring)
             except IOError:
                 if overwrite == True:
-                    print "{} already exists.. overwriting".format(outstring)
+                    print "{} has an IO error.. attempting to overwrite".format(self.output_directory +outstring)
                     os.remove(self.output_directory + outstring)
                     hdulist.writeto(self.output_directory + outstring)
                 else:    
-                    print "{} already exists.. skipping".format(outstring)
+                    print "{} has an IO error.. skipping".format(self.output_directory +outstring)
             hdulist.close()
         
         fitslist = glob.glob(self.output_directory+'0*.fits')
@@ -1064,7 +1068,7 @@ class TiffStack(ImageStack):
 def histTest(objectlist,outname,title):
     CombinedHist(objectlist,outname,title)
 
-def CombinedHist(objectlist,outname,title):
+def CombinedHist(objectlist,outname,title,skipunknowncoverslips=False):
     '''Plots the results from all images for each gel. In the generated plot,
     each of the gels (which can be thought of as a "trial" for a given set of
     conditions) is plotted with a different base color, and each of the
@@ -1125,11 +1129,22 @@ def CombinedHist(objectlist,outname,title):
     extras = 0 # keeping track of tail end of distribution
     max_index = 80 # where to stop the plot
     for obj in objectlist:
+        if skipunknowncoverslips:
+            if obj.coverslip_measured==False:
+                print "UNKNOWN COVERSLIP LOCATION: SKIPPING"
+                continue
+        
         values = np.zeros(300)
-        first_det_idx = min(obj.object_table.z_min_mu_max.value_counts().index) # for shifting the alignment
+        # first_det_idx = min(obj.object_table.z_min_mu_max.value_counts().index) # for shifting the alignment
+        
+        if obj.coverslip_measured == False:
+            obj.coverslip_location = 0.0
+        
+        first_det_idx = int(np.ceil(obj.coverslip_location) + 2) # 1 for sigma, one for index offset
         # normalize the value indices by shifting the index values such that
         # the first position is the first detected object
         normalized_indices = np.array(obj.object_table.z_min_mu_max.value_counts().index)-first_det_idx
+        normalized_indices=normalized_indices.astype('int')
         
         values[normalized_indices] = obj.object_table.z_min_mu_max.value_counts()
         extras += len(obj.object_table[obj.object_table.z_min_mu_max - first_det_idx > max_index])
@@ -1174,6 +1189,15 @@ def CombinedHist(objectlist,outname,title):
     
     ax2.set_xlim(right=max_index)
     
+    for item in ([ax2.title, ax2.xaxis.label, ax2.yaxis.label] +
+                 ax2.get_xticklabels() + ax2.get_yticklabels()):
+        item.set_fontsize(20)
+    
+    
+    for item in ([ax1.title, ax1.xaxis.label, ax1.yaxis.label] +
+                 ax1.get_xticklabels() + ax1.get_yticklabels()):
+        item.set_fontsize(20)
+        
     fig.savefig(outname)    
     fig.clf()
 
@@ -1286,6 +1310,45 @@ def combined_histograms_140119():
         title = daybase.capitalize()
         title=title.replace('_',' ')
         # raise Exception
+        print len(obj_list)
+        histTest(obj_list,outname,title)
+        
+
+def combined_histograms_140418():
+    dirpath="/Volumes/GRB/20140418_migration_adam_copy/1mgml_fitc/"
+    outdir="/Volumes/GRB/20140418_migration_adam_copy/1mgml_fitc/output/"
+    # daypaths = glob.glob(outdir+'/d*')
+    subbase = outdir    
+    
+    daypaths = ["200Pa_0uM_RGD","200Pa_380uM_RGD"]
+    gelpaths = ['gel1','gel2','gel3']
+
+    for daypath in daypaths:
+        obj_list = []
+        daybase = os.path.basename(daypath)
+        # gelpaths = glob.glob(daypath+'/*')
+        for gelpath in gelpaths:
+            subobjlist=[]
+            gelpath = subbase + gelpath
+            gelbase = os.path.basename(gelpath)
+            globpath =subbase + daypath+'/'+gelbase +'/dapi*/*.pkl'
+            pkl_list = glob.glob(globpath)
+            print globpath
+            for pkl in pkl_list:
+                obj = loadPickle(pkl)
+                subobjlist.append(obj)
+                outname3 = subbase + daybase + gelbase + os.path.basename(pkl)[0:-4] + '.png'
+                title3 = daybase +' '+ gelbase + ' '+ os.path.basename(pkl)[0:-4]
+                histTest([[obj]],outname3,title3)
+            obj_list.append(subobjlist)
+            title2 = daybase.capitalize() +' '+ gelbase.capitalize()
+            outname2 = subbase + daybase + gelbase + '.png'
+            histTest([subobjlist],outname2,title2)
+        outname = subbase + 'full-' + daybase + '.png'
+        title = daybase.capitalize()
+        title=title.replace('_',' ')
+        # raise Exception
+        print "searching "
         print len(obj_list)
         histTest(obj_list,outname,title)
 
