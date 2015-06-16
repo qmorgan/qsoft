@@ -223,7 +223,7 @@ def plot_marg_from_fitdict(fitdict,paramnames):
     ret = plot_marginalization(covmat=covmat,indices=indices,names=names,values=values)
     return ret
     
-def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_delta_values=False):
+def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_delta_values=False, invert_yticks=True):
     
     if covmat == None: # default just for illustration
         covmat=np.matrix([[ 5.29626719,  0.57454987, -0.73125854],
@@ -353,7 +353,6 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_de
         ax2.set_xlabel(xname)
     
     #### HACK ### Av needs to be inverted
-    invert_yticks=True
     if invert_yticks:
         yticks=ax3.get_yticks()
         ax3.set_yticklabels(yticks*-1)
@@ -370,17 +369,7 @@ def plot_marginalization(covmat=None,indices=None,names=None,values=None,plot_de
     return (dx,dy,delta_chi_sq,levels)
     
    
-#Make simulated data:
-xvals=np.arange(100)
-zeros = np.zeros(100)
-zipxvals = zip(xvals,zeros)
 
-gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
-# true values: mu=30, height=3, sigma=sqrt(20)=4.472
-ydata = gaussian(xvals)
-ydata = scipy.randn(100)*.05+ydata #adding noise
-yerr = np.zeros(100)+.05 #array of uncertainties
- 
 def test_fit():
     '''
     Test the leastsq algorithm on a toy model
@@ -390,6 +379,20 @@ def test_fit():
     When I had mu = 20, it sometimes converged to noise with a terrible chisq,
     '''
     import matplotlib.pyplot as plt
+    
+    
+    #Make simulated data:
+    xvals=np.arange(100)
+    zeros = np.zeros(100)
+    zipxvals = zip(xvals,zeros)
+
+    gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
+    # true values: mu=30, height=3, sigma=sqrt(20)=4.472
+    ydata = gaussian(xvals)
+    ydata = scipy.randn(100)*.05+ydata #adding noise
+    yerr = np.zeros(100)+.05 #array of uncertainties
+    
+    
     #Give initial paramaters:
 
     mu = Param(34,name='mu')
@@ -421,6 +424,152 @@ def test_fit():
     ax.plot(simxvals,f(zipsimxvals))
     
     ax.scatter(xvals,ydata)
+    fig2.show()
+    return retdict
+
+def test_linear(fix_intercept = False):
+    '''
+    Test the leastsq algorithm on a toy linear model
+    '''
+    import matplotlib.pyplot as plt
+
+    model1color = 'green'
+    model2color = 'red'
+    truthcolor = 'black'
+
+    #Make simulated data:
+    xvals=np.arange(20)*4
+    # gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
+    # true values: mu=30, height=3, sigma=sqrt(20)=4.472
+    truedict={'slope':0.50, 'intercept':0.0}
+    
+    linear = lambda x: truedict['slope']*x + truedict['intercept']
+    ydata_true = linear(xvals)
+    est_y_err=5000*(xvals+10.0)**-1.8 #making some heteroskedastic noise
+    ydata = scipy.randn(20)*est_y_err+ydata_true #adding noise to the data
+    yerr = np.zeros(20)+est_y_err#array of uncertainties
+    
+    # set up your dictonary of values to fit
+    fitdict = {}
+    names = ['slope','intercept'] 
+    for name in names:
+        fitdict.update({name:{'init':1,'fixed':False}})
+
+    if fix_intercept:
+        # fit the intercept at 0
+        fitdict['intercept']['init'] = 0
+        fitdict['intercept']['fixed'] = True
+
+    # BUILD UP PARAMETERS
+    fullparamlist = []
+    fitparamlist = [] 
+    fixparamlist = []
+
+    #set parameters
+    for key, val in fitdict.iteritems():
+        param = Param(val['init'],name=key)
+        fullparamlist.append(param)
+        if val['fixed'] == False:
+            fitparamlist.append(param)
+        elif val['fixed'] == True:
+            fixparamlist.append(param)
+        else:
+            raise ValueError('Invalid value for Fixed. Must be True/False.')
+
+    # creating parameters to fit 
+    # beta1 = Param(3,name='slope')
+    # beta2 = Param(10,name='intercept')
+    # paramlist = [beta1, beta2]
+    #
+    #Define your function:
+    def myfunc(x,paramlist):
+        for param in paramlist:
+            if param.name == 'slope': slope=param.value
+            elif param.name == 'intercept': intercept=param.value
+            else: raise Exception ('Invalid parameter')
+        return slope*x + intercept
+    
+    def f(x): 
+        return myfunc(x,fullparamlist)
+    
+    #Plot the fitted model over the data if desired
+    simxvals = np.array([-5,50,85]) # 10000 points from 0-100
+    simzeros = np.zeros(len(simxvals))
+    
+    fig2=plt.figure()
+    ax=fig2.add_axes([0.1,0.1,0.8,0.8])
+    
+    # plot the underlying truth
+    ax.plot(simxvals,linear(simxvals),lw=7,alpha=0.4,color=truthcolor)
+    
+    
+    #Fit the function (provided 'data' is an array with the data to fit):
+    retdict = fit(f, fitparamlist, ydata, yerr, xvals)
+    ax.plot(simxvals,f(simxvals),lw=2, color=model1color)
+    
+    #Now assuming tiny/no error
+    #Fit the function (provided 'data' is an array with the data to fit):
+    retdictnoerror = fit(f,fitparamlist,ydata,np.zeros(20)+.001, xvals)
+    ax.plot(simxvals,f(simxvals),lw=2, color=model2color)
+    
+    # Plot the data with error bars
+    ax.errorbar(xvals, ydata, yerr=yerr, fmt='.',color=truthcolor)
+    
+    ax.set_xlim((-5,85))
+    ax.set_ylim((-120,120))
+    
+    # bottom left annotations
+    xloc = 0.2
+    textoffset=0.16
+    textincrement = 0.04
+    textsize=12
+    color=model1color
+    modeldict = retdict
+    title = 'Including measurement error'
+    # model1 annotations 
+    string = 'chi2 / dof = %.2f / %i' % (modeldict['chi2'],modeldict['dof'])
+    fig2.text(xloc,textoffset,string)
+    textoffset+=textincrement
+    for string in modeldict['strings']:
+        fig2.text(xloc,textoffset,string,color=color)
+        textoffset+=textincrement
+    fig2.text(xloc,textoffset,title,size=textsize)
+    
+    # bottom right annotations
+    xloc = 0.55
+    textoffset=0.16
+    textincrement = 0.04
+    textsize=12
+    color=model2color
+    modeldict = retdictnoerror
+    title = 'Assuming no measurement error :'
+    # model2 annotations
+    string = 'chi2 / dof = %.2f / %i' % (modeldict['chi2'],modeldict['dof'])
+    fig2.text(xloc,textoffset,string)
+    textoffset+=textincrement
+    for string in modeldict['strings']:
+        fig2.text(xloc,textoffset,string,color=color)
+        textoffset+=textincrement
+    fig2.text(xloc,textoffset,title,size=textsize)
+    
+    # True annotations
+    textoffset=0.7
+    for key, val in truedict.iteritems():
+        string = key + ': ' + str(val)
+        fig2.text(0.2,textoffset, string, color=truthcolor,alpha=0.4, size=14)
+        textoffset+=0.042   
+    fig2.text(0.2,textoffset,'True Inputs:',size=14)
+    
+    string = 'Fixed params' 
+    if fixparamlist:
+        fig2.text(0.7,0.8,string)
+        textoffset=0.76        
+    for myparam in fixparamlist:
+        string = myparam.name + ': ' + str(myparam.value)
+        fig2.text(0.7,textoffset,string)
+        textoffset-=0.04
+        
+        
     fig2.show()
     return retdict
 
@@ -491,6 +640,20 @@ def sample_from_multivariate_normal_test(retdict,plot_every_model=True):
     
 def test_fit_fmin():
     import matplotlib.pyplot as plt
+    
+    
+    #Make simulated data:
+    xvals=np.arange(100)
+    zeros = np.zeros(100)
+    zipxvals = zip(xvals,zeros)
+
+    gaussian = lambda x: 3*np.exp(-(30-x)**2/20.)
+    # true values: mu=30, height=3, sigma=sqrt(20)=4.472
+    ydata = gaussian(xvals)
+    ydata = scipy.randn(100)*.05+ydata #adding noise
+    yerr = np.zeros(100)+.05 #array of uncertainties
+    
+    
     #Give initial paramaters:
     mu = Param(34,name='mu')
     sigma = Param(4,name='sigma')
@@ -522,3 +685,36 @@ def test_fit_fmin():
     
     ax.scatter(xvals,ydata)
     fig2.show()
+
+def test_multi():
+    # borrowed from SEDfit code
+    y0=np.array([12,13,14,15,16,17]*10)
+    x0=np.arange(300).reshape(60,5)
+    names=['b1','b2','b3','b4','b5']
+    fitdict={}
+    for name in names:
+        fitdict.update({name:{'init':1,'fixed':False}})
+    # BUILD UP PARAMETERS
+    fullparamlist = []
+    fitparamlist = [] 
+    fixparamlist = []
+    
+    #set parameters
+    for key, val in fitdict.iteritems():
+        param = Param(val['init'],name=key)
+        fullparamlist.append(param)
+        if val['fixed'] == False:
+            fitparamlist.append(param)
+        elif val['fixed'] == True:
+            fixparamlist.append(param)
+        else:
+            raise ValueError('Invalid value for Fixed. Must be True/False.')
+    
+    def myf(x): return np.dot(x,np.array([beta.value for beta in fitparamlist]).T)
+    
+    retdict = fit(myf,fitparamlist,y0,np.array([0.1]*60),x0)
+    return retdict 
+    
+    
+    
+    
