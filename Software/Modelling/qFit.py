@@ -600,7 +600,7 @@ def sample_from_multivariate_normal_test(retdict, plot_every_model=True):
     cov = retdict['covarmatrix']
 
     nxvals = 1000
-    nsimulations = 1500
+    nsimulations = 500
 
     # nxvals samples from normal distribution
     samples = np.random.multivariate_normal(mean, cov, (nsimulations))
@@ -624,14 +624,14 @@ def sample_from_multivariate_normal_test(retdict, plot_every_model=True):
         count += 1
 
     # Two sigma is 95.4%
-    simylower02point3 = stats.scoreatpercentile(simymat, 2.3)
-    simyupper97point7 = stats.scoreatpercentile(simymat, 97.7)
+    simylower02point3 = stats.scoreatpercentile(simymat, 2.3, axis=0)
+    simyupper97point7 = stats.scoreatpercentile(simymat, 97.7, axis=0)
 
     if not plot_every_model:
         ax.fill_between(simxvals, simylower02point3,
                         simyupper97point7, color='#CCCCCC')
-        simyupper84 = stats.scoreatpercentile(simymat, 84.1)
-        simylower16 = stats.scoreatpercentile(simymat, 15.9)
+        simyupper84 = stats.scoreatpercentile(simymat, 84.1, axis=0)
+        simylower16 = stats.scoreatpercentile(simymat, 15.9, axis=0)
         ax.fill_between(simxvals, simylower16, simyupper84, color='#888888')
         ax.plot(simxvals, f(simxvals, mean[0], mean[1], mean[2]),
                 color='black')
@@ -639,6 +639,11 @@ def sample_from_multivariate_normal_test(retdict, plot_every_model=True):
     else:
         ax.plot(simxvals, simyupper97point7, color='red', lw=2)
         ax.plot(simxvals, simylower02point3, color='blue', lw=2)
+
+    ax.set_ylim(-0.1, 3.1)
+    ax.set_xlim(14, 46)
+    plt.show()
+
     return simymat
 
 
